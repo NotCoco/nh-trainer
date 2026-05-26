@@ -1,0 +1,99 @@
+{
+  "name": "gmaul_special",
+  "sequenceId": 1667,
+  "frameStep": -1,
+  "rightHandItem": -1,
+  "leftHandItem": -1,
+  "forcedPriority": 6,
+  "priority": -1,
+  "frames": [
+    {
+      "index": 0,
+      "archiveId": 300,
+      "fileId": 158,
+      "frameKey": "300:158",
+      "packedFrameId": 19660958,
+      "lengthClientCycles": 2
+    },
+    {
+      "index": 1,
+      "archiveId": 300,
+      "fileId": 161,
+      "frameKey": "300:161",
+      "packedFrameId": 19660961,
+      "lengthClientCycles": 1
+    },
+    {
+      "index": 2,
+      "archiveId": 300,
+      "fileId": 162,
+      "frameKey": "300:162",
+      "packedFrameId": 19660962,
+      "lengthClientCycles": 1
+    },
+    {
+      "index": 3,
+      "archiveId": 300,
+      "fileId": 163,
+      "frameKey": "300:163",
+      "packedFrameId": 19660963,
+      "lengthClientCycles": 1
+    },
+    {
+      "index": 4,
+      "archiveId": 300,
+      "fileId": 164,
+      "frameKey": "300:164",
+      "packedFrameId": 19660964,
+      "lengthClientCycles": 1
+    },
+    {
+      "index": 5,
+      "archiveId": 300,
+      "fileId": 165,
+      "frameKey": "300:165",
+      "packedFrameId": 19660965,
+      "lengthClientCycles": 1
+    },
+    {
+      "index": 6,
+      "archiveId": 300,
+      "fileId": 166,
+      "frameKey": "300:166",
+      "packedFrameId": 19660966,
+      "lengthClientCycles": 1
+    },
+    {
+      "index": 7,
+      "archiveId": 300,
+      "fileId": 167,
+      "frameKey": "300:167",
+      "packedFrameId": 19660967,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 8,
+      "archiveId": 300,
+      "fileId": 168,
+      "frameKey": "300:168",
+      "packedFrameId": 19660968,
+      "lengthClientCycles": 2
+    },
+    {
+      "index": 9,
+      "archiveId": 300,
+      "fileId": 159,
+      "frameKey": "300:159",
+      "packedFrameId": 19660959,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 10,
+      "archiveId": 300,
+      "fileId": 160,
+      "frameKey": "300:160",
+      "packedFrameId": 19660960,
+      "lengthClientCycles": 2
+    }
+  ]
+}

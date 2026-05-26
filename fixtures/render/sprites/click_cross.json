@@ -1,0 +1,105 @@
+{
+  "id": "click_cross",
+  "source": "Kronos cache SpriteDefinition",
+  "image": "click_cross.png",
+  "width": 104,
+  "height": 14,
+  "sprites": [
+    {
+      "spriteId": 515,
+      "frame": 0,
+      "x": 0,
+      "y": 0,
+      "width": 10,
+      "height": 10,
+      "offsetX": 3,
+      "offsetY": 3,
+      "maxWidth": 16,
+      "maxHeight": 16
+    },
+    {
+      "spriteId": 516,
+      "frame": 0,
+      "x": 10,
+      "y": 0,
+      "width": 14,
+      "height": 14,
+      "offsetX": 1,
+      "offsetY": 1,
+      "maxWidth": 16,
+      "maxHeight": 16
+    },
+    {
+      "spriteId": 517,
+      "frame": 0,
+      "x": 24,
+      "y": 0,
+      "width": 14,
+      "height": 14,
+      "offsetX": 1,
+      "offsetY": 1,
+      "maxWidth": 16,
+      "maxHeight": 16
+    },
+    {
+      "spriteId": 518,
+      "frame": 0,
+      "x": 38,
+      "y": 0,
+      "width": 14,
+      "height": 14,
+      "offsetX": 1,
+      "offsetY": 1,
+      "maxWidth": 16,
+      "maxHeight": 16
+    },
+    {
+      "spriteId": 519,
+      "frame": 0,
+      "x": 52,
+      "y": 0,
+      "width": 10,
+      "height": 10,
+      "offsetX": 3,
+      "offsetY": 3,
+      "maxWidth": 16,
+      "maxHeight": 16
+    },
+    {
+      "spriteId": 520,
+      "frame": 0,
+      "x": 62,
+      "y": 0,
+      "width": 14,
+      "height": 14,
+      "offsetX": 1,
+      "offsetY": 1,
+      "maxWidth": 16,
+      "maxHeight": 16
+    },
+    {
+      "spriteId": 521,
+      "frame": 0,
+      "x": 76,
+      "y": 0,
+      "width": 14,
+      "height": 14,
+      "offsetX": 1,
+      "offsetY": 1,
+      "maxWidth": 16,
+      "maxHeight": 16
+    },
+    {
+      "spriteId": 522,
+      "frame": 0,
+      "x": 90,
+      "y": 0,
+      "width": 14,
+      "height": 14,
+      "offsetX": 1,
+      "offsetY": 1,
+      "maxWidth": 16,
+      "maxHeight": 16
+    }
+  ]
+}

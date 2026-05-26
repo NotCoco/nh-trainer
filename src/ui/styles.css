@@ -1,0 +1,4168 @@
+:root {
+  color: #e9e0cb;
+  background: #15130f;
+  font-family:
+    "Aptos", "Segoe UI", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #15130f;
+}
+
+.shell {
+  width: min(1120px, calc(100vw - 48px));
+  margin: 0 auto;
+  padding: 48px 0;
+}
+
+.clientOnlyShell {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, #1a1711 0%, #11100d 50%, #090907 100%);
+}
+
+.nhSiteBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.nhSiteBackdrop::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(110deg, rgb(91 77 45 / 0.22) 0%, transparent 42%),
+    linear-gradient(180deg, transparent 0%, rgb(0 0 0 / 0.2) 100%);
+  opacity: 1;
+  pointer-events: none;
+}
+
+.nhSiteBackdrop::after {
+  content: "";
+  position: absolute;
+  left: clamp(20px, 3vw, 48px);
+  right: clamp(20px, 3vw, 48px);
+  top: 112px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgb(185 132 58 / 0.24) 48%, transparent 100%);
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.nhSiteIntro {
+  position: absolute;
+  left: clamp(34px, 2.8vw, 44px);
+  right: clamp(24px, 4vw, 64px);
+  top: 24px;
+  display: grid;
+  grid-template-columns: max-content minmax(360px, 620px);
+  gap: 10px 34px;
+  align-items: start;
+  color: #eee2c9;
+}
+
+.nhSiteWordmark {
+  display: inline-grid;
+  grid-template-columns: 60px max-content;
+  gap: 13px;
+  align-items: center;
+  margin: 0;
+  color: #f5ead0;
+  line-height: 1;
+}
+
+.nhSiteWordmarkMark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 54px;
+  border: 1px solid rgb(171 129 62 / 0.54);
+  background:
+    linear-gradient(145deg, rgb(62 50 28 / 0.94), rgb(22 18 13 / 0.94));
+  box-shadow:
+    inset 1px 1px 0 rgb(255 231 166 / 0.16),
+    inset -1px -1px 0 rgb(0 0 0 / 0.78),
+    0 8px 18px rgb(0 0 0 / 0.2);
+  color: #f1c86c;
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, ui-serif, serif;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: 1px 1px 0 #000000;
+}
+
+.nhSiteWordmarkMark::after {
+  content: "";
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  bottom: 7px;
+  height: 1px;
+  background: rgb(241 200 108 / 0.34);
+}
+
+.nhSiteWordmarkText {
+  display: grid;
+  color: #f5ead0;
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, ui-serif, serif;
+  font-size: 46px;
+  font-weight: 650;
+  line-height: 0.95;
+  text-shadow: 0 1px 0 rgb(0 0 0 / 0.8);
+}
+
+.nhSiteWordmarkText span {
+  display: block;
+}
+
+.nhSiteIntroStatement {
+  max-width: 620px;
+  margin: 8px 0 0;
+  color: #b9ad95;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.nhSiteIntroDetails {
+  display: grid;
+  grid-column: 2;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 13px;
+  width: min(620px, 100%);
+  border-top: 1px solid rgb(171 129 62 / 0.32);
+  margin-top: 4px;
+  padding-top: 10px;
+  color: #b9ad95;
+}
+
+.nhSiteIntroDetails div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  align-content: start;
+}
+
+.nhSiteIntroDetails span {
+  color: #7e7667;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.nhSiteIntroDetails strong {
+  color: #dfbd72;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.28;
+}
+
+.nhSiteMoreInfo {
+  position: absolute;
+  left: 0;
+  top: 92px;
+  width: 212px;
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid rgb(171 129 62 / 0.18);
+  color: #9f927b;
+  font-size: 13px;
+  line-height: 1.48;
+  pointer-events: auto;
+}
+
+.nhSiteMoreInfo summary {
+  width: fit-content;
+  min-height: 20px;
+  color: #dfbd72;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  list-style-position: outside;
+  user-select: none;
+}
+
+.nhSiteMoreInfo summary:hover,
+.nhSiteMoreInfo summary:focus-visible {
+  color: #f0cc7a;
+}
+
+.nhSiteMoreInfo summary::marker {
+  color: #8e7442;
+}
+
+.nhSiteMoreInfo p {
+  margin: 8px 0 0;
+  color: #a99c84;
+}
+
+.nhSiteMoreInfo[open] {
+  width: 236px;
+  border-color: rgb(171 129 62 / 0.28);
+}
+
+@media (max-width: 900px) {
+  .nhSiteIntro {
+    top: 22px;
+    left: 22px;
+    right: 22px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+  }
+
+  .nhSiteWordmark {
+    grid-template-columns: 50px max-content;
+    gap: 10px;
+  }
+
+  .nhSiteWordmarkMark {
+    width: 50px;
+    height: 46px;
+    font-size: 20px;
+  }
+
+  .nhSiteWordmarkText {
+    font-size: 36px;
+  }
+
+  .nhSiteIntroDetails {
+    grid-column: 1;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    justify-self: stretch;
+  }
+
+  .nhSiteMoreInfo {
+    position: static;
+    width: auto;
+  }
+}
+
+@media (max-width: 560px), (max-height: 640px) {
+  .nhSiteWordmark {
+    grid-template-columns: 44px max-content;
+  }
+
+  .nhSiteWordmarkMark {
+    width: 44px;
+    height: 40px;
+    font-size: 18px;
+  }
+
+  .nhSiteWordmarkText {
+    font-size: 30px;
+  }
+
+  .nhSiteIntroStatement {
+    font-size: 13px;
+  }
+
+  .nhSiteIntroDetails,
+  .nhSiteMoreInfo,
+  .nhSiteBackdrop::after {
+    display: none;
+  }
+}
+
+.clientOnlyShell .runtimeClientSection {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.clientOnlyShell .runtimeClientSection > .sectionHeader,
+.clientOnlyShell .runtimeClientSection .runtimePanel {
+  display: none;
+}
+
+.clientOnlyShell .runtimeScene {
+  display: block;
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.clientOnlyShell .browserClientWindow {
+  pointer-events: auto;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid #2b3036;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #9ca6b4;
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 0;
+  font-size: 42px;
+  line-height: 1.05;
+}
+
+h2 {
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+
+.truthBadge {
+  flex: 0 0 auto;
+  border: 1px solid #3d7f5d;
+  color: #bdf3d3;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #173321;
+}
+
+.notice {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 32px 0;
+  padding: 20px;
+  border: 1px solid #3b454f;
+  border-radius: 8px;
+  background: #171c21;
+}
+
+.notice p {
+  max-width: 760px;
+  margin-bottom: 0;
+  color: #b5beca;
+  line-height: 1.6;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(86px, 1fr));
+  gap: 10px;
+  min-width: 360px;
+}
+
+.stats div {
+  padding: 12px;
+  border: 1px solid #2f3740;
+  border-radius: 6px;
+  background: #11161b;
+  color: #9ca6b4;
+  font-size: 13px;
+}
+
+.stats span {
+  display: block;
+  color: #f5cf7a;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.module {
+  min-height: 156px;
+  padding: 18px;
+  border: 1px solid #2f3740;
+  border-radius: 8px;
+  background: #15191e;
+}
+
+.moduleName {
+  color: #f5cf7a;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.modulePurpose {
+  margin-top: 18px;
+  color: #e6e8ec;
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.moduleStatus {
+  margin-top: 18px;
+  color: #9ca6b4;
+  font-size: 14px;
+}
+
+.workbenchSection {
+  margin-top: 34px;
+  padding-top: 28px;
+  border-top: 1px solid #2b3036;
+}
+
+.sectionHeader {
+  margin-bottom: 16px;
+}
+
+.sectionHeader h2 {
+  margin-bottom: 0;
+}
+
+.targetList,
+.contractList,
+.toolList {
+  display: grid;
+  gap: 12px;
+}
+
+.targetList {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.target,
+.contract,
+.tool {
+  border: 1px solid #2f3740;
+  border-radius: 8px;
+  background: #15191e;
+}
+
+.target {
+  padding: 16px;
+}
+
+.targetTopline {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+h3 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.targetTopline span {
+  height: fit-content;
+  border: 1px solid #3d7f5d;
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: #bdf3d3;
+  font-size: 12px;
+}
+
+.target p,
+.contract p,
+.tool p {
+  margin: 10px 0 0;
+  color: #b5beca;
+  line-height: 1.5;
+}
+
+.artifactLine {
+  margin-top: 14px;
+  color: #f5cf7a;
+  font-size: 13px;
+}
+
+.glbViewer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+}
+
+.runtimeScene {
+  display: grid;
+  grid-template-columns: max-content 320px;
+  gap: 16px;
+  align-items: start;
+}
+
+.duelSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.duelHud {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+  margin-bottom: 12px;
+}
+
+.fighterHud,
+.fightClock {
+  border: 1px solid #2f3740;
+  border-radius: 8px;
+  background: #15191e;
+}
+
+.fighterHud {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.fighterHud > div:first-child {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.fighterHud strong {
+  color: #e6e8ec;
+  font-size: 15px;
+}
+
+.fighterHud span {
+  color: #9ca6b4;
+  font-size: 13px;
+}
+
+.fighterHud-opponent {
+  text-align: right;
+}
+
+.hpBar {
+  height: 10px;
+  border: 1px solid #34404b;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #101418;
+}
+
+.hpBar span {
+  display: block;
+  height: 100%;
+  background: #4fae73;
+}
+
+.fightClock {
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  color: #9ca6b4;
+}
+
+.fightClock span {
+  color: #bdf3d3;
+  font-size: 13px;
+}
+
+.fightClock strong {
+  color: #f5cf7a;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.fightClock small {
+  font-size: 12px;
+}
+
+.duelActionSurface {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+.duelActionPanel {
+  display: grid;
+  gap: 10px;
+  min-height: 132px;
+  border: 1px solid #2f3740;
+  border-radius: 8px;
+  padding: 12px;
+  background: #15191e;
+}
+
+.duelActionPanel h3 {
+  color: #9ca6b4;
+  font-size: 13px;
+}
+
+.segmentedButtons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.segmentedButtons-wide {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.segmentedButtons button,
+.duelButtons button {
+  min-height: 34px;
+  border: 1px solid #34404b;
+  border-radius: 6px;
+  padding: 7px 9px;
+  background: #101418;
+  color: #d6dbe3;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.segmentedButtons button[aria-pressed="true"],
+.duelButtons button {
+  border-color: #3d7f5d;
+  background: #173321;
+  color: #bdf3d3;
+}
+
+.duelActionPanel select {
+  width: 100%;
+  border: 1px solid #34404b;
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: #101418;
+  color: #e6e8ec;
+  font: inherit;
+}
+
+.inventoryStrip {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.policyWorkbench,
+.duelControls {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.duelControls {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
+  align-items: end;
+}
+
+.policyLoader,
+.duelControls label {
+  display: grid;
+  gap: 8px;
+  color: #9ca6b4;
+  font-size: 13px;
+}
+
+.policyLoader input,
+.duelControls select {
+  width: 100%;
+  border: 1px solid #34404b;
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: #101418;
+  color: #e6e8ec;
+  font: inherit;
+}
+
+.duelButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.policyStatus {
+  margin: 0;
+  border: 1px solid #34404b;
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: #101418;
+  color: #d6dbe3;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.policyStatus-ready {
+  border-color: #3d7f5d;
+  color: #bdf3d3;
+}
+
+.policyStatus-error {
+  border-color: #8d6237;
+  color: #ffd49b;
+}
+
+.policySummary,
+.policyTopActions {
+  display: grid;
+  gap: 12px;
+}
+
+.policySummary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.policyTopActions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.policySummary article,
+.policyTopActions article,
+.duelSummaryGrid article,
+.duelDetailGrid article {
+  border: 1px solid #2f3740;
+  border-radius: 8px;
+  background: #15191e;
+}
+
+.policySummary article,
+.duelSummaryGrid article {
+  padding: 14px;
+  color: #9ca6b4;
+  font-size: 13px;
+}
+
+.policySummary span,
+.duelSummaryGrid span {
+  display: block;
+  color: #f5cf7a;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.duelDetailGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.policyDecisionList {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.duelDetailGrid article {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 14px;
+}
+
+.policyTopActions article {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 14px;
+}
+
+.policyDecisionList article {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  border: 1px solid #2f3740;
+  border-radius: 8px;
+  padding: 12px;
+  background: #15191e;
+}
+
+.policyDecisionList div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.policyDecisionList span {
+  color: #f5cf7a;
+  font-weight: 800;
+}
+
+.policyDecisionList strong {
+  color: #bdf3d3;
+  font-size: 13px;
+}
+
+.policyDecisionList small {
+  color: #9ca6b4;
+}
+
+.policyTopActions p,
+.duelDetailGrid p {
+  margin: 0;
+  color: #b5beca;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.glbViewport,
+.glbPanel,
+.runtimeViewport,
+.runtimePanel {
+  border: 1px solid #2f3740;
+  border-radius: 8px;
+  background: #15191e;
+}
+
+.glbViewport {
+  position: relative;
+  min-height: 360px;
+  overflow: hidden;
+}
+
+.runtimeViewport {
+  position: relative;
+  height: clamp(460px, 58vh, 640px);
+  min-height: clamp(460px, 58vh, 640px);
+  overflow: hidden;
+}
+
+.runeliteClientShell {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  background: #000000;
+  border: 0;
+  overflow: hidden;
+}
+
+.runeliteClientPanelFrame {
+  position: relative;
+  flex: 0 0 765px;
+  width: 765px;
+  height: 503px;
+  min-width: 765px;
+  min-height: 503px;
+  overflow: hidden;
+  background: #000000;
+}
+
+.runeliteClientPanelFrame[data-stretched-mode="true"] {
+  min-width: 1px;
+  min-height: 1px;
+}
+
+.runeliteClientPanel {
+  position: relative;
+  flex: 0 0 765px;
+  width: 765px;
+  height: 503px;
+  min-width: 765px;
+  min-height: 503px;
+  overflow: hidden;
+  background: #000000;
+  transform-origin: left top;
+}
+
+.runeliteClientPanelFrame > .runeliteClientPanel {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.runeliteAntiDragOverlay {
+  position: absolute;
+  z-index: 200;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.runeliteMouseHighlightTooltip {
+  position: absolute;
+  z-index: 220;
+  display: block;
+  padding: var(--runelite-tooltip-padding);
+  background: var(--runelite-tooltip-bg);
+  box-shadow:
+    0 0 0 1px var(--runelite-tooltip-outside-stroke),
+    inset 0 0 0 1px var(--runelite-tooltip-inside-stroke);
+  color: #ffffff;
+  font: 12px Arial, sans-serif;
+  line-height: 15px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.runeliteMouseHighlightTooltipLine {
+  display: block;
+}
+
+.runeliteClientPanel .runtimeViewport {
+  width: 765px;
+  height: 503px;
+  min-height: 503px;
+  border: 0;
+  border-radius: 0;
+  background: #000000;
+}
+
+.runeliteSidebarToggleHotZone {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 80;
+  width: 35px;
+  height: 503px;
+  pointer-events: none;
+}
+
+.runeliteSidebarToggleButton {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: grid;
+  place-items: center;
+  width: 10px;
+  height: 20px;
+  border: 0;
+  padding: 0;
+  opacity: 0;
+  background: transparent;
+  cursor: default;
+  pointer-events: auto;
+}
+
+.runeliteSidebarToggleHotZone:hover .runeliteSidebarToggleButton,
+.runeliteSidebarToggleButton:focus-visible {
+  opacity: 1;
+}
+
+.runeliteSidebarToggleButton:focus {
+  outline: none;
+}
+
+.runeliteSidebarToggleButton img {
+  display: block;
+  width: 10px;
+  height: 20px;
+  pointer-events: none;
+}
+
+.runeliteSidebarToggleButton[data-sidebar-open="true"] img {
+  transform: scaleX(-1);
+}
+
+.runeliteNavContainer {
+  align-self: stretch;
+  flex: 0 0 0;
+  width: 0;
+  min-width: 0;
+  max-width: 0;
+  min-height: 503px;
+  overflow: hidden;
+  background: rgb(40, 40, 40);
+}
+
+.runeliteNavContainer[data-open="true"] {
+  flex-basis: 242px;
+  width: 242px;
+  min-width: 242px;
+  max-width: 242px;
+}
+
+.runelitePluginPanel {
+  width: 242px;
+  height: 100%;
+  min-height: 503px;
+  overflow: hidden;
+  background: rgb(40, 40, 40);
+  color: rgb(165, 165, 165);
+  font: 12px Arial, sans-serif;
+}
+
+.runelitePluginPanelInner {
+  box-sizing: border-box;
+  width: 225px;
+  height: 100%;
+  min-height: 100%;
+  padding: 6px;
+  background: rgb(40, 40, 40);
+}
+
+.runeliteConfigPanel {
+  display: flex;
+  flex-direction: column;
+  width: 225px;
+  min-height: 100%;
+  background: rgb(40, 40, 40);
+}
+
+.runeliteConfigTopPanel {
+  box-sizing: border-box;
+  padding: 10px;
+}
+
+.runeliteIconTextField {
+  display: flex;
+  align-items: center;
+  background: rgb(30, 30, 30);
+}
+
+.runeliteIconTextField:hover,
+.runeliteIconTextField:focus-within {
+  background: rgb(35, 35, 35);
+}
+
+.runeliteConfigSearch {
+  width: 205px;
+  height: 30px;
+}
+
+.runeliteIconTextFieldIcon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  width: 30px;
+  align-self: stretch;
+}
+
+.runeliteIconTextFieldIcon img {
+  display: block;
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.runeliteFlatTextField {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-self: stretch;
+  padding-left: 10px;
+}
+
+.runeliteFlatTextField input {
+  min-width: 0;
+  flex: 1 1 auto;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #ffffff;
+  font: 12px Arial, sans-serif;
+  caret-color: #ffffff;
+}
+
+.runeliteFlatTextField input::selection {
+  color: #ffffff;
+  background: rgba(39, 160, 202, 0.35);
+}
+
+.runeliteIconTextFieldClear {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: rgb(230, 30, 30);
+  font: 700 12px Arial, sans-serif;
+}
+
+.runeliteIconTextFieldClear:hover {
+  color: pink;
+}
+
+.runeliteConfigList {
+  display: grid;
+  grid-template-columns: 1fr;
+  row-gap: 5px;
+  box-sizing: border-box;
+  width: 225px;
+  padding: 8px 10px 10px;
+}
+
+.runelitePluginListItem {
+  display: grid;
+  grid-template-columns: 21px minmax(0, 1fr) 50px;
+  align-items: center;
+  width: 225px;
+  height: 20px;
+  color: #ffffff;
+  font: 12px Arial, sans-serif;
+}
+
+.runelitePluginListItem[data-plugin-type="important"] .runelitePluginListName {
+  color: #ffffff;
+}
+
+.runelitePluginListName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runelitePluginPinButton,
+.runelitePluginConfigButton,
+.runelitePluginToggleButton {
+  display: grid;
+  place-items: center;
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.runelitePluginPinButton {
+  width: 21px;
+  height: 20px;
+}
+
+.runelitePluginListActions {
+  display: grid;
+  grid-template-columns: 25px 25px;
+  width: 50px;
+  height: 20px;
+}
+
+.runelitePluginConfigButton,
+.runelitePluginToggleButton {
+  width: 25px;
+  height: 20px;
+}
+
+.runelitePluginToggleButton-hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.runelitePluginPinButton img,
+.runelitePluginConfigButton img {
+  display: block;
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.runelitePluginToggleButton img {
+  display: block;
+  width: 25px;
+  height: 15px;
+  object-fit: contain;
+}
+
+.runelitePluginListItemStar,
+.runelitePluginListItemSwitcher {
+  transform-origin: center;
+}
+
+.runelitePluginListItemStarOff,
+.runelitePluginPinButton[aria-pressed="false"] img {
+  filter: grayscale(1) brightness(1.77);
+}
+
+.runelitePluginListItemSwitcherOff,
+.runelitePluginToggleButton[aria-pressed="false"] img {
+  transform: scaleX(-1);
+  filter: grayscale(1) brightness(1.61);
+}
+
+.runeliteConfigDetailPanel {
+  background: rgb(40, 40, 40);
+}
+
+.runeliteConfigDetailTopPanel {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 25px;
+  column-gap: 5px;
+  align-items: center;
+  box-sizing: border-box;
+  width: 225px;
+  min-height: 50px;
+  padding: 10px;
+}
+
+.runeliteConfigBackButton {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 30px;
+  border: 0;
+  padding: 0 5px 0 0;
+  background: transparent;
+}
+
+.runeliteConfigBackButton img {
+  display: block;
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.runeliteConfigBackButton:hover img {
+  opacity: 0.6;
+}
+
+.runeliteConfigDetailTitle {
+  min-width: 0;
+  overflow: hidden;
+  color: #ffffff;
+  font: 12px Arial, sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runeliteConfigDetailToggleButton {
+  justify-self: end;
+}
+
+.runeliteConfigDetailList {
+  display: grid;
+  grid-template-columns: 1fr;
+  row-gap: 5px;
+  box-sizing: border-box;
+  width: 225px;
+  padding: 8px 10px 10px;
+}
+
+.runeliteConfigTitleSection,
+.runeliteConfigCollapsibleSection {
+  display: grid;
+  grid-template-columns: 1fr;
+  row-gap: 5px;
+  box-sizing: border-box;
+  width: 205px;
+}
+
+.runeliteConfigTitleSectionHeader {
+  box-sizing: border-box;
+  width: 205px;
+  padding-top: 10px;
+  color: rgb(229, 57, 53);
+  font: 12px Arial, sans-serif;
+}
+
+.runeliteConfigSectionHeader {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  width: 205px;
+  min-height: 20px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: rgb(229, 57, 53);
+  text-align: left;
+  font: 12px Arial, sans-serif;
+  cursor: default;
+}
+
+.runeliteConfigSectionIcon {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  overflow: hidden;
+}
+
+.runeliteConfigSectionIcon img {
+  display: block;
+  width: 13px;
+  height: 13px;
+  object-fit: contain;
+  filter: sepia(1) saturate(5) hue-rotate(320deg);
+}
+
+.runeliteConfigSectionIcon[data-source-icon="SECTION_RETRACT_ICON"] img {
+  transform: rotate(270deg);
+}
+
+.runeliteConfigSectionIcon[data-source-icon="SECTION_EXPAND_ICON"] img {
+  transform: rotate(180deg);
+}
+
+.runeliteConfigTitleSectionContents,
+.runeliteConfigSectionContents {
+  display: grid;
+  grid-template-columns: 1fr;
+  row-gap: 5px;
+  box-sizing: border-box;
+  width: 205px;
+  padding: 6px 0 0 5px;
+}
+
+.runeliteConfigEntry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 6px;
+  align-items: center;
+  box-sizing: border-box;
+  width: 200px;
+  min-height: 25px;
+  color: #ffffff;
+  font: 12px Arial, sans-serif;
+}
+
+.runeliteConfigEntry-text {
+  grid-template-columns: 1fr;
+  row-gap: 4px;
+}
+
+.runeliteConfigEntryName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runeliteConfigCheckbox {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: rgb(94, 94, 94);
+}
+
+.runeliteConfigSliderRow {
+  display: grid;
+  grid-template-columns: 24px 80px;
+  align-items: center;
+  width: 110px;
+  height: 25px;
+}
+
+.runeliteConfigSliderValue {
+  color: #ffffff;
+  font: 12px Arial, sans-serif;
+}
+
+.runeliteConfigSlider {
+  width: 80px;
+  height: 25px;
+  margin: 0;
+  accent-color: #ffffff;
+}
+
+.runeliteConfigSelect {
+  box-sizing: border-box;
+  max-width: 110px;
+  height: 25px;
+  border: 1px solid rgb(60, 60, 60);
+  background: rgb(30, 30, 30);
+  color: #ffffff;
+  font: 12px Arial, sans-serif;
+}
+
+.runeliteConfigTextInput {
+  box-sizing: border-box;
+  width: 200px;
+  min-height: 30px;
+  border: 0;
+  padding: 5px;
+  background: rgb(30, 30, 30);
+  color: #ffffff;
+  font: 12px Arial, sans-serif;
+}
+
+.runeliteConfigNumberInput {
+  box-sizing: border-box;
+  width: 72px;
+  height: 25px;
+  border: 1px solid rgb(60, 60, 60);
+  padding: 3px 5px;
+  background: rgb(30, 30, 30);
+  color: #ffffff;
+  font: 12px Arial, sans-serif;
+}
+
+.runeliteConfigHotkeyButton {
+  box-sizing: border-box;
+  min-width: 72px;
+  max-width: 110px;
+  min-height: 25px;
+  border: 1px solid rgb(80, 80, 80);
+  padding: 3px 8px;
+  overflow: hidden;
+  background: rgb(30, 30, 30);
+  color: #ffffff;
+  font: 12px Arial, sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runeliteConfigHotkeyButton:focus {
+  outline: 1px solid rgb(160, 160, 160);
+  outline-offset: 1px;
+}
+
+.runeliteConfigHotkeyButton:hover {
+  background: rgb(60, 60, 60);
+}
+
+.runeliteConfigColorButton,
+.runeliteConfigFooterButton {
+  box-sizing: border-box;
+  min-height: 25px;
+  border: 1px solid rgb(80, 80, 80);
+  color: #ffffff;
+  font: 12px Arial, sans-serif;
+}
+
+.runeliteConfigColorButton {
+  min-width: 72px;
+}
+
+.runeliteConfigFooterButton {
+  width: 205px;
+  background: rgb(30, 30, 30);
+}
+
+.runeliteConfigFooterButton:hover {
+  background: rgb(60, 60, 60);
+}
+
+.runeliteInfoPanel {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 225px;
+  min-height: 100%;
+  padding: 10px;
+  background: rgb(40, 40, 40);
+  color: rgb(165, 165, 165);
+  font: 12px Arial, sans-serif;
+}
+
+.runeliteInfoVersionPanel {
+  display: grid;
+  grid-template-columns: 1fr;
+  box-sizing: border-box;
+  width: 205px;
+  padding: 10px;
+  background: rgb(30, 30, 30);
+}
+
+.runeliteInfoVersionLine {
+  min-height: 16px;
+  color: rgb(165, 165, 165);
+}
+
+.runeliteInfoVersionLine strong {
+  color: #ffffff;
+  font-weight: 400;
+}
+
+.runeliteInfoActionsContainer {
+  display: grid;
+  grid-template-columns: 1fr;
+  row-gap: 10px;
+  box-sizing: border-box;
+  width: 205px;
+  padding-top: 10px;
+}
+
+.runeliteInfoAction {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  box-sizing: border-box;
+  width: 205px;
+  min-height: 56px;
+  border: 0;
+  padding: 10px;
+  background: rgb(30, 30, 30);
+  color: #ffffff;
+  cursor: pointer;
+  font: 12px Arial, sans-serif;
+  text-align: left;
+}
+
+.runeliteInfoAction:hover {
+  background: rgb(60, 60, 60);
+}
+
+.runeliteInfoAction:active {
+  background: rgb(43, 43, 43);
+}
+
+.runeliteInfoActionIcon {
+  display: block;
+  max-width: 24px;
+  max-height: 24px;
+  object-fit: contain;
+}
+
+.runeliteInfoActionText {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-width: 0;
+  padding: 5px 10px;
+}
+
+.runeliteInfoActionArrow {
+  display: block;
+  width: 8px;
+  height: 13px;
+  object-fit: contain;
+}
+
+.runelitePvpToolsPanel {
+  display: flex;
+  flex-direction: column;
+  row-gap: 10px;
+  box-sizing: border-box;
+  width: 225px;
+  min-height: 100%;
+  padding: 10px;
+  background: rgb(40, 40, 40);
+  color: #ffffff;
+  font: 12px Arial, sans-serif;
+}
+
+.runelitePvpToolsInfoPanel,
+.runelitePvpToolsRiskPanel,
+.runelitePvpToolsButtonsPanel {
+  display: grid;
+  grid-template-columns: 1fr;
+  box-sizing: border-box;
+  width: 205px;
+  padding: 10px;
+  background: rgb(30, 30, 30);
+}
+
+.runelitePvpToolsHtmlLabel {
+  display: flex;
+  min-height: 15px;
+  color: #a5a5a5;
+}
+
+.runelitePvpToolsHtmlLabel-large {
+  min-height: 17px;
+}
+
+.runelitePvpToolsHtmlLabel strong {
+  color: #ffffff;
+  font-weight: normal;
+}
+
+.runelitePvpToolsBiggestItem {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  color: #ffffff;
+}
+
+.runelitePvpToolsItemSprite {
+  display: inline-block;
+  margin-left: 4px;
+  image-rendering: pixelated;
+}
+
+.runelitePvpToolsButton {
+  min-height: 24px;
+  margin: 0 0 6px;
+  border: 1px solid rgb(20, 20, 20);
+  background: rgb(45, 45, 45);
+  color: #ffffff;
+  font: 12px Arial, sans-serif;
+  cursor: pointer;
+}
+
+.runelitePvpToolsButton:hover {
+  background: rgb(55, 55, 55);
+}
+
+.runelitePvpToolsPlayerCountOverlay {
+  position: absolute;
+  z-index: 24;
+  top: 8px;
+  left: 8px;
+  display: grid;
+  grid-template-columns: 1fr;
+  min-width: 92px;
+  padding: 3px 5px;
+  background: rgba(70, 61, 50, 0.612);
+  color: #ffffff;
+  font: 12px Arial, sans-serif;
+  pointer-events: none;
+}
+
+.runelitePvpToolsOverlayRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 12px;
+}
+
+.runelitePvpToolsFriendlyLabel {
+  color: #00ff00;
+}
+
+.runelitePvpToolsEnemyLabel {
+  color: #ff0000;
+}
+
+.runeliteSuppliesTrackerPanel {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 225px;
+  min-height: 100%;
+  padding: 6px;
+  background: rgb(40, 40, 40);
+  color: #ffffff;
+  font: 12px Arial, sans-serif;
+}
+
+.runeliteSuppliesOverallPanel {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 10px;
+  align-items: center;
+  box-sizing: border-box;
+  width: 213px;
+  min-height: 52px;
+  padding: 10px;
+  background: rgb(30, 30, 30);
+}
+
+.runeliteSuppliesOverallIcon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.runeliteSuppliesOverallInfo {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.runeliteSuppliesHtmlLabel {
+  display: flex;
+  min-height: 14px;
+  color: rgb(200, 200, 200);
+}
+
+.runeliteSuppliesHtmlLabel strong {
+  color: #ffffff;
+  font-weight: normal;
+}
+
+.runeliteSuppliesLogsContainer {
+  display: flex;
+  flex-direction: column;
+  width: 213px;
+}
+
+.runeliteSuppliesBox {
+  display: flex;
+  flex-direction: column;
+  margin-top: 5px;
+}
+
+.runeliteSuppliesBoxHeader {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  column-gap: 5px;
+  align-items: center;
+  box-sizing: border-box;
+  width: 213px;
+  min-height: 29px;
+  padding: 7px;
+  background: rgb(22, 22, 22);
+}
+
+.runeliteSuppliesBoxTitle {
+  color: #ffffff;
+}
+
+.runeliteSuppliesBoxSubtitle,
+.runeliteSuppliesBoxPrice {
+  color: rgb(200, 200, 200);
+}
+
+.runeliteSuppliesItemGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1px;
+  width: 213px;
+}
+
+.runeliteSuppliesItemSlot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 41px;
+  height: 38px;
+  background: rgb(30, 30, 30);
+}
+
+.runeliteSuppliesItemSprite {
+  display: block;
+  image-rendering: pixelated;
+}
+
+.runeliteSuppliesItemFallback {
+  color: rgb(200, 200, 200);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.runeliteSuppliesItemQuantity {
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  color: #ffff00;
+  font-size: 10px;
+  text-shadow: 1px 1px 0 #000000;
+}
+
+.runeliteSuppliesErrorPanel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 213px;
+  min-height: 120px;
+  padding: 10px;
+  color: rgb(200, 200, 200);
+  text-align: center;
+}
+
+.runeliteSuppliesErrorPanel strong {
+  color: #ffffff;
+  font-weight: normal;
+}
+
+.runelitePvpTrackerPanel {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 225px;
+  min-height: 100%;
+  padding: 8px;
+  background: rgb(40, 40, 40);
+  color: #ffffff;
+  font: 12px Arial, sans-serif;
+}
+
+.runelitePvpTotalStatsPanel {
+  display: grid;
+  grid-template-columns: 1fr;
+  row-gap: 0;
+  box-sizing: border-box;
+  width: 209px;
+  padding: 4px 6px;
+  background: rgb(30, 30, 30);
+}
+
+.runelitePvpTitle {
+  text-align: center;
+}
+
+.runelitePvpKillDeathLine,
+.runelitePvpStatLine {
+  display: flex;
+  justify-content: space-between;
+  min-height: 16px;
+}
+
+.runelitePvpFilterSpacer {
+  flex: 0 0 4px;
+  height: 4px;
+}
+
+.runelitePvpFilterLine {
+  display: flex;
+  flex-direction: column;
+  width: 209px;
+  background: rgb(40, 40, 40);
+}
+
+.runelitePvpFilterLine span {
+  text-align: center;
+}
+
+.runelitePvpFilterLine input {
+  box-sizing: border-box;
+  width: 209px;
+  min-height: 22px;
+  border: 1px solid rgb(30, 30, 30);
+  background: #ffffff;
+  color: #000000;
+  font: 12px Arial, sans-serif;
+}
+
+.runelitePvpFightHistoryScroller {
+  flex: 1 1 auto;
+  width: 209px;
+  min-height: 80px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: rgb(40, 40, 40);
+}
+
+.runelitePvpFightHistoryScroller::-webkit-scrollbar {
+  width: 6px;
+}
+
+.runelitePvpFightHistoryContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.runelitePvpFightHistoryEntry {
+  box-sizing: border-box;
+  width: 209px;
+  margin: 0 0 4px;
+  padding: 4px 6px;
+  border: 0 solid transparent;
+  border-bottom: 4px solid rgb(40, 40, 40);
+  background: rgb(30, 30, 30);
+}
+
+.runelitePvpFightHistoryEntry:hover {
+  outline: 1px solid rgb(60, 60, 60);
+  background: rgb(35, 35, 35);
+}
+
+.runelitePvpFightHistoryNames,
+.runelitePvpFightHistoryLine {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  min-height: 15px;
+  column-gap: 3px;
+}
+
+.runelitePvpFightHistoryNames span,
+.runelitePvpFightHistoryLine span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runelitePvpFightHistoryNames span:first-child,
+.runelitePvpFightHistoryLine span:first-child {
+  justify-self: start;
+  text-align: left;
+}
+
+.runelitePvpFightHistoryNames span:last-child,
+.runelitePvpFightHistoryLine span:last-child {
+  justify-self: end;
+  text-align: right;
+}
+
+.runelitePvpFightWorld,
+.runelitePvpFightHistoryAcronym {
+  color: #cfcfcf;
+  font-size: 10px;
+}
+
+.runelitePvpFightDeathIcon {
+  display: inline;
+  width: 12px;
+  height: 12px;
+  margin-right: 3px;
+  vertical-align: -2px;
+  object-fit: contain;
+}
+
+.runelitePluginPanelTitle {
+  min-height: 18px;
+  color: #ffffff;
+  line-height: 18px;
+}
+
+.runelitePluginToolbar {
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 36px;
+  flex-direction: column;
+  align-items: center;
+  width: 36px;
+  min-width: 36px;
+  min-height: 503px;
+  overflow: hidden;
+  background: rgb(40, 40, 40);
+}
+
+.runeliteClientShell[data-runelite-stretched-enabled="true"] .runeliteNavContainer,
+.runeliteClientShell[data-runelite-stretched-enabled="true"] .runelitePluginPanel,
+.runeliteClientShell[data-runelite-stretched-enabled="true"] .runelitePluginToolbar {
+  min-height: 1px;
+}
+
+.browserClientWindow {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 420px;
+  min-height: 300px;
+  max-width: 100vw;
+  max-height: 100vh;
+  overflow: hidden;
+  resize: both;
+  background: #000000;
+  border: 1px solid #2a2a2a;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.55);
+}
+
+.browserClientWindowTitlebar {
+  flex: 0 0 24px;
+  display: flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px;
+  background: linear-gradient(#2b2b2b, #191919);
+  border-bottom: 1px solid #050505;
+  color: #d8d8d8;
+  font: 12px "Segoe UI", Arial, sans-serif;
+  user-select: none;
+  cursor: move;
+}
+
+.browserClientWindowContent {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #000000;
+}
+
+.browserClientWindowContent > .runeliteClientShell {
+  position: absolute;
+  inset: 0;
+}
+
+.runeliteToolbarButton {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.runeliteToolbarButton:focus {
+  outline: none;
+}
+
+.runeliteToolbarButton:hover,
+.runeliteToolbarButton[aria-pressed="true"] {
+  background: rgb(60, 60, 60);
+}
+
+.runeliteToolbarButton img {
+  display: block;
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.runeliteToolbarDelimiter {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: flex-end;
+  justify-content: center;
+  width: 36px;
+  min-height: 8px;
+  pointer-events: none;
+}
+
+.runeliteToolbarDelimiter::after {
+  display: block;
+  width: 26px;
+  height: 1px;
+  margin-bottom: 4px;
+  border-top: 1px solid rgb(30, 30, 30);
+  background: rgb(60, 60, 60);
+  content: "";
+}
+
+.runelitePvpOverlay {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  z-index: 30;
+  box-sizing: border-box;
+  width: 129px;
+  padding: 4px 5px;
+  background: rgba(70, 61, 50, 0.612);
+  color: #ffffff;
+  font: 12px Arial, sans-serif;
+  line-height: 15px;
+  pointer-events: none;
+  text-shadow: 1px 1px 0 #000000;
+}
+
+.runelitePvpOverlayTitle {
+  min-height: 15px;
+  color: #ffffff;
+  text-align: center;
+}
+
+.runelitePvpOverlayNames,
+.runelitePvpOverlayLine {
+  display: grid;
+  align-items: center;
+  width: 119px;
+  min-height: 15px;
+}
+
+.runelitePvpOverlayNames {
+  grid-template-columns: 1fr 1fr;
+}
+
+.runelitePvpOverlayNames span:first-child,
+.runelitePvpOverlayLine span:first-child {
+  text-align: left;
+}
+
+.runelitePvpOverlayNames span:last-child,
+.runelitePvpOverlayLine span:last-child {
+  text-align: right;
+}
+
+.runelitePvpOverlayLine {
+  column-gap: 2px;
+}
+
+.runelitePvpOverlayAcronym {
+  color: rgba(255, 255, 255, 0.2);
+  font: 8px Monospace, monospace;
+  text-align: center;
+}
+
+.runelitePvpOverlayText {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.runelitePvpOverlayText-good {
+  color: #00ff00;
+}
+
+.runelitePvpOverlayText-bad {
+  color: #ff3b2f;
+}
+
+.glbViewport canvas {
+  display: block;
+  width: 100%;
+  height: 360px;
+}
+
+.runtimeViewport canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: default;
+}
+
+.runtimeTemporaryDevControls {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid rgba(88, 76, 54, 0.95);
+  border-radius: 2px;
+  background: rgba(28, 24, 18, 0.88);
+  color: #f6c769;
+  font: 11px Arial, sans-serif;
+}
+
+.runtimeTemporaryDevControls button {
+  min-height: 20px;
+  border: 1px solid #5b4a31;
+  border-radius: 2px;
+  background: linear-gradient(#4b4335, #2f2a22);
+  color: #f6c769;
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.runtimeTemporaryDevControls button[aria-pressed="true"] {
+  border-color: #6b7d38;
+  color: #d4ff70;
+}
+
+.runtimeTemporaryDevStatus {
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kronosClientHud {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.kronosSceneOverlayLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.kronosFixedClient {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 765px;
+  height: 503px;
+  transform-origin: left top;
+}
+
+.kronosFixedClient span {
+  image-rendering: pixelated;
+}
+
+/* RuneLite Hooks uses bilinear scaling unless Stretched Mode increasedPerformance is enabled. */
+.runeliteClientPanel[data-stretched-interpolation="bilinear"] canvas,
+.runeliteClientPanel[data-stretched-interpolation="bilinear"] img,
+.runeliteClientPanel[data-stretched-interpolation="bilinear"] span {
+  image-rendering: auto;
+}
+
+.runeliteClientPanel[data-stretched-interpolation="nearest"] canvas,
+.runeliteClientPanel[data-stretched-interpolation="nearest"] img,
+.runeliteClientPanel[data-stretched-interpolation="nearest"] span {
+  image-rendering: pixelated;
+}
+
+.kronosWidgetSpriteLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.kronosSideTabClickLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+}
+
+.kronosOptionsKeybindingControlLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.kronosOptionsCameraZoomLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.kronosOptionsCameraZoomKnob {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
+.kronosOptionsKeybindingSourceFrame,
+.kronosOptionsKeybindingGeneratedIcon {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
+.kronosSideTabButton,
+.kronosOptionsCameraZoomTrack,
+.kronosOptionsCameraZoomReset,
+.kronosOptionsKeybindingButton,
+.kronosChatboxButton,
+.kronosEquipmentItemButton,
+.kronosEquipmentUtilityButton {
+  position: absolute;
+  display: block;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: transparent;
+  cursor: default;
+  pointer-events: auto;
+}
+
+.kronosSideTabButton:focus-visible,
+.kronosOptionsCameraZoomTrack:focus-visible,
+.kronosOptionsCameraZoomReset:focus-visible,
+.kronosOptionsKeybindingButton:focus-visible,
+.kronosChatboxButton:focus-visible,
+.kronosEquipmentItemButton:focus-visible,
+.kronosEquipmentUtilityButton:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.6);
+  outline-offset: -2px;
+}
+
+.kronosGameKeybindingInterface {
+  position: absolute;
+  z-index: 28;
+  box-sizing: border-box;
+  border: 2px solid #050403;
+  background: #3a3127;
+  box-shadow:
+    inset 1px 1px 0 #75664d,
+    inset -1px -1px 0 #15110d;
+  color: transparent;
+  image-rendering: pixelated;
+  pointer-events: auto;
+}
+
+.kronosGameKeybindingInterface::before {
+  position: absolute;
+  inset: 4px;
+  border: 1px solid #504535;
+  background: #3f372b;
+  box-shadow:
+    inset 1px 1px 0 #71634e,
+    inset -1px -1px 0 #211a13;
+  content: "";
+}
+
+.kronosGameKeybindingInterface::after {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 4px;
+  height: 27px;
+  border-bottom: 1px solid #17120d;
+  background: #2d251c;
+  content: "";
+}
+
+.kronosGameKeybindingTitle,
+.kronosGameKeybindingRows,
+.kronosGameKeybindingRow,
+.kronosGameKeybindingGlyphLabel,
+.kronosGameKeybindingDropdown,
+.kronosGameKeybindingDropdownOption,
+.kronosGameKeybindingRestore,
+.kronosGameKeybindingRestoreButton,
+.kronosGameKeybindingRestoreText,
+.kronosGameKeybindingClose,
+.kronosGameKeybindingIconButton,
+.kronosGameKeybindingIconSprite,
+.kronosGameKeybindingKeyButton,
+.kronosGameKeybindingKeyText {
+  position: absolute;
+}
+
+.kronosGameKeybindingTitle {
+  left: 195px;
+  top: 8px;
+  width: 110px;
+  height: 16px;
+  z-index: 2;
+}
+
+.kronosGameKeybindingRows {
+  left: 0;
+  top: 0;
+  width: 500px;
+  height: 298px;
+  z-index: 1;
+}
+
+.kronosGameKeybindingRow {
+  z-index: 1;
+}
+
+.kronosGameKeybindingIconButton,
+.kronosGameKeybindingKeyButton,
+.kronosGameKeybindingDropdownOption,
+.kronosGameKeybindingRestoreButton,
+.kronosGameKeybindingClose {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: transparent;
+  cursor: default;
+  font: inherit;
+}
+
+.kronosGameKeybindingIconButton {
+  left: 0;
+  top: 0;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #0b0805;
+  border-radius: 5px;
+  background:
+    linear-gradient(135deg, rgba(169, 154, 124, 0.2), transparent 42%),
+    #4a4336;
+  box-shadow:
+    inset 1px 1px 0 #918066,
+    inset -1px -1px 0 #21180f,
+    0 1px 0 #0d0906;
+  overflow: hidden;
+}
+
+.kronosGameKeybindingIconButton[data-selected="true"] {
+  background:
+    linear-gradient(135deg, rgba(203, 183, 144, 0.28), transparent 48%),
+    #584a38;
+}
+
+.kronosGameKeybindingIconSprite {
+  display: block;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
+.kronosGameKeybindingKeyButton {
+  left: 42px;
+  top: 8px;
+  width: 106px;
+  height: 18px;
+  border: 1px solid #17100a;
+  background: #423626;
+  box-shadow:
+    inset 1px 1px 0 #564733,
+    inset -1px -1px 0 #1c140c;
+  overflow: hidden;
+}
+
+.kronosGameKeybindingKeyButton::after {
+  position: absolute;
+  right: 4px;
+  top: 5px;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 6px solid #070503;
+  content: "";
+}
+
+.kronosGameKeybindingKeyText {
+  left: 7px;
+  top: 2px;
+  width: 78px;
+  height: 15px;
+}
+
+.kronosGameKeybindingDropdown {
+  z-index: 4;
+  border: 1px solid #000000;
+  background: #312418;
+  box-shadow:
+    inset 1px 1px 0 #6d5135,
+    1px 1px 0 rgba(0, 0, 0, 0.45);
+}
+
+.kronosGameKeybindingDropdownOption:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.kronosGameKeybindingGlyphLabel {
+  left: 0;
+  top: 0;
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.kronosGameKeybindingRestore {
+  left: 155px;
+  top: 264px;
+  width: 190px;
+  height: 28px;
+  z-index: 2;
+}
+
+.kronosGameKeybindingRestoreButton {
+  left: 0;
+  top: 0;
+  width: 190px;
+  height: 26px;
+  border: 1px solid #0e0a06;
+  background: #4a4032;
+  box-shadow:
+    inset 1px 1px 0 #89775e,
+    inset -1px -1px 0 #1c140c;
+}
+
+.kronosGameKeybindingRestoreText {
+  left: 32px;
+  top: 6px;
+  width: 126px;
+  height: 15px;
+}
+
+.kronosGameKeybindingClose {
+  right: 7px;
+  top: 7px;
+  width: 18px;
+  height: 18px;
+  z-index: 3;
+  border: 1px solid #0a0704;
+  background: #5a4d3b;
+  box-shadow:
+    inset 1px 1px 0 #9f8b6c,
+    inset -1px -1px 0 #21180f;
+}
+
+.kronosChatboxClickLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+}
+
+.kronosMinimapOverlay {
+  position: absolute;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.kronosCompassOverlay {
+  position: absolute;
+  z-index: 3;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.kronosCompassSpriteRotator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 51px;
+  height: 51px;
+  transform-origin: 25px 25px;
+}
+
+.kronosCompassSprite {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.kronosMinimapSceneSprite,
+.kronosMinimapSceneCell,
+.kronosMinimapSceneOverlayPixel,
+.kronosMinimapSceneSegment,
+.kronosMinimapSceneMapScene {
+  position: absolute;
+  display: block;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.kronosMinimapDot,
+.kronosMinimapMapIcon,
+.kronosMinimapMarker,
+.kronosMinimapLocalPlayer,
+.kronosMinimapDisabledFill {
+  position: absolute;
+  display: block;
+  image-rendering: pixelated;
+}
+
+.kronosMountedWidgetLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.kronosEquipmentItemLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+}
+
+.kronosCombatPanelLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+}
+
+.kronosEquipmentUtilityButtonLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+}
+
+.kronosStatsPanelLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+}
+
+.kronosNoticeboardLayer,
+.kronosSocialPanelLayer,
+.kronosClanChatPanelLayer,
+.kronosEmotePanelLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+}
+
+.kronosPrayerIconLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+}
+
+.kronosSpellbookIconLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+}
+
+.kronosWidgetSprite {
+  position: absolute;
+}
+
+.kronosWidgetRectangle {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+.kronosNoticeboardClip,
+.kronosNoticeboardScrollContent,
+.kronosSocialRowsClip,
+.kronosSocialRows,
+.kronosSocialRow,
+.kronosSocialRowName,
+.kronosSocialRowWorld,
+.kronosSocialSourceButton,
+.kronosClanChatRowsClip,
+.kronosClanChatRows,
+.kronosClanChatRow,
+.kronosClanChatRankIcon,
+.kronosClanChatRowName,
+.kronosClanChatRowWorld,
+.kronosClanChatSourceButton,
+.kronosEmoteClip,
+.kronosEmoteGrid,
+.kronosEmoteButton,
+.kronosEmoteIconSprite,
+.kronosEmoteIconImage,
+.kronosEmoteLabel,
+.kronosEmoteScrollbarSource {
+  position: absolute;
+}
+
+.kronosNoticeboardClip,
+.kronosSocialRowsClip,
+.kronosClanChatRowsClip,
+.kronosEmoteClip {
+  overflow: hidden;
+}
+
+.kronosSocialRowName,
+.kronosSocialRowWorld,
+.kronosClanChatRowName,
+.kronosClanChatRowWorld {
+  display: block;
+  height: 15px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.kronosClanChatRankIcon {
+  display: block;
+  pointer-events: none;
+}
+
+.kronosSocialSourceButton,
+.kronosClanChatSourceButton {
+  appearance: none;
+  display: block;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: transparent;
+  cursor: default;
+  pointer-events: auto;
+}
+
+.kronosSocialSourceButton:focus-visible,
+.kronosClanChatSourceButton:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.6);
+  outline-offset: -2px;
+}
+
+.kronosEmoteButton {
+  appearance: none;
+  display: block;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: transparent;
+  cursor: default;
+  pointer-events: auto;
+}
+
+.kronosEmoteButton:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.6);
+  outline-offset: -2px;
+}
+
+.kronosEmoteLabel {
+  display: block;
+  overflow: hidden;
+  color: transparent;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.kronosEmoteIconSprite {
+  display: block;
+  overflow: hidden;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.kronosEmoteIconImage {
+  display: block;
+  max-width: none;
+  pointer-events: none;
+  user-select: none;
+}
+
+.kronosEmoteScrollbarSource {
+  border-left: 1px solid rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.kronosStatsSkillSlot,
+.kronosStatsTileSprite,
+.kronosStatsSkillIconSprite,
+.kronosStatsSkillLevelText,
+.kronosStatsTotalLevelText,
+.kronosCombatText,
+.kronosCombatStyleSlot,
+.kronosCombatStyleText,
+.kronosCombatAutocastSource,
+.kronosCombatAutocastIconSprite,
+.kronosCombatStyleIconSprite,
+.kronosCombatAutocastText,
+.kronosCombatAutoRetaliateSource,
+.kronosCombatSpecialBar,
+.kronosCombatButtonSprite,
+.kronosCombatSpecialBarBackground,
+.kronosCombatSpecialBarFill,
+.kronosCombatSpecialText,
+.kronosPrayerSlotButton,
+.kronosPrayerActiveBackground {
+  position: absolute;
+}
+
+.kronosStatsSkillSlot {
+  appearance: none;
+  display: block;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: transparent;
+  cursor: default;
+  pointer-events: auto;
+}
+
+.kronosCombatStyleSlot,
+.kronosCombatAutocastSource,
+.kronosCombatAutoRetaliateSource,
+.kronosCombatSpecialBar,
+.kronosPrayerSlotButton {
+  appearance: none;
+  display: block;
+  border: 0;
+  padding: 0;
+  color: transparent;
+  cursor: default;
+  font: inherit;
+  pointer-events: auto;
+}
+
+.kronosCombatStyleSlot,
+.kronosCombatAutocastSource,
+.kronosCombatAutoRetaliateSource,
+.kronosCombatSpecialBar,
+.kronosPrayerSlotButton {
+  background: transparent;
+}
+
+.kronosCombatButtonSprite {
+  display: block;
+  image-rendering: pixelated;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.kronosCombatSourceSpriteFrame {
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.kronosCombatAutocastIconSprite {
+  display: block;
+  image-rendering: pixelated;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.kronosCombatStyleIconSprite {
+  z-index: 2;
+}
+
+.kronosCombatStyleSlot,
+.kronosCombatAutocastSource,
+.kronosCombatAutoRetaliateSource {
+  z-index: 4;
+}
+
+.kronosCombatStyleText,
+.kronosCombatAutocastText {
+  z-index: 3;
+}
+
+.kronosCombatSpecialButtonSprite {
+  z-index: 0;
+}
+
+.kronosCombatSpecialBarBackground {
+  z-index: 1;
+}
+
+.kronosCombatSpecialBarFill {
+  z-index: 2;
+}
+
+.kronosCombatSpecialText {
+  z-index: 3;
+}
+
+.kronosCombatStyleSlot:focus-visible,
+.kronosCombatAutocastSource:focus-visible,
+.kronosCombatAutoRetaliateSource:focus-visible,
+.kronosCombatSpecialBar:focus-visible,
+.kronosPrayerSlotButton:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.6);
+  outline-offset: -2px;
+}
+
+.kronosStatsTileSprite,
+.kronosStatsSkillIconSprite {
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.kronosStatsSkillLevelText,
+.kronosStatsTotalLevelText,
+.kronosCombatText,
+.kronosCombatStyleText,
+.kronosCombatSpecialText {
+  display: block;
+  overflow: hidden;
+  color: transparent;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.kronosCombatSpecialBar {
+  overflow: hidden;
+}
+
+.kronosEquipmentSlotTileSprite,
+.kronosEquipmentItemSprite {
+  position: absolute;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.kronosEquipmentUtilityButtonSprite {
+  position: absolute;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.kronosEquipmentUtilityPanel {
+  position: absolute;
+  z-index: 18;
+  pointer-events: auto;
+}
+
+.kronosEquipmentUtilityPanelFrame {
+  position: absolute;
+  inset: 10px;
+  border: 2px solid rgb(65, 54, 36);
+  box-shadow:
+    inset 1px 1px 0 rgb(104, 91, 64),
+    inset -1px -1px 0 rgb(24, 20, 14);
+  background: linear-gradient(rgb(83, 71, 48), rgb(48, 41, 29));
+  image-rendering: pixelated;
+}
+
+.kronosEquipmentUtilityPanelClose {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  z-index: 2;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid rgb(28, 23, 16);
+  background: rgb(93, 78, 53);
+  cursor: pointer;
+}
+
+.kronosEquipmentUtilityPanelClose::before,
+.kronosEquipmentUtilityPanelClose::after {
+  position: absolute;
+  left: 3px;
+  top: 7px;
+  width: 10px;
+  height: 2px;
+  background: rgb(255, 152, 31);
+  content: "";
+}
+
+.kronosEquipmentUtilityPanelClose::before {
+  transform: rotate(45deg);
+}
+
+.kronosEquipmentUtilityPanelClose::after {
+  transform: rotate(-45deg);
+}
+
+.kronosEquipmentPanelText {
+  position: absolute;
+  display: block;
+  overflow: visible;
+  color: transparent;
+  white-space: nowrap;
+}
+
+.kronosItemsKeptIconRow {
+  position: absolute;
+  left: 32px;
+  top: 96px;
+  width: 150px;
+  height: 36px;
+}
+
+.kronosItemsKeptIcon {
+  position: absolute;
+  image-rendering: pixelated;
+}
+
+.kronosEquipmentItemSprite[data-pending-remove="true"] {
+  filter: brightness(0.8);
+  opacity: 0.75;
+}
+
+.kronosPrayerIconSprite {
+  position: absolute;
+  image-rendering: pixelated;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.kronosPrayerIconSprite-reorderDragging,
+.kronosSpellbookIconSprite-reorderDragging {
+  filter: brightness(1.2);
+  opacity: 0.72;
+}
+
+.kronosPrayerSlotButton {
+  z-index: 4;
+}
+
+.kronosPrayerActiveBackground {
+  image-rendering: pixelated;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.kronosSpellbookIconSprite {
+  position: absolute;
+  display: block;
+  border: 0;
+  padding: 0;
+  background-color: transparent;
+  color: transparent;
+  cursor: default;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.kronosPrayerIconLayer[data-reordering-enabled="true"] .kronosPrayerSlotButton,
+.kronosSpellbookIconLayer[data-reordering-enabled="true"] .kronosSpellbookIconSprite {
+  cursor: grab;
+}
+
+.kronosSpellbookIconGraphic {
+  image-rendering: pixelated;
+}
+
+.kronosSpellbookIconSprite:disabled {
+  pointer-events: none;
+}
+
+.kronosSpellbookIconSprite-selected {
+  filter:
+    drop-shadow(1px 0 0 rgb(255, 255, 255))
+    drop-shadow(-1px 0 0 rgb(255, 255, 255))
+    drop-shadow(0 1px 0 rgb(255, 255, 255))
+    drop-shadow(0 -1px 0 rgb(255, 255, 255));
+}
+
+.kronosSpellbookIconSprite:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.6);
+  outline-offset: -2px;
+}
+
+.kronosWidgetText {
+  position: absolute;
+  display: block;
+  overflow: hidden;
+  color: transparent;
+  white-space: nowrap;
+}
+
+.kronosWidgetGlyph {
+  position: absolute;
+  display: block;
+  image-rendering: pixelated;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.kronosWidgetAccessibleText {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.kronosFixedChatbox,
+.kronosFixedOrbFrame,
+.kronosFixedOrbEmpty,
+.kronosFixedOrbFillMask,
+.kronosFixedOrbFilledSlice,
+.kronosFixedOrbIcon {
+  position: absolute;
+}
+
+.kronosFixedChatbox {
+  z-index: 5;
+}
+
+.kronosFixedOrb {
+  position: absolute;
+  z-index: 7;
+}
+
+.kronosXpDropOrb {
+  position: absolute;
+  z-index: 8;
+  display: block;
+  padding: 0;
+  border: 0;
+  margin: 0;
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+  image-rendering: pixelated;
+  pointer-events: auto;
+}
+
+.kronosXpDropOrbSprite {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.kronosFixedOrbFrame {
+  z-index: 1;
+}
+
+.kronosFixedOrbEmpty {
+  z-index: 2;
+}
+
+.kronosFixedOrbFillMask {
+  overflow: hidden;
+  z-index: 3;
+}
+
+.kronosFixedOrbIcon {
+  z-index: 4;
+}
+
+.kronosFixedOrbValue {
+  position: absolute;
+  z-index: 5;
+  overflow: hidden;
+  color: transparent;
+}
+
+.kronosFixedOrbHitbox {
+  position: absolute;
+  z-index: 8;
+  padding: 0;
+  border: 0;
+  margin: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  background: transparent;
+  color: transparent;
+}
+
+.kronosInventoryGrid {
+  position: absolute;
+  z-index: 6;
+  display: grid;
+  overflow: visible;
+  pointer-events: auto;
+}
+
+.kronosInventorySlot {
+  position: relative;
+  width: 36px;
+  height: 32px;
+  pointer-events: auto;
+}
+
+.kronosInventoryItemSprite {
+  image-rendering: pixelated;
+}
+
+.kronosInventorySlot-pressed .kronosInventoryItemSprite {
+  filter: brightness(1.18);
+  transform: translate(1px, 1px);
+}
+
+.kronosInventorySlot-pendingEquip .kronosInventoryItemSprite {
+  filter: brightness(0.8);
+  opacity: 0.75;
+}
+
+.kronosEquipmentItemButton:active + .kronosEquipmentItemSprite {
+  filter: brightness(1.18);
+  transform: translate(1px, 1px);
+}
+
+.kronosInventorySlot-dragging {
+  z-index: 20;
+}
+
+.kronosInventoryQuantity {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  width: 36px;
+  height: 32px;
+  overflow: visible;
+  color: transparent;
+  pointer-events: none;
+}
+
+.kronosActorOverlay {
+  position: absolute;
+  pointer-events: none;
+  image-rendering: pixelated;
+  contain: layout paint style;
+  will-change: transform;
+}
+
+.kronosActorOverlaySprite {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+  image-rendering: pixelated;
+  background-repeat: no-repeat;
+}
+
+.runeliteFreezeTimerOverlay {
+  position: absolute;
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  pointer-events: none;
+  image-rendering: pixelated;
+  white-space: nowrap;
+  text-shadow: 1px 1px 0 #000000;
+}
+
+.runeliteFreezeTimerOverlay-noImage {
+  display: block;
+  text-align: center;
+}
+
+.runeliteFreezeTimerImage {
+  display: block;
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+.runeliteFreezeTimerText {
+  display: block;
+  line-height: 14px;
+  font-family: Arial, sans-serif;
+}
+
+.runtimeFightCountdownOverlay {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 220000;
+}
+
+.runtimeFightStartOverlay {
+  position: absolute;
+  z-index: 220001;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: max-content;
+  max-width: 220px;
+  pointer-events: none;
+}
+
+.runtimeBotDifficultySelector {
+  min-width: 176px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 7px;
+  border: 1px solid #5b4a31;
+  border-radius: 2px;
+  background: rgba(27, 22, 16, 0.9);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 231, 150, 0.16),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.68),
+    0 2px 8px rgba(0, 0, 0, 0.45);
+  color: #f6c769;
+  font: 700 11px Arial, sans-serif;
+  text-shadow: 1px 1px 0 #000000;
+  pointer-events: auto;
+}
+
+.runtimeBotDifficultyLabel,
+.runtimeBotDifficultyStatus {
+  line-height: 1;
+  text-align: center;
+}
+
+.runtimeBotDifficultyStatus {
+  color: #d9c491;
+  font-weight: 400;
+}
+
+.runtimeBotDifficultyButtons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.runtimeBotDifficultyButtons button {
+  min-height: 22px;
+  border: 1px solid #5b4a31;
+  border-radius: 2px;
+  background: linear-gradient(#4b4335, #2f2a22);
+  color: #f6c769;
+  font: inherit;
+  line-height: 1;
+  text-shadow: 1px 1px 0 #000000;
+  cursor: pointer;
+}
+
+.runtimeBotDifficultyButtons button[aria-pressed="true"] {
+  border-color: #8a6d29;
+  background: linear-gradient(#745b2c, #3a2e17);
+  color: #ffd65a;
+}
+
+.runtimeFightStartButton {
+  min-width: 96px;
+  min-height: 34px;
+  border: 1px solid #7f6b3c;
+  border-radius: 2px;
+  padding: 4px 18px;
+  background: linear-gradient(#5a4d36, #2e271c);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 231, 150, 0.22),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.7),
+    0 2px 10px rgba(0, 0, 0, 0.55);
+  color: #ffd65a;
+  font: 700 16px Arial, sans-serif;
+  text-shadow: 1px 1px 0 #000000;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.runtimeFightStartButton:hover {
+  color: #fff0a5;
+  background: linear-gradient(#6b5b40, #352c1f);
+}
+
+.runtimeFightStartButton:disabled {
+  border-color: #4b4030;
+  color: #8b8064;
+  background: linear-gradient(#383229, #24211d);
+  cursor: default;
+}
+
+.runtimeFightCountdownText {
+  color: #ffd65a;
+  font-family: "Arial Black", Impact, Arial, sans-serif;
+  font-size: 56px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+  text-shadow:
+    2px 2px 0 #000000,
+    -1px -1px 0 #4b2600,
+    0 0 10px rgba(255, 214, 90, 0.7);
+  animation: runtimeFightCountdownPulse 600ms ease-out both;
+}
+
+.runtimeFightCountdownText-go {
+  color: #7dff73;
+  text-shadow:
+    2px 2px 0 #000000,
+    -1px -1px 0 #063d08,
+    0 0 12px rgba(125, 255, 115, 0.75);
+}
+
+@keyframes runtimeFightCountdownPulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 0.92;
+    transform: scale(1);
+  }
+}
+
+.runelitePlayerIndicatorOverlay {
+  position: absolute;
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+  font: 12px Arial, sans-serif;
+  line-height: 15px;
+  text-align: center;
+  text-shadow: 1px 1px 0 #000000;
+  white-space: nowrap;
+}
+
+.runelitePrayAgainstPlayerOverlay {
+  position: absolute;
+  display: block;
+  box-sizing: border-box;
+  width: 33px;
+  height: 33px;
+  pointer-events: none;
+  image-rendering: pixelated;
+  filter:
+    drop-shadow(1px 0 0 rgb(33, 33, 33))
+    drop-shadow(-1px 0 0 rgb(33, 33, 33))
+    drop-shadow(0 1px 0 rgb(33, 33, 33))
+    drop-shadow(0 -1px 0 rgb(33, 33, 33));
+}
+
+.runelitePrayAgainstPlayerIcon {
+  position: absolute;
+  display: block;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+.runeliteTileIndicatorsOverlay {
+  position: absolute;
+  z-index: 8;
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.runeliteTileIndicatorPolygon {
+  pointer-events: none;
+  shape-rendering: geometricPrecision;
+}
+
+.runelitePrayerBarOverlay {
+  position: absolute;
+  width: 30px;
+  height: 5px;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
+.runelitePrayerBarBackground,
+.runelitePrayerBarFill,
+.runelitePrayerBarFlickMarker,
+.runelitePrayerFlickOrbOverlay {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+.runelitePrayerBarBackground {
+  inset: 0;
+  width: 30px;
+  height: 5px;
+  background: rgb(0, 0, 0);
+}
+
+.runelitePrayerBarFill {
+  left: 0;
+  top: 0;
+  background: rgb(0, 149, 151);
+}
+
+.runelitePrayerBarFlickMarker {
+  width: 1px;
+  background: rgb(255, 255, 255);
+}
+
+.runelitePrayerFlickOrbOverlay {
+  width: 1px;
+  background: rgb(0, 255, 255);
+}
+
+.runeliteXpDropDamageOverlay {
+  position: absolute;
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+  font: 700 12px Arial, sans-serif;
+  line-height: 13px;
+  text-align: center;
+  text-shadow: 1px 1px 0 #000000;
+  white-space: nowrap;
+}
+
+.runeliteXpDropOverlay {
+  position: absolute;
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+  line-height: 16px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.runeliteXpDropSkillIcon {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  image-rendering: pixelated;
+}
+
+.runeliteXpDropText,
+.runeliteXpDropGlyphText {
+  display: block;
+}
+
+.runeliteXpDropGlyphText {
+  position: relative;
+  overflow: visible;
+  color: transparent;
+}
+
+.runeliteXpDropGlyph {
+  position: absolute;
+  display: block;
+  image-rendering: pixelated;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.runeliteXpDropGlyphShadow {
+  background-color: #000000;
+}
+
+.runeliteXpDropGlyphFill {
+  background-color: var(--runelite-xp-drop-text-color);
+}
+
+.runeliteAttackStylesOverlay {
+  position: absolute;
+  z-index: 10;
+  box-sizing: border-box;
+  border: 1px solid rgba(56, 48, 35, 1);
+  box-shadow: inset 1px 1px 0 rgba(90, 82, 69, 1);
+  padding: 2px 5px;
+  background: rgba(70, 61, 50, 0.612);
+  font: 12px Arial, sans-serif;
+  line-height: 15px;
+  pointer-events: none;
+  text-align: center;
+  text-shadow: 1px 1px 0 #000000;
+  white-space: nowrap;
+}
+
+.runeliteAttackStylesTitle {
+  display: block;
+}
+
+.runeliteBoostsOverlay {
+  position: absolute;
+  z-index: 10;
+  box-sizing: border-box;
+  padding: 4px 5px;
+  background: rgba(70, 61, 50, 0.612);
+  color: #ffffff;
+  font: 12px Arial, sans-serif;
+  line-height: 15px;
+  pointer-events: none;
+  text-shadow: 1px 1px 0 #000000;
+}
+
+.runeliteBoostsOverlay-combat-icons {
+  width: 28px;
+  padding: 0;
+  background: transparent;
+}
+
+.runeliteBoostsRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  width: 119px;
+  min-height: 15px;
+}
+
+.runeliteBoostsOverlay-combat-icons .runeliteBoostsRow {
+  grid-template-columns: 16px 1fr;
+  column-gap: 2px;
+  width: 28px;
+  min-height: 17px;
+}
+
+.runeliteBoostsLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runeliteBoostsValue,
+.runeliteBoostsBaseValue {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.runeliteBoostsBaseValue {
+  color: #ffffff;
+}
+
+.runeliteBoostsIcon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+.runeliteInfoBoxOverlay {
+  position: absolute;
+  display: grid;
+  box-sizing: border-box;
+  background: transparent;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
+.runeliteInfoBox {
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+  color: #00ff00;
+  font: bold 12px Arial, sans-serif;
+  line-height: 12px;
+  text-align: right;
+  text-shadow: 1px 1px 0 #000000;
+}
+
+.runeliteInfoBoxImage {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.runeliteInfoBoxText {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+}
+
+.runeliteFreezeTimerInfoBoxIcon {
+  display: block;
+  pointer-events: none;
+}
+
+.runeliteStatusBarOverlay {
+  position: absolute;
+  z-index: 110;
+  width: 20px;
+  height: 252px;
+  pointer-events: none;
+  image-rendering: pixelated;
+  overflow: visible;
+  color: #ffff00;
+  font: 11px Arial, sans-serif;
+  line-height: 18px;
+  text-shadow: 1px 1px 0 #000000;
+}
+
+.runeliteStatusBarBackground,
+.runeliteStatusBarFill,
+.runeliteStatusBarRestore,
+.runeliteStatusBarIcon,
+.runeliteStatusBarCounter {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+.runeliteStatusBarBackground {
+  inset: 0;
+  width: 20px;
+  height: 252px;
+  box-sizing: border-box;
+  border: 1px solid rgba(0, 0, 0, 0.588);
+  background: rgba(0, 0, 0, 0.588);
+}
+
+.runeliteStatusBarIcon {
+  image-rendering: pixelated;
+}
+
+.runeliteStatusBarCounter {
+  left: 0;
+  width: 20px;
+  text-align: center;
+}
+
+.runeliteStatusOrbOverlay {
+  position: absolute;
+  z-index: 111;
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.runeliteStatusOrbArc {
+  vector-effect: non-scaling-stroke;
+  shape-rendering: geometricPrecision;
+}
+
+.runeliteOpponentComparisonOverlay {
+  position: absolute;
+  z-index: 10;
+  box-sizing: border-box;
+  width: 129px;
+  border: 1px solid rgba(56, 48, 35, 1);
+  box-shadow: inset 1px 1px 0 rgba(90, 82, 69, 1);
+  padding: 2px;
+  background: rgba(70, 61, 50, 0.612);
+  color: #ffffff;
+  font: 12px Arial, sans-serif;
+  line-height: 15px;
+  pointer-events: none;
+  text-shadow: 1px 1px 0 #000000;
+}
+
+.runeliteOpponentComparisonTitle {
+  display: block;
+  min-height: 15px;
+  color: var(--runelite-opponent-comparison-highlight);
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runeliteOpponentComparisonTable {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 32px 36px;
+  row-gap: 1px;
+}
+
+.runeliteOpponentComparisonRow {
+  display: contents;
+}
+
+.runeliteOpponentComparisonRow > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runeliteOpponentComparisonRow > span:nth-child(2) {
+  text-align: center;
+}
+
+.runeliteOpponentComparisonRow > span:nth-child(3) {
+  text-align: right;
+}
+
+.runeliteOpponentComparisonHeader > span {
+  color: var(--runelite-opponent-comparison-highlight);
+}
+
+.runeliteOpponentInfoOverlay {
+  position: absolute;
+  z-index: 10;
+  box-sizing: border-box;
+  width: 129px;
+  border: 1px solid rgba(56, 48, 35, 1);
+  box-shadow: inset 1px 1px 0 rgba(90, 82, 69, 1);
+  padding: 2px;
+  background: rgba(70, 61, 50, 0.612);
+  color: #ffffff;
+  font: 12px Arial, sans-serif;
+  line-height: 15px;
+  pointer-events: none;
+  text-shadow: 1px 1px 0 #000000;
+}
+
+.runeliteOpponentInfoTitle {
+  display: block;
+  min-height: 15px;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runeliteOpponentInfoProgress {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 16px;
+  margin: 2px 0 0;
+  overflow: hidden;
+  background: rgba(102, 15, 16, 0.902);
+}
+
+.runeliteOpponentInfoProgressFill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  height: 16px;
+  background: rgba(0, 146, 54, 0.902);
+}
+
+.runeliteOpponentInfoProgressLabel {
+  position: absolute;
+  inset: 0;
+  display: block;
+  color: #ffffff;
+  line-height: 16px;
+  text-align: center;
+}
+
+.kronosClickCross {
+  position: absolute;
+  z-index: 8;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+  image-rendering: pixelated;
+  background-repeat: no-repeat;
+}
+
+.kronosContextMenu {
+  position: absolute;
+  z-index: 120;
+  background: #2b271c;
+  border: 1px solid #6d6a5b;
+  box-shadow: inset 1px 1px 0 #2b2622, inset -1px -1px 0 #2b2622;
+  color: #c6b895;
+  line-height: 15px;
+  pointer-events: auto;
+}
+
+.kronosContextMenuTitle {
+  position: absolute;
+  left: 1px;
+  top: 1px;
+  right: 1px;
+  height: 16px;
+  background: linear-gradient(#322e22, #090a04);
+  color: #c6b895;
+}
+
+.kronosContextMenu::after {
+  content: "";
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  top: 18px;
+  bottom: 1px;
+  border: 1px solid #524a3d;
+  pointer-events: none;
+}
+
+.kronosContextMenuOption {
+  position: absolute;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: 15px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #c6b895;
+  text-align: left;
+  cursor: default;
+  --kronos-context-menu-text-color: #c6b895;
+}
+
+.kronosContextMenuHover {
+  position: absolute;
+  display: none;
+  pointer-events: none;
+}
+
+.kronosContextMenuOption:hover .kronosContextMenuHover {
+  display: block;
+}
+
+.kronosContextMenuText {
+  position: absolute;
+  inset: 0;
+  color: transparent;
+  pointer-events: none;
+  --kronos-context-menu-text-color: #c6b895;
+}
+
+.kronosContextMenuGlyph {
+  position: absolute;
+  display: block;
+  background-color: var(--kronos-context-menu-text-color);
+  image-rendering: pixelated;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.kronosContextMenuAccessibleText {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.opponentInventoryInspect {
+  position: absolute;
+  right: 232px;
+  top: 78px;
+  z-index: 112;
+  width: 430px;
+  background: #2b271c;
+  border: 1px solid #6d6a5b;
+  box-shadow: inset 1px 1px 0 #2b2622, inset -1px -1px 0 #2b2622, 0 2px 12px rgb(0 0 0 / 55%);
+  color: #c6b895;
+  font: 12px Arial, sans-serif;
+  pointer-events: auto;
+}
+
+.opponentInventoryInspectHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 21px;
+  padding: 0 6px;
+  background: linear-gradient(#322e22, #090a04);
+  color: #ff981f;
+  text-shadow: 1px 1px #000;
+}
+
+.opponentInventoryInspectHeader button {
+  width: 16px;
+  height: 16px;
+  border: 1px solid #1b1813;
+  padding: 0;
+  background: #332c23;
+  color: #c6b895;
+  line-height: 13px;
+  cursor: pointer;
+}
+
+.opponentInventoryInspectBody {
+  display: grid;
+  grid-template-columns: 176px 1fr;
+  gap: 10px;
+  padding: 8px;
+}
+
+.opponentInventoryInspectGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 36px);
+  grid-auto-rows: 32px;
+  gap: 4px 8px;
+  padding: 5px 6px;
+  background: #19160f;
+  border: 1px solid #524a3d;
+}
+
+.opponentInventoryInspectSlot {
+  position: relative;
+  width: 36px;
+  height: 32px;
+  background: rgb(0 0 0 / 20%);
+}
+
+.opponentInventoryInspectItemSprite {
+  display: block;
+  image-rendering: pixelated;
+}
+
+.opponentInventoryInspectItemText {
+  display: block;
+  overflow: hidden;
+  color: #ff981f;
+  font-size: 9px;
+  line-height: 10px;
+  text-overflow: ellipsis;
+}
+
+.opponentInventoryInspectSummary {
+  min-width: 0;
+  padding: 5px 6px;
+  background: #19160f;
+  border: 1px solid #524a3d;
+}
+
+.opponentInventoryInspectSectionTitle {
+  margin: 2px 0 4px;
+  color: #ff981f;
+  text-shadow: 1px 1px #000;
+}
+
+.opponentInventoryInspectRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 16px;
+  color: #c6b895;
+}
+
+.opponentInventoryInspectRow span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.opponentInventoryInspectRow span:last-child {
+  color: #ffffff;
+  text-align: right;
+}
+
+.glbStatus {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  border: 1px solid #34404b;
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: rgba(16, 20, 24, 0.92);
+  color: #d6dbe3;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.glbStatus-ready {
+  border-color: #3d7f5d;
+  color: #bdf3d3;
+}
+
+.glbStatus-missing,
+.glbStatus-error {
+  border-color: #8d6237;
+  color: #ffd49b;
+}
+
+.runtimeLoadStatus {
+  position: static;
+  margin-bottom: 14px;
+}
+
+.glbPanel,
+.runtimePanel {
+  padding: 16px;
+}
+
+.glbPanel label,
+.glbMeta span,
+.runtimeControls label {
+  display: block;
+  margin-bottom: 8px;
+  color: #9ca6b4;
+  font-size: 13px;
+}
+
+.glbPanel select {
+  width: 100%;
+  border: 1px solid #34404b;
+  border-radius: 6px;
+  padding: 10px;
+  background: #101418;
+  color: #e6e8ec;
+  font: inherit;
+}
+
+.glbMeta {
+  margin-top: 16px;
+}
+
+.glbPanel p {
+  margin: 16px 0 0;
+  color: #b5beca;
+  line-height: 1.5;
+}
+
+.runtimeControls {
+  display: grid;
+  gap: 10px;
+}
+
+.runtimeButtonRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.runtimeControls button {
+  width: fit-content;
+  border: 1px solid #3d7f5d;
+  border-radius: 6px;
+  padding: 9px 12px;
+  background: #173321;
+  color: #bdf3d3;
+  font: inherit;
+  cursor: pointer;
+}
+
+.runtimeControls select {
+  width: 100%;
+  border: 1px solid #34404b;
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: #101418;
+  color: #e6e8ec;
+  font: inherit;
+}
+
+.runtimeControls input {
+  width: 100%;
+}
+
+.runtimePanel > p {
+  margin: 16px 0 0;
+  color: #b5beca;
+  line-height: 1.5;
+}
+
+.runtimePoseList {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.runtimeGateList {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.runtimeGateList article {
+  border: 1px solid #34404b;
+  border-radius: 6px;
+  padding: 12px;
+  background: #101418;
+}
+
+.runtimeGateList h3 {
+  font-size: 14px;
+}
+
+.runtimeGateList p {
+  margin: 8px 0 0;
+  color: #b5beca;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.contract,
+.tool {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 360px);
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+}
+
+code {
+  overflow-wrap: anywhere;
+  border: 1px solid #2f3740;
+  border-radius: 6px;
+  padding: 8px;
+  background: #101418;
+  color: #d6dbe3;
+  font-family: "Cascadia Mono", "Consolas", monospace;
+  font-size: 12px;
+}
+
+@media (max-width: 820px) {
+  .shell:not(.clientOnlyShell) {
+    width: min(100vw - 28px, 680px);
+    padding: 28px 0;
+  }
+
+  .header {
+    display: block;
+  }
+
+  h1 {
+    font-size: 34px;
+  }
+
+  .truthBadge {
+    display: inline-block;
+    margin-top: 18px;
+  }
+
+  .notice {
+    display: block;
+  }
+
+  .stats {
+    grid-template-columns: 1fr;
+    min-width: 0;
+    margin-top: 18px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .targetList {
+    grid-template-columns: 1fr;
+  }
+
+  .policySummary,
+  .policyTopActions,
+  .policyDecisionList,
+  .duelSummaryGrid,
+  .duelHud,
+  .duelActionSurface,
+  .duelControls,
+  .duelDetailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .duelButtons {
+    flex-wrap: wrap;
+  }
+
+  .inventoryStrip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .contract,
+  .tool,
+  .glbViewer,
+  .runtimeScene {
+    grid-template-columns: 1fr;
+  }
+
+  .glbViewport,
+  .glbViewport canvas,
+  .runtimeViewport,
+  .runtimeViewport canvas {
+    min-height: 300px;
+    height: 300px;
+  }
+
+  .runeliteClientPanel .runtimeViewport,
+  .runeliteClientPanel .runtimeViewport canvas {
+    min-height: 503px;
+    height: 503px;
+  }
+}

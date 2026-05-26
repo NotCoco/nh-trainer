@@ -1,0 +1,324 @@
+{
+  "ARMADYL_CROSSBOW": {
+    "config": 5,
+    "maxDistance": 8,
+    "attackTicks": 6,
+    "attackAnimation": 4230,
+    "defendAnimation": 424,
+    "equipSound": 2244,
+    "attackSound": 2695,
+    "attackSets": [
+      {
+        "child": 3,
+        "type": "ACCURATE",
+        "style": "RANGED"
+      },
+      {
+        "child": 7,
+        "type": "RAPID_RANGED",
+        "style": "RANGED"
+      },
+      {
+        "child": 15,
+        "type": "LONG_RANGED",
+        "style": "RANGED"
+      }
+    ],
+    "renderAnimations": [
+      4591,
+      823,
+      4226,
+      4227,
+      821,
+      822,
+      4228
+    ]
+  },
+  "CROSSBOW": {
+    "config": 5,
+    "maxDistance": 7,
+    "attackTicks": 6,
+    "attackAnimation": 4230,
+    "defendAnimation": 424,
+    "equipSound": 2244,
+    "attackSound": 2695,
+    "attackSets": [
+      {
+        "child": 3,
+        "type": "ACCURATE",
+        "style": "RANGED"
+      },
+      {
+        "child": 7,
+        "type": "RAPID_RANGED",
+        "style": "RANGED"
+      },
+      {
+        "child": 15,
+        "type": "LONG_RANGED",
+        "style": "RANGED"
+      }
+    ],
+    "renderAnimations": [
+      4591,
+      823,
+      4226,
+      4227,
+      821,
+      822,
+      4228
+    ]
+  },
+  "GODSWORD": {
+    "config": 10,
+    "maxDistance": 1,
+    "attackTicks": 6,
+    "attackAnimation": 7045,
+    "defendAnimation": 7056,
+    "equipSound": 2244,
+    "attackSound": 3846,
+    "attackSets": [
+      {
+        "child": 3,
+        "type": "ACCURATE",
+        "style": "SLASH"
+      },
+      {
+        "child": 7,
+        "type": "AGGRESSIVE",
+        "style": "SLASH"
+      },
+      {
+        "child": 11,
+        "type": "AGGRESSIVE",
+        "style": "CRUSH",
+        "attackAnimation": 7054
+      },
+      {
+        "child": 15,
+        "type": "DEFENSIVE",
+        "style": "SLASH",
+        "attackAnimation": 7055
+      }
+    ],
+    "renderAnimations": [
+      7053,
+      7044,
+      7052,
+      7048,
+      7048,
+      7047,
+      7043
+    ]
+  },
+  "GRANITE_MAUL": {
+    "config": 2,
+    "maxDistance": 1,
+    "attackTicks": 7,
+    "attackAnimation": 1665,
+    "defendAnimation": 1666,
+    "equipSound": 2246,
+    "attackSound": 2714,
+    "attackSets": [
+      {
+        "child": 3,
+        "type": "ACCURATE",
+        "style": "CRUSH"
+      },
+      {
+        "child": 7,
+        "type": "AGGRESSIVE",
+        "style": "CRUSH"
+      },
+      {
+        "child": 15,
+        "type": "DEFENSIVE",
+        "style": "CRUSH"
+      }
+    ],
+    "renderAnimations": [
+      1662,
+      823,
+      1663,
+      1663,
+      1663,
+      1663,
+      1664
+    ]
+  },
+  "MAGIC_STAFF": {
+    "config": 18,
+    "maxDistance": 1,
+    "attackTicks": 5,
+    "attackAnimation": 393,
+    "defendAnimation": 420,
+    "equipSound": 2238,
+    "attackSound": 2555,
+    "attackSets": [
+      {
+        "child": 3,
+        "type": "ACCURATE",
+        "style": "CRUSH"
+      },
+      {
+        "child": 7,
+        "type": "AGGRESSIVE",
+        "style": "CRUSH"
+      },
+      {
+        "child": 15,
+        "type": "DEFENSIVE",
+        "style": "CRUSH"
+      }
+    ],
+    "renderAnimations": [
+      813,
+      1209,
+      1205,
+      1206,
+      1207,
+      1208,
+      1210
+    ]
+  },
+  "SHORTBOW": {
+    "config": 3,
+    "maxDistance": 7,
+    "attackTicks": 4,
+    "attackAnimation": 426,
+    "defendAnimation": 424,
+    "equipSound": 2244,
+    "attackSound": 2693,
+    "attackSets": [
+      {
+        "child": 3,
+        "type": "ACCURATE",
+        "style": "RANGED"
+      },
+      {
+        "child": 7,
+        "type": "RAPID_RANGED",
+        "style": "RANGED"
+      },
+      {
+        "child": 15,
+        "type": "LONG_RANGED",
+        "style": "RANGED"
+      }
+    ],
+    "renderAnimations": [
+      808,
+      823,
+      819,
+      820,
+      821,
+      822,
+      824
+    ]
+  },
+  "STAFF_OF_DEAD": {
+    "config": 18,
+    "maxDistance": 1,
+    "attackTicks": 4,
+    "attackAnimation": 440,
+    "defendAnimation": 430,
+    "equipSound": 2238,
+    "attackSound": 2555,
+    "attackSets": [
+      {
+        "child": 3,
+        "type": "ACCURATE",
+        "style": "CRUSH"
+      },
+      {
+        "child": 7,
+        "type": "AGGRESSIVE",
+        "style": "CRUSH"
+      },
+      {
+        "child": 15,
+        "type": "DEFENSIVE",
+        "style": "CRUSH"
+      }
+    ],
+    "renderAnimations": [
+      813,
+      1209,
+      1205,
+      1206,
+      1207,
+      1208,
+      1210
+    ]
+  },
+  "WAND": {
+    "config": 18,
+    "maxDistance": 1,
+    "attackTicks": 4,
+    "attackAnimation": 393,
+    "defendAnimation": 424,
+    "equipSound": 2238,
+    "attackSound": 2563,
+    "attackSets": [
+      {
+        "child": 3,
+        "type": "ACCURATE",
+        "style": "CRUSH"
+      },
+      {
+        "child": 7,
+        "type": "AGGRESSIVE",
+        "style": "CRUSH"
+      },
+      {
+        "child": 15,
+        "type": "DEFENSIVE",
+        "style": "CRUSH"
+      }
+    ],
+    "renderAnimations": [
+      813,
+      1209,
+      1205,
+      1206,
+      1207,
+      1208,
+      1210
+    ]
+  },
+  "WHIP": {
+    "config": 20,
+    "maxDistance": 1,
+    "attackTicks": 4,
+    "attackAnimation": 1658,
+    "defendAnimation": 1659,
+    "equipSound": 2238,
+    "attackSound": 2720,
+    "attackSets": [
+      {
+        "child": 3,
+        "type": "ACCURATE",
+        "style": "SLASH"
+      },
+      {
+        "child": 7,
+        "type": "CONTROLLED",
+        "style": "SLASH"
+      },
+      {
+        "child": 15,
+        "type": "DEFENSIVE",
+        "style": "SLASH"
+      }
+    ],
+    "renderAnimations": [
+      808,
+      823,
+      1660,
+      1660,
+      1660,
+      1660,
+      1661
+    ]
+  }
+}

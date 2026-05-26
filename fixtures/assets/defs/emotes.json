@@ -1,0 +1,346 @@
+{
+  "source": "Kronos clientscript emote_init/emote_update using cache enums 1000, 1001, and 1002",
+  "nameEnumId": 1000,
+  "unlockedSpriteEnumId": 1001,
+  "lockedSpriteEnumId": 1002,
+  "minSlot": 0,
+  "maxSlot": 48,
+  "emotes": [
+    {
+      "slot": 0,
+      "sourceOrder": 0,
+      "label": "Yes",
+      "unlockedSpriteId": 700,
+      "lockedSpriteId": -1
+    },
+    {
+      "slot": 1,
+      "sourceOrder": 1,
+      "label": "No",
+      "unlockedSpriteId": 701,
+      "lockedSpriteId": -1
+    },
+    {
+      "slot": 2,
+      "sourceOrder": 2,
+      "label": "Bow",
+      "unlockedSpriteId": 703,
+      "lockedSpriteId": -1
+    },
+    {
+      "slot": 3,
+      "sourceOrder": 3,
+      "label": "Angry",
+      "unlockedSpriteId": 704,
+      "lockedSpriteId": -1
+    },
+    {
+      "slot": 4,
+      "sourceOrder": 4,
+      "label": "Think",
+      "unlockedSpriteId": 702,
+      "lockedSpriteId": -1
+    },
+    {
+      "slot": 5,
+      "sourceOrder": 5,
+      "label": "Wave",
+      "unlockedSpriteId": 708,
+      "lockedSpriteId": -1
+    },
+    {
+      "slot": 6,
+      "sourceOrder": 6,
+      "label": "Shrug",
+      "unlockedSpriteId": 720,
+      "lockedSpriteId": -1
+    },
+    {
+      "slot": 7,
+      "sourceOrder": 7,
+      "label": "Cheer",
+      "unlockedSpriteId": 707,
+      "lockedSpriteId": -1
+    },
+    {
+      "slot": 8,
+      "sourceOrder": 8,
+      "label": "Beckon",
+      "unlockedSpriteId": 709,
+      "lockedSpriteId": -1
+    },
+    {
+      "slot": 9,
+      "sourceOrder": 9,
+      "label": "Laugh",
+      "unlockedSpriteId": 706,
+      "lockedSpriteId": -1
+    },
+    {
+      "slot": 10,
+      "sourceOrder": 10,
+      "label": "Jump for Joy",
+      "unlockedSpriteId": 716,
+      "lockedSpriteId": -1
+    },
+    {
+      "slot": 11,
+      "sourceOrder": 11,
+      "label": "Yawn",
+      "unlockedSpriteId": 718,
+      "lockedSpriteId": -1
+    },
+    {
+      "slot": 12,
+      "sourceOrder": 12,
+      "label": "Dance",
+      "unlockedSpriteId": 710,
+      "lockedSpriteId": -1
+    },
+    {
+      "slot": 13,
+      "sourceOrder": 13,
+      "label": "Jig",
+      "unlockedSpriteId": 713,
+      "lockedSpriteId": -1
+    },
+    {
+      "slot": 14,
+      "sourceOrder": 14,
+      "label": "Spin",
+      "unlockedSpriteId": 714,
+      "lockedSpriteId": -1
+    },
+    {
+      "slot": 15,
+      "sourceOrder": 15,
+      "label": "Headbang",
+      "unlockedSpriteId": 715,
+      "lockedSpriteId": -1
+    },
+    {
+      "slot": 16,
+      "sourceOrder": 16,
+      "label": "Cry",
+      "unlockedSpriteId": 705,
+      "lockedSpriteId": -1
+    },
+    {
+      "slot": 17,
+      "sourceOrder": 17,
+      "label": "Blow Kiss",
+      "unlockedSpriteId": 721,
+      "lockedSpriteId": -1
+    },
+    {
+      "slot": 18,
+      "sourceOrder": 18,
+      "label": "Panic",
+      "unlockedSpriteId": 712,
+      "lockedSpriteId": -1
+    },
+    {
+      "slot": 19,
+      "sourceOrder": 19,
+      "label": "Raspberry",
+      "unlockedSpriteId": 717,
+      "lockedSpriteId": -1
+    },
+    {
+      "slot": 20,
+      "sourceOrder": 20,
+      "label": "Clap",
+      "unlockedSpriteId": 711,
+      "lockedSpriteId": -1
+    },
+    {
+      "slot": 21,
+      "sourceOrder": 21,
+      "label": "Salute",
+      "unlockedSpriteId": 719,
+      "lockedSpriteId": -1
+    },
+    {
+      "slot": 22,
+      "sourceOrder": 22,
+      "label": "Goblin Bow",
+      "unlockedSpriteId": 726,
+      "lockedSpriteId": 746
+    },
+    {
+      "slot": 23,
+      "sourceOrder": 23,
+      "label": "Goblin Salute",
+      "unlockedSpriteId": 727,
+      "lockedSpriteId": 747
+    },
+    {
+      "slot": 24,
+      "sourceOrder": 24,
+      "label": "Glass Box",
+      "unlockedSpriteId": 722,
+      "lockedSpriteId": 742
+    },
+    {
+      "slot": 25,
+      "sourceOrder": 25,
+      "label": "Climb Rope",
+      "unlockedSpriteId": 723,
+      "lockedSpriteId": 743
+    },
+    {
+      "slot": 26,
+      "sourceOrder": 26,
+      "label": "Lean",
+      "unlockedSpriteId": 724,
+      "lockedSpriteId": 744
+    },
+    {
+      "slot": 27,
+      "sourceOrder": 27,
+      "label": "Glass Wall",
+      "unlockedSpriteId": 725,
+      "lockedSpriteId": 745
+    },
+    {
+      "slot": 28,
+      "sourceOrder": 28,
+      "label": "Idea",
+      "unlockedSpriteId": 732,
+      "lockedSpriteId": 752
+    },
+    {
+      "slot": 29,
+      "sourceOrder": 29,
+      "label": "Stamp",
+      "unlockedSpriteId": 730,
+      "lockedSpriteId": 750
+    },
+    {
+      "slot": 30,
+      "sourceOrder": 30,
+      "label": "Flap",
+      "unlockedSpriteId": 731,
+      "lockedSpriteId": 751
+    },
+    {
+      "slot": 31,
+      "sourceOrder": 31,
+      "label": "Slap Head",
+      "unlockedSpriteId": 729,
+      "lockedSpriteId": 749
+    },
+    {
+      "slot": 32,
+      "sourceOrder": 32,
+      "label": "Zombie Walk",
+      "unlockedSpriteId": 733,
+      "lockedSpriteId": 753
+    },
+    {
+      "slot": 33,
+      "sourceOrder": 33,
+      "label": "Zombie Dance",
+      "unlockedSpriteId": 734,
+      "lockedSpriteId": 754
+    },
+    {
+      "slot": 34,
+      "sourceOrder": 34,
+      "label": "Scared",
+      "unlockedSpriteId": 728,
+      "lockedSpriteId": 748
+    },
+    {
+      "slot": 35,
+      "sourceOrder": 35,
+      "label": "Rabbit Hop",
+      "unlockedSpriteId": 735,
+      "lockedSpriteId": 755
+    },
+    {
+      "slot": 36,
+      "sourceOrder": 36,
+      "label": "Sit up",
+      "unlockedSpriteId": 1202,
+      "lockedSpriteId": 1206
+    },
+    {
+      "slot": 37,
+      "sourceOrder": 37,
+      "label": "Push up",
+      "unlockedSpriteId": 1204,
+      "lockedSpriteId": 1208
+    },
+    {
+      "slot": 38,
+      "sourceOrder": 38,
+      "label": "Star jump",
+      "unlockedSpriteId": 1203,
+      "lockedSpriteId": 1207
+    },
+    {
+      "slot": 39,
+      "sourceOrder": 39,
+      "label": "Jog",
+      "unlockedSpriteId": 739,
+      "lockedSpriteId": 759
+    },
+    {
+      "slot": 40,
+      "sourceOrder": 40,
+      "label": "Zombie Hand",
+      "unlockedSpriteId": 737,
+      "lockedSpriteId": 757
+    },
+    {
+      "slot": 41,
+      "sourceOrder": 41,
+      "label": "Hypermobile Drinker",
+      "unlockedSpriteId": 1205,
+      "lockedSpriteId": 1209
+    },
+    {
+      "slot": 42,
+      "sourceOrder": 42,
+      "label": "Skill Cape",
+      "unlockedSpriteId": 736,
+      "lockedSpriteId": 756
+    },
+    {
+      "slot": 43,
+      "sourceOrder": 43,
+      "label": "Air Guitar",
+      "unlockedSpriteId": 738,
+      "lockedSpriteId": 758
+    },
+    {
+      "slot": 44,
+      "sourceOrder": 44,
+      "label": "Uri transform",
+      "unlockedSpriteId": 1350,
+      "lockedSpriteId": 1354
+    },
+    {
+      "slot": 45,
+      "sourceOrder": 45,
+      "label": "Smooth dance",
+      "unlockedSpriteId": 1351,
+      "lockedSpriteId": 1355
+    },
+    {
+      "slot": 46,
+      "sourceOrder": 46,
+      "label": "Crazy dance",
+      "unlockedSpriteId": 1352,
+      "lockedSpriteId": 1356
+    },
+    {
+      "slot": 47,
+      "sourceOrder": 47,
+      "label": "Premier Shield",
+      "unlockedSpriteId": 1353,
+      "lockedSpriteId": 1357
+    }
+  ]
+}

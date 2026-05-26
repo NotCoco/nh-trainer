@@ -1,0 +1,35 @@
+{
+  "id": "minimap_map_markers",
+  "source": "Kronos cache SpriteDefinition",
+  "image": "minimap_map_markers.png",
+  "width": 23,
+  "height": 15,
+  "sprites": [
+    {
+      "spriteId": 422,
+      "alias": "map_marker_destination",
+      "frame": 0,
+      "x": 0,
+      "y": 0,
+      "width": 8,
+      "height": 15,
+      "offsetX": 1,
+      "offsetY": 0,
+      "maxWidth": 15,
+      "maxHeight": 30
+    },
+    {
+      "spriteId": 422,
+      "alias": "map_marker_hint",
+      "frame": 1,
+      "x": 8,
+      "y": 0,
+      "width": 15,
+      "height": 15,
+      "offsetX": 0,
+      "offsetY": 0,
+      "maxWidth": 15,
+      "maxHeight": 30
+    }
+  ]
+}

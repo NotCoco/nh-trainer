@@ -1,0 +1,87 @@
+{
+  "id": "prayer_overheads",
+  "source": "Kronos cache SpriteDefinition",
+  "image": "prayer_overheads.png",
+  "width": 150,
+  "height": 25,
+  "sprites": [
+    {
+      "spriteId": 440,
+      "alias": "protect_from_melee",
+      "frame": 0,
+      "x": 0,
+      "y": 0,
+      "width": 25,
+      "height": 25,
+      "offsetX": 0,
+      "offsetY": 0,
+      "maxWidth": 25,
+      "maxHeight": 25
+    },
+    {
+      "spriteId": 440,
+      "alias": "protect_from_missiles",
+      "frame": 1,
+      "x": 25,
+      "y": 0,
+      "width": 25,
+      "height": 25,
+      "offsetX": 0,
+      "offsetY": 0,
+      "maxWidth": 25,
+      "maxHeight": 25
+    },
+    {
+      "spriteId": 440,
+      "alias": "protect_from_magic",
+      "frame": 2,
+      "x": 50,
+      "y": 0,
+      "width": 25,
+      "height": 25,
+      "offsetX": 0,
+      "offsetY": 0,
+      "maxWidth": 25,
+      "maxHeight": 25
+    },
+    {
+      "spriteId": 440,
+      "alias": "retribution",
+      "frame": 3,
+      "x": 75,
+      "y": 0,
+      "width": 25,
+      "height": 25,
+      "offsetX": 0,
+      "offsetY": 0,
+      "maxWidth": 25,
+      "maxHeight": 25
+    },
+    {
+      "spriteId": 440,
+      "alias": "smite",
+      "frame": 4,
+      "x": 100,
+      "y": 0,
+      "width": 25,
+      "height": 25,
+      "offsetX": 0,
+      "offsetY": 0,
+      "maxWidth": 25,
+      "maxHeight": 25
+    },
+    {
+      "spriteId": 440,
+      "alias": "redemption",
+      "frame": 5,
+      "x": 125,
+      "y": 0,
+      "width": 25,
+      "height": 25,
+      "offsetX": 0,
+      "offsetY": 0,
+      "maxWidth": 25,
+      "maxHeight": 25
+    }
+  ]
+}

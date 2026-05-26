@@ -1,0 +1,15 @@
+{
+  "id": "ice_barrage_projectile",
+  "label": "ice barrage",
+  "projectileGfxId": 368,
+  "impactGfxId": 369,
+  "startHeight": 43,
+  "endHeight": 0,
+  "delayCycles": 51,
+  "durationStartCycles": 56,
+  "durationIncrementCycles": 10,
+  "curve": 16,
+  "offset": 64,
+  "durationCycles": 56,
+  "skipTravel": true
+}

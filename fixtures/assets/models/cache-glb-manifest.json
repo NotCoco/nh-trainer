@@ -1,0 +1,1326 @@
+{
+  "generatedBy": "scripts/export-cache-glbs.mjs",
+  "exports": [
+    {
+      "output": "fixtures/assets/models/abyssal_tentacle.glb",
+      "meshMetadata": "fixtures/assets/models/abyssal_tentacle.mesh.json",
+      "label": "Abyssal tentacle",
+      "itemIds": [
+        12006
+      ],
+      "sourceModels": [
+        {
+          "kind": "item",
+          "itemId": 12006,
+          "itemName": "Abyssal tentacle",
+          "modelId": 28446
+        }
+      ],
+      "vertices": 576,
+      "triangles": 192
+    },
+    {
+      "output": "fixtures/assets/models/armadyl_crossbow.glb",
+      "meshMetadata": "fixtures/assets/models/armadyl_crossbow.mesh.json",
+      "label": "Armadyl crossbow",
+      "itemIds": [
+        11785
+      ],
+      "sourceModels": [
+        {
+          "kind": "item",
+          "itemId": 11785,
+          "itemName": "Armadyl crossbow",
+          "modelId": 19839
+        }
+      ],
+      "vertices": 570,
+      "triangles": 190
+    },
+    {
+      "output": "fixtures/assets/models/armadyl_godsword.glb",
+      "meshMetadata": "fixtures/assets/models/armadyl_godsword.mesh.json",
+      "label": "Armadyl godsword",
+      "itemIds": [
+        11802
+      ],
+      "sourceModels": [
+        {
+          "kind": "item",
+          "itemId": 11802,
+          "itemName": "Armadyl godsword",
+          "modelId": 27649
+        }
+      ],
+      "vertices": 1164,
+      "triangles": 388
+    },
+    {
+      "output": "fixtures/assets/models/kodai_wand.glb",
+      "meshMetadata": "fixtures/assets/models/kodai_wand.mesh.json",
+      "label": "Kodai wand",
+      "itemIds": [
+        21006
+      ],
+      "sourceModels": [
+        {
+          "kind": "item",
+          "itemId": 21006,
+          "itemName": "Kodai wand",
+          "modelId": 32669
+        }
+      ],
+      "vertices": 282,
+      "triangles": 94
+    },
+    {
+      "output": "fixtures/assets/models/granite_maul.glb",
+      "meshMetadata": "fixtures/assets/models/granite_maul.mesh.json",
+      "label": "Granite maul",
+      "itemIds": [
+        4153
+      ],
+      "sourceModels": [
+        {
+          "kind": "item",
+          "itemId": 4153,
+          "itemName": "Granite maul",
+          "modelId": 5410
+        }
+      ],
+      "vertices": 312,
+      "triangles": 104
+    },
+    {
+      "output": "fixtures/assets/models/ahrims_magic_gear.glb",
+      "meshMetadata": "fixtures/assets/models/ahrims_magic_gear.mesh.json",
+      "label": "Canonical NH magic gear",
+      "itemIds": [
+        12929,
+        21791,
+        12002,
+        21006,
+        4712,
+        6889,
+        4714,
+        7462,
+        11840,
+        19710,
+        21948
+      ],
+      "sourceModels": [
+        {
+          "kind": "item",
+          "itemId": 12929,
+          "itemName": "Serpentine helm (uncharged)",
+          "modelId": 14396
+        },
+        {
+          "kind": "item",
+          "itemId": 21791,
+          "itemName": "Imbued saradomin cape",
+          "modelId": 34149
+        },
+        {
+          "kind": "item",
+          "itemId": 12002,
+          "itemName": "Occult necklace",
+          "modelId": 28445
+        },
+        {
+          "kind": "item",
+          "itemId": 21006,
+          "itemName": "Kodai wand",
+          "modelId": 32669
+        },
+        {
+          "kind": "item",
+          "itemId": 4712,
+          "itemName": "Ahrim's robetop",
+          "modelId": 6669
+        },
+        {
+          "kind": "item",
+          "itemId": 4712,
+          "itemName": "Ahrim's robetop",
+          "modelId": 35817
+        },
+        {
+          "kind": "item",
+          "itemId": 6889,
+          "itemName": "Mage's book",
+          "modelId": 10698
+        },
+        {
+          "kind": "item",
+          "itemId": 4714,
+          "itemName": "Ahrim's robeskirt",
+          "modelId": 6659
+        },
+        {
+          "kind": "item",
+          "itemId": 7462,
+          "itemName": "Barrows gloves",
+          "modelId": 13307
+        },
+        {
+          "kind": "item",
+          "itemId": 11840,
+          "itemName": "Dragon boots",
+          "modelId": 27638
+        }
+      ],
+      "vertices": 6054,
+      "triangles": 2018
+    },
+    {
+      "output": "fixtures/assets/models/armadyl_ranged_gear.glb",
+      "meshMetadata": "fixtures/assets/models/armadyl_ranged_gear.mesh.json",
+      "label": "Canonical NH ranged gear",
+      "itemIds": [
+        12929,
+        22109,
+        19547,
+        11785,
+        11828,
+        6889,
+        11830,
+        7462,
+        11840,
+        19710,
+        21948
+      ],
+      "sourceModels": [
+        {
+          "kind": "item",
+          "itemId": 12929,
+          "itemName": "Serpentine helm (uncharged)",
+          "modelId": 14396
+        },
+        {
+          "kind": "item",
+          "itemId": 22109,
+          "itemName": "Ava's assembler",
+          "modelId": 34628
+        },
+        {
+          "kind": "item",
+          "itemId": 19547,
+          "itemName": "Necklace of anguish",
+          "modelId": 31228
+        },
+        {
+          "kind": "item",
+          "itemId": 11785,
+          "itemName": "Armadyl crossbow",
+          "modelId": 19839
+        },
+        {
+          "kind": "item",
+          "itemId": 11828,
+          "itemName": "Armadyl chestplate",
+          "modelId": 27633
+        },
+        {
+          "kind": "item",
+          "itemId": 11828,
+          "itemName": "Armadyl chestplate",
+          "modelId": 27629
+        },
+        {
+          "kind": "item",
+          "itemId": 6889,
+          "itemName": "Mage's book",
+          "modelId": 10698
+        },
+        {
+          "kind": "item",
+          "itemId": 11830,
+          "itemName": "Armadyl chainskirt",
+          "modelId": 27627
+        },
+        {
+          "kind": "item",
+          "itemId": 7462,
+          "itemName": "Barrows gloves",
+          "modelId": 13307
+        },
+        {
+          "kind": "item",
+          "itemId": 11840,
+          "itemName": "Dragon boots",
+          "modelId": 27638
+        }
+      ],
+      "vertices": 5910,
+      "triangles": 1970
+    },
+    {
+      "output": "fixtures/assets/models/bandos_tentacle_gear.glb",
+      "meshMetadata": "fixtures/assets/models/bandos_tentacle_gear.mesh.json",
+      "label": "Canonical NH tentacle gear",
+      "itemIds": [
+        12929,
+        6570,
+        19553,
+        12006,
+        11832,
+        22322,
+        11834,
+        7462,
+        11840,
+        19710,
+        21948
+      ],
+      "sourceModels": [
+        {
+          "kind": "item",
+          "itemId": 12929,
+          "itemName": "Serpentine helm (uncharged)",
+          "modelId": 14396
+        },
+        {
+          "kind": "item",
+          "itemId": 6570,
+          "itemName": "Fire cape",
+          "modelId": 9638
+        },
+        {
+          "kind": "item",
+          "itemId": 19553,
+          "itemName": "Amulet of torture",
+          "modelId": 31227
+        },
+        {
+          "kind": "item",
+          "itemId": 12006,
+          "itemName": "Abyssal tentacle",
+          "modelId": 28446
+        },
+        {
+          "kind": "item",
+          "itemId": 11832,
+          "itemName": "Bandos chestplate",
+          "modelId": 27636
+        },
+        {
+          "kind": "item",
+          "itemId": 11832,
+          "itemName": "Bandos chestplate",
+          "modelId": 28826
+        },
+        {
+          "kind": "item",
+          "itemId": 22322,
+          "itemName": "Avernic defender",
+          "modelId": 35376
+        },
+        {
+          "kind": "item",
+          "itemId": 11834,
+          "itemName": "Bandos tassets",
+          "modelId": 27625
+        },
+        {
+          "kind": "item",
+          "itemId": 7462,
+          "itemName": "Barrows gloves",
+          "modelId": 13307
+        },
+        {
+          "kind": "item",
+          "itemId": 11840,
+          "itemName": "Dragon boots",
+          "modelId": 27638
+        }
+      ],
+      "vertices": 5754,
+      "triangles": 1918
+    },
+    {
+      "output": "fixtures/assets/models/bandos_ags_gear.glb",
+      "meshMetadata": "fixtures/assets/models/bandos_ags_gear.mesh.json",
+      "label": "Canonical NH AGS gear",
+      "itemIds": [
+        12929,
+        6570,
+        19553,
+        11802,
+        11832,
+        11834,
+        7462,
+        11840,
+        19710,
+        21948
+      ],
+      "sourceModels": [
+        {
+          "kind": "item",
+          "itemId": 12929,
+          "itemName": "Serpentine helm (uncharged)",
+          "modelId": 14396
+        },
+        {
+          "kind": "item",
+          "itemId": 6570,
+          "itemName": "Fire cape",
+          "modelId": 9638
+        },
+        {
+          "kind": "item",
+          "itemId": 19553,
+          "itemName": "Amulet of torture",
+          "modelId": 31227
+        },
+        {
+          "kind": "item",
+          "itemId": 11802,
+          "itemName": "Armadyl godsword",
+          "modelId": 27649
+        },
+        {
+          "kind": "item",
+          "itemId": 11832,
+          "itemName": "Bandos chestplate",
+          "modelId": 27636
+        },
+        {
+          "kind": "item",
+          "itemId": 11832,
+          "itemName": "Bandos chestplate",
+          "modelId": 28826
+        },
+        {
+          "kind": "item",
+          "itemId": 11834,
+          "itemName": "Bandos tassets",
+          "modelId": 27625
+        },
+        {
+          "kind": "item",
+          "itemId": 7462,
+          "itemName": "Barrows gloves",
+          "modelId": 13307
+        },
+        {
+          "kind": "item",
+          "itemId": 11840,
+          "itemName": "Dragon boots",
+          "modelId": 27638
+        }
+      ],
+      "vertices": 5994,
+      "triangles": 1998
+    },
+    {
+      "output": "fixtures/assets/models/bandos_body.glb",
+      "meshMetadata": "fixtures/assets/models/bandos_body.mesh.json",
+      "label": "Bandos chestplate and tassets",
+      "itemIds": [
+        11832,
+        11834
+      ],
+      "sourceModels": [
+        {
+          "kind": "item",
+          "itemId": 11832,
+          "itemName": "Bandos chestplate",
+          "modelId": 27636
+        },
+        {
+          "kind": "item",
+          "itemId": 11832,
+          "itemName": "Bandos chestplate",
+          "modelId": 28826
+        },
+        {
+          "kind": "item",
+          "itemId": 11834,
+          "itemName": "Bandos tassets",
+          "modelId": 27625
+        }
+      ],
+      "vertices": 2958,
+      "triangles": 986
+    },
+    {
+      "output": "fixtures/assets/models/karils_leather.glb",
+      "meshMetadata": "fixtures/assets/models/karils_leather.mesh.json",
+      "label": "Karil's leathertop and leatherskirt",
+      "itemIds": [
+        4736,
+        4738
+      ],
+      "sourceModels": [
+        {
+          "kind": "item",
+          "itemId": 4736,
+          "itemName": "Karil's leathertop",
+          "modelId": 6674
+        },
+        {
+          "kind": "item",
+          "itemId": 4736,
+          "itemName": "Karil's leathertop",
+          "modelId": 6643
+        },
+        {
+          "kind": "item",
+          "itemId": 4738,
+          "itemName": "Karil's leatherskirt",
+          "modelId": 6664
+        }
+      ],
+      "vertices": 1419,
+      "triangles": 473
+    },
+    {
+      "output": "fixtures/assets/models/ancestral_robes.glb",
+      "meshMetadata": "fixtures/assets/models/ancestral_robes.mesh.json",
+      "label": "Ancestral robe top and bottom",
+      "itemIds": [
+        21018,
+        21021,
+        21024
+      ],
+      "sourceModels": [
+        {
+          "kind": "item",
+          "itemId": 21018,
+          "itemName": "Ancestral hat",
+          "modelId": 32655
+        },
+        {
+          "kind": "item",
+          "itemId": 21021,
+          "itemName": "Ancestral robe top",
+          "modelId": 32657
+        },
+        {
+          "kind": "item",
+          "itemId": 21021,
+          "itemName": "Ancestral robe top",
+          "modelId": 32658
+        },
+        {
+          "kind": "item",
+          "itemId": 21024,
+          "itemName": "Ancestral robe bottom",
+          "modelId": 32653
+        }
+      ],
+      "vertices": 3378,
+      "triangles": 1126
+    },
+    {
+      "output": "fixtures/render/player-loadouts/tentacle-bandos.glb",
+      "meshMetadata": "fixtures/render/player-loadouts/tentacle-bandos.mesh.json",
+      "label": "Tentacle Bandos NH bot loadout",
+      "itemIds": [
+        12929,
+        6570,
+        19553,
+        12006,
+        11832,
+        22322,
+        11834,
+        7462,
+        11840,
+        19710,
+        21948
+      ],
+      "sourceModels": [
+        {
+          "kind": "kit",
+          "kitId": 10,
+          "bodyPartId": 1,
+          "label": "jaw",
+          "modelId": 249
+        },
+        {
+          "kind": "item",
+          "itemId": 12929,
+          "itemName": "Serpentine helm (uncharged)",
+          "modelId": 14396
+        },
+        {
+          "kind": "item",
+          "itemId": 6570,
+          "itemName": "Fire cape",
+          "modelId": 9638
+        },
+        {
+          "kind": "item",
+          "itemId": 19553,
+          "itemName": "Amulet of torture",
+          "modelId": 31227
+        },
+        {
+          "kind": "item",
+          "itemId": 12006,
+          "itemName": "Abyssal tentacle",
+          "modelId": 28446
+        },
+        {
+          "kind": "item",
+          "itemId": 11832,
+          "itemName": "Bandos chestplate",
+          "modelId": 27636
+        },
+        {
+          "kind": "item",
+          "itemId": 11832,
+          "itemName": "Bandos chestplate",
+          "modelId": 28826
+        },
+        {
+          "kind": "item",
+          "itemId": 22322,
+          "itemName": "Avernic defender",
+          "modelId": 35376
+        },
+        {
+          "kind": "item",
+          "itemId": 11834,
+          "itemName": "Bandos tassets",
+          "modelId": 27625
+        },
+        {
+          "kind": "item",
+          "itemId": 7462,
+          "itemName": "Barrows gloves",
+          "modelId": 13307
+        },
+        {
+          "kind": "item",
+          "itemId": 11840,
+          "itemName": "Dragon boots",
+          "modelId": 27638
+        },
+        {
+          "kind": "loadout-rule",
+          "hiddenKitSlots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            12,
+            13
+          ],
+          "equippedSlots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            7,
+            9,
+            10,
+            12,
+            13
+          ]
+        }
+      ],
+      "vertices": 5802,
+      "triangles": 1934
+    },
+    {
+      "output": "fixtures/render/player-loadouts/ags-bandos.glb",
+      "meshMetadata": "fixtures/render/player-loadouts/ags-bandos.mesh.json",
+      "label": "Armadyl godsword Bandos NH bot loadout",
+      "itemIds": [
+        12929,
+        6570,
+        19553,
+        11802,
+        11832,
+        11834,
+        7462,
+        11840,
+        19710,
+        21948
+      ],
+      "sourceModels": [
+        {
+          "kind": "kit",
+          "kitId": 10,
+          "bodyPartId": 1,
+          "label": "jaw",
+          "modelId": 249
+        },
+        {
+          "kind": "item",
+          "itemId": 12929,
+          "itemName": "Serpentine helm (uncharged)",
+          "modelId": 14396
+        },
+        {
+          "kind": "item",
+          "itemId": 6570,
+          "itemName": "Fire cape",
+          "modelId": 9638
+        },
+        {
+          "kind": "item",
+          "itemId": 19553,
+          "itemName": "Amulet of torture",
+          "modelId": 31227
+        },
+        {
+          "kind": "item",
+          "itemId": 11802,
+          "itemName": "Armadyl godsword",
+          "modelId": 27649
+        },
+        {
+          "kind": "item",
+          "itemId": 11832,
+          "itemName": "Bandos chestplate",
+          "modelId": 27636
+        },
+        {
+          "kind": "item",
+          "itemId": 11832,
+          "itemName": "Bandos chestplate",
+          "modelId": 28826
+        },
+        {
+          "kind": "item",
+          "itemId": 11834,
+          "itemName": "Bandos tassets",
+          "modelId": 27625
+        },
+        {
+          "kind": "item",
+          "itemId": 7462,
+          "itemName": "Barrows gloves",
+          "modelId": 13307
+        },
+        {
+          "kind": "item",
+          "itemId": 11840,
+          "itemName": "Dragon boots",
+          "modelId": 27638
+        },
+        {
+          "kind": "loadout-rule",
+          "hiddenKitSlots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6,
+            7,
+            8,
+            9,
+            10,
+            12,
+            13
+          ],
+          "equippedSlots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            7,
+            9,
+            10,
+            12,
+            13
+          ]
+        }
+      ],
+      "vertices": 6042,
+      "triangles": 2014
+    },
+    {
+      "output": "fixtures/render/player-loadouts/gmaul-bandos.glb",
+      "meshMetadata": "fixtures/render/player-loadouts/gmaul-bandos.mesh.json",
+      "label": "Granite maul Bandos NH bot loadout",
+      "itemIds": [
+        12929,
+        6570,
+        19553,
+        4153,
+        11832,
+        11834,
+        7462,
+        11840,
+        19710,
+        21948
+      ],
+      "sourceModels": [
+        {
+          "kind": "kit",
+          "kitId": 10,
+          "bodyPartId": 1,
+          "label": "jaw",
+          "modelId": 249
+        },
+        {
+          "kind": "item",
+          "itemId": 12929,
+          "itemName": "Serpentine helm (uncharged)",
+          "modelId": 14396
+        },
+        {
+          "kind": "item",
+          "itemId": 6570,
+          "itemName": "Fire cape",
+          "modelId": 9638
+        },
+        {
+          "kind": "item",
+          "itemId": 19553,
+          "itemName": "Amulet of torture",
+          "modelId": 31227
+        },
+        {
+          "kind": "item",
+          "itemId": 4153,
+          "itemName": "Granite maul",
+          "modelId": 5410
+        },
+        {
+          "kind": "item",
+          "itemId": 11832,
+          "itemName": "Bandos chestplate",
+          "modelId": 27636
+        },
+        {
+          "kind": "item",
+          "itemId": 11832,
+          "itemName": "Bandos chestplate",
+          "modelId": 28826
+        },
+        {
+          "kind": "item",
+          "itemId": 11834,
+          "itemName": "Bandos tassets",
+          "modelId": 27625
+        },
+        {
+          "kind": "item",
+          "itemId": 7462,
+          "itemName": "Barrows gloves",
+          "modelId": 13307
+        },
+        {
+          "kind": "item",
+          "itemId": 11840,
+          "itemName": "Dragon boots",
+          "modelId": 27638
+        },
+        {
+          "kind": "loadout-rule",
+          "hiddenKitSlots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6,
+            7,
+            8,
+            9,
+            10,
+            12,
+            13
+          ],
+          "equippedSlots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            7,
+            9,
+            10,
+            12,
+            13
+          ]
+        }
+      ],
+      "vertices": 5190,
+      "triangles": 1730
+    },
+    {
+      "output": "fixtures/render/player-loadouts/acb-hides.glb",
+      "meshMetadata": "fixtures/render/player-loadouts/acb-hides.mesh.json",
+      "label": "Armadyl crossbow NH bot loadout",
+      "itemIds": [
+        12929,
+        22109,
+        19547,
+        11785,
+        11828,
+        6889,
+        11830,
+        7462,
+        11840,
+        19710,
+        21948
+      ],
+      "sourceModels": [
+        {
+          "kind": "kit",
+          "kitId": 10,
+          "bodyPartId": 1,
+          "label": "jaw",
+          "modelId": 249
+        },
+        {
+          "kind": "item",
+          "itemId": 12929,
+          "itemName": "Serpentine helm (uncharged)",
+          "modelId": 14396
+        },
+        {
+          "kind": "item",
+          "itemId": 22109,
+          "itemName": "Ava's assembler",
+          "modelId": 34628
+        },
+        {
+          "kind": "item",
+          "itemId": 19547,
+          "itemName": "Necklace of anguish",
+          "modelId": 31228
+        },
+        {
+          "kind": "item",
+          "itemId": 11785,
+          "itemName": "Armadyl crossbow",
+          "modelId": 19839
+        },
+        {
+          "kind": "item",
+          "itemId": 11828,
+          "itemName": "Armadyl chestplate",
+          "modelId": 27633
+        },
+        {
+          "kind": "item",
+          "itemId": 11828,
+          "itemName": "Armadyl chestplate",
+          "modelId": 27629
+        },
+        {
+          "kind": "item",
+          "itemId": 6889,
+          "itemName": "Mage's book",
+          "modelId": 10698
+        },
+        {
+          "kind": "item",
+          "itemId": 11830,
+          "itemName": "Armadyl chainskirt",
+          "modelId": 27627
+        },
+        {
+          "kind": "item",
+          "itemId": 7462,
+          "itemName": "Barrows gloves",
+          "modelId": 13307
+        },
+        {
+          "kind": "item",
+          "itemId": 11840,
+          "itemName": "Dragon boots",
+          "modelId": 27638
+        },
+        {
+          "kind": "loadout-rule",
+          "hiddenKitSlots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            12,
+            13
+          ],
+          "equippedSlots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            7,
+            9,
+            10,
+            12,
+            13
+          ]
+        }
+      ],
+      "vertices": 5958,
+      "triangles": 1986
+    },
+    {
+      "output": "fixtures/render/player-loadouts/kodai-robes.glb",
+      "meshMetadata": "fixtures/render/player-loadouts/kodai-robes.mesh.json",
+      "label": "Kodai Ahrim's NH bot loadout",
+      "itemIds": [
+        12929,
+        21791,
+        12002,
+        21006,
+        4712,
+        6889,
+        4714,
+        7462,
+        11840,
+        19710,
+        21948
+      ],
+      "sourceModels": [
+        {
+          "kind": "kit",
+          "kitId": 10,
+          "bodyPartId": 1,
+          "label": "jaw",
+          "modelId": 249
+        },
+        {
+          "kind": "item",
+          "itemId": 12929,
+          "itemName": "Serpentine helm (uncharged)",
+          "modelId": 14396
+        },
+        {
+          "kind": "item",
+          "itemId": 21791,
+          "itemName": "Imbued saradomin cape",
+          "modelId": 34149
+        },
+        {
+          "kind": "item",
+          "itemId": 12002,
+          "itemName": "Occult necklace",
+          "modelId": 28445
+        },
+        {
+          "kind": "item",
+          "itemId": 21006,
+          "itemName": "Kodai wand",
+          "modelId": 32669
+        },
+        {
+          "kind": "item",
+          "itemId": 4712,
+          "itemName": "Ahrim's robetop",
+          "modelId": 6669
+        },
+        {
+          "kind": "item",
+          "itemId": 4712,
+          "itemName": "Ahrim's robetop",
+          "modelId": 35817
+        },
+        {
+          "kind": "item",
+          "itemId": 6889,
+          "itemName": "Mage's book",
+          "modelId": 10698
+        },
+        {
+          "kind": "item",
+          "itemId": 4714,
+          "itemName": "Ahrim's robeskirt",
+          "modelId": 6659
+        },
+        {
+          "kind": "item",
+          "itemId": 7462,
+          "itemName": "Barrows gloves",
+          "modelId": 13307
+        },
+        {
+          "kind": "item",
+          "itemId": 11840,
+          "itemName": "Dragon boots",
+          "modelId": 27638
+        },
+        {
+          "kind": "loadout-rule",
+          "hiddenKitSlots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            12,
+            13
+          ],
+          "equippedSlots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            7,
+            9,
+            10,
+            12,
+            13
+          ]
+        }
+      ],
+      "vertices": 6102,
+      "triangles": 2034
+    },
+    {
+      "output": "fixtures/render/spotanims/ice_blitz_cast.glb",
+      "meshMetadata": "fixtures/render/spotanims/ice_blitz_cast.mesh.json",
+      "label": "Ice blitz cast spotanim",
+      "spotanimId": 366,
+      "sourceModels": [
+        {
+          "kind": "spotanim",
+          "spotanimId": 366,
+          "modelId": 1204,
+          "animationId": 1962,
+          "resizeX": 128,
+          "resizeY": 128,
+          "rotation": 0
+        }
+      ],
+      "vertices": 216,
+      "triangles": 72
+    },
+    {
+      "output": "fixtures/render/spotanims/ice_blitz_hit.glb",
+      "meshMetadata": "fixtures/render/spotanims/ice_blitz_hit.mesh.json",
+      "label": "Ice blitz hit spotanim",
+      "spotanimId": 367,
+      "sourceModels": [
+        {
+          "kind": "spotanim",
+          "spotanimId": 367,
+          "modelId": 6385,
+          "animationId": 1963,
+          "resizeX": 128,
+          "resizeY": 128,
+          "rotation": 0
+        }
+      ],
+      "vertices": 864,
+      "triangles": 288
+    },
+    {
+      "output": "fixtures/render/spotanims/ice_barrage_projectile.glb",
+      "meshMetadata": "fixtures/render/spotanims/ice_barrage_projectile.mesh.json",
+      "label": "Ice barrage projectile spotanim",
+      "spotanimId": 368,
+      "sourceModels": [
+        {
+          "kind": "spotanim",
+          "spotanimId": 368,
+          "modelId": 14215,
+          "animationId": 1964,
+          "resizeX": 128,
+          "resizeY": 128,
+          "rotation": 0
+        }
+      ],
+      "vertices": 480,
+      "triangles": 160
+    },
+    {
+      "output": "fixtures/render/spotanims/ice_barrage_hit.glb",
+      "meshMetadata": "fixtures/render/spotanims/ice_barrage_hit.mesh.json",
+      "label": "Ice barrage hit spotanim",
+      "spotanimId": 369,
+      "sourceModels": [
+        {
+          "kind": "spotanim",
+          "spotanimId": 369,
+          "modelId": 6381,
+          "animationId": 1965,
+          "resizeX": 128,
+          "resizeY": 128,
+          "rotation": 0
+        }
+      ],
+      "vertices": 1578,
+      "triangles": 526
+    },
+    {
+      "output": "fixtures/render/spotanims/blood_blitz_projectile.glb",
+      "meshMetadata": "fixtures/render/spotanims/blood_blitz_projectile.mesh.json",
+      "label": "Blood blitz projectile spotanim",
+      "spotanimId": 374,
+      "sourceModels": [
+        {
+          "kind": "spotanim",
+          "spotanimId": 374,
+          "modelId": 6379,
+          "animationId": 1969,
+          "resizeX": 128,
+          "resizeY": 128,
+          "rotation": 0
+        }
+      ],
+      "vertices": 558,
+      "triangles": 186
+    },
+    {
+      "output": "fixtures/render/spotanims/blood_blitz_hit.glb",
+      "meshMetadata": "fixtures/render/spotanims/blood_blitz_hit.mesh.json",
+      "label": "Blood blitz hit spotanim",
+      "spotanimId": 375,
+      "sourceModels": [
+        {
+          "kind": "spotanim",
+          "spotanimId": 375,
+          "modelId": 6377,
+          "animationId": 1971,
+          "resizeX": 128,
+          "resizeY": 128,
+          "rotation": 0
+        }
+      ],
+      "vertices": 594,
+      "triangles": 198
+    },
+    {
+      "output": "fixtures/render/spotanims/blood_barrage_hit.glb",
+      "meshMetadata": "fixtures/render/spotanims/blood_barrage_hit.mesh.json",
+      "label": "Blood barrage hit spotanim",
+      "spotanimId": 377,
+      "sourceModels": [
+        {
+          "kind": "spotanim",
+          "spotanimId": 377,
+          "modelId": 6375,
+          "animationId": 1967,
+          "resizeX": 128,
+          "resizeY": 128,
+          "rotation": 0
+        }
+      ],
+      "vertices": 606,
+      "triangles": 202
+    },
+    {
+      "output": "fixtures/render/spotanims/ags_special.glb",
+      "meshMetadata": "fixtures/render/spotanims/ags_special.mesh.json",
+      "label": "Armadyl godsword special spotanim",
+      "spotanimId": 1211,
+      "sourceModels": [
+        {
+          "kind": "spotanim",
+          "spotanimId": 1211,
+          "modelId": 28129,
+          "animationId": 7062,
+          "resizeX": 128,
+          "resizeY": 128,
+          "rotation": 0
+        }
+      ],
+      "vertices": 624,
+      "triangles": 208
+    },
+    {
+      "output": "fixtures/render/spotanims/gmaul_special.glb",
+      "meshMetadata": "fixtures/render/spotanims/gmaul_special.mesh.json",
+      "label": "Granite maul special spotanim",
+      "spotanimId": 340,
+      "sourceModels": [
+        {
+          "kind": "spotanim",
+          "spotanimId": 340,
+          "modelId": 5415,
+          "animationId": 1668,
+          "resizeX": 128,
+          "resizeY": 128,
+          "rotation": 0
+        }
+      ],
+      "vertices": 42,
+      "triangles": 14
+    },
+    {
+      "output": "fixtures/render/spotanims/acb_special_projectile.glb",
+      "meshMetadata": "fixtures/render/spotanims/acb_special_projectile.mesh.json",
+      "label": "Armadyl crossbow special projectile spotanim",
+      "spotanimId": 301,
+      "sourceModels": [
+        {
+          "kind": "spotanim",
+          "spotanimId": 301,
+          "modelId": 21852,
+          "animationId": 1714,
+          "resizeX": 128,
+          "resizeY": 128,
+          "rotation": 0
+        }
+      ],
+      "vertices": 912,
+      "triangles": 304
+    },
+    {
+      "output": "fixtures/render/spotanims/bolt_projectile.glb",
+      "meshMetadata": "fixtures/render/spotanims/bolt_projectile.mesh.json",
+      "label": "Bolt projectile spotanim",
+      "spotanimId": 27,
+      "sourceModels": [
+        {
+          "kind": "spotanim",
+          "spotanimId": 27,
+          "modelId": 3135,
+          "animationId": -1,
+          "resizeX": 128,
+          "resizeY": 128,
+          "rotation": 0
+        }
+      ],
+      "vertices": 102,
+      "triangles": 34
+    },
+    {
+      "output": "fixtures/render/spotanims/dragon_bolt_projectile.glb",
+      "meshMetadata": "fixtures/render/spotanims/dragon_bolt_projectile.mesh.json",
+      "label": "Dragon bolt projectile spotanim",
+      "spotanimId": 1468,
+      "sourceModels": [
+        {
+          "kind": "spotanim",
+          "spotanimId": 1468,
+          "modelId": 3135,
+          "animationId": -1,
+          "resizeX": 128,
+          "resizeY": 128,
+          "rotation": 0
+        }
+      ],
+      "vertices": 102,
+      "triangles": 34
+    }
+  ]
+}

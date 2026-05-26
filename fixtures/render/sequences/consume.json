@@ -1,0 +1,121 @@
+{
+  "name": "consume",
+  "sequenceId": 829,
+  "frameStep": -1,
+  "rightHandItem": 0,
+  "leftHandItem": 0,
+  "interleaveLeave": [
+    1,
+    2,
+    9,
+    11,
+    13,
+    15,
+    17,
+    19,
+    37,
+    39,
+    41,
+    43,
+    45,
+    164,
+    166,
+    168,
+    170,
+    172,
+    174,
+    176,
+    178,
+    180,
+    182,
+    183,
+    185,
+    191,
+    192,
+    9999999
+  ],
+  "forcedPriority": 5,
+  "priority": -1,
+  "frames": [
+    {
+      "index": 0,
+      "archiveId": 207,
+      "fileId": 113,
+      "frameKey": "207:113",
+      "packedFrameId": 13566065,
+      "lengthClientCycles": 4
+    },
+    {
+      "index": 1,
+      "archiveId": 207,
+      "fileId": 114,
+      "frameKey": "207:114",
+      "packedFrameId": 13566066,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 2,
+      "archiveId": 207,
+      "fileId": 115,
+      "frameKey": "207:115",
+      "packedFrameId": 13566067,
+      "lengthClientCycles": 10
+    },
+    {
+      "index": 3,
+      "archiveId": 207,
+      "fileId": 116,
+      "frameKey": "207:116",
+      "packedFrameId": 13566068,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 4,
+      "archiveId": 207,
+      "fileId": 117,
+      "frameKey": "207:117",
+      "packedFrameId": 13566069,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 5,
+      "archiveId": 207,
+      "fileId": 118,
+      "frameKey": "207:118",
+      "packedFrameId": 13566070,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 6,
+      "archiveId": 207,
+      "fileId": 119,
+      "frameKey": "207:119",
+      "packedFrameId": 13566071,
+      "lengthClientCycles": 20
+    },
+    {
+      "index": 7,
+      "archiveId": 207,
+      "fileId": 118,
+      "frameKey": "207:118",
+      "packedFrameId": 13566070,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 8,
+      "archiveId": 207,
+      "fileId": 119,
+      "frameKey": "207:119",
+      "packedFrameId": 13566071,
+      "lengthClientCycles": 20
+    },
+    {
+      "index": 9,
+      "archiveId": 207,
+      "fileId": 120,
+      "frameKey": "207:120",
+      "packedFrameId": 13566072,
+      "lengthClientCycles": 4
+    }
+  ]
+}

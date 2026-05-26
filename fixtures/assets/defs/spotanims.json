@@ -1,0 +1,132 @@
+{
+  "27": {
+    "rotaton": 0,
+    "id": 27,
+    "resizeY": 128,
+    "animationId": -1,
+    "resizeX": 128,
+    "modelId": 3135,
+    "ambient": 0,
+    "contrast": 0
+  },
+  "301": {
+    "rotaton": 0,
+    "id": 301,
+    "resizeY": 128,
+    "animationId": 1714,
+    "resizeX": 128,
+    "modelId": 21852,
+    "ambient": 30,
+    "contrast": 10
+  },
+  "340": {
+    "rotaton": 0,
+    "id": 340,
+    "resizeY": 128,
+    "animationId": 1668,
+    "resizeX": 128,
+    "modelId": 5415,
+    "ambient": 50,
+    "contrast": 50
+  },
+  "366": {
+    "rotaton": 0,
+    "id": 366,
+    "resizeY": 128,
+    "animationId": 1962,
+    "resizeX": 128,
+    "modelId": 1204,
+    "ambient": 0,
+    "contrast": 0
+  },
+  "367": {
+    "rotaton": 0,
+    "id": 367,
+    "resizeY": 128,
+    "animationId": 1963,
+    "resizeX": 128,
+    "modelId": 6385,
+    "ambient": 0,
+    "contrast": 0
+  },
+  "368": {
+    "rotaton": 0,
+    "id": 368,
+    "resizeY": 128,
+    "animationId": 1964,
+    "resizeX": 128,
+    "modelId": 14215,
+    "ambient": 0,
+    "contrast": 0
+  },
+  "369": {
+    "rotaton": 0,
+    "id": 369,
+    "resizeY": 128,
+    "animationId": 1965,
+    "resizeX": 128,
+    "modelId": 6381,
+    "ambient": 0,
+    "contrast": 0
+  },
+  "374": {
+    "rotaton": 0,
+    "id": 374,
+    "resizeY": 128,
+    "animationId": 1969,
+    "resizeX": 128,
+    "modelId": 6379,
+    "ambient": 0,
+    "contrast": 0
+  },
+  "375": {
+    "rotaton": 0,
+    "id": 375,
+    "resizeY": 128,
+    "animationId": 1971,
+    "resizeX": 128,
+    "modelId": 6377,
+    "ambient": 0,
+    "contrast": 0
+  },
+  "377": {
+    "rotaton": 0,
+    "id": 377,
+    "resizeY": 128,
+    "animationId": 1967,
+    "resizeX": 128,
+    "modelId": 6375,
+    "ambient": 0,
+    "contrast": 0
+  },
+  "1211": {
+    "rotaton": 0,
+    "id": 1211,
+    "resizeY": 128,
+    "animationId": 7062,
+    "resizeX": 128,
+    "modelId": 28129,
+    "ambient": 30,
+    "contrast": 0
+  },
+  "1468": {
+    "rotaton": 0,
+    "id": 1468,
+    "resizeY": 128,
+    "animationId": -1,
+    "recolorToFind": [
+      41,
+      61,
+      57
+    ],
+    "recolorToReplace": [
+      1692,
+      670,
+      1825
+    ],
+    "resizeX": 128,
+    "modelId": 3135,
+    "ambient": 0,
+    "contrast": 0
+  }
+}

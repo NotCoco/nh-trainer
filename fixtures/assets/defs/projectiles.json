@@ -1,0 +1,80 @@
+{
+  "source": "Kronos server projectile payload ids and timings used by NH combat effects",
+  "projectiles": [
+    {
+      "id": "ice_barrage_projectile",
+      "label": "ice barrage",
+      "projectileGfxId": 368,
+      "impactGfxId": 369,
+      "startHeight": 43,
+      "endHeight": 0,
+      "delayCycles": 51,
+      "durationStartCycles": 56,
+      "durationIncrementCycles": 10,
+      "curve": 16,
+      "offset": 64,
+      "durationCycles": 56,
+      "skipTravel": true
+    },
+    {
+      "id": "blood_blitz_projectile",
+      "label": "blood blitz",
+      "projectileGfxId": 374,
+      "impactGfxId": 375,
+      "startHeight": 43,
+      "endHeight": 0,
+      "delayCycles": 51,
+      "durationStartCycles": 56,
+      "durationIncrementCycles": 10,
+      "curve": 16,
+      "offset": 64,
+      "durationCycles": 56,
+      "skipTravel": false
+    },
+    {
+      "id": "armadyl_crossbow_special",
+      "label": "armadyl crossbow special",
+      "projectileGfxId": 301,
+      "impactGfxId": -1,
+      "startHeight": 38,
+      "endHeight": 36,
+      "delayCycles": 41,
+      "durationStartCycles": 51,
+      "durationIncrementCycles": 5,
+      "curve": 5,
+      "offset": 11,
+      "durationCycles": 51,
+      "skipTravel": false
+    },
+    {
+      "id": "standard_bolt",
+      "label": "standard bolt",
+      "projectileGfxId": 27,
+      "impactGfxId": -1,
+      "startHeight": 38,
+      "endHeight": 36,
+      "delayCycles": 41,
+      "durationStartCycles": 51,
+      "durationIncrementCycles": 5,
+      "curve": 5,
+      "offset": 11,
+      "durationCycles": 51,
+      "skipTravel": false
+    },
+    {
+      "id": "dragon_bolt",
+      "label": "dragon bolt proc",
+      "projectileGfxId": 1468,
+      "impactGfxId": -1,
+      "startHeight": 38,
+      "endHeight": 36,
+      "delayCycles": 41,
+      "durationStartCycles": 51,
+      "durationIncrementCycles": 5,
+      "curve": 5,
+      "offset": 11,
+      "durationCycles": 51,
+      "skipTravel": false
+    }
+  ]
+}

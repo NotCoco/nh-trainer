@@ -1,0 +1,87 @@
+{
+  "id": "minimap_map_dots",
+  "source": "Kronos cache SpriteDefinition",
+  "image": "minimap_map_dots.png",
+  "width": 24,
+  "height": 5,
+  "sprites": [
+    {
+      "spriteId": 300,
+      "alias": "map_dot_item",
+      "frame": 0,
+      "x": 0,
+      "y": 0,
+      "width": 4,
+      "height": 5,
+      "offsetX": 0,
+      "offsetY": 0,
+      "maxWidth": 4,
+      "maxHeight": 5
+    },
+    {
+      "spriteId": 300,
+      "alias": "map_dot_npc",
+      "frame": 1,
+      "x": 4,
+      "y": 0,
+      "width": 4,
+      "height": 5,
+      "offsetX": 0,
+      "offsetY": 0,
+      "maxWidth": 4,
+      "maxHeight": 5
+    },
+    {
+      "spriteId": 300,
+      "alias": "map_dot_player",
+      "frame": 2,
+      "x": 8,
+      "y": 0,
+      "width": 4,
+      "height": 5,
+      "offsetX": 0,
+      "offsetY": 0,
+      "maxWidth": 4,
+      "maxHeight": 5
+    },
+    {
+      "spriteId": 300,
+      "alias": "map_dot_friend",
+      "frame": 3,
+      "x": 12,
+      "y": 0,
+      "width": 4,
+      "height": 5,
+      "offsetX": 0,
+      "offsetY": 0,
+      "maxWidth": 4,
+      "maxHeight": 5
+    },
+    {
+      "spriteId": 300,
+      "alias": "map_dot_team",
+      "frame": 4,
+      "x": 16,
+      "y": 0,
+      "width": 4,
+      "height": 5,
+      "offsetX": 0,
+      "offsetY": 0,
+      "maxWidth": 4,
+      "maxHeight": 5
+    },
+    {
+      "spriteId": 300,
+      "alias": "map_dot_friends_chat",
+      "frame": 5,
+      "x": 20,
+      "y": 0,
+      "width": 4,
+      "height": 5,
+      "offsetX": 0,
+      "offsetY": 0,
+      "maxWidth": 4,
+      "maxHeight": 5
+    }
+  ]
+}

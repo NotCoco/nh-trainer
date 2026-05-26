@@ -1,0 +1,163 @@
+{
+  "name": "crossbow_attack",
+  "sequenceId": 4230,
+  "frameStep": -1,
+  "rightHandItem": -1,
+  "leftHandItem": -1,
+  "forcedPriority": 6,
+  "priority": -1,
+  "frames": [
+    {
+      "index": 0,
+      "archiveId": 1088,
+      "fileId": 64,
+      "frameKey": "1088:64",
+      "packedFrameId": 71303232,
+      "lengthClientCycles": 10
+    },
+    {
+      "index": 1,
+      "archiveId": 1088,
+      "fileId": 74,
+      "frameKey": "1088:74",
+      "packedFrameId": 71303242,
+      "lengthClientCycles": 5
+    },
+    {
+      "index": 2,
+      "archiveId": 1088,
+      "fileId": 75,
+      "frameKey": "1088:75",
+      "packedFrameId": 71303243,
+      "lengthClientCycles": 4
+    },
+    {
+      "index": 3,
+      "archiveId": 1088,
+      "fileId": 76,
+      "frameKey": "1088:76",
+      "packedFrameId": 71303244,
+      "lengthClientCycles": 4
+    },
+    {
+      "index": 4,
+      "archiveId": 1088,
+      "fileId": 77,
+      "frameKey": "1088:77",
+      "packedFrameId": 71303245,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 5,
+      "archiveId": 1088,
+      "fileId": 78,
+      "frameKey": "1088:78",
+      "packedFrameId": 71303246,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 6,
+      "archiveId": 1088,
+      "fileId": 79,
+      "frameKey": "1088:79",
+      "packedFrameId": 71303247,
+      "lengthClientCycles": 5
+    },
+    {
+      "index": 7,
+      "archiveId": 1088,
+      "fileId": 80,
+      "frameKey": "1088:80",
+      "packedFrameId": 71303248,
+      "lengthClientCycles": 11
+    },
+    {
+      "index": 8,
+      "archiveId": 1088,
+      "fileId": 81,
+      "frameKey": "1088:81",
+      "packedFrameId": 71303249,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 9,
+      "archiveId": 1088,
+      "fileId": 65,
+      "frameKey": "1088:65",
+      "packedFrameId": 71303233,
+      "lengthClientCycles": 4
+    },
+    {
+      "index": 10,
+      "archiveId": 1088,
+      "fileId": 66,
+      "frameKey": "1088:66",
+      "packedFrameId": 71303234,
+      "lengthClientCycles": 5
+    },
+    {
+      "index": 11,
+      "archiveId": 1088,
+      "fileId": 67,
+      "frameKey": "1088:67",
+      "packedFrameId": 71303235,
+      "lengthClientCycles": 6
+    },
+    {
+      "index": 12,
+      "archiveId": 1088,
+      "fileId": 68,
+      "frameKey": "1088:68",
+      "packedFrameId": 71303236,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 13,
+      "archiveId": 1088,
+      "fileId": 69,
+      "frameKey": "1088:69",
+      "packedFrameId": 71303237,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 14,
+      "archiveId": 1088,
+      "fileId": 70,
+      "frameKey": "1088:70",
+      "packedFrameId": 71303238,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 15,
+      "archiveId": 1088,
+      "fileId": 71,
+      "frameKey": "1088:71",
+      "packedFrameId": 71303239,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 16,
+      "archiveId": 1088,
+      "fileId": 72,
+      "frameKey": "1088:72",
+      "packedFrameId": 71303240,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 17,
+      "archiveId": 1088,
+      "fileId": 73,
+      "frameKey": "1088:73",
+      "packedFrameId": 71303241,
+      "lengthClientCycles": 2
+    },
+    {
+      "index": 18,
+      "archiveId": 1088,
+      "fileId": 249,
+      "frameKey": "1088:249",
+      "packedFrameId": 71303417,
+      "lengthClientCycles": 1
+    }
+  ]
+}

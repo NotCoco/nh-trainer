@@ -1,0 +1,785 @@
+{
+  "source": "Kronos cache TextureDefinition metadata and RSTextureProvider pixels",
+  "textures": [
+    {
+      "id": 0,
+      "averageHsl": 5654,
+      "transparent": true,
+      "fileIds": [
+        447
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_0.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 1,
+      "averageHsl": 40269,
+      "transparent": true,
+      "fileIds": [
+        448
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_1.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 2,
+      "averageHsl": 6183,
+      "transparent": true,
+      "fileIds": [
+        449
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_2.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 3,
+      "averageHsl": 4636,
+      "transparent": true,
+      "fileIds": [
+        450
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_3.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 4,
+      "averageHsl": 6678,
+      "transparent": true,
+      "fileIds": [
+        451
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_4.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 5,
+      "averageHsl": 6024,
+      "transparent": true,
+      "fileIds": [
+        452
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_5.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 6,
+      "averageHsl": 2473,
+      "transparent": true,
+      "fileIds": [
+        453
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_6.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 7,
+      "averageHsl": 7057,
+      "transparent": false,
+      "fileIds": [
+        454
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_7.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 8,
+      "averageHsl": 12818,
+      "transparent": false,
+      "fileIds": [
+        455
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_8.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 9,
+      "averageHsl": 5927,
+      "transparent": false,
+      "fileIds": [
+        456
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_9.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 10,
+      "averageHsl": 8233,
+      "transparent": true,
+      "fileIds": [
+        530
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_10.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 11,
+      "averageHsl": 5155,
+      "transparent": true,
+      "fileIds": [
+        457
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_11.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 12,
+      "averageHsl": 18,
+      "transparent": false,
+      "fileIds": [
+        458
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_12.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 13,
+      "averageHsl": 32847,
+      "transparent": true,
+      "fileIds": [
+        459
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_13.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 14,
+      "averageHsl": 5295,
+      "transparent": true,
+      "fileIds": [
+        460
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_14.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 15,
+      "averageHsl": 47161,
+      "transparent": true,
+      "fileIds": [
+        461
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_15.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 16,
+      "averageHsl": 6934,
+      "transparent": true,
+      "fileIds": [
+        462
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_16.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 17,
+      "averageHsl": 39640,
+      "transparent": false,
+      "fileIds": [
+        463
+      ],
+      "animationDirection": 1,
+      "animationSpeed": 2,
+      "image": "render/textures/texture_17.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 18,
+      "averageHsl": 9534,
+      "transparent": true,
+      "fileIds": [
+        464
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_18.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 19,
+      "averageHsl": 5405,
+      "transparent": false,
+      "fileIds": [
+        465
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_19.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 20,
+      "averageHsl": 5662,
+      "transparent": true,
+      "fileIds": [
+        466
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_20.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 21,
+      "averageHsl": 6673,
+      "transparent": false,
+      "fileIds": [
+        467
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_21.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 22,
+      "averageHsl": 4512,
+      "transparent": true,
+      "fileIds": [
+        468
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_22.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 23,
+      "averageHsl": 7446,
+      "transparent": true,
+      "fileIds": [
+        469
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_23.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 24,
+      "averageHsl": 40269,
+      "transparent": true,
+      "fileIds": [
+        531
+      ],
+      "animationDirection": 1,
+      "animationSpeed": 2,
+      "image": "render/textures/texture_24.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 25,
+      "averageHsl": 29101,
+      "transparent": true,
+      "fileIds": [
+        470
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_25.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 26,
+      "averageHsl": 81,
+      "transparent": false,
+      "fileIds": [
+        471
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_26.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 27,
+      "averageHsl": 5648,
+      "transparent": true,
+      "fileIds": [
+        472
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_27.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 28,
+      "averageHsl": 21534,
+      "transparent": false,
+      "fileIds": [
+        473
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_28.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 29,
+      "averageHsl": 13862,
+      "transparent": false,
+      "fileIds": [
+        474
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_29.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 30,
+      "averageHsl": 12698,
+      "transparent": false,
+      "fileIds": [
+        475
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_30.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 31,
+      "averageHsl": 6089,
+      "transparent": true,
+      "fileIds": [
+        476
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_31.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 32,
+      "averageHsl": 5541,
+      "transparent": true,
+      "fileIds": [
+        477
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_32.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 33,
+      "averageHsl": 5009,
+      "transparent": false,
+      "fileIds": [
+        478
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_33.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 34,
+      "averageHsl": 9443,
+      "transparent": false,
+      "fileIds": [
+        479
+      ],
+      "animationDirection": 1,
+      "animationSpeed": 2,
+      "image": "render/textures/texture_34.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 35,
+      "averageHsl": 7484,
+      "transparent": true,
+      "fileIds": [
+        480
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_35.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 36,
+      "averageHsl": 3733,
+      "transparent": true,
+      "fileIds": [
+        481
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_36.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 37,
+      "averageHsl": 32,
+      "transparent": true,
+      "fileIds": [
+        482
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_37.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 38,
+      "averageHsl": 6740,
+      "transparent": true,
+      "fileIds": [
+        483
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_38.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 39,
+      "averageHsl": 13482,
+      "transparent": true,
+      "fileIds": [
+        484
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_39.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 40,
+      "averageHsl": 6089,
+      "transparent": true,
+      "fileIds": [
+        485
+      ],
+      "animationDirection": 1,
+      "animationSpeed": 2,
+      "image": "render/textures/texture_40.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 41,
+      "averageHsl": 10128,
+      "transparent": false,
+      "fileIds": [
+        486
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_41.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 42,
+      "averageHsl": 8295,
+      "transparent": true,
+      "fileIds": [
+        532
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_42.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 43,
+      "averageHsl": 10290,
+      "transparent": true,
+      "fileIds": [
+        487
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_43.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 44,
+      "averageHsl": 41,
+      "transparent": true,
+      "fileIds": [
+        488
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_44.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 45,
+      "averageHsl": 9256,
+      "transparent": true,
+      "fileIds": [
+        533
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_45.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 46,
+      "averageHsl": 3119,
+      "transparent": true,
+      "fileIds": [
+        490
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_46.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 47,
+      "averageHsl": 8403,
+      "transparent": true,
+      "fileIds": [
+        491
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_47.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 48,
+      "averageHsl": 6434,
+      "transparent": true,
+      "fileIds": [
+        492
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_48.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 49,
+      "averageHsl": 5592,
+      "transparent": true,
+      "fileIds": [
+        493
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_49.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 50,
+      "averageHsl": 9380,
+      "transparent": true,
+      "fileIds": [
+        643
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_50.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 51,
+      "averageHsl": 5679,
+      "transparent": true,
+      "fileIds": [
+        644
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_51.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 52,
+      "averageHsl": 41072,
+      "transparent": false,
+      "fileIds": [
+        763
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_52.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 53,
+      "averageHsl": 35049,
+      "transparent": true,
+      "fileIds": [
+        861
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_53.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 55,
+      "averageHsl": 14483,
+      "transparent": true,
+      "fileIds": [
+        866
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_55.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 56,
+      "averageHsl": 709,
+      "transparent": true,
+      "fileIds": [
+        1075
+      ],
+      "animationDirection": 1,
+      "animationSpeed": 2,
+      "image": "render/textures/texture_56.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 57,
+      "averageHsl": 108,
+      "transparent": true,
+      "fileIds": [
+        1076
+      ],
+      "animationDirection": 1,
+      "animationSpeed": 2,
+      "image": "render/textures/texture_57.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 58,
+      "averageHsl": 3747,
+      "transparent": false,
+      "fileIds": [
+        1396
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_58.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 59,
+      "averageHsl": 3875,
+      "transparent": true,
+      "fileIds": [
+        318
+      ],
+      "animationDirection": 1,
+      "animationSpeed": 1,
+      "image": "render/textures/texture_59.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": 60,
+      "averageHsl": 12818,
+      "transparent": false,
+      "fileIds": [
+        1648
+      ],
+      "animationDirection": 0,
+      "animationSpeed": 0,
+      "image": "render/textures/texture_60.png",
+      "width": 128,
+      "height": 128
+    }
+  ]
+}

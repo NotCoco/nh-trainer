@@ -1,0 +1,15 @@
+node_modules/
+dist/
+dist-electron/
+.npm-cache/
+.playwright-cli/
+test-results/
+coverage/
+.vercel/
+.env
+.env.*
+*.local
+*.log
+
+*.tsbuildinfo
+Thumbs.db

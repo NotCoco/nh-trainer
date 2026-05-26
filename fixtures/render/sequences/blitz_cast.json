@@ -1,0 +1,131 @@
+{
+  "name": "blitz_cast",
+  "sequenceId": 1978,
+  "frameStep": -1,
+  "rightHandItem": -1,
+  "leftHandItem": -1,
+  "forcedPriority": 5,
+  "priority": -1,
+  "frames": [
+    {
+      "index": 0,
+      "archiveId": 233,
+      "fileId": 192,
+      "frameKey": "233:192",
+      "packedFrameId": 15270080,
+      "lengthClientCycles": 4
+    },
+    {
+      "index": 1,
+      "archiveId": 233,
+      "fileId": 199,
+      "frameKey": "233:199",
+      "packedFrameId": 15270087,
+      "lengthClientCycles": 1
+    },
+    {
+      "index": 2,
+      "archiveId": 233,
+      "fileId": 200,
+      "frameKey": "233:200",
+      "packedFrameId": 15270088,
+      "lengthClientCycles": 2
+    },
+    {
+      "index": 3,
+      "archiveId": 233,
+      "fileId": 201,
+      "frameKey": "233:201",
+      "packedFrameId": 15270089,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 4,
+      "archiveId": 233,
+      "fileId": 202,
+      "frameKey": "233:202",
+      "packedFrameId": 15270090,
+      "lengthClientCycles": 20
+    },
+    {
+      "index": 5,
+      "archiveId": 233,
+      "fileId": 203,
+      "frameKey": "233:203",
+      "packedFrameId": 15270091,
+      "lengthClientCycles": 1
+    },
+    {
+      "index": 6,
+      "archiveId": 233,
+      "fileId": 204,
+      "frameKey": "233:204",
+      "packedFrameId": 15270092,
+      "lengthClientCycles": 2
+    },
+    {
+      "index": 7,
+      "archiveId": 233,
+      "fileId": 205,
+      "frameKey": "233:205",
+      "packedFrameId": 15270093,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 8,
+      "archiveId": 233,
+      "fileId": 206,
+      "frameKey": "233:206",
+      "packedFrameId": 15270094,
+      "lengthClientCycles": 15
+    },
+    {
+      "index": 9,
+      "archiveId": 233,
+      "fileId": 193,
+      "frameKey": "233:193",
+      "packedFrameId": 15270081,
+      "lengthClientCycles": 1
+    },
+    {
+      "index": 10,
+      "archiveId": 233,
+      "fileId": 194,
+      "frameKey": "233:194",
+      "packedFrameId": 15270082,
+      "lengthClientCycles": 20
+    },
+    {
+      "index": 11,
+      "archiveId": 233,
+      "fileId": 195,
+      "frameKey": "233:195",
+      "packedFrameId": 15270083,
+      "lengthClientCycles": 1
+    },
+    {
+      "index": 12,
+      "archiveId": 233,
+      "fileId": 196,
+      "frameKey": "233:196",
+      "packedFrameId": 15270084,
+      "lengthClientCycles": 2
+    },
+    {
+      "index": 13,
+      "archiveId": 233,
+      "fileId": 197,
+      "frameKey": "233:197",
+      "packedFrameId": 15270085,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 14,
+      "archiveId": 233,
+      "fileId": 198,
+      "frameKey": "233:198",
+      "packedFrameId": 15270086,
+      "lengthClientCycles": 4
+    }
+  ]
+}

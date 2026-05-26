@@ -1,0 +1,75 @@
+{
+  "name": "walk",
+  "sequenceId": 819,
+  "frameStep": -1,
+  "rightHandItem": -1,
+  "leftHandItem": -1,
+  "forcedPriority": 5,
+  "priority": -1,
+  "frames": [
+    {
+      "index": 0,
+      "archiveId": 207,
+      "fileId": 357,
+      "frameKey": "207:357",
+      "packedFrameId": 13566309,
+      "lengthClientCycles": 6
+    },
+    {
+      "index": 1,
+      "archiveId": 207,
+      "fileId": 358,
+      "frameKey": "207:358",
+      "packedFrameId": 13566310,
+      "lengthClientCycles": 6
+    },
+    {
+      "index": 2,
+      "archiveId": 207,
+      "fileId": 359,
+      "frameKey": "207:359",
+      "packedFrameId": 13566311,
+      "lengthClientCycles": 6
+    },
+    {
+      "index": 3,
+      "archiveId": 207,
+      "fileId": 360,
+      "frameKey": "207:360",
+      "packedFrameId": 13566312,
+      "lengthClientCycles": 6
+    },
+    {
+      "index": 4,
+      "archiveId": 207,
+      "fileId": 361,
+      "frameKey": "207:361",
+      "packedFrameId": 13566313,
+      "lengthClientCycles": 6
+    },
+    {
+      "index": 5,
+      "archiveId": 207,
+      "fileId": 362,
+      "frameKey": "207:362",
+      "packedFrameId": 13566314,
+      "lengthClientCycles": 6
+    },
+    {
+      "index": 6,
+      "archiveId": 207,
+      "fileId": 363,
+      "frameKey": "207:363",
+      "packedFrameId": 13566315,
+      "lengthClientCycles": 6
+    },
+    {
+      "index": 7,
+      "archiveId": 207,
+      "fileId": 364,
+      "frameKey": "207:364",
+      "packedFrameId": 13566316,
+      "lengthClientCycles": 6
+    }
+  ]
+}

@@ -1,0 +1,360 @@
+{
+  "schemaVersion": "client-view.v1",
+  "fixtureId": "two-actor-barrage-into-range-v1",
+  "description": "Deterministic two-actor client-view trace with visible gear swaps, animation ids, prayers, skulls, projectile timing, inventory widget snapshots, and delayed hitsplats.",
+  "actors": ["self", "opponent"],
+  "sourceAnchorIds": [
+    "server-nh-bot-loop-contract",
+    "server-nh-policy-bridge-contract",
+    "server-nh-observation-contract",
+    "server-projectile-payload-contract",
+    "client-projectile-packet-lifecycle",
+    "client-projectile-motion-contract",
+    "client-hitsplat-packet-contract",
+    "client-hitsplat-definition-contract",
+    "client-hitsplat-draw-contract",
+    "server-hit-queue-contract",
+    "server-hit-resolution-contract",
+    "client-player-appearance-packet",
+    "client-sequence-frame-contract"
+  ],
+  "ticks": [
+    {
+      "tick": 0,
+      "eventIds": [],
+      "inventory": [
+        { "widgetItemId": 21007, "quantity": 1 },
+        { "widgetItemId": 21792, "quantity": 1 },
+        { "widgetItemId": 12003, "quantity": 1 },
+        { "widgetItemId": 4713, "quantity": 1 },
+        { "widgetItemId": 4715, "quantity": 1 },
+        { "widgetItemId": 12007, "quantity": 1 },
+        { "widgetItemId": 12955, "quantity": 1 },
+        { "widgetItemId": 6571, "quantity": 1 },
+        { "widgetItemId": 19554, "quantity": 1 },
+        { "widgetItemId": 11833, "quantity": 1 },
+        { "widgetItemId": 11835, "quantity": 1 },
+        { "widgetItemId": 4154, "quantity": 1 },
+        { "widgetItemId": 3145, "quantity": 1 },
+        { "widgetItemId": 3145, "quantity": 1 },
+        { "widgetItemId": 3145, "quantity": 1 },
+        { "widgetItemId": 3145, "quantity": 1 },
+        { "widgetItemId": 386, "quantity": 1 },
+        { "widgetItemId": 386, "quantity": 1 },
+        { "widgetItemId": 386, "quantity": 1 },
+        { "widgetItemId": 386, "quantity": 1 },
+        { "widgetItemId": 6686, "quantity": 1 },
+        { "widgetItemId": 6686, "quantity": 1 },
+        { "widgetItemId": 3025, "quantity": 1 },
+        { "widgetItemId": 3025, "quantity": 1 },
+        { "widgetItemId": 12696, "quantity": 1 },
+        { "widgetItemId": 22462, "quantity": 1 },
+        { "widgetItemId": 0, "quantity": 0 },
+        { "widgetItemId": 0, "quantity": 0 }
+      ],
+      "actors": {
+        "self": {
+          "actorId": "self",
+          "tile": { "x": 3094, "y": 3957, "plane": 0 },
+          "equipment": {
+            "weapon": { "itemId": 6914, "name": "Master wand" },
+            "body": { "itemId": 21021, "name": "Ancestral robe top" },
+            "legs": { "itemId": 21024, "name": "Ancestral robe bottom" },
+            "shield": { "itemId": 6889, "name": "Mage's book" }
+          },
+          "appearancePacket": [0,0,1,0,0,0,29,2,84,29,28,233,0,84,32,1,0,1,33,1,42,1,10,0,0,0,0,0,3,40,3,55,3,51,3,52,3,53,3,54,3,56,115,101,108,102,0,0,0,126,0,0,0],
+          "animations": { "pose": 808, "movement": 819 },
+          "overheadPrayer": "protect_from_missiles",
+          "skullIcon": "white_pk"
+        },
+        "opponent": {
+          "actorId": "opponent",
+          "tile": { "x": 3098, "y": 3957, "plane": 0 },
+          "equipment": {
+            "weapon": { "itemId": 9185, "name": "Rune crossbow" },
+            "body": { "itemId": 4736, "name": "Karil's leathertop" },
+            "legs": { "itemId": 4738, "name": "Karil's leatherskirt" },
+            "shield": { "itemId": 1201, "name": "Rune kiteshield" }
+          },
+          "appearancePacket": [0,0,2,0,0,0,37,225,20,128,6,177,0,20,130,1,0,1,33,1,42,1,10,0,0,0,0,0,3,40,3,55,3,51,3,52,3,53,3,54,3,56,111,112,112,111,110,101,110,116,0,0,0,126,0,0,0],
+          "animations": { "pose": 808, "movement": 819 },
+          "overheadPrayer": "protect_from_magic",
+          "skullIcon": "white_pk"
+        }
+      }
+    },
+    {
+      "tick": 1,
+      "eventIds": ["proj-ice-barrage-001"],
+      "actors": {
+        "self": {
+          "actorId": "self",
+          "tile": { "x": 3095, "y": 3957, "plane": 0 },
+          "equipment": {
+            "weapon": { "itemId": 6914, "name": "Master wand" },
+            "body": { "itemId": 21021, "name": "Ancestral robe top" },
+            "legs": { "itemId": 21024, "name": "Ancestral robe bottom" },
+            "shield": { "itemId": 6889, "name": "Mage's book" }
+          },
+          "appearancePacket": [0,0,1,0,0,0,29,2,84,29,28,233,0,84,32,1,0,1,33,1,42,1,10,0,0,0,0,0,3,40,3,55,3,51,3,52,3,53,3,54,3,56,115,101,108,102,0,0,0,126,0,0,0],
+          "animations": { "pose": 808, "movement": 819, "action": 1979, "spot": 366 },
+          "overheadPrayer": "protect_from_missiles",
+          "skullIcon": "white_pk"
+        },
+        "opponent": {
+          "actorId": "opponent",
+          "tile": { "x": 3098, "y": 3957, "plane": 0 },
+          "equipment": {
+            "weapon": { "itemId": 9185, "name": "Rune crossbow" },
+            "body": { "itemId": 4736, "name": "Karil's leathertop" },
+            "legs": { "itemId": 4738, "name": "Karil's leatherskirt" },
+            "shield": { "itemId": 1201, "name": "Rune kiteshield" }
+          },
+          "appearancePacket": [0,0,2,0,0,0,37,225,20,128,6,177,0,20,130,1,0,1,33,1,42,1,10,0,0,0,0,0,3,40,3,55,3,51,3,52,3,53,3,54,3,56,111,112,112,111,110,101,110,116,0,0,0,126,0,0,0],
+          "animations": { "pose": 808, "movement": 819 },
+          "overheadPrayer": "protect_from_magic",
+          "skullIcon": "white_pk"
+        }
+      }
+    },
+    {
+      "tick": 2,
+      "eventIds": [],
+      "actors": {
+        "self": {
+          "actorId": "self",
+          "tile": { "x": 3095, "y": 3957, "plane": 0 },
+          "equipment": {
+            "weapon": { "itemId": 9185, "name": "Rune crossbow" },
+            "body": { "itemId": 4736, "name": "Karil's leathertop" },
+            "legs": { "itemId": 4738, "name": "Karil's leatherskirt" },
+            "shield": { "itemId": 11283, "name": "Dragonfire shield" }
+          },
+          "appearancePacket": [0,0,1,0,0,0,37,225,20,128,46,19,0,20,130,1,0,1,33,1,42,1,10,0,0,0,0,0,3,40,3,55,3,51,3,52,3,53,3,54,3,56,115,101,108,102,0,0,0,126,0,0,0],
+          "animations": { "pose": 808, "movement": 819 },
+          "overheadPrayer": "protect_from_missiles",
+          "skullIcon": "white_pk"
+        },
+        "opponent": {
+          "actorId": "opponent",
+          "tile": { "x": 3098, "y": 3957, "plane": 0 },
+          "equipment": {
+            "weapon": { "itemId": 9185, "name": "Rune crossbow" },
+            "body": { "itemId": 4736, "name": "Karil's leathertop" },
+            "legs": { "itemId": 4738, "name": "Karil's leatherskirt" },
+            "shield": { "itemId": 1201, "name": "Rune kiteshield" }
+          },
+          "appearancePacket": [0,0,2,0,0,0,37,225,20,128,6,177,0,20,130,1,0,1,33,1,42,1,10,0,0,0,0,0,3,40,3,55,3,51,3,52,3,53,3,54,3,56,111,112,112,111,110,101,110,116,0,0,0,126,0,0,0],
+          "animations": { "pose": 808, "movement": 819 },
+          "overheadPrayer": "protect_from_magic",
+          "skullIcon": "white_pk"
+        }
+      }
+    },
+    {
+      "tick": 3,
+      "eventIds": ["hit-ice-barrage-001"],
+      "actors": {
+        "self": {
+          "actorId": "self",
+          "tile": { "x": 3095, "y": 3957, "plane": 0 },
+          "equipment": {
+            "weapon": { "itemId": 9185, "name": "Rune crossbow" },
+            "body": { "itemId": 4736, "name": "Karil's leathertop" },
+            "legs": { "itemId": 4738, "name": "Karil's leatherskirt" },
+            "shield": { "itemId": 11283, "name": "Dragonfire shield" }
+          },
+          "appearancePacket": [0,0,1,0,0,0,37,225,20,128,46,19,0,20,130,1,0,1,33,1,42,1,10,0,0,0,0,0,3,40,3,55,3,51,3,52,3,53,3,54,3,56,115,101,108,102,0,0,0,126,0,0,0],
+          "animations": { "pose": 808, "movement": 819 },
+          "overheadPrayer": "protect_from_missiles",
+          "skullIcon": "white_pk"
+        },
+        "opponent": {
+          "actorId": "opponent",
+          "tile": { "x": 3098, "y": 3957, "plane": 0 },
+          "equipment": {
+            "weapon": { "itemId": 9185, "name": "Rune crossbow" },
+            "body": { "itemId": 4736, "name": "Karil's leathertop" },
+            "legs": { "itemId": 4738, "name": "Karil's leatherskirt" },
+            "shield": { "itemId": 1201, "name": "Rune kiteshield" }
+          },
+          "appearancePacket": [0,0,2,0,0,0,37,225,20,128,6,177,0,20,130,1,0,1,33,1,42,1,10,0,0,0,0,0,3,40,3,55,3,51,3,52,3,53,3,54,3,56,111,112,112,111,110,101,110,116,0,0,0,126,0,0,0],
+          "animations": { "pose": 424, "movement": 819, "spot": 367 },
+          "overheadPrayer": "protect_from_magic",
+          "skullIcon": "white_pk",
+          "healthRatio": 0.7272727273
+        }
+      }
+    },
+    {
+      "tick": 4,
+      "eventIds": ["proj-bolt-001"],
+      "actors": {
+        "self": {
+          "actorId": "self",
+          "tile": { "x": 3095, "y": 3957, "plane": 0 },
+          "equipment": {
+            "weapon": { "itemId": 9185, "name": "Rune crossbow" },
+            "body": { "itemId": 4736, "name": "Karil's leathertop" },
+            "legs": { "itemId": 4738, "name": "Karil's leatherskirt" },
+            "shield": { "itemId": 11283, "name": "Dragonfire shield" }
+          },
+          "appearancePacket": [0,0,1,0,0,0,37,225,20,128,46,19,0,20,130,1,0,1,33,1,42,1,10,0,0,0,0,0,3,40,3,55,3,51,3,52,3,53,3,54,3,56,115,101,108,102,0,0,0,126,0,0,0],
+          "animations": { "pose": 808, "movement": 819, "action": 4230 },
+          "overheadPrayer": "protect_from_missiles",
+          "skullIcon": "white_pk"
+        },
+        "opponent": {
+          "actorId": "opponent",
+          "tile": { "x": 3098, "y": 3957, "plane": 0 },
+          "equipment": {
+            "weapon": { "itemId": 9185, "name": "Rune crossbow" },
+            "body": { "itemId": 4736, "name": "Karil's leathertop" },
+            "legs": { "itemId": 4738, "name": "Karil's leatherskirt" },
+            "shield": { "itemId": 1201, "name": "Rune kiteshield" }
+          },
+          "appearancePacket": [0,0,1,0,0,0,37,225,20,128,6,177,0,20,130,1,0,1,33,1,42,1,10,0,0,0,0,0,3,40,3,55,3,51,3,52,3,53,3,54,3,56,111,112,112,111,110,101,110,116,0,0,0,126,0,0,0],
+          "animations": { "pose": 808, "movement": 819 },
+          "overheadPrayer": "protect_from_missiles",
+          "skullIcon": "white_pk",
+          "healthRatio": 0.7272727273
+        }
+      }
+    },
+    {
+      "tick": 5,
+      "eventIds": ["hit-bolt-001"],
+      "inventory": [
+        { "widgetItemId": 21007, "quantity": 1 },
+        { "widgetItemId": 21792, "quantity": 1 },
+        { "widgetItemId": 12003, "quantity": 1 },
+        { "widgetItemId": 4713, "quantity": 1 },
+        { "widgetItemId": 4715, "quantity": 1 },
+        { "widgetItemId": 12007, "quantity": 1 },
+        { "widgetItemId": 12955, "quantity": 1 },
+        { "widgetItemId": 6571, "quantity": 1 },
+        { "widgetItemId": 19554, "quantity": 1 },
+        { "widgetItemId": 11833, "quantity": 1 },
+        { "widgetItemId": 11835, "quantity": 1 },
+        { "widgetItemId": 4154, "quantity": 1 },
+        { "widgetItemId": 3145, "quantity": 1 },
+        { "widgetItemId": 3145, "quantity": 1 },
+        { "widgetItemId": 3145, "quantity": 1 },
+        { "widgetItemId": 3145, "quantity": 1 },
+        { "widgetItemId": 386, "quantity": 1 },
+        { "widgetItemId": 386, "quantity": 1 },
+        { "widgetItemId": 386, "quantity": 1 },
+        { "widgetItemId": 386, "quantity": 1 },
+        { "widgetItemId": 0, "quantity": 0 },
+        { "widgetItemId": 6686, "quantity": 1 },
+        { "widgetItemId": 3025, "quantity": 1 },
+        { "widgetItemId": 3025, "quantity": 1 },
+        { "widgetItemId": 12696, "quantity": 1 },
+        { "widgetItemId": 22462, "quantity": 1 },
+        { "widgetItemId": 0, "quantity": 0 },
+        { "widgetItemId": 0, "quantity": 0 }
+      ],
+      "actors": {
+        "self": {
+          "actorId": "self",
+          "tile": { "x": 3095, "y": 3957, "plane": 0 },
+          "equipment": {
+            "weapon": { "itemId": 9185, "name": "Rune crossbow" },
+            "body": { "itemId": 4736, "name": "Karil's leathertop" },
+            "legs": { "itemId": 4738, "name": "Karil's leatherskirt" },
+            "shield": { "itemId": 11283, "name": "Dragonfire shield" }
+          },
+          "appearancePacket": [0,0,1,0,0,0,37,225,20,128,46,19,0,20,130,1,0,1,33,1,42,1,10,0,0,0,0,0,3,40,3,55,3,51,3,52,3,53,3,54,3,56,115,101,108,102,0,0,0,126,0,0,0],
+          "animations": { "pose": 808, "movement": 819 },
+          "overheadPrayer": "protect_from_missiles",
+          "skullIcon": "white_pk"
+        },
+        "opponent": {
+          "actorId": "opponent",
+          "tile": { "x": 3098, "y": 3957, "plane": 0 },
+          "equipment": {
+            "weapon": { "itemId": 9185, "name": "Rune crossbow" },
+            "body": { "itemId": 4736, "name": "Karil's leathertop" },
+            "legs": { "itemId": 4738, "name": "Karil's leatherskirt" },
+            "shield": { "itemId": 1201, "name": "Rune kiteshield" }
+          },
+          "appearancePacket": [0,0,1,0,0,0,37,225,20,128,6,177,0,20,130,1,0,1,33,1,42,1,10,0,0,0,0,0,3,40,3,55,3,51,3,52,3,53,3,54,3,56,111,112,112,111,110,101,110,116,0,0,0,126,0,0,0],
+          "animations": { "pose": 424, "movement": 819 },
+          "overheadPrayer": "protect_from_missiles",
+          "skullIcon": "white_pk",
+          "healthRatio": 0.5454545455
+        }
+      }
+    }
+  ],
+  "events": [
+    {
+      "id": "proj-ice-barrage-001",
+      "kind": "projectile",
+      "observedTick": 1,
+      "visibleWindow": { "firstTick": 52, "lastTick": 77 },
+      "sourceActorId": "self",
+      "targetActorId": "opponent",
+      "projectileId": 368,
+      "targetIndex": -2,
+      "startTile": { "x": 3098, "y": 3957, "plane": 0 },
+      "targetTile": { "x": 3098, "y": 3957, "plane": 0 },
+      "startHeight": 43,
+      "endHeight": 0,
+      "delayCycles": 51,
+      "durationCycles": 76,
+      "curve": 16,
+      "offset": 64,
+      "skipTravel": true
+    },
+    {
+      "id": "hit-ice-barrage-001",
+      "kind": "hitsplat",
+      "observedTick": 3,
+      "visibleWindow": { "firstTick": 3, "lastTick": 53 },
+      "targetActorId": "opponent",
+      "primaryType": 1,
+      "primaryValue": 27,
+      "secondaryType": -1,
+      "secondaryValue": 0,
+      "delayCycles": 0,
+      "slotIndex": 0,
+      "definitionDurationCycles": 50,
+      "expiresOnClientCycle": 53
+    },
+    {
+      "id": "proj-bolt-001",
+      "kind": "projectile",
+      "observedTick": 4,
+      "visibleWindow": { "firstTick": 45, "lastTick": 65 },
+      "sourceActorId": "self",
+      "targetActorId": "opponent",
+      "projectileId": 27,
+      "targetIndex": -2,
+      "startTile": { "x": 3095, "y": 3957, "plane": 0 },
+      "targetTile": { "x": 3098, "y": 3957, "plane": 0 },
+      "startHeight": 38,
+      "endHeight": 36,
+      "delayCycles": 41,
+      "durationCycles": 61,
+      "curve": 5,
+      "offset": 11,
+      "skipTravel": false
+    },
+    {
+      "id": "hit-bolt-001",
+      "kind": "hitsplat",
+      "observedTick": 5,
+      "visibleWindow": { "firstTick": 5, "lastTick": 55 },
+      "targetActorId": "opponent",
+      "primaryType": 1,
+      "primaryValue": 18,
+      "secondaryType": -1,
+      "secondaryValue": 0,
+      "delayCycles": 0,
+      "slotIndex": 0,
+      "definitionDurationCycles": 50,
+      "expiresOnClientCycle": 55
+    }
+  ]
+}

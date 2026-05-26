@@ -1,0 +1,161 @@
+{
+  "name": "whip_attack",
+  "sequenceId": 1658,
+  "frameStep": -1,
+  "rightHandItem": -1,
+  "leftHandItem": -1,
+  "interleaveLeave": [
+    1,
+    2,
+    9,
+    11,
+    13,
+    15,
+    17,
+    19,
+    37,
+    39,
+    41,
+    43,
+    45,
+    164,
+    166,
+    168,
+    170,
+    172,
+    174,
+    176,
+    178,
+    180,
+    182,
+    183,
+    185,
+    191,
+    192,
+    9999999
+  ],
+  "forcedPriority": 6,
+  "priority": -1,
+  "frames": [
+    {
+      "index": 0,
+      "archiveId": 300,
+      "fileId": 190,
+      "frameKey": "300:190",
+      "packedFrameId": 19660990,
+      "lengthClientCycles": 4
+    },
+    {
+      "index": 1,
+      "archiveId": 300,
+      "fileId": 214,
+      "frameKey": "300:214",
+      "packedFrameId": 19661014,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 2,
+      "archiveId": 300,
+      "fileId": 215,
+      "frameKey": "300:215",
+      "packedFrameId": 19661015,
+      "lengthClientCycles": 2
+    },
+    {
+      "index": 3,
+      "archiveId": 300,
+      "fileId": 216,
+      "frameKey": "300:216",
+      "packedFrameId": 19661016,
+      "lengthClientCycles": 1
+    },
+    {
+      "index": 4,
+      "archiveId": 300,
+      "fileId": 217,
+      "frameKey": "300:217",
+      "packedFrameId": 19661017,
+      "lengthClientCycles": 1
+    },
+    {
+      "index": 5,
+      "archiveId": 300,
+      "fileId": 218,
+      "frameKey": "300:218",
+      "packedFrameId": 19661018,
+      "lengthClientCycles": 4
+    },
+    {
+      "index": 6,
+      "archiveId": 300,
+      "fileId": 219,
+      "frameKey": "300:219",
+      "packedFrameId": 19661019,
+      "lengthClientCycles": 2
+    },
+    {
+      "index": 7,
+      "archiveId": 300,
+      "fileId": 220,
+      "frameKey": "300:220",
+      "packedFrameId": 19661020,
+      "lengthClientCycles": 2
+    },
+    {
+      "index": 8,
+      "archiveId": 300,
+      "fileId": 221,
+      "frameKey": "300:221",
+      "packedFrameId": 19661021,
+      "lengthClientCycles": 8
+    },
+    {
+      "index": 9,
+      "archiveId": 300,
+      "fileId": 208,
+      "frameKey": "300:208",
+      "packedFrameId": 19661008,
+      "lengthClientCycles": 1
+    },
+    {
+      "index": 10,
+      "archiveId": 300,
+      "fileId": 209,
+      "frameKey": "300:209",
+      "packedFrameId": 19661009,
+      "lengthClientCycles": 2
+    },
+    {
+      "index": 11,
+      "archiveId": 300,
+      "fileId": 210,
+      "frameKey": "300:210",
+      "packedFrameId": 19661010,
+      "lengthClientCycles": 2
+    },
+    {
+      "index": 12,
+      "archiveId": 300,
+      "fileId": 211,
+      "frameKey": "300:211",
+      "packedFrameId": 19661011,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 13,
+      "archiveId": 300,
+      "fileId": 212,
+      "frameKey": "300:212",
+      "packedFrameId": 19661012,
+      "lengthClientCycles": 2
+    },
+    {
+      "index": 14,
+      "archiveId": 300,
+      "fileId": 213,
+      "frameKey": "300:213",
+      "packedFrameId": 19661013,
+      "lengthClientCycles": 2
+    }
+  ]
+}

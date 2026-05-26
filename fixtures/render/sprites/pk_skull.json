@@ -1,0 +1,35 @@
+{
+  "id": "pk_skull",
+  "source": "Kronos cache SpriteDefinition",
+  "image": "pk_skull.png",
+  "width": 50,
+  "height": 25,
+  "sprites": [
+    {
+      "spriteId": 439,
+      "alias": "white_pk",
+      "frame": 0,
+      "x": 0,
+      "y": 0,
+      "width": 25,
+      "height": 25,
+      "offsetX": 0,
+      "offsetY": 0,
+      "maxWidth": 25,
+      "maxHeight": 25
+    },
+    {
+      "spriteId": 439,
+      "alias": "red_pk",
+      "frame": 1,
+      "x": 25,
+      "y": 0,
+      "width": 25,
+      "height": 25,
+      "offsetX": 0,
+      "offsetY": 0,
+      "maxWidth": 25,
+      "maxHeight": 25
+    }
+  ]
+}

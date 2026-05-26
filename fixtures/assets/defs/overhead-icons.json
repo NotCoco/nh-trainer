@@ -1,0 +1,81 @@
+{
+  "source": "Kronos client graphics defaults and Player head icon indexes",
+  "headIconPrayerSpriteArchiveId": 440,
+  "headIconPkSpriteArchiveId": 439,
+  "prayers": {
+    "protect_from_melee": {
+      "headIconIndex": 0,
+      "spriteSheetId": "prayer_overheads",
+      "spriteId": 440,
+      "spriteFrame": 0,
+      "width": 25,
+      "height": 25,
+      "label": "protect_from_melee"
+    },
+    "protect_from_missiles": {
+      "headIconIndex": 1,
+      "spriteSheetId": "prayer_overheads",
+      "spriteId": 440,
+      "spriteFrame": 1,
+      "width": 25,
+      "height": 25,
+      "label": "protect_from_missiles"
+    },
+    "protect_from_magic": {
+      "headIconIndex": 2,
+      "spriteSheetId": "prayer_overheads",
+      "spriteId": 440,
+      "spriteFrame": 2,
+      "width": 25,
+      "height": 25,
+      "label": "protect_from_magic"
+    },
+    "retribution": {
+      "headIconIndex": 3,
+      "spriteSheetId": "prayer_overheads",
+      "spriteId": 440,
+      "spriteFrame": 3,
+      "width": 25,
+      "height": 25,
+      "label": "retribution"
+    },
+    "smite": {
+      "headIconIndex": 4,
+      "spriteSheetId": "prayer_overheads",
+      "spriteId": 440,
+      "spriteFrame": 4,
+      "width": 25,
+      "height": 25,
+      "label": "smite"
+    },
+    "redemption": {
+      "headIconIndex": 5,
+      "spriteSheetId": "prayer_overheads",
+      "spriteId": 440,
+      "spriteFrame": 5,
+      "width": 25,
+      "height": 25,
+      "label": "redemption"
+    }
+  },
+  "skulls": {
+    "white_pk": {
+      "headIconIndex": 0,
+      "spriteSheetId": "pk_skull",
+      "spriteId": 439,
+      "spriteFrame": 0,
+      "width": 25,
+      "height": 25,
+      "label": "white_pk"
+    },
+    "red_pk": {
+      "headIconIndex": 1,
+      "spriteSheetId": "pk_skull",
+      "spriteId": 439,
+      "spriteFrame": 1,
+      "width": 25,
+      "height": 25,
+      "label": "red_pk"
+    }
+  }
+}

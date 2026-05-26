@@ -1,0 +1,115 @@
+{
+  "name": "barrage_cast",
+  "sequenceId": 1979,
+  "frameStep": -1,
+  "rightHandItem": -1,
+  "leftHandItem": -1,
+  "forcedPriority": 5,
+  "priority": -1,
+  "frames": [
+    {
+      "index": 0,
+      "archiveId": 233,
+      "fileId": 121,
+      "frameKey": "233:121",
+      "packedFrameId": 15270009,
+      "lengthClientCycles": 4
+    },
+    {
+      "index": 1,
+      "archiveId": 233,
+      "fileId": 211,
+      "frameKey": "233:211",
+      "packedFrameId": 15270099,
+      "lengthClientCycles": 1
+    },
+    {
+      "index": 2,
+      "archiveId": 233,
+      "fileId": 212,
+      "frameKey": "233:212",
+      "packedFrameId": 15270100,
+      "lengthClientCycles": 2
+    },
+    {
+      "index": 3,
+      "archiveId": 233,
+      "fileId": 213,
+      "frameKey": "233:213",
+      "packedFrameId": 15270101,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 4,
+      "archiveId": 233,
+      "fileId": 214,
+      "frameKey": "233:214",
+      "packedFrameId": 15270102,
+      "lengthClientCycles": 20
+    },
+    {
+      "index": 5,
+      "archiveId": 233,
+      "fileId": 215,
+      "frameKey": "233:215",
+      "packedFrameId": 15270103,
+      "lengthClientCycles": 1
+    },
+    {
+      "index": 6,
+      "archiveId": 233,
+      "fileId": 216,
+      "frameKey": "233:216",
+      "packedFrameId": 15270104,
+      "lengthClientCycles": 2
+    },
+    {
+      "index": 7,
+      "archiveId": 233,
+      "fileId": 217,
+      "frameKey": "233:217",
+      "packedFrameId": 15270105,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 8,
+      "archiveId": 233,
+      "fileId": 218,
+      "frameKey": "233:218",
+      "packedFrameId": 15270106,
+      "lengthClientCycles": 20
+    },
+    {
+      "index": 9,
+      "archiveId": 233,
+      "fileId": 207,
+      "frameKey": "233:207",
+      "packedFrameId": 15270095,
+      "lengthClientCycles": 1
+    },
+    {
+      "index": 10,
+      "archiveId": 233,
+      "fileId": 208,
+      "frameKey": "233:208",
+      "packedFrameId": 15270096,
+      "lengthClientCycles": 2
+    },
+    {
+      "index": 11,
+      "archiveId": 233,
+      "fileId": 209,
+      "frameKey": "233:209",
+      "packedFrameId": 15270097,
+      "lengthClientCycles": 3
+    },
+    {
+      "index": 12,
+      "archiveId": 233,
+      "fileId": 210,
+      "frameKey": "233:210",
+      "packedFrameId": 15270098,
+      "lengthClientCycles": 4
+    }
+  ]
+}

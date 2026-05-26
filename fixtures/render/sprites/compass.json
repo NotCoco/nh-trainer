@@ -1,0 +1,22 @@
+{
+  "id": "compass",
+  "source": "Kronos cache SpriteDefinition",
+  "image": "compass.png",
+  "width": 51,
+  "height": 51,
+  "sprites": [
+    {
+      "spriteId": 169,
+      "alias": "compass",
+      "frame": 0,
+      "x": 0,
+      "y": 0,
+      "width": 51,
+      "height": 51,
+      "offsetX": 0,
+      "offsetY": 0,
+      "maxWidth": 51,
+      "maxHeight": 51
+    }
+  ]
+}
