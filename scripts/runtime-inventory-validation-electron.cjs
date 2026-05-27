@@ -2,7 +2,7 @@ const { app, BrowserWindow } = require("electron");
 const fs = require("node:fs/promises");
 const path = require("node:path");
 
-const verifyUserDataDir = process.env.KRONOS_ELECTRON_VERIFY_USER_DATA_DIR;
+const verifyUserDataDir = process.env.NH_ELECTRON_VERIFY_USER_DATA_DIR;
 if (verifyUserDataDir) {
   app.setPath("userData", verifyUserDataDir);
 }
@@ -14,10 +14,10 @@ function delay(ms) {
 }
 
 /**
- * Wait for one Kronos game tick boundary (600ms) plus an offscreen Electron
+ * Wait for one Nh game tick boundary (600ms) plus an offscreen Electron
  * render buffer. Hidden verifier windows can run timers later than the visible
  * app, so this is intentionally looser than the runtime tick itself.
- * In Kronos, widget button click packets are decoded during the LOGIC phase
+ * In Nh, widget button click packets are decoded during the LOGIC phase
  * of the next tick — so equip mutations don't apply until the tick fires.
  */
 function waitForGameTick() {
@@ -27,11 +27,11 @@ function waitForGameTick() {
 async function readInventoryPendingEquip(window, slotIndex) {
   return window.webContents.executeJavaScript(`
     (() => {
-      const slot = document.querySelector('.kronosInventorySlot[data-slot-index="${slotIndex}"]');
+      const slot = document.querySelector('.nhInventorySlot[data-slot-index="${slotIndex}"]');
       return {
         pendingEquip: slot?.getAttribute("data-pending-equip") ?? "",
-        itemId: slot?.querySelector(".kronosInventoryItemSprite")
-          ? Number(slot.querySelector(".kronosInventoryItemSprite").getAttribute("data-item-id"))
+        itemId: slot?.querySelector(".nhInventoryItemSprite")
+          ? Number(slot.querySelector(".nhInventoryItemSprite").getAttribute("data-item-id"))
           : null
       };
     })()
@@ -72,7 +72,7 @@ function assertActorAppearanceContains(context, actor, expectedItemIds) {
     }
   }
   if ((actor?.appearanceEquipmentSlots ?? []).length !== 12) {
-    throw new Error(`${context} should expose the 12-slot Kronos appearance encoding after an equip mutation: ${JSON.stringify(actor)}`);
+    throw new Error(`${context} should expose the 12-slot Nh appearance encoding after an equip mutation: ${JSON.stringify(actor)}`);
   }
 }
 
@@ -129,7 +129,7 @@ async function loadRuntimeWindow(window) {
 async function setRuntimeCycle(window, cycle) {
   await window.webContents.executeJavaScript(`
     (() => {
-      window.dispatchEvent(new CustomEvent("kronos-runtime-cycle", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-cycle", {
         detail: { cycle: ${JSON.stringify(cycle)} }
       }));
     })()
@@ -140,7 +140,7 @@ async function setRuntimeCycle(window, cycle) {
 async function resetRuntimeTickOrigin(window) {
   await window.webContents.executeJavaScript(`
     (() => {
-      window.dispatchEvent(new CustomEvent("kronos-runtime-reset-tick-origin"));
+      window.dispatchEvent(new CustomEvent("nh-runtime-reset-tick-origin"));
     })()
   `);
   await delay(50);
@@ -246,10 +246,10 @@ async function clickManualStyle(window, label) {
 async function readRuntimeInventory(window) {
   return window.webContents.executeJavaScript(`
     (() => {
-      const slots = Array.from(document.querySelectorAll(".kronosInventorySlot")).map((slot, index) => {
-        const sprite = slot.querySelector(".kronosInventoryItemSprite");
-        const quantity = slot.querySelector(".kronosInventoryQuantity");
-        const quantityGlyphs = quantity ? Array.from(quantity.querySelectorAll(".kronosWidgetGlyph")) : [];
+      const slots = Array.from(document.querySelectorAll(".nhInventorySlot")).map((slot, index) => {
+        const sprite = slot.querySelector(".nhInventoryItemSprite");
+        const quantity = slot.querySelector(".nhInventoryQuantity");
+        const quantityGlyphs = quantity ? Array.from(quantity.querySelectorAll(".nhWidgetGlyph")) : [];
         return {
           index,
           itemId: sprite ? Number(sprite.getAttribute("data-item-id")) : null,
@@ -279,7 +279,7 @@ async function readRuntimeInventory(window) {
         };
       });
       const sprites = slots.filter((slot) => slot.itemId !== null);
-      const grid = document.querySelector(".kronosInventoryGrid");
+      const grid = document.querySelector(".nhInventoryGrid");
       const gridStyle = grid ? getComputedStyle(grid) : null;
       const counts = {};
       for (const sprite of sprites) {
@@ -330,14 +330,14 @@ async function resetActorModelSwapCapture(window) {
         viewport.dataset.localActorModelSwapLog = "[]";
         viewport.dataset.localActorModelSwapCount = "0";
       }
-      window.__kronosRuntimeActorModelSwaps = [];
-      if (window.__kronosRuntimeActorModelSwapHandler) {
-        window.removeEventListener("kronos-runtime-actor-model-swap", window.__kronosRuntimeActorModelSwapHandler);
+      window.__nhRuntimeActorModelSwaps = [];
+      if (window.__nhRuntimeActorModelSwapHandler) {
+        window.removeEventListener("nh-runtime-actor-model-swap", window.__nhRuntimeActorModelSwapHandler);
       }
-      window.__kronosRuntimeActorModelSwapHandler = (event) => {
-        window.__kronosRuntimeActorModelSwaps.push(event.detail);
+      window.__nhRuntimeActorModelSwapHandler = (event) => {
+        window.__nhRuntimeActorModelSwaps.push(event.detail);
       };
-      window.addEventListener("kronos-runtime-actor-model-swap", window.__kronosRuntimeActorModelSwapHandler);
+      window.addEventListener("nh-runtime-actor-model-swap", window.__nhRuntimeActorModelSwapHandler);
     })()
   `);
 }
@@ -353,8 +353,8 @@ async function readActorModelSwapCapture(window) {
       } catch {
         swaps = [];
       }
-      if (swaps.length === 0 && Array.isArray(window.__kronosRuntimeActorModelSwaps)) {
-        swaps = window.__kronosRuntimeActorModelSwaps;
+      if (swaps.length === 0 && Array.isArray(window.__nhRuntimeActorModelSwaps)) {
+        swaps = window.__nhRuntimeActorModelSwaps;
       }
       return swaps.map((swap) => ({
         actorId: swap.actorId ?? "",
@@ -373,7 +373,7 @@ async function readActorModelSwapCapture(window) {
 async function readRuntimeEquipment(window) {
   return window.webContents.executeJavaScript(`
     (() => ({
-      items: Array.from(document.querySelectorAll(".kronosEquipmentItemSprite")).map((item) => ({
+      items: Array.from(document.querySelectorAll(".nhEquipmentItemSprite")).map((item) => ({
         slotId: item.getAttribute("data-slot-id") ?? "",
         serverSlot: Number(item.getAttribute("data-server-slot")),
         childId: Number(item.getAttribute("data-child-id")),
@@ -382,7 +382,7 @@ async function readRuntimeEquipment(window) {
         itemName: item.getAttribute("data-item-name") ?? "",
         usesItemAtlas: getComputedStyle(item).backgroundImage.includes("item_sprites.png")
       })),
-      buttons: Array.from(document.querySelectorAll(".kronosEquipmentItemButton")).map((button) => ({
+      buttons: Array.from(document.querySelectorAll(".nhEquipmentItemButton")).map((button) => ({
         slotId: button.getAttribute("data-slot-id") ?? "",
         serverSlot: Number(button.getAttribute("data-server-slot")),
         itemId: Number(button.getAttribute("data-item-id")),
@@ -396,8 +396,8 @@ async function readRuntimeEquipment(window) {
 async function readEquipmentPendingRemove(window, slotId) {
   return window.webContents.executeJavaScript(`
     (() => {
-      const button = document.querySelector(${JSON.stringify(`.kronosEquipmentItemButton[data-slot-id="${slotId}"]`)});
-      const sprite = document.querySelector(${JSON.stringify(`.kronosEquipmentItemSprite[data-slot-id="${slotId}"]`)});
+      const button = document.querySelector(${JSON.stringify(`.nhEquipmentItemButton[data-slot-id="${slotId}"]`)});
+      const sprite = document.querySelector(${JSON.stringify(`.nhEquipmentItemSprite[data-slot-id="${slotId}"]`)});
       return {
         pendingRemove: button?.getAttribute("data-pending-remove") ?? "false",
         itemId: button ? Number(button.getAttribute("data-item-id")) : null,
@@ -410,14 +410,14 @@ async function readEquipmentPendingRemove(window, slotId) {
 async function readRuntimeCombatPanel(window) {
   return window.webContents.executeJavaScript(`
     (() => {
-      const panel = document.querySelector(".kronosCombatPanelLayer");
+      const panel = document.querySelector(".nhCombatPanelLayer");
       return {
         weaponItemId: panel?.getAttribute("data-weapon-item-id") ?? "",
         weaponName: panel?.getAttribute("data-weapon-name") ?? "",
         weaponType: panel?.getAttribute("data-weapon-type") ?? "",
         weaponTypeConfig: panel?.getAttribute("data-weapon-type-config") ?? "",
         weaponTypeSource: panel?.getAttribute("data-weapon-type-source") ?? "",
-        attackStyles: Array.from(document.querySelectorAll(".kronosCombatStyleSlot")).map((slot) => ({
+        attackStyles: Array.from(document.querySelectorAll(".nhCombatStyleSlot")).map((slot) => ({
           attackStyle: slot.getAttribute("data-attack-style") ?? "",
           attackType: slot.getAttribute("data-attack-type") ?? "",
           selected: slot.getAttribute("data-selected") ?? "",
@@ -433,7 +433,7 @@ async function readRuntimeCombatPanel(window) {
 async function setRuntimeInventory(window, inventory) {
   await window.webContents.executeJavaScript(`
     (() => {
-      window.dispatchEvent(new CustomEvent("kronos-runtime-inventory", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-inventory", {
         detail: { inventory: ${JSON.stringify(inventory)} }
       }));
     })()
@@ -444,7 +444,7 @@ async function setRuntimeInventory(window, inventory) {
 async function clickSideTab(window, tabId) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const tab = document.querySelector(${JSON.stringify(`.kronosSideTabButton[data-tab-id="${tabId}"]`)});
+      const tab = document.querySelector(${JSON.stringify(`.nhSideTabButton[data-tab-id="${tabId}"]`)});
       if (!tab) {
         return { ok: false, error: "missing side tab" };
       }
@@ -474,7 +474,7 @@ async function clickSideTab(window, tabId) {
 async function leftClickEquipmentItem(window, slotId) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const button = document.querySelector(${JSON.stringify(`.kronosEquipmentItemButton[data-slot-id="${slotId}"]`)});
+      const button = document.querySelector(${JSON.stringify(`.nhEquipmentItemButton[data-slot-id="${slotId}"]`)});
       if (!button) {
         return { ok: false, error: "missing equipment item button", slotId: ${JSON.stringify(slotId)} };
       }
@@ -504,7 +504,7 @@ async function leftClickEquipmentItem(window, slotId) {
 async function clearRuntimeInventory(window) {
   await window.webContents.executeJavaScript(`
     (() => {
-      window.dispatchEvent(new CustomEvent("kronos-runtime-inventory", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-inventory", {
         detail: { clear: true }
       }));
     })()
@@ -515,7 +515,7 @@ async function clearRuntimeInventory(window) {
 async function openInventoryContextMenu(window, slotIndex) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const slot = document.querySelector(${JSON.stringify(`.kronosInventorySlot[data-slot-index="${slotIndex}"]`)});
+      const slot = document.querySelector(${JSON.stringify(`.nhInventorySlot[data-slot-index="${slotIndex}"]`)});
       if (!slot) {
         return { ok: false, error: "missing inventory slot" };
       }
@@ -530,19 +530,19 @@ async function openInventoryContextMenu(window, slotIndex) {
         clientY: rect.top + rect.height / 2
       }));
 
-      let menu = document.querySelector(".kronosContextMenu");
+      let menu = document.querySelector(".nhContextMenu");
       const deadline = Date.now() + 1000;
       while (!menu && Date.now() < deadline) {
         await new Promise((resolve) => requestAnimationFrame(resolve));
-        menu = document.querySelector(".kronosContextMenu");
+        menu = document.querySelector(".nhContextMenu");
       }
       if (!menu) {
         return { ok: false, error: "inventory context menu did not open" };
       }
       return {
         ok: true,
-        title: menu.querySelector(".kronosContextMenuTitle")?.textContent ?? "",
-        options: Array.from(menu.querySelectorAll(".kronosContextMenuOption")).map((option) => ({
+        title: menu.querySelector(".nhContextMenuTitle")?.textContent ?? "",
+        options: Array.from(menu.querySelectorAll(".nhContextMenuOption")).map((option) => ({
           text: option.textContent ?? "",
           action: option.getAttribute("data-menu-action") ?? "",
           actionKind: option.getAttribute("data-menu-action-kind") ?? "",
@@ -567,7 +567,7 @@ async function clickTopContextMenuOption(window) {
 async function clickContextMenuOption(window, optionIndex) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const option = Array.from(document.querySelectorAll(".kronosContextMenuOption"))[${JSON.stringify(optionIndex)}];
+      const option = Array.from(document.querySelectorAll(".nhContextMenuOption"))[${JSON.stringify(optionIndex)}];
       if (!option) {
         return { ok: false, error: "missing context menu option" };
       }
@@ -586,7 +586,7 @@ async function clickContextMenuOption(window, optionIndex) {
 async function leftClickInventorySlot(window, slotIndex) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const slot = document.querySelector(${JSON.stringify(`.kronosInventorySlot[data-slot-index="${slotIndex}"]`)});
+      const slot = document.querySelector(${JSON.stringify(`.nhInventorySlot[data-slot-index="${slotIndex}"]`)});
       if (!slot) {
         return { ok: false, error: "missing inventory slot" };
       }
@@ -594,8 +594,8 @@ async function leftClickInventorySlot(window, slotIndex) {
       const clientX = rect.left + rect.width / 2;
       const clientY = rect.top + rect.height / 2;
       const target = document.elementFromPoint(clientX, clientY);
-      if (!target || target.closest(${JSON.stringify(`.kronosInventorySlot[data-slot-index="${slotIndex}"]`)}) !== slot) {
-        const grid = slot.closest(".kronosInventoryGrid");
+      if (!target || target.closest(${JSON.stringify(`.nhInventorySlot[data-slot-index="${slotIndex}"]`)}) !== slot) {
+        const grid = slot.closest(".nhInventoryGrid");
         const viewport = slot.closest(".runtimeViewport");
         return {
           ok: false,
@@ -692,7 +692,7 @@ async function leftClickInventorySlotsSameFrame(window, slotIndices) {
       const slotIndices = ${JSON.stringify(slotIndices)};
       const clicked = [];
       for (const slotIndex of slotIndices) {
-        const slot = document.querySelector('.kronosInventorySlot[data-slot-index="' + slotIndex + '"]');
+        const slot = document.querySelector('.nhInventorySlot[data-slot-index="' + slotIndex + '"]');
         if (!slot) {
           return { ok: false, error: "missing inventory slot", slotIndex };
         }
@@ -700,7 +700,7 @@ async function leftClickInventorySlotsSameFrame(window, slotIndices) {
         const clientX = rect.left + rect.width / 2;
         const clientY = rect.top + rect.height / 2;
         const target = document.elementFromPoint(clientX, clientY);
-        if (!target || target.closest('.kronosInventorySlot[data-slot-index="' + slotIndex + '"]') !== slot) {
+        if (!target || target.closest('.nhInventorySlot[data-slot-index="' + slotIndex + '"]') !== slot) {
           return { ok: false, error: "inventory slot is not the real pointer target", slotIndex };
         }
         const pointerId = slotIndex + 1;
@@ -760,8 +760,8 @@ async function readRuntimeViewportDataset(window) {
 async function dragInventorySlot(window, sourceSlotIndex, destinationSlotIndex) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const source = document.querySelector('.kronosInventorySlot[data-slot-index="' + ${JSON.stringify(sourceSlotIndex)} + '"]');
-      const destination = document.querySelector('.kronosInventorySlot[data-slot-index="' + ${JSON.stringify(destinationSlotIndex)} + '"]');
+      const source = document.querySelector('.nhInventorySlot[data-slot-index="' + ${JSON.stringify(sourceSlotIndex)} + '"]');
+      const destination = document.querySelector('.nhInventorySlot[data-slot-index="' + ${JSON.stringify(destinationSlotIndex)} + '"]');
       if (!source || !destination) {
         return { ok: false, error: "missing drag slot", source: Boolean(source), destination: Boolean(destination) };
       }
@@ -773,7 +773,7 @@ async function dragInventorySlot(window, sourceSlotIndex, destinationSlotIndex) 
       const sourceHeight = Number.parseFloat(panel?.getAttribute("data-source-height") ?? "") || panel?.offsetHeight || panelRect?.height || 1;
       const scaleX = panelRect && panelRect.width > 0 ? panelRect.width / sourceWidth : 1;
       const scaleY = panelRect && panelRect.height > 0 ? panelRect.height / sourceHeight : 1;
-      const spriteBefore = source.querySelector(".kronosInventoryItemSprite")?.getBoundingClientRect();
+      const spriteBefore = source.querySelector(".nhInventoryItemSprite")?.getBoundingClientRect();
       const startX = sourceRect.left + sourceRect.width / 2;
       const startY = sourceRect.top + sourceRect.height / 2;
       const endX = destinationRect.left + destinationRect.width / 2;
@@ -806,7 +806,7 @@ async function dragInventorySlot(window, sourceSlotIndex, destinationSlotIndex) 
       window.dispatchEvent(new PointerEvent("pointermove", pointerMoveInit));
       await new Promise((resolve) => requestAnimationFrame(resolve));
       await new Promise((resolve) => requestAnimationFrame(resolve));
-      const spriteDuring = source.querySelector(".kronosInventoryItemSprite")?.getBoundingClientRect();
+      const spriteDuring = source.querySelector(".nhInventoryItemSprite")?.getBoundingClientRect();
       const rawDeltaX = endX - startX;
       const rawDeltaY = endY - startY;
       const dragVisual = {
@@ -913,7 +913,7 @@ async function leftClickRuntimeCanvas(window) {
 async function readRuntimeClickCross(window) {
   return window.webContents.executeJavaScript(`
     (() => {
-      const cross = document.querySelector(".kronosClickCross");
+      const cross = document.querySelector(".nhClickCross");
       if (!cross) {
         return null;
       }
@@ -2113,12 +2113,12 @@ app.whenReady().then(async () => {
       sameAcbDispatch.lastInventoryEquipmentPreviousItemId !== "11785" ||
       sameAcbDispatch.lastInventoryQueuedForTick !== "true"
     ) {
-      throw new Error(`Same-item ACB Wield should queue a Kronos non-stackable swap instead of deleting the inventory copy: ${JSON.stringify(sameAcbDispatch)}`);
+      throw new Error(`Same-item ACB Wield should queue a Nh non-stackable swap instead of deleting the inventory copy: ${JSON.stringify(sameAcbDispatch)}`);
     }
     await waitForGameTick();
     const sameAcbInventory = await readRuntimeInventory(window);
     if (sameAcbInventory.slots[0].itemId !== 11785 || sameAcbInventory.slots[0].label !== "Inventory slot 1: Armadyl crossbow") {
-      throw new Error(`Same-item ACB Wield should keep the non-stackable ACB in inventory slot 0 like Kronos Equipment.equip: ${JSON.stringify(sameAcbInventory.slots[0])}`);
+      throw new Error(`Same-item ACB Wield should keep the non-stackable ACB in inventory slot 0 like Nh Equipment.equip: ${JSON.stringify(sameAcbInventory.slots[0])}`);
     }
     await clickSideTab(window, "equipment");
     const sameAcbEquipment = await readRuntimeEquipment(window);

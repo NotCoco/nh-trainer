@@ -2,10 +2,10 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  KRONOS_TILE_MODEL_FACE_TYPES,
-  KRONOS_TILE_MODEL_VERTEX_TYPES,
-  createKronosTileModel
-} from "./kronos-tile-model.mjs";
+  NH_TILE_MODEL_FACE_TYPES,
+  NH_TILE_MODEL_VERTEX_TYPES,
+  createNhTileModel
+} from "./nh-tile-model.mjs";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -23,10 +23,10 @@ function assertSame(name, actual, expected) {
   }
 }
 
-assertSame("shape 2 vertex table", KRONOS_TILE_MODEL_VERTEX_TYPES[2], [1, 3, 5, 7]);
-assertSame("shape 7 face table", KRONOS_TILE_MODEL_FACE_TYPES[7], [0, 4, 1, 2, 0, 4, 2, 5, 1, 0, 4, 5, 1, 0, 5, 3]);
+assertSame("shape 2 vertex table", NH_TILE_MODEL_VERTEX_TYPES[2], [1, 3, 5, 7]);
+assertSame("shape 7 face table", NH_TILE_MODEL_FACE_TYPES[7], [0, 4, 1, 2, 0, 4, 2, 5, 1, 0, 4, 5, 1, 0, 5, 3]);
 
-const model = createKronosTileModel({
+const model = createNhTileModel({
   shape: 7,
   rotation: 1,
   texture: 12,
@@ -101,7 +101,7 @@ const expectedTilePaintIndexCount =
 const tilePaintMaterialIndex = terrainGlb.materials.findIndex((material) => material.name === "cache-terrain-tilepaint-faces");
 const tileModelMaterialIndex = terrainGlb.materials.findIndex((material) => material.name === "cache-terrain-tilemodel-faces");
 const terrainTextureImageUris = new Set((terrainGlb.images ?? []).map((image) => image.uri));
-const terrainMaterials = terrainGlb.materials.filter((material) => material.extras?.kronosSceneLayer === "terrain");
+const terrainMaterials = terrainGlb.materials.filter((material) => material.extras?.nhSceneLayer === "terrain");
 const terrainTextureMaterials = terrainGlb.materials.filter((material) => material.name.startsWith("cache-terrain-") && material.pbrMetallicRoughness?.baseColorTexture);
 assert(tilePaintMaterialIndex >= 0, "generated terrain GLB should contain the TilePaint material");
 assert(tileModelMaterialIndex >= 0, "generated terrain GLB should contain the TileModel material");
@@ -173,7 +173,7 @@ const objectSourceObjects = objectGlb.meshes[0].extras?.sourceObjects ?? [];
 const objectMaterials = objectGlb.materials ?? [];
 const objectTextureImageUris = new Set((objectGlb.images ?? []).map((image) => image.uri));
 const objectTextureMaterials = objectMaterials.filter((material) => material.pbrMetallicRoughness?.baseColorTexture);
-const objectSceneLayers = new Set(objectMaterials.map((material) => material.extras?.kronosSceneLayer));
+const objectSceneLayers = new Set(objectMaterials.map((material) => material.extras?.nhSceneLayer));
 const objectAnimationCount = objectSourceObjects.filter((placement) => placement.animationId >= 0).length;
 const objectMorphCount = objectSourceObjects.filter(
   (placement) =>
@@ -277,7 +277,7 @@ function terrainPrimitiveIndexCount(glb, materialNamePrefix) {
 }
 
 function tileModelFaceCount(shape) {
-  return createKronosTileModel({
+  return createNhTileModel({
     shape,
     rotation: 0,
     heightSw: 0,
@@ -297,7 +297,7 @@ function tileModelFaceCount(shape) {
 
 function tileModelVisibleFaceCount(tile) {
   const shape = tile.overlayPath + 1;
-  return KRONOS_TILE_MODEL_FACE_TYPES[shape].reduce((count, _, index, faceTypes) => {
+  return NH_TILE_MODEL_FACE_TYPES[shape].reduce((count, _, index, faceTypes) => {
     if (index % 4 !== 0) {
       return count;
     }

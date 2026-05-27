@@ -51,7 +51,7 @@ export const renderTodoGates = [
   },
   {
     id: "projectile-motion",
-    label: "Parity gate: drive projectile visuals from Kronos payload and client motion math",
+    label: "Parity gate: drive projectile visuals from Nh payload and client motion math",
     sourceAnchorIds: [
       "client-projectile-motion-contract",
       "client-spotanim-sequence-contract",
@@ -63,7 +63,7 @@ export const renderTodoGates = [
       "server-ice-barrage-contract"
     ],
     blocks: [
-      "Compare sampled x, y, z, yaw, and pitch against captured Kronos client frames before marking full parity.",
+      "Compare sampled x, y, z, yaw, and pitch against captured Nh client frames before marking full parity.",
       "Keep gfx id, tiles, target index, heights, delay, duration, curve, offset, yaw, and pitch flowing from server payload fixtures.",
       "Resolve projectile and actor gfx ids through exported spotanim sequence definitions before animating effect meshes.",
       "Accept barrage only after cast, projectile, hit gfx, skip-travel, and client-delay timing agree with fixtures."
@@ -112,10 +112,10 @@ export const renderTodoGates = [
       "Keep fixed chatbox hitboxes, labels, sprites, and default widget actions tied to group 162 child widgets.",
       "Keep fixed side-tab hitboxes and inventory mounting tied to group 548 tab child widgets.",
       "Keep side-panel mounted tab contents tied to the client InterfaceTab order and exported widget groups.",
-      "Keep the fixed side-panel tab-to-interface mapping aligned with Kronos DisplayHandler default-frame sends.",
-      "Render combat tab group 593 weapon name, combat level, attack-style labels, special bar, and attack-set/auto-retaliate/special button clicks from exported widget geometry, runtime HUD weaponTypeConfig, Kronos server WeaponType metadata, fixed-level combat formula, combat varp ids, and SpecbarRedraw active/drain behavior.",
-      "Render stats tab group 320 skill icons, level text, total level, and skill-guide clicks from Kronos TabStats child mappings, SpriteID constants, CS1 current/fixed/total-level operands, and runtime current/fixed skill snapshots before accepting full stats-tab coverage.",
-      "Render equipment tab item sprites inside group 387 child widgets using Kronos server equipSlot values and keep worn-item Remove mutation plus utility-button hitboxes/actions tied to group 387 widgets.",
+      "Keep the fixed side-panel tab-to-interface mapping aligned with Nh DisplayHandler default-frame sends.",
+      "Render combat tab group 593 weapon name, combat level, attack-style labels, special bar, and attack-set/auto-retaliate/special button clicks from exported widget geometry, runtime HUD weaponTypeConfig, Nh server WeaponType metadata, fixed-level combat formula, combat varp ids, and SpecbarRedraw active/drain behavior.",
+      "Render stats tab group 320 skill icons, level text, total level, and skill-guide clicks from Nh TabStats child mappings, SpriteID constants, CS1 current/fixed/total-level operands, and runtime current/fixed skill snapshots before accepting full stats-tab coverage.",
+      "Render equipment tab item sprites inside group 387 child widgets using Nh server equipSlot values and keep worn-item Remove mutation plus utility-button hitboxes/actions tied to group 387 widgets.",
       "Render prayer tab icons inside group 541 widgets using RuneLite prayer order, grid spacing, cache sprite ids, and PlayerPrayer.toggle varpbit/disallowed-group active state.",
       "Render magic tab spell icons from cache enums 1982-1985, MagicSpellBookRedraw spacing, spell null-item sprite params, and widget click-mask/target-flag selected-spell state.",
       "Route tile clicks through the same resolved viewport rectangle used by the camera."
@@ -123,7 +123,7 @@ export const renderTodoGates = [
   },
   {
     id: "tile-movement-pathing",
-    label: "Parity gate: route tile clicks through Kronos collision and pathing masks",
+    label: "Parity gate: route tile clicks through Nh collision and pathing masks",
     sourceAnchorIds: [
       "client-route-finder-bfs-contract",
       "server-route-mask-contract",
@@ -135,13 +135,13 @@ export const renderTodoGates = [
     ],
     blocks: [
       "Do not route movement through hand-picked blocked tile sets.",
-      "Build movement clipping from exported object placements and Kronos object mask rules.",
+      "Build movement clipping from exported object placements and Nh object mask rules.",
       "Use the client/server BFS masks, fallback behavior, and object-footprint reach checks before accepting tile/object-click movement."
     ]
   },
   {
     id: "context-menu",
-    label: "Parity gate: render right-click menus with Kronos menu array semantics",
+    label: "Parity gate: render right-click menus with Nh menu array semantics",
     sourceAnchorIds: [
       "client-context-menu-contract",
       "client-context-menu-sizing-contract",
@@ -161,7 +161,7 @@ export const renderTodoGates = [
     blocks: [
       "Do not invent player menu actions beyond the source-backed action list.",
       "Draw and left-click dispatch options from the same sorted client menu array order.",
-      "Build player selected-item/spell rows and object action, selected-item object, and selected-spell object entries from source menu opcodes, widget target flags, and Kronos packet ids/options.",
+      "Build player selected-item/spell rows and object action, selected-item object, and selected-spell object entries from source menu opcodes, widget target flags, and Nh packet ids/options.",
       "Resolve menu width, height, hover rows, and clamping from the client context menu path."
     ]
   },

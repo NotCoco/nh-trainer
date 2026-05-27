@@ -8,8 +8,8 @@ function read(relativePath) {
   return fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
+function readNhClient(relativePath) {
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
 }
 
 function assert(condition, message) {
@@ -18,16 +18,16 @@ function assert(condition, message) {
   }
 }
 
-const pluginSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/mousehighlight/MouseHighlightPlugin.java");
-const configSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/mousehighlight/MouseHighlightConfig.java");
-const overlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/mousehighlight/MouseHighlightOverlay.java");
-const tooltipOverlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/tooltip/TooltipOverlay.java");
-const tooltipComponentSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/components/TooltipComponent.java");
-const componentConstantsSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/components/ComponentConstants.java");
-const apiOpcodeSource = readKronosClient("runelite-api/src/main/java/net/runelite/api/MenuOpcode.java");
+const pluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/mousehighlight/MouseHighlightPlugin.java");
+const configSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/mousehighlight/MouseHighlightConfig.java");
+const overlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/mousehighlight/MouseHighlightOverlay.java");
+const tooltipOverlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/tooltip/TooltipOverlay.java");
+const tooltipComponentSource = readNhClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/components/TooltipComponent.java");
+const componentConstantsSource = readNhClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/components/ComponentConstants.java");
+const apiOpcodeSource = readNhClient("runelite-api/src/main/java/net/runelite/api/MenuOpcode.java");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
 const runtimeSource = read("src/ui/RuntimeSceneViewer.tsx");
-const hudSource = read("src/ui/KronosClientHud.tsx");
+const hudSource = read("src/ui/NhClientHud.tsx");
 const mouseHighlightSource = read("src/ui/runeliteMouseHighlight.ts");
 const cssSource = read("src/ui/styles.css");
 const packageSource = read("package.json");
@@ -102,8 +102,8 @@ for (const trainerAnchor of [
   "RuneliteMouseHighlightConfigSnapshot",
   'id: RUNELITE_MOUSE_HIGHLIGHT_PLUGIN_ID',
   'name: "Mouse Tooltips"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/mousehighlight/MouseHighlightPlugin.java"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/mousehighlight/MouseHighlightConfig.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/mousehighlight/MouseHighlightPlugin.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/mousehighlight/MouseHighlightConfig.java"',
   "rightclickoptionTooltip",
   "mouseHighlight: {"
 ]) {
@@ -132,13 +132,13 @@ for (const trainerAnchor of [
   "onPointerMove={(event) => onHover?.(command(event))",
   "onPointerLeave={() => onHover?.(null)}"
 ]) {
-  assert(hudSource.includes(trainerAnchor), `KronosClientHud missing hover command anchor ${trainerAnchor}`);
+  assert(hudSource.includes(trainerAnchor), `NhClientHud missing hover command anchor ${trainerAnchor}`);
 }
 
 for (const trainerAnchor of [
   "runeliteOverlayOpcode = 1501",
   "examineItemBankEqOpcode = 1007",
-  "selectKronosDefaultMenuEntry",
+  "selectNhDefaultMenuEntry",
   'actionText === "Walk here"',
   'actionText === "Cancel"',
   'actionText === "Continue"',

@@ -81,23 +81,23 @@ function resolveModulePath(candidatePath) {
 }
 
 const {
-  KRONOS_MIN_PROJECT_DEPTH_CLIENT_UNITS,
-  KRONOS_TILE_CLIENT_UNITS,
-  kronosActorAnchorWorldPosition,
-  kronosClientPixelScaleAtWorldPosition,
-  kronosClientUnitsToWorldUnits,
-  kronosOverlayClientViewportProjection,
-  kronosOverlayViewportProjection,
-  kronosOverlayWorldPositionFromViewport,
-  kronosProjectWorldPointToViewport
-} = loadTsModule("src/render/kronosOverlayProjection.ts");
+  NH_MIN_PROJECT_DEPTH_CLIENT_UNITS,
+  NH_TILE_CLIENT_UNITS,
+  nhActorAnchorWorldPosition,
+  nhClientPixelScaleAtWorldPosition,
+  nhClientUnitsToWorldUnits,
+  nhOverlayClientViewportProjection,
+  nhOverlayViewportProjection,
+  nhOverlayWorldPositionFromViewport,
+  nhProjectWorldPointToViewport
+} = loadTsModule("src/render/nhOverlayProjection.ts");
 const {
-  kronosCameraFollowHeightSceneUnits,
-  kronosClientSceneCameraOffset,
-  kronosRuntimeCameraPreset,
-  kronosViewportZoomToFovDegrees
-} = loadTsModule("src/render/kronosClientCamera.ts");
-const overlayProjectionSource = readFileSync(path.join(projectRoot, "src", "render", "kronosOverlayProjection.ts"), "utf8");
+  nhCameraFollowHeightSceneUnits,
+  nhClientSceneCameraOffset,
+  nhRuntimeCameraPreset,
+  nhViewportZoomToFovDegrees
+} = loadTsModule("src/render/nhClientCamera.ts");
+const overlayProjectionSource = readFileSync(path.join(projectRoot, "src", "render", "nhOverlayProjection.ts"), "utf8");
 const clientViewReplaySource = readFileSync(path.join(projectRoot, "src", "render", "clientViewReplay.ts"), "utf8");
 const runtimeViewerSource = readFileSync(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
 const runtimeStylesSource = readFileSync(path.join(projectRoot, "src", "ui", "styles.css"), "utf8");
@@ -105,7 +105,7 @@ const runelitePerspectiveSource = readFileSync(
   path.resolve(
     projectRoot,
     "..",
-    "Kronos184-Client",
+    "Nh184-Client",
     "runelite-api",
     "src",
     "main",
@@ -121,7 +121,7 @@ const runelitePlayerAppearanceSource = readFileSync(
   path.resolve(
     projectRoot,
     "..",
-    "Kronos184-Client",
+    "Nh184-Client",
     "runelite-client",
     "src",
     "main",
@@ -158,7 +158,7 @@ const viewport = {
   zoom: 256
 };
 const camera = new PerspectiveCamera(
-  kronosViewportZoomToFovDegrees(viewport.rect.height, viewport.zoom),
+  nhViewportZoomToFovDegrees(viewport.rect.height, viewport.zoom),
   viewport.rect.width / viewport.rect.height,
   0.1,
   1000
@@ -168,8 +168,8 @@ camera.lookAt(0, 0, 0);
 camera.updateProjectionMatrix();
 camera.updateMatrixWorld();
 
-assert(KRONOS_TILE_CLIENT_UNITS === 128, "client tile unit scale mismatch");
-assert(KRONOS_MIN_PROJECT_DEPTH_CLIENT_UNITS === 50, "projection minimum depth mismatch");
+assert(NH_TILE_CLIENT_UNITS === 128, "client tile unit scale mismatch");
+assert(NH_MIN_PROJECT_DEPTH_CLIENT_UNITS === 50, "projection minimum depth mismatch");
 assert(
   runelitePerspectiveSource.includes("SINE[i] = (int) (65536.0D * Math.sin") &&
     runelitePerspectiveSource.includes("COSINE[i] = (int) (65536.0D * Math.cos"),
@@ -178,7 +178,7 @@ assert(
 assert(
   runelitePlayerAppearanceSource.includes("Client.viewportTempX = var0 * Client.viewportZoom / var1 + Client.viewportWidth / 2") &&
     runelitePlayerAppearanceSource.includes("Client.viewportTempY = Client.viewportHeight / 2 + var8 * Client.viewportZoom / var1"),
-  "Kronos PlayerAppearance.method4162 should still project actor overheads through Client.viewportTempX/Y"
+  "Nh PlayerAppearance.method4162 should still project actor overheads through Client.viewportTempX/Y"
 );
 assert(
   overlayProjectionSource.includes("Math.trunc(Math.sin(clientUnitsToRadians(units)) * clientTrigAmplitude)") &&
@@ -186,16 +186,16 @@ assert(
   "overlay client-camera projection should mirror RuneLite Perspective trig int casts"
 );
 assert(
-  overlayProjectionSource.includes("function kronosSceneHeightToClientInt") &&
-    overlayProjectionSource.includes("return -kronosSceneUnitsToClientInt(value);"),
-  "overlay client-camera projection should convert scene-up height to Kronos client-down height"
+  overlayProjectionSource.includes("function nhSceneHeightToClientInt") &&
+    overlayProjectionSource.includes("return -nhSceneUnitsToClientInt(value);"),
+  "overlay client-camera projection should convert scene-up height to Nh client-down height"
 );
 assert(
-  runtimeViewerSource.includes("translate3d(${kronosActorOverlayCssPixel(overlay.left)}px, ${kronosActorOverlayCssPixel(overlay.top)}px, 0) scale(${scale})") &&
+  runtimeViewerSource.includes("translate3d(${nhActorOverlayCssPixel(overlay.left)}px, ${nhActorOverlayCssPixel(overlay.top)}px, 0) scale(${scale})") &&
     runtimeViewerSource.includes("left: 0") &&
     runtimeViewerSource.includes("top: 0") &&
     runtimeViewerSource.includes("layout rounding here makes overhead sprites drift during camera-key motion"),
-  "runtime DOM overlays should apply Kronos viewportTempX/Y through a single transform instead of layout-position churn during camera-key motion"
+  "runtime DOM overlays should apply Nh viewportTempX/Y through a single transform instead of layout-position churn during camera-key motion"
 );
 assert(
   runtimeViewerSource.includes("style={runtimeDomOverlayStaticStyle(overlay)}") &&
@@ -211,7 +211,7 @@ assert(
     runtimeViewerSource.includes("runelitePrayAgainstPlayerOverlayElementsRef") &&
     runtimeViewerSource.includes("runelitePrayerBarOverlayElementsRef") &&
     runtimeViewerSource.includes("runeliteXpDropDamageOverlayElementsRef"),
-  "actor-attached RuneLite overlays should share the stable-node render-frame transform path used for Kronos overheads"
+  "actor-attached RuneLite overlays should share the stable-node render-frame transform path used for Nh overheads"
 );
 for (const staleSignatureAnchor of [
   '`${overlay.id}:${overlay.state}:${overlay.text}:${Math.round(overlay.left * 10)}',
@@ -229,7 +229,7 @@ assert(
     runtimeViewerSource.includes('id: `${actor.id}-skull`') &&
     !runtimeViewerSource.includes('id: `${combatState.tick}-${actor.id}-prayer-${definition.spriteFrame}`') &&
     !runtimeViewerSource.includes('id: `${combatState.tick}-${actor.id}-skull`'),
-  "persistent prayer and skull overheads should keep stable DOM identities across game ticks so arrow-key camera motion only updates the Kronos projection transform"
+  "persistent prayer and skull overheads should keep stable DOM identities across game ticks so arrow-key camera motion only updates the Nh projection transform"
 );
 assert(
   clientViewReplaySource.includes("function clientViewOverlayEventId") &&
@@ -240,38 +240,38 @@ assert(
   "client-view replay prayer/skull overheads should keep actor-stable identities like the manual runtime path"
 );
 assert(
-  runtimeViewerSource.includes("const projection = kronosOverlayClientViewportProjection(") &&
-    runtimeViewerSource.includes("kronosRuntimeOverlayClientCameraState(boundary),") &&
+  runtimeViewerSource.includes("const projection = nhOverlayClientViewportProjection(") &&
+    runtimeViewerSource.includes("nhRuntimeOverlayClientCameraState(boundary),") &&
     runtimeViewerSource.includes("Source: Scene.copy$drawActor2d calls World.method1253") &&
     runtimeViewerSource.includes("advanceRuntimeCameraClientCycle(boundary, cameraKeysRef.current)") &&
     runtimeViewerSource.includes("updateRuntimeCamera(boundary)"),
-  "runtime DOM overlays should use the Kronos Client.viewportTempX/Y integer camera path so arrow-key camera motion cannot desync overheads"
+  "runtime DOM overlays should use the Nh Client.viewportTempX/Y integer camera path so arrow-key camera motion cannot desync overheads"
 );
 assert(
-  runtimeStylesSource.includes(".kronosActorOverlay") &&
+  runtimeStylesSource.includes(".nhActorOverlay") &&
     runtimeStylesSource.includes("contain: layout paint style") &&
     runtimeStylesSource.includes("will-change: transform"),
   "runtime actor overlays should stay on a transform-friendly compositing path"
 );
-assertAlmost("200 client units to world", kronosClientUnitsToWorldUnits(200), 0.78125);
+assertAlmost("200 client units to world", nhClientUnitsToWorldUnits(200), 0.78125);
 
-const centerProjection = kronosProjectWorldPointToViewport(camera, viewport, new Vector3(0, 0, 0));
+const centerProjection = nhProjectWorldPointToViewport(camera, viewport, new Vector3(0, 0, 0));
 assertProjection("center projection", centerProjection, {
   x: 256,
   y: 167,
   depthClientUnits: 2560
 });
 assert(
-  kronosProjectWorldPointToViewport(camera, viewport, new Vector3(0, 0, 10)) === null,
+  nhProjectWorldPointToViewport(camera, viewport, new Vector3(0, 0, 10)) === null,
   "point at camera depth should fail the client depth guard"
 );
 
-const anchor = kronosActorAnchorWorldPosition(new Vector3(0, 0, 0), 200);
+const anchor = nhActorAnchorWorldPosition(new Vector3(0, 0, 0), 200);
 assertAlmost("anchor x", anchor.x, 0);
 assertAlmost("anchor y", anchor.y, 0.78125);
 assertAlmost("anchor z", anchor.z, 0);
 
-const anchorProjection = kronosProjectWorldPointToViewport(camera, viewport, anchor);
+const anchorProjection = nhProjectWorldPointToViewport(camera, viewport, anchor);
 assertProjection("actor anchor projection", anchorProjection, {
   x: 256,
   y: 147,
@@ -283,13 +283,13 @@ const placement = {
   centerOffsetXPixels: 10,
   centerOffsetYPixelsDown: -20
 };
-assertProjection("overlay viewport projection", kronosOverlayViewportProjection(camera, viewport, new Vector3(0, 0, 0), placement), {
+assertProjection("overlay viewport projection", nhOverlayViewportProjection(camera, viewport, new Vector3(0, 0, 0), placement), {
   x: 266,
   y: 127,
   depthClientUnits: 2560
 });
-const clientOverlayProjection = kronosOverlayClientViewportProjection(
-  { target: new Vector3(0, 0, 0), angles: kronosRuntimeCameraPreset("north") },
+const clientOverlayProjection = nhOverlayClientViewportProjection(
+  { target: new Vector3(0, 0, 0), angles: nhRuntimeCameraPreset("north") },
   viewport,
   new Vector3(0, 0, 0),
   placement
@@ -298,12 +298,12 @@ assert(clientOverlayProjection, "client-camera overlay projection should resolve
 assert(Number.isInteger(clientOverlayProjection.x), "client-camera overlay x should stay source-integer projected");
 assert(Number.isInteger(clientOverlayProjection.y), "client-camera overlay y should stay source-integer projected");
 assert(
-  clientOverlayProjection.depthClientUnits >= KRONOS_MIN_PROJECT_DEPTH_CLIENT_UNITS,
+  clientOverlayProjection.depthClientUnits >= NH_MIN_PROJECT_DEPTH_CLIENT_UNITS,
   "client-camera overlay projection should respect the RuneLite localToCanvas depth guard"
 );
 
 function applyRuntimeCamera(camera, target, angles) {
-  const offset = kronosClientSceneCameraOffset(angles, viewport.rect.height);
+  const offset = nhClientSceneCameraOffset(angles, viewport.rect.height);
   camera.position.set(target.x - offset.x, target.y + offset.y, target.z - offset.z);
   camera.lookAt(target.x, target.y, target.z);
   camera.updateProjectionMatrix();
@@ -312,7 +312,7 @@ function applyRuntimeCamera(camera, target, angles) {
   camera.updateMatrixWorld(true);
 }
 
-const sweepTarget = new Vector3(0, kronosCameraFollowHeightSceneUnits(), 0);
+const sweepTarget = new Vector3(0, nhCameraFollowHeightSceneUnits(), 0);
 const sweepActorPosition = new Vector3(1, 0, 0);
 const sweepPlacement = {
   anchorClientUnits: 200,
@@ -320,11 +320,11 @@ const sweepPlacement = {
   centerOffsetYPixelsDown: 0
 };
 for (const yaw of [0, 256, 512, 768, 1024, 1280, 1536, 1792]) {
-  const angles = { ...kronosRuntimeCameraPreset("north"), yaw };
+  const angles = { ...nhRuntimeCameraPreset("north"), yaw };
   applyRuntimeCamera(camera, sweepTarget, angles);
-  const anchorPosition = kronosActorAnchorWorldPosition(sweepActorPosition, sweepPlacement.anchorClientUnits);
-  const renderProjection = kronosProjectWorldPointToViewport(camera, viewport, anchorPosition);
-  const clientProjection = kronosOverlayClientViewportProjection(
+  const anchorPosition = nhActorAnchorWorldPosition(sweepActorPosition, sweepPlacement.anchorClientUnits);
+  const renderProjection = nhProjectWorldPointToViewport(camera, viewport, anchorPosition);
+  const clientProjection = nhOverlayClientViewportProjection(
     { target: sweepTarget, angles },
     viewport,
     sweepActorPosition,
@@ -342,16 +342,16 @@ camera.lookAt(0, 0, 0);
 camera.updateProjectionMatrix();
 camera.updateMatrixWorld();
 
-const overlayWorld = kronosOverlayWorldPositionFromViewport(camera, viewport, new Vector3(0, 0, 0), placement);
+const overlayWorld = nhOverlayWorldPositionFromViewport(camera, viewport, new Vector3(0, 0, 0), placement);
 assert(overlayWorld, "overlay world position should resolve");
-const reprojected = kronosProjectWorldPointToViewport(camera, viewport, overlayWorld);
+const reprojected = nhProjectWorldPointToViewport(camera, viewport, overlayWorld);
 assertProjection("overlay world reproject", reprojected, {
   x: 266,
   y: 127,
   depthClientUnits: 2560
 });
 
-assertAlmost("client pixel scale", kronosClientPixelScaleAtWorldPosition(camera, viewport, new Vector3(0, 0, 0)), 10 / 256);
+assertAlmost("client pixel scale", nhClientPixelScaleAtWorldPosition(camera, viewport, new Vector3(0, 0, 0)), 10 / 256);
 
 console.log(
   JSON.stringify(

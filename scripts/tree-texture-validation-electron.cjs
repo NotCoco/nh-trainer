@@ -52,7 +52,7 @@ async function setRuntimeCamera(window, camera) {
         input.value = ${JSON.stringify(camera)};
         input.dispatchEvent(new Event("change", { bubbles: true }));
       }
-      window.dispatchEvent(new CustomEvent("kronos-runtime-camera", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-camera", {
         detail: { camera: ${JSON.stringify(camera)} }
       }));
     })()
@@ -72,7 +72,7 @@ async function setRuntimeCycle(window, cycle) {
         input.dispatchEvent(new Event("input", { bubbles: true }));
         input.dispatchEvent(new Event("change", { bubbles: true }));
       }
-      window.dispatchEvent(new CustomEvent("kronos-runtime-cycle", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-cycle", {
         detail: { cycle: ${JSON.stringify(cycle)} }
       }));
     })()
@@ -220,8 +220,8 @@ async function makeComparison(window, runtimeDataUrl, texture8DataUrl, texture60
         context.imageSmoothingEnabled = true;
       }
 
-      drawPanel(0, "Reference: Kronos texture 8", texture8);
-      drawPanel(1, "Reference: Kronos texture 60", texture60);
+      drawPanel(0, "Reference: Nh texture 8", texture8);
+      drawPanel(1, "Reference: Nh texture 60", texture60);
       drawPanel(2, crops[0].label, runtime, crops[0]);
       drawPanel(3, crops[1].label, runtime, crops[1]);
 

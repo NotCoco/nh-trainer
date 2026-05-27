@@ -8,7 +8,7 @@ const require = createRequire(import.meta.url);
 const electronPath = require("electron");
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const scriptPath = path.join(projectRoot, "scripts", "inventory-player-click-same-tick-electron.cjs");
-const kronosRoot = path.resolve(projectRoot, "..", "kronos-osrs-184-master", "kronos-osrs-184-master", "Kronos-master");
+const nhRoot = path.resolve(projectRoot, "..", "nh-osrs-184-master", "nh-osrs-184-master", "Nh-master");
 
 const runtimeSource = await readFile(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
 for (const snippet of [
@@ -25,7 +25,7 @@ for (const snippet of [
 }
 
 const messageDecoderSource = await readFile(
-  path.join(kronosRoot, "kronos-api", "src", "main", "java", "io", "ruin", "api", "netty", "MessageDecoder.java"),
+  path.join(nhRoot, "nh-api", "src", "main", "java", "io", "ruin", "api", "netty", "MessageDecoder.java"),
   "utf8"
 );
 for (const snippet of [
@@ -34,12 +34,12 @@ for (const snippet of [
   "while((message = messages.poll()) != null)"
 ]) {
   if (!messageDecoderSource.includes(snippet)) {
-    throw new Error(`Kronos MessageDecoder source evidence missing ${snippet}`);
+    throw new Error(`Nh MessageDecoder source evidence missing ${snippet}`);
   }
 }
 
 const playerSource = await readFile(
-  path.join(kronosRoot, "kronos-server", "src", "main", "java", "io", "ruin", "model", "entity", "player", "Player.java"),
+  path.join(nhRoot, "nh-server", "src", "main", "java", "io", "ruin", "model", "entity", "player", "Player.java"),
   "utf8"
 );
 for (const snippet of [
@@ -48,12 +48,12 @@ for (const snippet of [
   "combat.attack();"
 ]) {
   if (!playerSource.includes(snippet)) {
-    throw new Error(`Kronos Player source evidence missing ${snippet}`);
+    throw new Error(`Nh Player source evidence missing ${snippet}`);
   }
 }
 
 const playerActionSource = await readFile(
-  path.join(kronosRoot, "kronos-server", "src", "main", "java", "io", "ruin", "network", "incoming", "handlers", "PlayerActionHandler.java"),
+  path.join(nhRoot, "nh-server", "src", "main", "java", "io", "ruin", "network", "incoming", "handlers", "PlayerActionHandler.java"),
   "utf8"
 );
 for (const snippet of [
@@ -61,16 +61,16 @@ for (const snippet of [
   "action.consumer.accept(player, target);"
 ]) {
   if (!playerActionSource.includes(snippet)) {
-    throw new Error(`Kronos PlayerActionHandler source evidence missing ${snippet}`);
+    throw new Error(`Nh PlayerActionHandler source evidence missing ${snippet}`);
   }
 }
 
 const actionButtonSource = await readFile(
-  path.join(kronosRoot, "kronos-server", "src", "main", "java", "io", "ruin", "network", "incoming", "handlers", "ActionButtonHandler.java"),
+  path.join(nhRoot, "nh-server", "src", "main", "java", "io", "ruin", "network", "incoming", "handlers", "ActionButtonHandler.java"),
   "utf8"
 );
 if (!actionButtonSource.includes("handleAction(player, option, interfaceHash, slot, itemId, false);")) {
-  throw new Error("Kronos ActionButtonHandler source evidence missing inventory action dispatch");
+  throw new Error("Nh ActionButtonHandler source evidence missing inventory action dispatch");
 }
 
 const child = spawn(electronPath, [scriptPath, projectRoot], {

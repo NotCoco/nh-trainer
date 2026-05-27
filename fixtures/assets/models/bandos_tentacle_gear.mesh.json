@@ -1,6 +1,6 @@
 {
   "generatedBy": "scripts/export-cache-glbs.mjs",
-  "source": "Kronos cache ModelDefinition vertexGroups mapped to exported GLB vertices",
+  "source": "Nh cache ModelDefinition vertexGroups mapped to exported GLB vertices",
   "glb": "fixtures/assets/models/bandos_tentacle_gear.glb",
   "sourceVertexCount": 1131,
   "expandedVertexCount": 5754,

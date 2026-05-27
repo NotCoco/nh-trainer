@@ -1,6 +1,6 @@
 {
   "id": "item_sprites",
-  "source": "Kronos cache ItemSpriteFactory using client 36x32 inventory sprite projection",
+  "source": "Nh cache ItemSpriteFactory using client 36x32 inventory sprite projection",
   "image": "item_sprites.png",
   "width": 6480,
   "height": 32,

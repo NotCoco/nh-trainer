@@ -1,4 +1,4 @@
-import type { KronosFixedClientCssLayout, KronosFixedClientLayout, KronosRect } from "../render/kronosFixedLayout";
+import type { NhFixedClientCssLayout, NhFixedClientLayout, NhRect } from "../render/nhFixedLayout";
 import type { RuntimeHudState } from "../render/runtimeScene";
 import type { RuneliteStatusBarMode, RuneliteStatusBarsConfigSnapshot } from "./RuneliteClientShell";
 
@@ -58,8 +58,8 @@ interface RuneliteStatusBarModeValue {
 }
 
 export function runeliteStatusBarSnapshots(
-  fixedLayout: KronosFixedClientLayout | null,
-  cssLayout: KronosFixedClientCssLayout | null,
+  fixedLayout: NhFixedClientLayout | null,
+  cssLayout: NhFixedClientCssLayout | null,
   hud: RuntimeHudState,
   config: RuneliteStatusBarsConfigSnapshot
 ): readonly RuneliteStatusBarSnapshot[] {
@@ -91,8 +91,8 @@ export function runeliteStatusBarFillHeight(maximumValue: number, currentValue: 
 function runeliteStatusBarSnapshot(
   side: RuneliteStatusBarSide,
   mode: RuneliteStatusBarMode,
-  container: KronosRect,
-  cssLayout: KronosFixedClientCssLayout,
+  container: NhRect,
+  cssLayout: NhFixedClientCssLayout,
   hud: RuntimeHudState,
   config: RuneliteStatusBarsConfigSnapshot
 ): RuneliteStatusBarSnapshot | null {

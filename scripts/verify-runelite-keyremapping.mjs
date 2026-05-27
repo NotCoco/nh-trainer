@@ -37,17 +37,17 @@ function loadTsModule(relativePath) {
 
 const shellSource = readText("src/ui/RuneliteClientShell.tsx");
 const runtimeSource = readText("src/ui/RuntimeSceneViewer.tsx");
-const clientHudSource = readText("src/ui/KronosClientHud.tsx");
+const clientHudSource = readText("src/ui/NhClientHud.tsx");
 const keyRemappingSource = readText("src/ui/runeliteKeyRemapping.ts");
-const gameKeybindsSource = readText("src/ui/kronosGameKeybinds.ts");
+const gameKeybindsSource = readText("src/ui/nhGameKeybinds.ts");
 const clientWidgetDefinitions = JSON.parse(readText("fixtures/assets/defs/client-widgets.json"));
-const generatedFkeyIconPath = path.join(root, "fixtures", "render", "sprites", "kronos_fkey_icon.png");
+const generatedFkeyIconPath = path.join(root, "fixtures", "render", "sprites", "nh_fkey_icon.png");
 const packageSource = readText("package.json");
 const sourceConfig = fs.readFileSync(
   path.join(
     root,
     "..",
-    "Kronos184-Client",
+    "Nh184-Client",
     "runelite-client",
     "src",
     "main",
@@ -65,7 +65,7 @@ const sourceListener = fs.readFileSync(
   path.join(
     root,
     "..",
-    "Kronos184-Client",
+    "Nh184-Client",
     "runelite-client",
     "src",
     "main",
@@ -83,7 +83,7 @@ const sourceHotkeyButton = fs.readFileSync(
   path.join(
     root,
     "..",
-    "Kronos184-Client",
+    "Nh184-Client",
     "runelite-client",
     "src",
     "main",
@@ -101,7 +101,7 @@ const sourceConfigPanel = fs.readFileSync(
   path.join(
     root,
     "..",
-    "Kronos184-Client",
+    "Nh184-Client",
     "runelite-client",
     "src",
     "main",
@@ -117,15 +117,15 @@ const sourceConfigPanel = fs.readFileSync(
 );
 
 const keyRemapping = loadTsModule("src/ui/runeliteKeyRemapping.ts");
-const gameKeybinds = loadTsModule("src/ui/kronosGameKeybinds.ts");
+const gameKeybinds = loadTsModule("src/ui/nhGameKeybinds.ts");
 const serverConfigSource = fs.readFileSync(
   path.join(
     root,
     "..",
-    "kronos-osrs-184-master",
-    "kronos-osrs-184-master",
-    "Kronos-master",
-    "kronos-server",
+    "nh-osrs-184-master",
+    "nh-osrs-184-master",
+    "Nh-master",
+    "nh-server",
     "src",
     "main",
     "java",
@@ -142,10 +142,10 @@ const tabOptionsSource = fs.readFileSync(
   path.join(
     root,
     "..",
-    "kronos-osrs-184-master",
-    "kronos-osrs-184-master",
-    "Kronos-master",
-    "kronos-server",
+    "nh-osrs-184-master",
+    "nh-osrs-184-master",
+    "Nh-master",
+    "nh-server",
     "src",
     "main",
     "java",
@@ -159,28 +159,28 @@ const tabOptionsSource = fs.readFileSync(
   "utf8"
 );
 const keybindGetSlotSource = fs.readFileSync(
-  path.join(root, "..", "kronos-osrs-184-master", "kronos-osrs-184-master", "Kronos-master", "scripts", "[proc,keybind_get_slot].cs2"),
+  path.join(root, "..", "nh-osrs-184-master", "nh-osrs-184-master", "Nh-master", "scripts", "[proc,keybind_get_slot].cs2"),
   "utf8"
 );
 const keybindScript984Source = fs.readFileSync(
-  path.join(root, "..", "kronos-osrs-184-master", "kronos-osrs-184-master", "Kronos-master", "scripts", "script984.cs2"),
+  path.join(root, "..", "nh-osrs-184-master", "nh-osrs-184-master", "Nh-master", "scripts", "script984.cs2"),
   "utf8"
 );
 const keybindOpenMenuSource = fs.readFileSync(
-  path.join(root, "..", "kronos-osrs-184-master", "kronos-osrs-184-master", "Kronos-master", "scripts", "[clientscript,keybind_open_menu].cs2"),
+  path.join(root, "..", "nh-osrs-184-master", "nh-osrs-184-master", "Nh-master", "scripts", "[clientscript,keybind_open_menu].cs2"),
   "utf8"
 );
 const keybindBuildDropdownSource = fs.readFileSync(
-  path.join(root, "..", "kronos-osrs-184-master", "kronos-osrs-184-master", "Kronos-master", "scripts", "[proc,keybind_build_dropdown].cs2"),
+  path.join(root, "..", "nh-osrs-184-master", "nh-osrs-184-master", "Nh-master", "scripts", "[proc,keybind_build_dropdown].cs2"),
   "utf8"
 );
 const trainerAssetExportSource = fs.readFileSync(
   path.join(
     root,
     "..",
-    "kronos-osrs-184-master",
-    "kronos-osrs-184-master",
-    "Kronos-master",
+    "nh-osrs-184-master",
+    "nh-osrs-184-master",
+    "Nh-master",
     "runelite",
     "cache",
     "src",
@@ -190,7 +190,7 @@ const trainerAssetExportSource = fs.readFileSync(
     "runelite",
     "cache",
     "tools",
-    "KronosNhTrainerAssetExport.java"
+    "NhNhTrainerAssetExport.java"
   ),
   "utf8"
 );
@@ -239,7 +239,7 @@ for (const sourceAnchor of [
   "varpbit(4689, true).defaultValue(0)",
   "public static final Config ESCAPE_CLOSES = varpbit(4681, true)"
 ]) {
-  check(serverConfigSource.includes(sourceAnchor), `Kronos server keybind config missing ${sourceAnchor}`);
+  check(serverConfigSource.includes(sourceAnchor), `Nh server keybind config missing ${sourceAnchor}`);
 }
 
 for (const sourceAnchor of [
@@ -249,18 +249,18 @@ for (const sourceAnchor of [
   "Config.ESCAPE_CLOSES::toggle",
   "Use Pre-EoC"
 ]) {
-  check(tabOptionsSource.includes(sourceAnchor), `Kronos TabOptions keybinding source missing ${sourceAnchor}`);
+  check(tabOptionsSource.includes(sourceAnchor), `Nh TabOptions keybinding source missing ${sourceAnchor}`);
 }
 
 const optionsGroup = clientWidgetDefinitions.groups.find((group) => group.groupId === 261);
 const optionsKeybindingAction = optionsGroup?.widgets.find((widget) => widget.childId === 83);
 const optionsKeybindingIcon = optionsGroup?.widgets.find((widget) => widget.childId === 88);
-check(optionsKeybindingAction?.actions?.includes("Keybinding"), "Kronos OPTIONS child 83 should expose the Keybinding action.");
-check(optionsKeybindingAction?.spriteId === 761, "Kronos OPTIONS child 83 should use the source toggle frame sprite.");
-check(optionsKeybindingIcon?.spriteId === 1655, "Kronos OPTIONS child 88 should carry the keybinding icon sprite.");
+check(optionsKeybindingAction?.actions?.includes("Keybinding"), "Nh OPTIONS child 83 should expose the Keybinding action.");
+check(optionsKeybindingAction?.spriteId === 761, "Nh OPTIONS child 83 should use the source toggle frame sprite.");
+check(optionsKeybindingIcon?.spriteId === 1655, "Nh OPTIONS child 88 should carry the keybinding icon sprite.");
 check(
   trainerAssetExportSource.includes('SpriteRef.id("options_keybinding", 1655)'),
-  "Kronos trainer asset export should include the source keybinding icon sprite."
+  "Nh trainer asset export should include the source keybinding icon sprite."
 );
 check(fs.existsSync(generatedFkeyIconPath), "Generated F-key icon should exist in fixtures/render/sprites.");
 
@@ -269,7 +269,7 @@ for (const sourceAnchor of [
   "enum(int, int, enum_1160, %varbit4688)",
   "return($int1)"
 ]) {
-  check(keybindGetSlotSource.includes(sourceAnchor), `Kronos keybind_get_slot source missing ${sourceAnchor}`);
+  check(keybindGetSlotSource.includes(sourceAnchor), `Nh keybind_get_slot source missing ${sourceAnchor}`);
 }
 
 for (const sourceAnchor of [
@@ -277,7 +277,7 @@ for (const sourceAnchor of [
   "interface_121:29",
   "interface_121:99"
 ]) {
-  check(keybindScript984Source.includes(sourceAnchor), `Kronos script984 keybinding text source missing ${sourceAnchor}`);
+  check(keybindScript984Source.includes(sourceAnchor), `Nh script984 keybinding text source missing ${sourceAnchor}`);
 }
 
 for (const sourceAnchor of [
@@ -287,42 +287,42 @@ for (const sourceAnchor of [
 ]) {
   check(
     keybindOpenMenuSource.includes(sourceAnchor) || keybindBuildDropdownSource.includes(sourceAnchor),
-    `Kronos keybinding dropdown source missing ${sourceAnchor}`
+    `Nh keybinding dropdown source missing ${sourceAnchor}`
   );
 }
 
 for (const literal of [
-  "kronosGameKeybindingColumnTabIds",
-  "KronosGameKeybindingTabIcon",
-  "kronosOptionsKeybindingActionChildId = 83",
-  "kronosOptionsKeybindingPlacementChildId = 100",
-  "kronosOptionsKeybindingGeneratedIcon",
-  "kronosOptionsKeybindingGeneratedIconPath = \"render/sprites/kronos_fkey_icon.png\"",
+  "nhGameKeybindingColumnTabIds",
+  "NhGameKeybindingTabIcon",
+  "nhOptionsKeybindingActionChildId = 83",
+  "nhOptionsKeybindingPlacementChildId = 100",
+  "nhOptionsKeybindingGeneratedIcon",
+  "nhOptionsKeybindingGeneratedIconPath = \"render/sprites/nh_fkey_icon.png\"",
   "data-source-interface=\"Interface.OPTIONS child 83 opens Interface.KEYBINDING 121\"",
   "data-source-layout=\"Interface.KEYBINDING 121 side-stone keybind grid\"",
-  "kronosGameKeybindingDisplayLabelForSlot",
+  "nhGameKeybindingDisplayLabelForSlot",
   "Set OSRS Default"
 ]) {
-  check(clientHudSource.includes(literal), `Kronos HUD keybinding interface is missing ${literal}.`);
+  check(clientHudSource.includes(literal), `Nh HUD keybinding interface is missing ${literal}.`);
 }
-check(!clientHudSource.includes("Set ROAT Default"), "Kronos HUD keybinding interface should not show ROAT defaults.");
+check(!clientHudSource.includes("Set ROAT Default"), "Nh HUD keybinding interface should not show ROAT defaults.");
 
 check(
-  !clientHudSource.includes("kronosGameKeybindingEscape"),
-  "Kronos HUD keybinding interface should not show the old custom Escape checkbox panel."
+  !clientHudSource.includes("nhGameKeybindingEscape"),
+  "Nh HUD keybinding interface should not show the old custom Escape checkbox panel."
 );
 
-const gameDefaults = gameKeybinds.KRONOS_DEFAULT_GAME_KEYBINDS;
-const ignoreListSpec = gameKeybinds.KRONOS_GAME_KEYBIND_TAB_SPECS.find((spec) => spec.tabId === "ignores");
+const gameDefaults = gameKeybinds.NH_DEFAULT_GAME_KEYBINDS;
+const ignoreListSpec = gameKeybinds.NH_GAME_KEYBIND_TAB_SPECS.find((spec) => spec.tabId === "ignores");
 check(ignoreListSpec?.varbit === 4685, "Ignore List keybind should use Config.KEYBINDS varbit 4685.");
 check(gameDefaults.keySlotsByTabId.combat === 1, "Game keybind default F1 should open combat.");
 check(gameDefaults.keySlotsByTabId.inventory === 13, "Game keybind default Escape should open inventory.");
 check(gameDefaults.keySlotsByTabId.equipment === 4, "Game keybind default F4 should open equipment.");
-check(gameKeybinds.kronosGameKeybindSideTabForFunctionKey(gameDefaults, "F4") === "equipment", "Game keybind F4 resolver should use Config.KEYBINDS defaults.");
-const reassigned = gameKeybinds.kronosAssignGameKeybind(gameDefaults, "inventory", 1);
+check(gameKeybinds.nhGameKeybindSideTabForFunctionKey(gameDefaults, "F4") === "equipment", "Game keybind F4 resolver should use Config.KEYBINDS defaults.");
+const reassigned = gameKeybinds.nhAssignGameKeybind(gameDefaults, "inventory", 1);
 check(reassigned.keySlotsByTabId.inventory === 1, "Game keybind assignment should set selected tab key slot.");
 check(reassigned.keySlotsByTabId.combat === 0, "Game keybind assignment should clear duplicate key slot.");
-check(gameKeybinds.kronosPreEocGameKeybinds().keySlotsByTabId.inventory === 1, "Pre-EoC preset should map inventory to F1.");
+check(gameKeybinds.nhPreEocGameKeybinds().keySlotsByTabId.inventory === 1, "Pre-EoC preset should map inventory to F1.");
 check(
   keyRemapping.runeliteNormalizeKeyRemappingKeybind("=", defaults.f12).code === "Equal",
   "Key remapping normalizer should parse equals as browser Equal code."
@@ -414,8 +414,8 @@ for (const literal of [
   "applyRuneliteKeyRemappingConfig",
   "runeliteKeyRemappingCameraDirectionFromKeyboardEvent",
   "runeliteKeyRemappingFunctionKeyFromKeyboardEvent",
-  "applyKronosGameKeybindConfig",
-  "kronosGameKeybindSideTabForFunctionKey",
+  "applyNhGameKeybindConfig",
+  "nhGameKeybindSideTabForFunctionKey",
   "runeliteDirectFunctionKeyFromKeyboardEvent",
   "runeliteKeyRemappingTextEntryTargetConsumesKeys",
   'window.addEventListener("keydown", onKeyDown, true)',
@@ -423,7 +423,7 @@ for (const literal of [
   "Integer m = modified.get(e.getKeyCode())",
   "KeyHandler.copy$keyPressed",
   "lastSideTabFKeyMappedTab",
-  "KRONOS_GAME_KEYBIND_SOURCE",
+  "NH_GAME_KEYBIND_SOURCE",
   "viewport.dataset.lastSideTabFKey"
 ]) {
   check(

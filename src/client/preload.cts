@@ -3,11 +3,11 @@ import type {
   ClientShellFrameConfig,
   ClientViewTraceSummary,
   DefaultPolicyReadResult,
-  KronosTrainerBridge,
+  NhTrainerBridge,
   SimFixtureSummary
 } from "./bridge";
 
-const bridge: KronosTrainerBridge = {
+const bridge: NhTrainerBridge = {
   appName: "NH Trainer",
   sourceOfTruth: "reference-client",
   listSimFixtures: () => ipcRenderer.invoke("fixtures:list-sim") as Promise<readonly SimFixtureSummary[]>,
@@ -22,4 +22,4 @@ const bridge: KronosTrainerBridge = {
     ipcRenderer.invoke("client-shell:apply-frame-config", config) as Promise<void>
 };
 
-contextBridge.exposeInMainWorld("kronosTrainer", bridge);
+contextBridge.exposeInMainWorld("nhTrainer", bridge);

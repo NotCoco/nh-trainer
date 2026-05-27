@@ -1,7 +1,7 @@
 /**
  * Queued inventory item actions that resolve at tick boundaries.
  *
- * In Kronos, widget button clicks are delivered as packets and decoded during
+ * In Nh, widget button clicks are delivered as packets and decoded during
  * the LOGIC phase of CoreWorker.process(). When the player clicks Wield in the
  * inventory, the client sends a packet; the server decodes it during the next
  * tick's LOGIC stage and immediately calls Equipment.equip() at that point.
@@ -41,7 +41,7 @@ export interface QueuedItemAction {
 export class ItemActionQueue {
   private readonly pending: QueuedItemAction[] = [];
 
-  /** Enqueue an action. Insertion order is preserved, matching Kronos packet order. */
+  /** Enqueue an action. Insertion order is preserved, matching Nh packet order. */
   push(action: QueuedItemAction): void {
     this.pending.push(action);
   }

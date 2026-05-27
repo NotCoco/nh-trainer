@@ -30,23 +30,23 @@ function verifyRuntimeOverlayCameraProjectionPath() {
     "render loop must apply camera-projected DOM overlay positions every frame"
   );
   assert(
-    runtimeSource.includes("kronosOverlayClientViewportProjection(") &&
-      runtimeSource.includes("kronosRuntimeOverlayClientCameraState(boundary)") &&
+    runtimeSource.includes("nhOverlayClientViewportProjection(") &&
+      runtimeSource.includes("nhRuntimeOverlayClientCameraState(boundary)") &&
       (
         runtimeSource.includes("advanceRuntimeCameraClientCycle(boundary, cameraKeysRef.current)") ||
         runtimeSource.includes("advanceRuntimeCameraAnglesClientCycle(boundary, cameraKeysRef.current)")
       ) &&
       runtimeSource.includes("updateRuntimeCamera(boundary)"),
-    "DOM overlays must be projected through the same Kronos client viewportTempX/Y path during camera-key motion"
+    "DOM overlays must be projected through the same Nh client viewportTempX/Y path during camera-key motion"
   );
   assert(
     runtimeSource.includes("style={runtimeDomOverlayStaticStyle(overlay)}") &&
       runtimeSource.includes("function runtimeDomOverlayStaticStyle") &&
       runtimeSource.includes("React owns the sprite structure only; the render frame applies the live projected transform."),
-    "React must not re-apply stale camera transforms while the Kronos-style render frame owns live DOM overlay projection"
+    "React must not re-apply stale camera transforms while the Nh-style render frame owns live DOM overlay projection"
   );
   assert(
-    runtimeSource.includes("function kronosActorOverlayCssPixel") &&
+    runtimeSource.includes("function nhActorOverlayCssPixel") &&
       runtimeSource.includes("Sprite.method6159(int, int)") &&
       runtimeSource.includes("rounding here makes overhead sprites drift during camera-key motion") &&
       runtimeSource.includes("return value;") &&
@@ -72,9 +72,9 @@ function cssZIndex(cssBlock, selector) {
 function verifyRuntimeOverlayLayering() {
   const runtimeSource = readFileSync(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
   const cssSource = readFileSync(path.join(projectRoot, "src", "ui", "styles.css"), "utf8");
-  const hudZ = cssZIndex(readCssBlock(cssSource, ".kronosClientHud"), ".kronosClientHud");
-  const sceneOverlayZ = cssZIndex(readCssBlock(cssSource, ".kronosSceneOverlayLayer"), ".kronosSceneOverlayLayer");
-  const contextMenuZ = cssZIndex(readCssBlock(cssSource, ".kronosContextMenu"), ".kronosContextMenu");
+  const hudZ = cssZIndex(readCssBlock(cssSource, ".nhClientHud"), ".nhClientHud");
+  const sceneOverlayZ = cssZIndex(readCssBlock(cssSource, ".nhSceneOverlayLayer"), ".nhSceneOverlayLayer");
+  const contextMenuZ = cssZIndex(readCssBlock(cssSource, ".nhContextMenu"), ".nhContextMenu");
   const statusOrbZ = cssZIndex(readCssBlock(cssSource, ".runeliteStatusOrbOverlay"), ".runeliteStatusOrbOverlay");
 
   assert(
@@ -104,7 +104,7 @@ function verifyRuntimeOverlayLayering() {
   );
   assert(
     runtimeSource.includes('data-source-layer="Client.drawMouseCross viewport overlay pass"') &&
-      runtimeSource.includes("className=\"kronosClickCross\""),
+      runtimeSource.includes("className=\"nhClickCross\""),
     "click cross must be treated as viewport content rather than fixed screen UI"
   );
 }

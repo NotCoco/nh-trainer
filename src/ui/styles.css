@@ -218,6 +218,15 @@ body {
   border-color: rgb(171 129 62 / 0.28);
 }
 
+.nhSiteNotice {
+  grid-column: 2;
+  width: min(620px, 100%);
+  margin: 2px 0 0;
+  color: #897f6d;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 @media (max-width: 900px) {
   .nhSiteIntro {
     top: 22px;
@@ -254,6 +263,10 @@ body {
     position: static;
     width: auto;
   }
+
+  .nhSiteNotice {
+    grid-column: 1;
+  }
 }
 
 @media (max-width: 560px), (max-height: 640px) {
@@ -277,6 +290,7 @@ body {
 
   .nhSiteIntroDetails,
   .nhSiteMoreInfo,
+  .nhSiteNotice,
   .nhSiteBackdrop::after {
     display: none;
   }
@@ -2128,14 +2142,14 @@ h3 {
   white-space: nowrap;
 }
 
-.kronosClientHud {
+.nhClientHud {
   position: absolute;
   inset: 0;
   z-index: 20;
   pointer-events: none;
 }
 
-.kronosSceneOverlayLayer {
+.nhSceneOverlayLayer {
   position: absolute;
   inset: 0;
   z-index: 10;
@@ -2143,7 +2157,7 @@ h3 {
   pointer-events: none;
 }
 
-.kronosFixedClient {
+.nhFixedClient {
   position: absolute;
   left: 0;
   top: 0;
@@ -2152,7 +2166,7 @@ h3 {
   transform-origin: left top;
 }
 
-.kronosFixedClient span {
+.nhFixedClient span {
   image-rendering: pixelated;
 }
 
@@ -2169,55 +2183,55 @@ h3 {
   image-rendering: pixelated;
 }
 
-.kronosWidgetSpriteLayer {
+.nhWidgetSpriteLayer {
   position: absolute;
   inset: 0;
   z-index: 2;
 }
 
-.kronosSideTabClickLayer {
+.nhSideTabClickLayer {
   position: absolute;
   inset: 0;
   z-index: 9;
   pointer-events: none;
 }
 
-.kronosOptionsKeybindingControlLayer {
+.nhOptionsKeybindingControlLayer {
   position: absolute;
   inset: 0;
   z-index: 10;
   pointer-events: none;
 }
 
-.kronosOptionsCameraZoomLayer {
+.nhOptionsCameraZoomLayer {
   position: absolute;
   inset: 0;
   z-index: 10;
   pointer-events: none;
 }
 
-.kronosOptionsCameraZoomKnob {
+.nhOptionsCameraZoomKnob {
   position: absolute;
   display: block;
   pointer-events: none;
   image-rendering: pixelated;
 }
 
-.kronosOptionsKeybindingSourceFrame,
-.kronosOptionsKeybindingGeneratedIcon {
+.nhOptionsKeybindingSourceFrame,
+.nhOptionsKeybindingGeneratedIcon {
   position: absolute;
   display: block;
   pointer-events: none;
   image-rendering: pixelated;
 }
 
-.kronosSideTabButton,
-.kronosOptionsCameraZoomTrack,
-.kronosOptionsCameraZoomReset,
-.kronosOptionsKeybindingButton,
-.kronosChatboxButton,
-.kronosEquipmentItemButton,
-.kronosEquipmentUtilityButton {
+.nhSideTabButton,
+.nhOptionsCameraZoomTrack,
+.nhOptionsCameraZoomReset,
+.nhOptionsKeybindingButton,
+.nhChatboxButton,
+.nhEquipmentItemButton,
+.nhEquipmentUtilityButton {
   position: absolute;
   display: block;
   border: 0;
@@ -2228,18 +2242,18 @@ h3 {
   pointer-events: auto;
 }
 
-.kronosSideTabButton:focus-visible,
-.kronosOptionsCameraZoomTrack:focus-visible,
-.kronosOptionsCameraZoomReset:focus-visible,
-.kronosOptionsKeybindingButton:focus-visible,
-.kronosChatboxButton:focus-visible,
-.kronosEquipmentItemButton:focus-visible,
-.kronosEquipmentUtilityButton:focus-visible {
+.nhSideTabButton:focus-visible,
+.nhOptionsCameraZoomTrack:focus-visible,
+.nhOptionsCameraZoomReset:focus-visible,
+.nhOptionsKeybindingButton:focus-visible,
+.nhChatboxButton:focus-visible,
+.nhEquipmentItemButton:focus-visible,
+.nhEquipmentUtilityButton:focus-visible {
   outline: 1px solid rgba(255, 255, 255, 0.6);
   outline-offset: -2px;
 }
 
-.kronosGameKeybindingInterface {
+.nhGameKeybindingInterface {
   position: absolute;
   z-index: 28;
   box-sizing: border-box;
@@ -2253,7 +2267,7 @@ h3 {
   pointer-events: auto;
 }
 
-.kronosGameKeybindingInterface::before {
+.nhGameKeybindingInterface::before {
   position: absolute;
   inset: 4px;
   border: 1px solid #504535;
@@ -2264,7 +2278,7 @@ h3 {
   content: "";
 }
 
-.kronosGameKeybindingInterface::after {
+.nhGameKeybindingInterface::after {
   position: absolute;
   left: 4px;
   right: 4px;
@@ -2275,24 +2289,24 @@ h3 {
   content: "";
 }
 
-.kronosGameKeybindingTitle,
-.kronosGameKeybindingRows,
-.kronosGameKeybindingRow,
-.kronosGameKeybindingGlyphLabel,
-.kronosGameKeybindingDropdown,
-.kronosGameKeybindingDropdownOption,
-.kronosGameKeybindingRestore,
-.kronosGameKeybindingRestoreButton,
-.kronosGameKeybindingRestoreText,
-.kronosGameKeybindingClose,
-.kronosGameKeybindingIconButton,
-.kronosGameKeybindingIconSprite,
-.kronosGameKeybindingKeyButton,
-.kronosGameKeybindingKeyText {
+.nhGameKeybindingTitle,
+.nhGameKeybindingRows,
+.nhGameKeybindingRow,
+.nhGameKeybindingGlyphLabel,
+.nhGameKeybindingDropdown,
+.nhGameKeybindingDropdownOption,
+.nhGameKeybindingRestore,
+.nhGameKeybindingRestoreButton,
+.nhGameKeybindingRestoreText,
+.nhGameKeybindingClose,
+.nhGameKeybindingIconButton,
+.nhGameKeybindingIconSprite,
+.nhGameKeybindingKeyButton,
+.nhGameKeybindingKeyText {
   position: absolute;
 }
 
-.kronosGameKeybindingTitle {
+.nhGameKeybindingTitle {
   left: 195px;
   top: 8px;
   width: 110px;
@@ -2300,7 +2314,7 @@ h3 {
   z-index: 2;
 }
 
-.kronosGameKeybindingRows {
+.nhGameKeybindingRows {
   left: 0;
   top: 0;
   width: 500px;
@@ -2308,15 +2322,15 @@ h3 {
   z-index: 1;
 }
 
-.kronosGameKeybindingRow {
+.nhGameKeybindingRow {
   z-index: 1;
 }
 
-.kronosGameKeybindingIconButton,
-.kronosGameKeybindingKeyButton,
-.kronosGameKeybindingDropdownOption,
-.kronosGameKeybindingRestoreButton,
-.kronosGameKeybindingClose {
+.nhGameKeybindingIconButton,
+.nhGameKeybindingKeyButton,
+.nhGameKeybindingDropdownOption,
+.nhGameKeybindingRestoreButton,
+.nhGameKeybindingClose {
   border: 0;
   padding: 0;
   background: transparent;
@@ -2325,7 +2339,7 @@ h3 {
   font: inherit;
 }
 
-.kronosGameKeybindingIconButton {
+.nhGameKeybindingIconButton {
   left: 0;
   top: 0;
   width: 36px;
@@ -2342,19 +2356,19 @@ h3 {
   overflow: hidden;
 }
 
-.kronosGameKeybindingIconButton[data-selected="true"] {
+.nhGameKeybindingIconButton[data-selected="true"] {
   background:
     linear-gradient(135deg, rgba(203, 183, 144, 0.28), transparent 48%),
     #584a38;
 }
 
-.kronosGameKeybindingIconSprite {
+.nhGameKeybindingIconSprite {
   display: block;
   pointer-events: none;
   image-rendering: pixelated;
 }
 
-.kronosGameKeybindingKeyButton {
+.nhGameKeybindingKeyButton {
   left: 42px;
   top: 8px;
   width: 106px;
@@ -2367,7 +2381,7 @@ h3 {
   overflow: hidden;
 }
 
-.kronosGameKeybindingKeyButton::after {
+.nhGameKeybindingKeyButton::after {
   position: absolute;
   right: 4px;
   top: 5px;
@@ -2379,14 +2393,14 @@ h3 {
   content: "";
 }
 
-.kronosGameKeybindingKeyText {
+.nhGameKeybindingKeyText {
   left: 7px;
   top: 2px;
   width: 78px;
   height: 15px;
 }
 
-.kronosGameKeybindingDropdown {
+.nhGameKeybindingDropdown {
   z-index: 4;
   border: 1px solid #000000;
   background: #312418;
@@ -2395,11 +2409,11 @@ h3 {
     1px 1px 0 rgba(0, 0, 0, 0.45);
 }
 
-.kronosGameKeybindingDropdownOption:hover {
+.nhGameKeybindingDropdownOption:hover {
   background: rgba(255, 255, 255, 0.08);
 }
 
-.kronosGameKeybindingGlyphLabel {
+.nhGameKeybindingGlyphLabel {
   left: 0;
   top: 0;
   display: block;
@@ -2407,7 +2421,7 @@ h3 {
   pointer-events: none;
 }
 
-.kronosGameKeybindingRestore {
+.nhGameKeybindingRestore {
   left: 155px;
   top: 264px;
   width: 190px;
@@ -2415,7 +2429,7 @@ h3 {
   z-index: 2;
 }
 
-.kronosGameKeybindingRestoreButton {
+.nhGameKeybindingRestoreButton {
   left: 0;
   top: 0;
   width: 190px;
@@ -2427,14 +2441,14 @@ h3 {
     inset -1px -1px 0 #1c140c;
 }
 
-.kronosGameKeybindingRestoreText {
+.nhGameKeybindingRestoreText {
   left: 32px;
   top: 6px;
   width: 126px;
   height: 15px;
 }
 
-.kronosGameKeybindingClose {
+.nhGameKeybindingClose {
   right: 7px;
   top: 7px;
   width: 18px;
@@ -2447,28 +2461,28 @@ h3 {
     inset -1px -1px 0 #21180f;
 }
 
-.kronosChatboxClickLayer {
+.nhChatboxClickLayer {
   position: absolute;
   inset: 0;
   z-index: 9;
   pointer-events: none;
 }
 
-.kronosMinimapOverlay {
+.nhMinimapOverlay {
   position: absolute;
   z-index: 1;
   overflow: hidden;
   pointer-events: auto;
 }
 
-.kronosCompassOverlay {
+.nhCompassOverlay {
   position: absolute;
   z-index: 3;
   overflow: hidden;
   pointer-events: none;
 }
 
-.kronosCompassSpriteRotator {
+.nhCompassSpriteRotator {
   position: absolute;
   left: 0;
   top: 0;
@@ -2477,151 +2491,151 @@ h3 {
   transform-origin: 25px 25px;
 }
 
-.kronosCompassSprite {
+.nhCompassSprite {
   position: absolute;
   left: 0;
   top: 0;
 }
 
-.kronosMinimapSceneSprite,
-.kronosMinimapSceneCell,
-.kronosMinimapSceneOverlayPixel,
-.kronosMinimapSceneSegment,
-.kronosMinimapSceneMapScene {
+.nhMinimapSceneSprite,
+.nhMinimapSceneCell,
+.nhMinimapSceneOverlayPixel,
+.nhMinimapSceneSegment,
+.nhMinimapSceneMapScene {
   position: absolute;
   display: block;
   image-rendering: pixelated;
   pointer-events: none;
 }
 
-.kronosMinimapDot,
-.kronosMinimapMapIcon,
-.kronosMinimapMarker,
-.kronosMinimapLocalPlayer,
-.kronosMinimapDisabledFill {
+.nhMinimapDot,
+.nhMinimapMapIcon,
+.nhMinimapMarker,
+.nhMinimapLocalPlayer,
+.nhMinimapDisabledFill {
   position: absolute;
   display: block;
   image-rendering: pixelated;
 }
 
-.kronosMountedWidgetLayer {
+.nhMountedWidgetLayer {
   position: absolute;
   inset: 0;
   z-index: 6;
   pointer-events: none;
 }
 
-.kronosEquipmentItemLayer {
+.nhEquipmentItemLayer {
   position: absolute;
   inset: 0;
   z-index: 7;
   pointer-events: none;
 }
 
-.kronosCombatPanelLayer {
+.nhCombatPanelLayer {
   position: absolute;
   inset: 0;
   z-index: 7;
   pointer-events: none;
 }
 
-.kronosEquipmentUtilityButtonLayer {
+.nhEquipmentUtilityButtonLayer {
   position: absolute;
   inset: 0;
   z-index: 9;
   pointer-events: none;
 }
 
-.kronosStatsPanelLayer {
+.nhStatsPanelLayer {
   position: absolute;
   inset: 0;
   z-index: 7;
   pointer-events: none;
 }
 
-.kronosNoticeboardLayer,
-.kronosSocialPanelLayer,
-.kronosClanChatPanelLayer,
-.kronosEmotePanelLayer {
+.nhNoticeboardLayer,
+.nhSocialPanelLayer,
+.nhClanChatPanelLayer,
+.nhEmotePanelLayer {
   position: absolute;
   inset: 0;
   z-index: 7;
   pointer-events: none;
 }
 
-.kronosPrayerIconLayer {
+.nhPrayerIconLayer {
   position: absolute;
   inset: 0;
   z-index: 7;
   pointer-events: none;
 }
 
-.kronosSpellbookIconLayer {
+.nhSpellbookIconLayer {
   position: absolute;
   inset: 0;
   z-index: 7;
   pointer-events: none;
 }
 
-.kronosWidgetSprite {
+.nhWidgetSprite {
   position: absolute;
 }
 
-.kronosWidgetRectangle {
+.nhWidgetRectangle {
   position: absolute;
   display: block;
   pointer-events: none;
 }
 
-.kronosNoticeboardClip,
-.kronosNoticeboardScrollContent,
-.kronosSocialRowsClip,
-.kronosSocialRows,
-.kronosSocialRow,
-.kronosSocialRowName,
-.kronosSocialRowWorld,
-.kronosSocialSourceButton,
-.kronosClanChatRowsClip,
-.kronosClanChatRows,
-.kronosClanChatRow,
-.kronosClanChatRankIcon,
-.kronosClanChatRowName,
-.kronosClanChatRowWorld,
-.kronosClanChatSourceButton,
-.kronosEmoteClip,
-.kronosEmoteGrid,
-.kronosEmoteButton,
-.kronosEmoteIconSprite,
-.kronosEmoteIconImage,
-.kronosEmoteLabel,
-.kronosEmoteScrollbarSource {
+.nhNoticeboardClip,
+.nhNoticeboardScrollContent,
+.nhSocialRowsClip,
+.nhSocialRows,
+.nhSocialRow,
+.nhSocialRowName,
+.nhSocialRowWorld,
+.nhSocialSourceButton,
+.nhClanChatRowsClip,
+.nhClanChatRows,
+.nhClanChatRow,
+.nhClanChatRankIcon,
+.nhClanChatRowName,
+.nhClanChatRowWorld,
+.nhClanChatSourceButton,
+.nhEmoteClip,
+.nhEmoteGrid,
+.nhEmoteButton,
+.nhEmoteIconSprite,
+.nhEmoteIconImage,
+.nhEmoteLabel,
+.nhEmoteScrollbarSource {
   position: absolute;
 }
 
-.kronosNoticeboardClip,
-.kronosSocialRowsClip,
-.kronosClanChatRowsClip,
-.kronosEmoteClip {
+.nhNoticeboardClip,
+.nhSocialRowsClip,
+.nhClanChatRowsClip,
+.nhEmoteClip {
   overflow: hidden;
 }
 
-.kronosSocialRowName,
-.kronosSocialRowWorld,
-.kronosClanChatRowName,
-.kronosClanChatRowWorld {
+.nhSocialRowName,
+.nhSocialRowWorld,
+.nhClanChatRowName,
+.nhClanChatRowWorld {
   display: block;
   height: 15px;
   overflow: hidden;
   pointer-events: none;
 }
 
-.kronosClanChatRankIcon {
+.nhClanChatRankIcon {
   display: block;
   pointer-events: none;
 }
 
-.kronosSocialSourceButton,
-.kronosClanChatSourceButton {
+.nhSocialSourceButton,
+.nhClanChatSourceButton {
   appearance: none;
   display: block;
   border: 0;
@@ -2632,13 +2646,13 @@ h3 {
   pointer-events: auto;
 }
 
-.kronosSocialSourceButton:focus-visible,
-.kronosClanChatSourceButton:focus-visible {
+.nhSocialSourceButton:focus-visible,
+.nhClanChatSourceButton:focus-visible {
   outline: 1px solid rgba(255, 255, 255, 0.6);
   outline-offset: -2px;
 }
 
-.kronosEmoteButton {
+.nhEmoteButton {
   appearance: none;
   display: block;
   border: 0;
@@ -2649,12 +2663,12 @@ h3 {
   pointer-events: auto;
 }
 
-.kronosEmoteButton:focus-visible {
+.nhEmoteButton:focus-visible {
   outline: 1px solid rgba(255, 255, 255, 0.6);
   outline-offset: -2px;
 }
 
-.kronosEmoteLabel {
+.nhEmoteLabel {
   display: block;
   overflow: hidden;
   color: transparent;
@@ -2662,49 +2676,49 @@ h3 {
   white-space: nowrap;
 }
 
-.kronosEmoteIconSprite {
+.nhEmoteIconSprite {
   display: block;
   overflow: hidden;
   z-index: 1;
   pointer-events: none;
 }
 
-.kronosEmoteIconImage {
+.nhEmoteIconImage {
   display: block;
   max-width: none;
   pointer-events: none;
   user-select: none;
 }
 
-.kronosEmoteScrollbarSource {
+.nhEmoteScrollbarSource {
   border-left: 1px solid rgba(0, 0, 0, 0.45);
   background: rgba(0, 0, 0, 0.15);
 }
 
-.kronosStatsSkillSlot,
-.kronosStatsTileSprite,
-.kronosStatsSkillIconSprite,
-.kronosStatsSkillLevelText,
-.kronosStatsTotalLevelText,
-.kronosCombatText,
-.kronosCombatStyleSlot,
-.kronosCombatStyleText,
-.kronosCombatAutocastSource,
-.kronosCombatAutocastIconSprite,
-.kronosCombatStyleIconSprite,
-.kronosCombatAutocastText,
-.kronosCombatAutoRetaliateSource,
-.kronosCombatSpecialBar,
-.kronosCombatButtonSprite,
-.kronosCombatSpecialBarBackground,
-.kronosCombatSpecialBarFill,
-.kronosCombatSpecialText,
-.kronosPrayerSlotButton,
-.kronosPrayerActiveBackground {
+.nhStatsSkillSlot,
+.nhStatsTileSprite,
+.nhStatsSkillIconSprite,
+.nhStatsSkillLevelText,
+.nhStatsTotalLevelText,
+.nhCombatText,
+.nhCombatStyleSlot,
+.nhCombatStyleText,
+.nhCombatAutocastSource,
+.nhCombatAutocastIconSprite,
+.nhCombatStyleIconSprite,
+.nhCombatAutocastText,
+.nhCombatAutoRetaliateSource,
+.nhCombatSpecialBar,
+.nhCombatButtonSprite,
+.nhCombatSpecialBarBackground,
+.nhCombatSpecialBarFill,
+.nhCombatSpecialText,
+.nhPrayerSlotButton,
+.nhPrayerActiveBackground {
   position: absolute;
 }
 
-.kronosStatsSkillSlot {
+.nhStatsSkillSlot {
   appearance: none;
   display: block;
   border: 0;
@@ -2715,11 +2729,11 @@ h3 {
   pointer-events: auto;
 }
 
-.kronosCombatStyleSlot,
-.kronosCombatAutocastSource,
-.kronosCombatAutoRetaliateSource,
-.kronosCombatSpecialBar,
-.kronosPrayerSlotButton {
+.nhCombatStyleSlot,
+.nhCombatAutocastSource,
+.nhCombatAutoRetaliateSource,
+.nhCombatSpecialBar,
+.nhPrayerSlotButton {
   appearance: none;
   display: block;
   border: 0;
@@ -2730,84 +2744,84 @@ h3 {
   pointer-events: auto;
 }
 
-.kronosCombatStyleSlot,
-.kronosCombatAutocastSource,
-.kronosCombatAutoRetaliateSource,
-.kronosCombatSpecialBar,
-.kronosPrayerSlotButton {
+.nhCombatStyleSlot,
+.nhCombatAutocastSource,
+.nhCombatAutoRetaliateSource,
+.nhCombatSpecialBar,
+.nhPrayerSlotButton {
   background: transparent;
 }
 
-.kronosCombatButtonSprite {
+.nhCombatButtonSprite {
   display: block;
   image-rendering: pixelated;
   pointer-events: none;
   z-index: 1;
 }
 
-.kronosCombatSourceSpriteFrame {
+.nhCombatSourceSpriteFrame {
   image-rendering: pixelated;
   pointer-events: none;
 }
 
-.kronosCombatAutocastIconSprite {
+.nhCombatAutocastIconSprite {
   display: block;
   image-rendering: pixelated;
   pointer-events: none;
   z-index: 2;
 }
 
-.kronosCombatStyleIconSprite {
+.nhCombatStyleIconSprite {
   z-index: 2;
 }
 
-.kronosCombatStyleSlot,
-.kronosCombatAutocastSource,
-.kronosCombatAutoRetaliateSource {
+.nhCombatStyleSlot,
+.nhCombatAutocastSource,
+.nhCombatAutoRetaliateSource {
   z-index: 4;
 }
 
-.kronosCombatStyleText,
-.kronosCombatAutocastText {
+.nhCombatStyleText,
+.nhCombatAutocastText {
   z-index: 3;
 }
 
-.kronosCombatSpecialButtonSprite {
+.nhCombatSpecialButtonSprite {
   z-index: 0;
 }
 
-.kronosCombatSpecialBarBackground {
+.nhCombatSpecialBarBackground {
   z-index: 1;
 }
 
-.kronosCombatSpecialBarFill {
+.nhCombatSpecialBarFill {
   z-index: 2;
 }
 
-.kronosCombatSpecialText {
+.nhCombatSpecialText {
   z-index: 3;
 }
 
-.kronosCombatStyleSlot:focus-visible,
-.kronosCombatAutocastSource:focus-visible,
-.kronosCombatAutoRetaliateSource:focus-visible,
-.kronosCombatSpecialBar:focus-visible,
-.kronosPrayerSlotButton:focus-visible {
+.nhCombatStyleSlot:focus-visible,
+.nhCombatAutocastSource:focus-visible,
+.nhCombatAutoRetaliateSource:focus-visible,
+.nhCombatSpecialBar:focus-visible,
+.nhPrayerSlotButton:focus-visible {
   outline: 1px solid rgba(255, 255, 255, 0.6);
   outline-offset: -2px;
 }
 
-.kronosStatsTileSprite,
-.kronosStatsSkillIconSprite {
+.nhStatsTileSprite,
+.nhStatsSkillIconSprite {
   image-rendering: pixelated;
   pointer-events: none;
 }
 
-.kronosStatsSkillLevelText,
-.kronosStatsTotalLevelText,
-.kronosCombatText,
-.kronosCombatStyleText,
-.kronosCombatSpecialText {
+.nhStatsSkillLevelText,
+.nhStatsTotalLevelText,
+.nhCombatText,
+.nhCombatStyleText,
+.nhCombatSpecialText {
   display: block;
   overflow: hidden;
   color: transparent;
@@ -2815,30 +2829,30 @@ h3 {
   pointer-events: none;
 }
 
-.kronosCombatSpecialBar {
+.nhCombatSpecialBar {
   overflow: hidden;
 }
 
-.kronosEquipmentSlotTileSprite,
-.kronosEquipmentItemSprite {
+.nhEquipmentSlotTileSprite,
+.nhEquipmentItemSprite {
   position: absolute;
   image-rendering: pixelated;
   pointer-events: none;
 }
 
-.kronosEquipmentUtilityButtonSprite {
+.nhEquipmentUtilityButtonSprite {
   position: absolute;
   image-rendering: pixelated;
   pointer-events: none;
 }
 
-.kronosEquipmentUtilityPanel {
+.nhEquipmentUtilityPanel {
   position: absolute;
   z-index: 18;
   pointer-events: auto;
 }
 
-.kronosEquipmentUtilityPanelFrame {
+.nhEquipmentUtilityPanelFrame {
   position: absolute;
   inset: 10px;
   border: 2px solid rgb(65, 54, 36);
@@ -2849,7 +2863,7 @@ h3 {
   image-rendering: pixelated;
 }
 
-.kronosEquipmentUtilityPanelClose {
+.nhEquipmentUtilityPanelClose {
   position: absolute;
   right: 6px;
   top: 6px;
@@ -2862,8 +2876,8 @@ h3 {
   cursor: pointer;
 }
 
-.kronosEquipmentUtilityPanelClose::before,
-.kronosEquipmentUtilityPanelClose::after {
+.nhEquipmentUtilityPanelClose::before,
+.nhEquipmentUtilityPanelClose::after {
   position: absolute;
   left: 3px;
   top: 7px;
@@ -2873,15 +2887,15 @@ h3 {
   content: "";
 }
 
-.kronosEquipmentUtilityPanelClose::before {
+.nhEquipmentUtilityPanelClose::before {
   transform: rotate(45deg);
 }
 
-.kronosEquipmentUtilityPanelClose::after {
+.nhEquipmentUtilityPanelClose::after {
   transform: rotate(-45deg);
 }
 
-.kronosEquipmentPanelText {
+.nhEquipmentPanelText {
   position: absolute;
   display: block;
   overflow: visible;
@@ -2889,7 +2903,7 @@ h3 {
   white-space: nowrap;
 }
 
-.kronosItemsKeptIconRow {
+.nhItemsKeptIconRow {
   position: absolute;
   left: 32px;
   top: 96px;
@@ -2897,40 +2911,40 @@ h3 {
   height: 36px;
 }
 
-.kronosItemsKeptIcon {
+.nhItemsKeptIcon {
   position: absolute;
   image-rendering: pixelated;
 }
 
-.kronosEquipmentItemSprite[data-pending-remove="true"] {
+.nhEquipmentItemSprite[data-pending-remove="true"] {
   filter: brightness(0.8);
   opacity: 0.75;
 }
 
-.kronosPrayerIconSprite {
+.nhPrayerIconSprite {
   position: absolute;
   image-rendering: pixelated;
   pointer-events: none;
   z-index: 3;
 }
 
-.kronosPrayerIconSprite-reorderDragging,
-.kronosSpellbookIconSprite-reorderDragging {
+.nhPrayerIconSprite-reorderDragging,
+.nhSpellbookIconSprite-reorderDragging {
   filter: brightness(1.2);
   opacity: 0.72;
 }
 
-.kronosPrayerSlotButton {
+.nhPrayerSlotButton {
   z-index: 4;
 }
 
-.kronosPrayerActiveBackground {
+.nhPrayerActiveBackground {
   image-rendering: pixelated;
   pointer-events: none;
   z-index: 2;
 }
 
-.kronosSpellbookIconSprite {
+.nhSpellbookIconSprite {
   position: absolute;
   display: block;
   border: 0;
@@ -2942,20 +2956,20 @@ h3 {
   pointer-events: auto;
 }
 
-.kronosPrayerIconLayer[data-reordering-enabled="true"] .kronosPrayerSlotButton,
-.kronosSpellbookIconLayer[data-reordering-enabled="true"] .kronosSpellbookIconSprite {
+.nhPrayerIconLayer[data-reordering-enabled="true"] .nhPrayerSlotButton,
+.nhSpellbookIconLayer[data-reordering-enabled="true"] .nhSpellbookIconSprite {
   cursor: grab;
 }
 
-.kronosSpellbookIconGraphic {
+.nhSpellbookIconGraphic {
   image-rendering: pixelated;
 }
 
-.kronosSpellbookIconSprite:disabled {
+.nhSpellbookIconSprite:disabled {
   pointer-events: none;
 }
 
-.kronosSpellbookIconSprite-selected {
+.nhSpellbookIconSprite-selected {
   filter:
     drop-shadow(1px 0 0 rgb(255, 255, 255))
     drop-shadow(-1px 0 0 rgb(255, 255, 255))
@@ -2963,12 +2977,12 @@ h3 {
     drop-shadow(0 -1px 0 rgb(255, 255, 255));
 }
 
-.kronosSpellbookIconSprite:focus-visible {
+.nhSpellbookIconSprite:focus-visible {
   outline: 1px solid rgba(255, 255, 255, 0.6);
   outline-offset: -2px;
 }
 
-.kronosWidgetText {
+.nhWidgetText {
   position: absolute;
   display: block;
   overflow: hidden;
@@ -2976,7 +2990,7 @@ h3 {
   white-space: nowrap;
 }
 
-.kronosWidgetGlyph {
+.nhWidgetGlyph {
   position: absolute;
   display: block;
   image-rendering: pixelated;
@@ -2984,7 +2998,7 @@ h3 {
   mask-repeat: no-repeat;
 }
 
-.kronosWidgetAccessibleText {
+.nhWidgetAccessibleText {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -2993,25 +3007,25 @@ h3 {
   white-space: nowrap;
 }
 
-.kronosFixedChatbox,
-.kronosFixedOrbFrame,
-.kronosFixedOrbEmpty,
-.kronosFixedOrbFillMask,
-.kronosFixedOrbFilledSlice,
-.kronosFixedOrbIcon {
+.nhFixedChatbox,
+.nhFixedOrbFrame,
+.nhFixedOrbEmpty,
+.nhFixedOrbFillMask,
+.nhFixedOrbFilledSlice,
+.nhFixedOrbIcon {
   position: absolute;
 }
 
-.kronosFixedChatbox {
+.nhFixedChatbox {
   z-index: 5;
 }
 
-.kronosFixedOrb {
+.nhFixedOrb {
   position: absolute;
   z-index: 7;
 }
 
-.kronosXpDropOrb {
+.nhXpDropOrb {
   position: absolute;
   z-index: 8;
   display: block;
@@ -3025,7 +3039,7 @@ h3 {
   pointer-events: auto;
 }
 
-.kronosXpDropOrbSprite {
+.nhXpDropOrbSprite {
   position: absolute;
   left: 0;
   top: 0;
@@ -3034,31 +3048,31 @@ h3 {
   pointer-events: none;
 }
 
-.kronosFixedOrbFrame {
+.nhFixedOrbFrame {
   z-index: 1;
 }
 
-.kronosFixedOrbEmpty {
+.nhFixedOrbEmpty {
   z-index: 2;
 }
 
-.kronosFixedOrbFillMask {
+.nhFixedOrbFillMask {
   overflow: hidden;
   z-index: 3;
 }
 
-.kronosFixedOrbIcon {
+.nhFixedOrbIcon {
   z-index: 4;
 }
 
-.kronosFixedOrbValue {
+.nhFixedOrbValue {
   position: absolute;
   z-index: 5;
   overflow: hidden;
   color: transparent;
 }
 
-.kronosFixedOrbHitbox {
+.nhFixedOrbHitbox {
   position: absolute;
   z-index: 8;
   padding: 0;
@@ -3070,7 +3084,7 @@ h3 {
   color: transparent;
 }
 
-.kronosInventoryGrid {
+.nhInventoryGrid {
   position: absolute;
   z-index: 6;
   display: grid;
@@ -3078,37 +3092,37 @@ h3 {
   pointer-events: auto;
 }
 
-.kronosInventorySlot {
+.nhInventorySlot {
   position: relative;
   width: 36px;
   height: 32px;
   pointer-events: auto;
 }
 
-.kronosInventoryItemSprite {
+.nhInventoryItemSprite {
   image-rendering: pixelated;
 }
 
-.kronosInventorySlot-pressed .kronosInventoryItemSprite {
+.nhInventorySlot-pressed .nhInventoryItemSprite {
   filter: brightness(1.18);
   transform: translate(1px, 1px);
 }
 
-.kronosInventorySlot-pendingEquip .kronosInventoryItemSprite {
+.nhInventorySlot-pendingEquip .nhInventoryItemSprite {
   filter: brightness(0.8);
   opacity: 0.75;
 }
 
-.kronosEquipmentItemButton:active + .kronosEquipmentItemSprite {
+.nhEquipmentItemButton:active + .nhEquipmentItemSprite {
   filter: brightness(1.18);
   transform: translate(1px, 1px);
 }
 
-.kronosInventorySlot-dragging {
+.nhInventorySlot-dragging {
   z-index: 20;
 }
 
-.kronosInventoryQuantity {
+.nhInventoryQuantity {
   position: absolute;
   left: 0;
   top: 0;
@@ -3120,7 +3134,7 @@ h3 {
   pointer-events: none;
 }
 
-.kronosActorOverlay {
+.nhActorOverlay {
   position: absolute;
   pointer-events: none;
   image-rendering: pixelated;
@@ -3128,7 +3142,7 @@ h3 {
   will-change: transform;
 }
 
-.kronosActorOverlaySprite {
+.nhActorOverlaySprite {
   position: absolute;
   display: block;
   pointer-events: none;
@@ -3734,7 +3748,7 @@ h3 {
   text-align: center;
 }
 
-.kronosClickCross {
+.nhClickCross {
   position: absolute;
   z-index: 8;
   width: 16px;
@@ -3744,7 +3758,7 @@ h3 {
   background-repeat: no-repeat;
 }
 
-.kronosContextMenu {
+.nhContextMenu {
   position: absolute;
   z-index: 120;
   background: #2b271c;
@@ -3755,7 +3769,7 @@ h3 {
   pointer-events: auto;
 }
 
-.kronosContextMenuTitle {
+.nhContextMenuTitle {
   position: absolute;
   left: 1px;
   top: 1px;
@@ -3765,7 +3779,7 @@ h3 {
   color: #c6b895;
 }
 
-.kronosContextMenu::after {
+.nhContextMenu::after {
   content: "";
   position: absolute;
   left: 1px;
@@ -3776,7 +3790,7 @@ h3 {
   pointer-events: none;
 }
 
-.kronosContextMenuOption {
+.nhContextMenuOption {
   position: absolute;
   left: 0;
   display: block;
@@ -3788,37 +3802,37 @@ h3 {
   color: #c6b895;
   text-align: left;
   cursor: default;
-  --kronos-context-menu-text-color: #c6b895;
+  --nh-context-menu-text-color: #c6b895;
 }
 
-.kronosContextMenuHover {
+.nhContextMenuHover {
   position: absolute;
   display: none;
   pointer-events: none;
 }
 
-.kronosContextMenuOption:hover .kronosContextMenuHover {
+.nhContextMenuOption:hover .nhContextMenuHover {
   display: block;
 }
 
-.kronosContextMenuText {
+.nhContextMenuText {
   position: absolute;
   inset: 0;
   color: transparent;
   pointer-events: none;
-  --kronos-context-menu-text-color: #c6b895;
+  --nh-context-menu-text-color: #c6b895;
 }
 
-.kronosContextMenuGlyph {
+.nhContextMenuGlyph {
   position: absolute;
   display: block;
-  background-color: var(--kronos-context-menu-text-color);
+  background-color: var(--nh-context-menu-text-color);
   image-rendering: pixelated;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
 }
 
-.kronosContextMenuAccessibleText {
+.nhContextMenuAccessibleText {
   position: absolute;
   width: 1px;
   height: 1px;

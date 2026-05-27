@@ -9,7 +9,7 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 const require = createRequire(import.meta.url);
 const electronPath = require("electron");
 const validatorPath = path.join(projectRoot, "scripts", "tree-texture-validation-electron.cjs");
-const outputPath = uniqueScreenshotPath("kronos-tree-texture-comparison");
+const outputPath = uniqueScreenshotPath("nh-tree-texture-comparison");
 
 function glbJson(buffer) {
   if (buffer.subarray(0, 4).toString("utf8") !== "glTF") {

@@ -3,15 +3,15 @@ import { copyFile, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  kronosClientCapturePlan,
+  nhClientCapturePlan,
   referenceManifestFileName,
   renderReferenceTargets
 } from "./render-reference-targets.mjs";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const defaultSourceRoot = "C:\\codeximg\\kronos-client-reference";
+const defaultSourceRoot = "C:\\codeximg\\nh-client-reference";
 const defaultOutputRoot = path.join(projectRoot, "fixtures", "reference", "client-render");
-const kronosClientRoot = path.resolve(projectRoot, "..", "Kronos184-Client");
+const nhClientRoot = path.resolve(projectRoot, "..", "Nh184-Client");
 const clientMinimapDotKinds = new Set(["item", "npc", "player", "friend", "team", "friends-chat"]);
 const clientSkillKeys = [
   "attack",
@@ -41,7 +41,7 @@ const clientSkillKeys = [
 
 function parseArgs(argv) {
   const options = {
-    sourceRoot: process.env.KRONOS_CLIENT_REFERENCE_DIR ?? defaultSourceRoot,
+    sourceRoot: process.env.NH_CLIENT_REFERENCE_DIR ?? defaultSourceRoot,
     outputRoot: defaultOutputRoot,
     dryRun: false,
     printPlan: false,
@@ -76,14 +76,14 @@ function usage() {
   return [
     "Usage: npm run capture:client -- --source <client-frame-folder>",
     "",
-    "The source folder must contain viewport-cropped PNGs from the real Kronos client",
+    "The source folder must contain viewport-cropped PNGs from the real Nh client",
     "and matching .client-view.json traces from the capture bridge:",
     ...renderReferenceTargets.map(
       (target) => `  ${target.fileName}  (${target.camera}, cycle ${target.cycle})`
     ),
     "",
     "Real-client capture hook plan:",
-    `  ${kronosClientCapturePlan}`,
+    `  ${nhClientCapturePlan}`,
     "",
     `Default source: ${defaultSourceRoot}`,
     `Default output: ${defaultOutputRoot}`
@@ -766,7 +766,7 @@ async function main() {
   }
 
   if (options.printPlan) {
-    console.log(kronosClientCapturePlan);
+    console.log(nhClientCapturePlan);
     return;
   }
 
@@ -789,7 +789,7 @@ async function main() {
   if (missing.length > 0) {
     throw new Error(
       [
-        "Missing one or more Kronos client reference captures.",
+        "Missing one or more Nh client reference captures.",
         ...missing.map((filePath) => `missing ${filePath}`),
         "",
         usage()
@@ -799,8 +799,8 @@ async function main() {
 
   const manifest = {
     schemaVersion: 1,
-    source: "kronos-client",
-    sourceClientRoot: kronosClientRoot,
+    source: "nh-client",
+    sourceClientRoot: nhClientRoot,
     sourceDirectory: options.sourceRoot,
     capturedAt: new Date().toISOString(),
     frameCount: frames.length,

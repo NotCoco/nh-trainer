@@ -95,22 +95,22 @@ function assert(condition, message) {
 }
 
 const {
-  KRONOS_HEALTH_BAR_BACK_SPRITE_ID,
-  KRONOS_HEALTH_BAR_FRONT_SPRITE_ID,
-  KRONOS_HEALTH_BAR_WIDTH,
-  createKronosHealthBarDefinitionStore,
-  createKronosHealthBarRenderState,
-  kronosHealthBarDefinition,
-  kronosPlayerHealthBarDefinition,
-  layoutKronosHealthBar
-} = loadTsModule("src/render/kronosHealthBars.ts");
+  NH_HEALTH_BAR_BACK_SPRITE_ID,
+  NH_HEALTH_BAR_FRONT_SPRITE_ID,
+  NH_HEALTH_BAR_WIDTH,
+  createNhHealthBarDefinitionStore,
+  createNhHealthBarRenderState,
+  nhHealthBarDefinition,
+  nhPlayerHealthBarDefinition,
+  layoutNhHealthBar
+} = loadTsModule("src/render/nhHealthBars.ts");
 const { assertValidClientViewTrace } = loadTsModule("src/sim/clientView.ts");
 const { clientViewTraceToRuntimeReplay } = loadTsModule("src/render/clientViewReplay.ts");
 const { runtimeRenderEvents } = loadTsModule("src/render/runtimeScene.ts");
 
 const healthBarDefinitionsSource = readJson("fixtures/assets/defs/healthbars.json");
-const healthBarDefinitions = createKronosHealthBarDefinitionStore(healthBarDefinitionsSource);
-const sourceHealthBarDefinition = kronosHealthBarDefinition(0, healthBarDefinitions);
+const healthBarDefinitions = createNhHealthBarDefinitionStore(healthBarDefinitionsSource);
+const sourceHealthBarDefinition = nhHealthBarDefinition(0, healthBarDefinitions);
 const healthSprites = readJson("fixtures/render/sprites/health_bars.json");
 const exportedHealthBarIds = Object.keys(healthBarDefinitionsSource).map(Number).sort((a, b) => a - b);
 const expectedHealthBarIds = [0, 1, 7, 8, 12, 16, 17, 18, 19, 20, 21, 22];
@@ -134,47 +134,47 @@ assert(
   JSON.stringify(exportedHealthBarSpriteIds) === JSON.stringify(definitionHealthBarSpriteIds),
   `health-bar sprite atlas should be generated from all definition sprite ids: ${JSON.stringify({ exportedHealthBarSpriteIds, definitionHealthBarSpriteIds })}`
 );
-const frontSprite = healthSprites.sprites.find((sprite) => sprite.spriteId === KRONOS_HEALTH_BAR_FRONT_SPRITE_ID);
-const backSprite = healthSprites.sprites.find((sprite) => sprite.spriteId === KRONOS_HEALTH_BAR_BACK_SPRITE_ID);
+const frontSprite = healthSprites.sprites.find((sprite) => sprite.spriteId === NH_HEALTH_BAR_FRONT_SPRITE_ID);
+const backSprite = healthSprites.sprites.find((sprite) => sprite.spriteId === NH_HEALTH_BAR_BACK_SPRITE_ID);
 assert(frontSprite?.width === 30 && frontSprite.height === 5, "health front sprite 2176 should be the 30x5 cache bar");
 assert(backSprite?.width === 30 && backSprite.height === 5, "health back sprite 2177 should be the 30x5 cache bar");
 
 assert(healthBarDefinitionsSource["0"], "missing exported cache HealthBarDefinition 0");
 assert(sourceHealthBarDefinition?.frontSpriteId === 2176, "source health bar should resolve front sprite 2176");
 assert(sourceHealthBarDefinition?.backSpriteId === 2177, "source health bar should resolve back sprite 2177");
-assert(sourceHealthBarDefinition?.width === KRONOS_HEALTH_BAR_WIDTH, "definition width should preserve source width");
+assert(sourceHealthBarDefinition?.width === NH_HEALTH_BAR_WIDTH, "definition width should preserve source width");
 assert(
   sourceHealthBarDefinition?.lifetimeCycles === healthBarDefinitionsSource["0"].lifetimeCycles,
   "definition lifetime should preserve exported source int5"
 );
-assert(sourceHealthBarDefinition?.lifetimeCycles === 300, "definition lifetime should match Kronos cache value");
+assert(sourceHealthBarDefinition?.lifetimeCycles === 300, "definition lifetime should match Nh cache value");
 assert(sourceHealthBarDefinition?.interpolationStep === 1, "definition interpolation step should preserve source int4");
-assert(sourceHealthBarDefinition?.opacityStart === 250, "definition opacity start should match Kronos cache value");
-assert(sourceHealthBarDefinition?.opacityEnd === 250, "definition opacity end should match Kronos cache value");
-assert(kronosPlayerHealthBarDefinition.width === KRONOS_HEALTH_BAR_WIDTH, "source default definition width should preserve cache width");
+assert(sourceHealthBarDefinition?.opacityStart === 250, "definition opacity start should match Nh cache value");
+assert(sourceHealthBarDefinition?.opacityEnd === 250, "definition opacity end should match Nh cache value");
+assert(nhPlayerHealthBarDefinition.width === NH_HEALTH_BAR_WIDTH, "source default definition width should preserve cache width");
 assert(
-  kronosPlayerHealthBarDefinition.lifetimeCycles === healthBarDefinitionsSource["0"].lifetimeCycles,
+  nhPlayerHealthBarDefinition.lifetimeCycles === healthBarDefinitionsSource["0"].lifetimeCycles,
   "source default definition lifetime should preserve cache int5"
 );
 assert(
-  kronosPlayerHealthBarDefinition.opacityStart === healthBarDefinitionsSource["0"].opacityStart &&
-    kronosPlayerHealthBarDefinition.opacityEnd === healthBarDefinitionsSource["0"].opacityEnd,
+  nhPlayerHealthBarDefinition.opacityStart === healthBarDefinitionsSource["0"].opacityStart &&
+    nhPlayerHealthBarDefinition.opacityEnd === healthBarDefinitionsSource["0"].opacityEnd,
   "source default definition opacity should preserve cache fields"
 );
-const wideFadeDefinition = kronosHealthBarDefinition(8, healthBarDefinitions);
+const wideFadeDefinition = nhHealthBarDefinition(8, healthBarDefinitions);
 const wideFadeSprite = healthSprites.sprites.find((sprite) => sprite.spriteId === wideFadeDefinition?.frontSpriteId);
 assert(wideFadeDefinition?.frontSpriteId === 1417, "broader health-bar corpus should preserve definition 8 front sprite");
 assert(wideFadeDefinition?.backSpriteId === 1418, "broader health-bar corpus should preserve definition 8 back sprite");
 assert(wideFadeDefinition?.width === 120, "broader health-bar corpus should preserve definition 8 width");
 assert(wideFadeDefinition?.fadeStartCycle === 40, "broader health-bar corpus should preserve definition 8 fade start");
 
-const staticState = createKronosHealthBarRenderState(10, 22 / 30, 22 / 30, 0, sourceHealthBarDefinition);
-const staticLayout = layoutKronosHealthBar(staticState, 10, frontSprite.width);
+const staticState = createNhHealthBarRenderState(10, 22 / 30, 22 / 30, 0, sourceHealthBarDefinition);
+const staticLayout = layoutNhHealthBar(staticState, 10, frontSprite.width);
 assert(staticLayout.clipWidthPixels === 22, "static health bar should clip front sprite by health2/definition width");
 assert(staticLayout.widthRatio === 22 / 30, "static health bar ratio should match source clip width");
 assert(staticLayout.alpha === 255, "default health bar should draw fully opaque");
 
-const interpolatedLayout = layoutKronosHealthBar(
+const interpolatedLayout = layoutNhHealthBar(
   {
     definition: sourceHealthBarDefinition,
     update: {
@@ -188,14 +188,14 @@ const interpolatedLayout = layoutKronosHealthBar(
   frontSprite.width
 );
 assert(interpolatedLayout.clipWidthPixels === 14, "health bar should interpolate previous-to-target width by cycleOffset");
-const wideFadeLayout = layoutKronosHealthBar(
-  createKronosHealthBarRenderState(30, 0.5, 0.5, 0, wideFadeDefinition),
+const wideFadeLayout = layoutNhHealthBar(
+  createNhHealthBarRenderState(30, 0.5, 0.5, 0, wideFadeDefinition),
   40,
   wideFadeSprite.width
 );
 assert(wideFadeLayout.clipWidthPixels === 50, "definition 8 should scale its 100px sprite by health2/120 source width");
-const wideFadeExpiredLayout = layoutKronosHealthBar(
-  createKronosHealthBarRenderState(30, 0.5, 0.5, 0, wideFadeDefinition),
+const wideFadeExpiredLayout = layoutNhHealthBar(
+  createNhHealthBarRenderState(30, 0.5, 0.5, 0, wideFadeDefinition),
   91,
   wideFadeSprite.width
 );

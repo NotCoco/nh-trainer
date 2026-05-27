@@ -29,36 +29,36 @@ import type {
   RuntimeTile
 } from "./runtimeScene";
 import { defaultRuntimeHudState, defaultRuntimeSkillStates, runtimeSkillIds } from "./runtimeScene";
-import { kronosClickCrossFrameFromState } from "./kronosClickCross";
+import { nhClickCrossFrameFromState } from "./nhClickCross";
 import {
-  createKronosHitsplatRenderStateOrNull,
-  kronosHitsplatPrimarySpriteId,
-  type KronosHitsplatDefinitionStore
-} from "./kronosHitsplats";
+  createNhHitsplatRenderStateOrNull,
+  nhHitsplatPrimarySpriteId,
+  type NhHitsplatDefinitionStore
+} from "./nhHitsplats";
 import {
-  resolveKronosActorSequence,
-  type KronosActorSequenceDefinitionStore
-} from "./kronosActorSequence";
+  resolveNhActorSequence,
+  type NhActorSequenceDefinitionStore
+} from "./nhActorSequence";
 import {
-  KRONOS_PLAYER_HEALTH_BAR_DEFINITION_ID,
-  createKronosHealthBarRenderState,
-  kronosHealthBarDefinition,
-  kronosPlayerHealthBarDefinition,
-  type KronosHealthBarDefinitionStore
-} from "./kronosHealthBars";
+  NH_PLAYER_HEALTH_BAR_DEFINITION_ID,
+  createNhHealthBarRenderState,
+  nhHealthBarDefinition,
+  nhPlayerHealthBarDefinition,
+  type NhHealthBarDefinitionStore
+} from "./nhHealthBars";
 import {
-  decodeKronosPlayerAppearancePacket,
-  kronosRuntimeAppearanceFromDecodedPacket
-} from "./kronosPlayerAppearancePacket";
+  decodeNhPlayerAppearancePacket,
+  nhRuntimeAppearanceFromDecodedPacket
+} from "./nhPlayerAppearancePacket";
 import {
-  kronosProjectileDefinitionForGfx,
-  type KronosProjectileDefinitionMap
-} from "./kronosProjectileMotion";
+  nhProjectileDefinitionForGfx,
+  type NhProjectileDefinitionMap
+} from "./nhProjectileMotion";
 import {
-  kronosPrayerOverheadDefinition,
-  kronosSkullOverheadDefinition,
-  type KronosOverheadIconDefinitionStore
-} from "./kronosOverheadIcons";
+  nhPrayerOverheadDefinition,
+  nhSkullOverheadDefinition,
+  type NhOverheadIconDefinitionStore
+} from "./nhOverheadIcons";
 
 export interface RuntimeReplay {
   readonly id: string;
@@ -70,15 +70,15 @@ export interface RuntimeReplay {
 }
 
 export interface ClientViewRuntimeReplayOptions {
-  readonly projectileDefinitions?: KronosProjectileDefinitionMap;
-  readonly spotanimDefinitions?: ReadonlyMap<number, KronosReplaySpotanimDefinition>;
-  readonly hitsplatDefinitions?: KronosHitsplatDefinitionStore;
-  readonly healthBarDefinitions?: KronosHealthBarDefinitionStore;
-  readonly overheadIconDefinitions?: KronosOverheadIconDefinitionStore;
-  readonly actorSequenceDefinitions?: KronosActorSequenceDefinitionStore;
+  readonly projectileDefinitions?: NhProjectileDefinitionMap;
+  readonly spotanimDefinitions?: ReadonlyMap<number, NhReplaySpotanimDefinition>;
+  readonly hitsplatDefinitions?: NhHitsplatDefinitionStore;
+  readonly healthBarDefinitions?: NhHealthBarDefinitionStore;
+  readonly overheadIconDefinitions?: NhOverheadIconDefinitionStore;
+  readonly actorSequenceDefinitions?: NhActorSequenceDefinitionStore;
 }
 
-export interface KronosReplaySpotanimDefinition {
+export interface NhReplaySpotanimDefinition {
   readonly id: number;
   readonly label?: string;
   readonly artifactUrl?: string;
@@ -117,7 +117,7 @@ function runtimeFacing(actorId: ClientViewActorId, actor: ClientVisibleActor): n
   if (units === undefined) {
     return actorId === "self" ? 90 : -90;
   }
-  return kronosOrientationUnitsToFacingDegrees(units);
+  return nhOrientationUnitsToFacingDegrees(units);
 }
 
 function clientAngleField(value: number | undefined): number | undefined {
@@ -127,7 +127,7 @@ function clientAngleField(value: number | undefined): number | undefined {
   return ((value % 2048) + 2048) % 2048;
 }
 
-function kronosOrientationUnitsToFacingDegrees(units: number): number {
+function nhOrientationUnitsToFacingDegrees(units: number): number {
   const degrees = ((clientAngleField(units) ?? 0) - 1024) * 360 / 2048;
   return ((degrees + 180) % 360 + 360) % 360 - 180;
 }
@@ -164,7 +164,7 @@ function resolveLoadout(equipment: VisibleEquipment): RuntimeLoadoutId {
 
 function runtimeAppearance(actor: ClientVisibleActor): RuntimePlayerAppearance {
   if (actor.appearancePacket) {
-    return kronosRuntimeAppearanceFromDecodedPacket(decodeKronosPlayerAppearancePacket(actor.appearancePacket));
+    return nhRuntimeAppearanceFromDecodedPacket(decodeNhPlayerAppearancePacket(actor.appearancePacket));
   }
 
   return {
@@ -181,9 +181,9 @@ function actorPose(
   actor: ClientVisibleActor,
   origin: { readonly x: number; readonly y: number },
   cycle: number,
-  actorSequenceDefinitions?: KronosActorSequenceDefinitionStore
+  actorSequenceDefinitions?: NhActorSequenceDefinitionStore
 ): RuntimeActorPose {
-  const sequence = resolveKronosActorSequence(actor.animations, actorSequenceDefinitions);
+  const sequence = resolveNhActorSequence(actor.animations, actorSequenceDefinitions);
   const blendMovement =
     sequence.actionSequenceName !== undefined &&
     sequence.movementSequenceName !== undefined &&
@@ -245,7 +245,7 @@ function runtimeClickCross(clickCross: {
     y: clickCross.y,
     color: clickCross.color === 1 ? "yellow" : "red",
     state: clickCross.state,
-    frame: kronosClickCrossFrameFromState(clickCross.state)
+    frame: nhClickCrossFrameFromState(clickCross.state)
   };
 }
 
@@ -393,9 +393,9 @@ function projectileLifecycle(
 function projectileEvent(
   event: Extract<ClientViewEvent, { readonly kind: "projectile" }>,
   origin: { readonly x: number; readonly y: number },
-  projectileDefinitions?: KronosProjectileDefinitionMap
+  projectileDefinitions?: NhProjectileDefinitionMap
 ): RuntimeRenderEvent {
-  const projectile = kronosProjectileDefinitionForGfx(projectileDefinitions, event.projectileId);
+  const projectile = nhProjectileDefinitionForGfx(projectileDefinitions, event.projectileId);
   const lifecycle = projectileLifecycle(event, origin);
   return {
     id: event.id,
@@ -413,9 +413,9 @@ function projectileEvent(
 
 function hitsplatEvent(
   event: Extract<ClientViewEvent, { readonly kind: "hitsplat" }>,
-  hitsplatDefinitions?: KronosHitsplatDefinitionStore
+  hitsplatDefinitions?: NhHitsplatDefinitionStore
 ): RuntimeRenderEvent | null {
-  const hitsplat = createKronosHitsplatRenderStateOrNull({
+  const hitsplat = createNhHitsplatRenderStateOrNull({
     primaryType: event.primaryType,
     primaryValue: event.primaryValue,
     secondaryType: event.secondaryType,
@@ -436,7 +436,7 @@ function hitsplatEvent(
     endCycle: event.visibleWindow.lastTick,
     actorId: actorIdMap[event.targetActorId],
     spriteSheetId: "hitsplats",
-    spriteId: kronosHitsplatPrimarySpriteId(hitsplat),
+    spriteId: nhHitsplatPrimarySpriteId(hitsplat),
     clientOrder: event.observedTick * 100 + overlayActorOffset(event.targetActorId) + 40,
     hitsplat
   };
@@ -444,7 +444,7 @@ function hitsplatEvent(
 
 function spotanimEvent(
   event: Extract<ClientViewEvent, { readonly kind: "spotanim" }>,
-  spotanimDefinitions?: ReadonlyMap<number, KronosReplaySpotanimDefinition>
+  spotanimDefinitions?: ReadonlyMap<number, NhReplaySpotanimDefinition>
 ): RuntimeRenderEvent {
   const spotanim = spotanimDefinitions?.get(event.spotanimId);
   return {
@@ -509,11 +509,11 @@ function healthBarEvent(
   healthRatio: number,
   previousHealthRatio: number,
   cycleOffset: number,
-  healthBarDefinitions?: KronosHealthBarDefinitionStore
+  healthBarDefinitions?: NhHealthBarDefinitionStore
 ): RuntimeRenderEvent {
   const definition =
-    kronosHealthBarDefinition(KRONOS_PLAYER_HEALTH_BAR_DEFINITION_ID, healthBarDefinitions) ??
-    kronosPlayerHealthBarDefinition;
+    nhHealthBarDefinition(NH_PLAYER_HEALTH_BAR_DEFINITION_ID, healthBarDefinitions) ??
+    nhPlayerHealthBarDefinition;
   return {
     id: `${tick}-${actorId}-health_bars-${definition.frontSpriteId}`,
     kind: "overlay-sprite",
@@ -525,7 +525,7 @@ function healthBarEvent(
     spriteId: definition.frontSpriteId,
     clientOrder: tick * 100 + overlayActorOffset(actorId) + 10,
     healthRatio,
-    healthBar: createKronosHealthBarRenderState(tick, healthRatio, previousHealthRatio, cycleOffset, definition)
+    healthBar: createNhHealthBarRenderState(tick, healthRatio, previousHealthRatio, cycleOffset, definition)
   };
 }
 
@@ -535,7 +535,7 @@ function overlayActorOffset(actorId: ClientViewActorId): number {
 
 function healthBarEventsForTrace(
   trace: ClientViewTrace,
-  healthBarDefinitions?: KronosHealthBarDefinitionStore
+  healthBarDefinitions?: NhHealthBarDefinitionStore
 ): readonly RuntimeRenderEvent[] {
   const events: RuntimeRenderEvent[] = [];
   const previousByActor = new Map<ClientViewActorId, { readonly ratio: number; readonly tick: number }>();
@@ -659,7 +659,7 @@ export function clientViewTraceToRuntimeReplay(
     for (const actorId of trace.actors) {
       const actor = tick.actors[actorId];
       if (actor.overheadPrayer !== "none") {
-        const prayer = kronosPrayerOverheadDefinition(actor.overheadPrayer, options.overheadIconDefinitions);
+        const prayer = nhPrayerOverheadDefinition(actor.overheadPrayer, options.overheadIconDefinitions);
         if (prayer) {
           events.push(
             overlayEvent(
@@ -676,7 +676,7 @@ export function clientViewTraceToRuntimeReplay(
         }
       }
       if (actor.skullIcon !== "none") {
-        const skull = kronosSkullOverheadDefinition(actor.skullIcon, options.overheadIconDefinitions);
+        const skull = nhSkullOverheadDefinition(actor.skullIcon, options.overheadIconDefinitions);
         if (skull) {
           events.push(
             overlayEvent(

@@ -52,17 +52,17 @@ function assert(condition, message) {
 }
 
 const {
-  KRONOS_HITSPLAT_BLOCK_TYPE,
-  KRONOS_HITSPLAT_DAMAGE_TYPE,
-  KRONOS_HITSPLAT_DEFAULT_DURATION_CYCLES,
-  createKronosHitsplatDefinitionStore,
-  createKronosHitsplatRenderState,
-  createKronosHitsplatRenderStateOrNull,
-  kronosHitsplatDefinition,
-  kronosHitsplatPrimarySpriteId,
-  layoutKronosHitsplat,
-  resolveKronosHitsplatDefinition
-} = loadTsModule("src/render/kronosHitsplats.ts");
+  NH_HITSPLAT_BLOCK_TYPE,
+  NH_HITSPLAT_DAMAGE_TYPE,
+  NH_HITSPLAT_DEFAULT_DURATION_CYCLES,
+  createNhHitsplatDefinitionStore,
+  createNhHitsplatRenderState,
+  createNhHitsplatRenderStateOrNull,
+  nhHitsplatDefinition,
+  nhHitsplatPrimarySpriteId,
+  layoutNhHitsplat,
+  resolveNhHitsplatDefinition
+} = loadTsModule("src/render/nhHitsplats.ts");
 
 const hitsplatDefinitionsSource = readJson("fixtures/assets/defs/hitsplats.json");
 const hitsplatSprites = readJson("fixtures/render/sprites/hitsplats.json");
@@ -76,9 +76,9 @@ function lookup(sheetId, spriteId) {
   return spriteEntries.get(`${sheetId}:${spriteId}`);
 }
 
-const hitsplatDefinitions = createKronosHitsplatDefinitionStore(hitsplatDefinitionsSource);
-const blockDefinition = kronosHitsplatDefinition(KRONOS_HITSPLAT_BLOCK_TYPE, hitsplatDefinitions);
-const damageDefinition = kronosHitsplatDefinition(KRONOS_HITSPLAT_DAMAGE_TYPE, hitsplatDefinitions);
+const hitsplatDefinitions = createNhHitsplatDefinitionStore(hitsplatDefinitionsSource);
+const blockDefinition = nhHitsplatDefinition(NH_HITSPLAT_BLOCK_TYPE, hitsplatDefinitions);
+const damageDefinition = nhHitsplatDefinition(NH_HITSPLAT_DAMAGE_TYPE, hitsplatDefinitions);
 const exportedHitsplatIds = Object.keys(hitsplatDefinitionsSource).map(Number).sort((a, b) => a - b);
 const expectedHitsplatIds = [0, 1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15];
 assert(
@@ -112,10 +112,10 @@ assert(
   damageDefinition?.durationCycles === hitsplatDefinitionsSource["1"].durationCycles,
   "damage hitsplat should use exported cache definition duration"
 );
-assert(blockDefinition?.durationCycles === 50, "blocked hitsplat should match Kronos cache duration");
-assert(damageDefinition?.durationCycles === 50, "damage hitsplat should match Kronos cache duration");
+assert(blockDefinition?.durationCycles === 50, "blocked hitsplat should match Nh cache duration");
+assert(damageDefinition?.durationCycles === 50, "damage hitsplat should match Nh cache duration");
 assert(
-  KRONOS_HITSPLAT_DEFAULT_DURATION_CYCLES === damageDefinition?.durationCycles,
+  NH_HITSPLAT_DEFAULT_DURATION_CYCLES === damageDefinition?.durationCycles,
   "generated NH duel hitsplat expiry should use the exported cache damage duration"
 );
 assert(blockDefinition?.sprites.middleSpriteId === 1358, "blocked hitsplat should resolve cache sprite 1358");
@@ -125,14 +125,14 @@ assert(damageDefinition?.template.includes("%1"), "damage hitsplat should preser
 assert(Number.isInteger(blockDefinition?.priorityMode), "blocked hitsplat should expose source priority mode");
 assert(Number.isInteger(damageDefinition?.fadeStartCycle), "damage hitsplat should expose source fade cycle");
 assert(Number.isInteger(damageDefinition?.textBaselineOffset), "damage hitsplat should expose source text baseline offset");
-const poisonDefinition = kronosHitsplatDefinition(6, hitsplatDefinitions);
+const poisonDefinition = nhHitsplatDefinition(6, hitsplatDefinitions);
 assert(poisonDefinition?.sprites.middleSpriteId === 1419, "broader hitsplat corpus should preserve poison-style sprite 1419");
-const venomedDefinition = kronosHitsplatDefinition(15, hitsplatDefinitions);
+const venomedDefinition = nhHitsplatDefinition(15, hitsplatDefinitions);
 assert(venomedDefinition?.sprites.middleSpriteId === 1629, "broader hitsplat corpus should preserve venom-style sprite 1629");
 const transformedDefinitions = Object.values(hitsplatDefinitionsSource).filter((definition) => definition.transforms?.length > 0);
 const customFontDefinitions = Object.values(hitsplatDefinitionsSource).filter((definition) => definition.fontId >= 0);
-assert(transformedDefinitions.length === 0, "this Kronos cache revision should not invent transformed hitsplat definitions");
-assert(customFontDefinitions.length === 0, "this Kronos cache revision should not invent custom hitsplat fonts");
+assert(transformedDefinitions.length === 0, "this Nh cache revision should not invent transformed hitsplat definitions");
+assert(customFontDefinitions.length === 0, "this Nh cache revision should not invent custom hitsplat fonts");
 
 const transformedByVarbit = {
   ...damageDefinition,
@@ -158,22 +158,22 @@ const transformStore = new Map([
   [transformedByVarp.id, transformedByVarp]
 ]);
 assert(
-  resolveKronosHitsplatDefinition(transformedByVarbit.id, transformStore, { varbits: { 17: 0 } })?.id === 2,
+  resolveNhHitsplatDefinition(transformedByVarbit.id, transformStore, { varbits: { 17: 0 } })?.id === 2,
   "hitsplat transformVarbit index 0 should select transforms[0]"
 );
 assert(
-  resolveKronosHitsplatDefinition(transformedByVarbit.id, transformStore, { varbits: new Map([[17, 1]]) })?.id === 6,
+  resolveNhHitsplatDefinition(transformedByVarbit.id, transformStore, { varbits: new Map([[17, 1]]) })?.id === 6,
   "hitsplat transformVarbit index 1 should support Map-backed varbit state"
 );
 assert(
-  resolveKronosHitsplatDefinition(transformedByVarbit.id, transformStore, { varbits: { 17: 2 } }) === null,
+  resolveNhHitsplatDefinition(transformedByVarbit.id, transformStore, { varbits: { 17: 2 } }) === null,
   "hitsplat transformVarbit out-of-range/default -1 should suppress the primary splat like the client"
 );
 assert(
-  resolveKronosHitsplatDefinition(transformedByVarp.id, transformStore, { varps: { 43: 2 } })?.id === 15,
+  resolveNhHitsplatDefinition(transformedByVarp.id, transformStore, { varps: { 43: 2 } })?.id === 15,
   "hitsplat transformVarp should select the matching transformed definition"
 );
-const transformedState = createKronosHitsplatRenderState({
+const transformedState = createNhHitsplatRenderState({
   primaryType: transformedByVarp.id,
   primaryValue: 44,
   secondaryType: transformedByVarbit.id,
@@ -189,7 +189,7 @@ assert(
   "hitSplatCycles should keep the original source definition duration before display transform"
 );
 assert(
-  createKronosHitsplatRenderStateOrNull({
+  createNhHitsplatRenderStateOrNull({
     primaryType: transformedByVarbit.id,
     primaryValue: 1,
     secondaryType: -1,
@@ -201,8 +201,8 @@ assert(
   "primary hitsplat transform resolving to -1 should be skipped instead of drawn with a fallback"
 );
 
-const damageHitsplat = createKronosHitsplatRenderState({
-  primaryType: KRONOS_HITSPLAT_DAMAGE_TYPE,
+const damageHitsplat = createNhHitsplatRenderState({
+  primaryType: NH_HITSPLAT_DAMAGE_TYPE,
   primaryValue: 38,
   secondaryType: -1,
   secondaryValue: 0,
@@ -213,9 +213,9 @@ const damageHitsplat = createKronosHitsplatRenderState({
 
 assert(damageHitsplat.expiresOnClientCycle === 65, "hitSplatCycles should equal packet cycle + delay + definition duration");
 assert(damageHitsplat.slotIndex === 2, "hitsplat slot should remain packet-shaped");
-assert(kronosHitsplatPrimarySpriteId(damageHitsplat) === 1359, "primary sprite id should come from definition");
+assert(nhHitsplatPrimarySpriteId(damageHitsplat) === 1359, "primary sprite id should come from definition");
 
-const damageLayout = layoutKronosHitsplat(damageHitsplat, lookup, 12);
+const damageLayout = layoutNhHitsplat(damageHitsplat, lookup, 12);
 assert(damageLayout?.width === 26, "single damage layout should preserve drawActor2d spacer plus middle sprite width");
 assert(damageLayout?.height === 23, "single damage layout should use cache sprite height");
 assert(damageLayout?.offsetX === 0 && damageLayout.offsetY === 0, "zero-offset damage layout should remain anchored at the slot base");
@@ -229,7 +229,7 @@ const damageDigits = damageLayout?.sprites.filter((sprite) => sprite.sheetId ===
 assert(damageDigits.length === 2, "two-digit damage splat should expose two fontPlain11 digit sprites");
 assert(
   damageDigits[0].y === damageDigits[1].y,
-  `hitsplat digits should share the same Kronos font baseline: ${JSON.stringify(damageDigits)}`
+  `hitsplat digits should share the same Nh font baseline: ${JSON.stringify(damageDigits)}`
 );
 assert(
   damageDigits[0].y === 6,
@@ -237,7 +237,7 @@ assert(
 );
 assert(
   damageDigits[0].x === 8 && damageDigits[1].x === 14,
-  `hitsplat digits should use Kronos integer centering and leftBearing placement: ${JSON.stringify(damageDigits)}`
+  `hitsplat digits should use Nh integer centering and leftBearing placement: ${JSON.stringify(damageDigits)}`
 );
 
 const movingDefinition = {
@@ -247,7 +247,7 @@ const movingDefinition = {
   verticalOffset: 20,
   durationCycles: 50
 };
-const movingHitsplat = createKronosHitsplatRenderState({
+const movingHitsplat = createNhHitsplatRenderState({
   primaryType: movingDefinition.id,
   primaryValue: 12,
   secondaryType: -1,
@@ -256,23 +256,23 @@ const movingHitsplat = createKronosHitsplatRenderState({
   delayCycles: 0,
   slotIndex: 0
 }, new Map([[movingDefinition.id, movingDefinition]]));
-const movingStart = layoutKronosHitsplat(movingHitsplat, lookup, 100);
-const movingMid = layoutKronosHitsplat(movingHitsplat, lookup, 125);
-const movingEnd = layoutKronosHitsplat(movingHitsplat, lookup, 150);
+const movingStart = layoutNhHitsplat(movingHitsplat, lookup, 100);
+const movingMid = layoutNhHitsplat(movingHitsplat, lookup, 125);
+const movingEnd = layoutNhHitsplat(movingHitsplat, lookup, 150);
 assert(movingStart?.offsetX === 0 && movingStart.offsetY === 0, "hitsplat movement should start at the base drawActor2d slot");
 assert(movingMid?.offsetX === 5 && movingMid.offsetY === -10, "hitsplat movement should interpolate source horizontal/vertical offsets by remaining cycles");
 assert(movingEnd?.offsetX === 10 && movingEnd.offsetY === -20, "hitsplat movement should reach source offsets at expiry");
 
-const secondaryHitsplat = createKronosHitsplatRenderState({
-  primaryType: KRONOS_HITSPLAT_DAMAGE_TYPE,
+const secondaryHitsplat = createNhHitsplatRenderState({
+  primaryType: NH_HITSPLAT_DAMAGE_TYPE,
   primaryValue: 1,
-  secondaryType: KRONOS_HITSPLAT_BLOCK_TYPE,
+  secondaryType: NH_HITSPLAT_BLOCK_TYPE,
   secondaryValue: 0,
   packetCycle: 20,
   delayCycles: 0,
   slotIndex: 0
 }, hitsplatDefinitions);
-const secondaryLayout = layoutKronosHitsplat(secondaryHitsplat, lookup, 20);
+const secondaryLayout = layoutNhHitsplat(secondaryHitsplat, lookup, 20);
 assert(secondaryLayout?.width === 54, "secondary hitsplat should add drawActor2d primary/secondary component gap");
 assert(secondaryLayout?.sprites.some((sprite) => sprite.spriteId === 1358), "secondary layout should include blocked sprite");
 
@@ -300,7 +300,7 @@ console.log(
         exportedIds: exportedHitsplatIds,
         block: blockDefinition.id,
         damage: damageDefinition.id,
-        sourceDefaultDurationCycles: KRONOS_HITSPLAT_DEFAULT_DURATION_CYCLES,
+        sourceDefaultDurationCycles: NH_HITSPLAT_DEFAULT_DURATION_CYCLES,
         exportedDurationCycles: damageDefinition.durationCycles,
         blockSprite: blockDefinition.sprites.middleSpriteId,
         damageSprite: damageDefinition.sprites.middleSpriteId,
@@ -308,9 +308,9 @@ console.log(
         venomSprite: venomedDefinition.sprites.middleSpriteId
       },
       transformSelection: {
-        varbit0: resolveKronosHitsplatDefinition(transformedByVarbit.id, transformStore, { varbits: { 17: 0 } })?.id,
-        varbit1: resolveKronosHitsplatDefinition(transformedByVarbit.id, transformStore, { varbits: { 17: 1 } })?.id,
-        varp2: resolveKronosHitsplatDefinition(transformedByVarp.id, transformStore, { varps: { 43: 2 } })?.id,
+        varbit0: resolveNhHitsplatDefinition(transformedByVarbit.id, transformStore, { varbits: { 17: 0 } })?.id,
+        varbit1: resolveNhHitsplatDefinition(transformedByVarbit.id, transformStore, { varbits: { 17: 1 } })?.id,
+        varp2: resolveNhHitsplatDefinition(transformedByVarp.id, transformStore, { varps: { 43: 2 } })?.id,
         preservedExpiryCycle: transformedState.expiresOnClientCycle
       },
       spriteAtlas: {

@@ -11,55 +11,55 @@ function assert(condition, message) {
 }
 
 function assertHudSourceGuards() {
-  const hudSource = fs.readFileSync(path.join(projectRoot, "src", "ui", "KronosClientHud.tsx"), "utf8");
+  const hudSource = fs.readFileSync(path.join(projectRoot, "src", "ui", "NhClientHud.tsx"), "utf8");
   const simDuelSource = fs.readFileSync(path.join(projectRoot, "src", "sim", "nh", "duel.ts"), "utf8");
   assert(
     !hudSource.includes(") : (\n          valueText\n        )"),
-    "KronosClientHud should not fall back to browser text for orb values when source glyphs are missing"
+    "NhClientHud should not fall back to browser text for orb values when source glyphs are missing"
   );
   assert(
     !hudSource.includes(") : (\n        text\n      )"),
-    "KronosClientHud should not fall back to browser text for combat/widget values when source glyphs are missing"
+    "NhClientHud should not fall back to browser text for combat/widget values when source glyphs are missing"
   );
   assert(
     !hudSource.includes("color: font && atlas ? undefined : cssRgbColor"),
-    "KronosClientHud should not paint fallback browser text when source combat/widget glyphs are missing"
+    "NhClientHud should not paint fallback browser text when source combat/widget glyphs are missing"
   );
   assert(
     hudSource.includes("data-source-glyph-missing=\"true\""),
-    "KronosClientHud should fail closed with hidden accessible text when source glyphs are unavailable"
+    "NhClientHud should fail closed with hidden accessible text when source glyphs are unavailable"
   );
   assert(
     hudSource.includes("if (!atlas || !layout || !sourceLayout)"),
-    "KronosClientHud should not render a fixed client shell until the source fixed layout is available"
+    "NhClientHud should not render a fixed client shell until the source fixed layout is available"
   );
   assert(
     hudSource.includes('resolvedActiveSideTabId === "inventory" && inventoryGrid'),
-    "KronosClientHud should not render an inventory grid from CSS fallback positions when source widget layout is missing"
+    "NhClientHud should not render an inventory grid from CSS fallback positions when source widget layout is missing"
   );
   assert(
     !hudSource.includes("layout.rect.height - 23"),
-    "KronosClientHud should size the chatbox background from the exported sprite instead of a handmade button-strip subtraction"
+    "NhClientHud should size the chatbox background from the exported sprite instead of a handmade button-strip subtraction"
   );
   assert(
     hudSource.includes("const sourceStateFillerSpriteId = active && layout.activeFillerSpriteId ? layout.activeFillerSpriteId : layout.fillerSpriteId") &&
       hudSource.includes("const displayedFillerSpriteId = fillerSpriteIdOverride ?? sourceStateFillerSpriteId"),
-    "KronosClientHud should switch fixed orbs to exported active filler sprites when the source state is active"
+    "NhClientHud should switch fixed orbs to exported active filler sprites when the source state is active"
   );
   assert(
     hudSource.includes("active={localWeaponHasSpecialAttack && hud.specialActive === true}"),
-    "KronosClientHud should bind the special orb active fill to the source special-active varp state"
+    "NhClientHud should bind the special orb active fill to the source special-active varp state"
   );
   assert(
     hudSource.includes("active={hud.running === true}") &&
       hudSource.includes("onRunOrbDefaultAction"),
-    "KronosClientHud should bind the run orb active fill and click action to the source running varp state"
+    "NhClientHud should bind the run orb active fill and click action to the source running varp state"
   );
   assert(
     hudSource.includes("scaledSpriteStyle(atlas, sprite, scaleX, scaleY)") &&
       hudSource.includes("sprite.width * scaleX") &&
       hudSource.includes("sprite.offsetX * scaleX"),
-    "KronosClientHud should render widget sprites from trimmed cache dimensions with source offsets instead of stretching atlas crops to widget hitboxes"
+    "NhClientHud should render widget sprites from trimmed cache dimensions with source offsets instead of stretching atlas crops to widget hitboxes"
   );
   assert(
     simDuelSource.includes('"client-skill-level-array-contract"'),
@@ -145,7 +145,7 @@ async function selectRuntimeReplay(window, replayId) {
 async function setRuntimeCycle(window, cycle) {
   await window.webContents.executeJavaScript(`
     (() => {
-      window.dispatchEvent(new CustomEvent("kronos-runtime-cycle", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-cycle", {
         detail: { cycle: ${JSON.stringify(cycle)} }
       }));
     })()
@@ -156,7 +156,7 @@ async function setRuntimeCycle(window, cycle) {
 async function setRuntimeInventory(window, inventory) {
   await window.webContents.executeJavaScript(`
     (() => {
-      window.dispatchEvent(new CustomEvent("kronos-runtime-inventory", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-inventory", {
         detail: { inventory: ${JSON.stringify(inventory)} }
       }));
     })()
@@ -177,23 +177,23 @@ async function readRuntimeHud(window) {
       };
       const values = {};
       const fills = {};
-      for (const fill of Array.from(document.querySelectorAll(".kronosFixedOrbFillMask"))) {
+      for (const fill of Array.from(document.querySelectorAll(".nhFixedOrbFillMask"))) {
         const orb = fill.getAttribute("data-orb");
         if (orb) {
           fills[orb] = {
             fillPixels: Number(fill.getAttribute("data-fill-pixels")),
             fillSourceHeight: Number(fill.getAttribute("data-fill-source-height")),
             height: Math.round(fill.getBoundingClientRect().height),
-            backgroundImage: getComputedStyle(fill.querySelector(".kronosFixedOrbFilledSlice") ?? fill).backgroundImage
+            backgroundImage: getComputedStyle(fill.querySelector(".nhFixedOrbFilledSlice") ?? fill).backgroundImage
           };
         }
       }
-      for (const value of Array.from(document.querySelectorAll(".kronosFixedOrbValue"))) {
+      for (const value of Array.from(document.querySelectorAll(".nhFixedOrbValue"))) {
         const orb = value.getAttribute("data-orb");
         if (orb) {
-          const root = value.closest(".kronosFixedOrb");
+          const root = value.closest(".nhFixedOrb");
           const rootStyle = root ? getComputedStyle(root) : null;
-          const glyphs = Array.from(value.querySelectorAll(".kronosWidgetGlyph"));
+          const glyphs = Array.from(value.querySelectorAll(".nhWidgetGlyph"));
           const firstGlyphStyle = glyphs[0] ? getComputedStyle(glyphs[0]) : null;
           values[orb] = {
             text: value.textContent ?? "",
@@ -231,11 +231,11 @@ async function readRuntimeHud(window) {
         }
       }
       const chatboxTexts = {};
-      for (const text of Array.from(document.querySelectorAll(".kronosWidgetText"))) {
+      for (const text of Array.from(document.querySelectorAll(".nhWidgetText"))) {
         const label = text.textContent ?? "";
         if (label === "Public" || label === "Report") {
           const style = getComputedStyle(text);
-          const glyphs = Array.from(text.querySelectorAll(".kronosWidgetGlyph"));
+          const glyphs = Array.from(text.querySelectorAll(".nhWidgetGlyph"));
           const firstGlyphStyle = glyphs[0] ? getComputedStyle(glyphs[0]) : null;
           chatboxTexts[label] = {
             fontId: Number(text.getAttribute("data-font-id")),
@@ -256,7 +256,7 @@ async function readRuntimeHud(window) {
           };
         }
       }
-      const chatboxButtons = Array.from(document.querySelectorAll(".kronosChatboxButton")).map((button) => {
+      const chatboxButtons = Array.from(document.querySelectorAll(".nhChatboxButton")).map((button) => {
         const style = getComputedStyle(button);
         return {
           id: button.getAttribute("data-chatbox-button-id") ?? "",
@@ -279,7 +279,7 @@ async function readRuntimeHud(window) {
           height: Number.parseInt(style.height, 10)
         };
       });
-      const sideTabButtons = Array.from(document.querySelectorAll(".kronosSideTabButton")).map((tab) => {
+      const sideTabButtons = Array.from(document.querySelectorAll(".nhSideTabButton")).map((tab) => {
         const style = getComputedStyle(tab);
         return {
           id: tab.getAttribute("data-tab-id") ?? "",
@@ -310,7 +310,7 @@ async function readRuntimeHud(window) {
       });
       const sideTabWidgetIds = new Set(sideTabButtons.map((tab) => String(tab.widgetId)));
       const sideTabIconWidgetIds = new Set(sideTabButtons.map((tab) => String(tab.iconWidgetId)));
-      const selectedSideTabSprites = Array.from(document.querySelectorAll(".kronosWidgetSprite"))
+      const selectedSideTabSprites = Array.from(document.querySelectorAll(".nhWidgetSprite"))
         .filter((sprite) => sideTabWidgetIds.has(sprite.getAttribute("data-widget-id") ?? ""))
         .map((sprite) => {
           const style = getComputedStyle(sprite);
@@ -326,7 +326,7 @@ async function readRuntimeHud(window) {
             backgroundImage: style.backgroundImage
           };
         });
-      const sideTabIconSprites = Array.from(document.querySelectorAll(".kronosWidgetSprite"))
+      const sideTabIconSprites = Array.from(document.querySelectorAll(".nhWidgetSprite"))
         .filter((sprite) => sideTabIconWidgetIds.has(sprite.getAttribute("data-widget-id") ?? ""))
         .map((sprite) => {
           const style = getComputedStyle(sprite);
@@ -344,24 +344,24 @@ async function readRuntimeHud(window) {
             backgroundImage: style.backgroundImage
           };
         });
-      const mountedInterfaceGroups = Array.from(document.querySelectorAll(".kronosMountedWidgetLayer")).map((layer) => ({
+      const mountedInterfaceGroups = Array.from(document.querySelectorAll(".nhMountedWidgetLayer")).map((layer) => ({
         groupId: Number(layer.getAttribute("data-group-id")),
-        spriteCount: layer.querySelectorAll(".kronosWidgetSprite").length,
-        textCount: layer.querySelectorAll(".kronosWidgetText").length,
-        rectangleCount: layer.querySelectorAll(".kronosWidgetRectangle").length
+        spriteCount: layer.querySelectorAll(".nhWidgetSprite").length,
+        textCount: layer.querySelectorAll(".nhWidgetText").length,
+        rectangleCount: layer.querySelectorAll(".nhWidgetRectangle").length
       }));
-      const noticeboardPanels = Array.from(document.querySelectorAll(".kronosNoticeboardLayer")).map((layer) => ({
+      const noticeboardPanels = Array.from(document.querySelectorAll(".nhNoticeboardLayer")).map((layer) => ({
         groupId: Number(layer.getAttribute("data-group-id")),
-        textCount: layer.querySelectorAll(".kronosWidgetText").length,
-        visibleTexts: Array.from(layer.querySelectorAll(".kronosWidgetText")).map((node) => node.textContent ?? "")
+        textCount: layer.querySelectorAll(".nhWidgetText").length,
+        visibleTexts: Array.from(layer.querySelectorAll(".nhWidgetText")).map((node) => node.textContent ?? "")
       }));
-      const emotePanels = Array.from(document.querySelectorAll(".kronosEmotePanelLayer")).map((layer) => ({
+      const emotePanels = Array.from(document.querySelectorAll(".nhEmotePanelLayer")).map((layer) => ({
         groupId: Number(layer.getAttribute("data-group-id")),
-        buttonCount: layer.querySelectorAll(".kronosEmoteButton").length,
+        buttonCount: layer.querySelectorAll(".nhEmoteButton").length,
         sourceClientScript: layer.getAttribute("data-source-client-script") ?? ""
       }));
-      const inventorySlots = Array.from(document.querySelectorAll(".kronosInventorySlot")).map((slot) => {
-        const item = slot.querySelector(".kronosInventoryItemSprite");
+      const inventorySlots = Array.from(document.querySelectorAll(".nhInventorySlot")).map((slot) => {
+        const item = slot.querySelector(".nhInventoryItemSprite");
         return {
           slotIndex: Number(slot.getAttribute("data-slot-index")),
           widgetId: Number(slot.getAttribute("data-widget-id")),
@@ -374,7 +374,7 @@ async function readRuntimeHud(window) {
           usesItemAtlas: item ? getComputedStyle(item).backgroundImage.includes("item_sprites.png") : false
         };
       });
-      const equipmentItems = Array.from(document.querySelectorAll(".kronosEquipmentItemSprite")).map((item) => {
+      const equipmentItems = Array.from(document.querySelectorAll(".nhEquipmentItemSprite")).map((item) => {
         const style = getComputedStyle(item);
         return {
           slotId: item.getAttribute("data-slot-id") ?? "",
@@ -394,7 +394,7 @@ async function readRuntimeHud(window) {
           backgroundImage: style.backgroundImage
         };
       });
-      const equipmentItemButtons = Array.from(document.querySelectorAll(".kronosEquipmentItemButton")).map((button) => {
+      const equipmentItemButtons = Array.from(document.querySelectorAll(".nhEquipmentItemButton")).map((button) => {
         const style = getComputedStyle(button);
         return {
           slotId: button.getAttribute("data-slot-id") ?? "",
@@ -417,10 +417,10 @@ async function readRuntimeHud(window) {
           height: Number.parseInt(style.height, 10)
         };
       });
-      const equipmentUtilityButtons = Array.from(document.querySelectorAll(".kronosEquipmentUtilityButton")).map((button) => {
+      const equipmentUtilityButtons = Array.from(document.querySelectorAll(".nhEquipmentUtilityButton")).map((button) => {
         const style = getComputedStyle(button);
         const id = button.getAttribute("data-button-id") ?? "";
-        const sprite = document.querySelector('.kronosEquipmentUtilityButtonSprite[data-button-id="' + id + '"]');
+        const sprite = document.querySelector('.nhEquipmentUtilityButtonSprite[data-button-id="' + id + '"]');
         const spriteStyle = sprite ? getComputedStyle(sprite) : null;
         return {
           id,
@@ -459,12 +459,12 @@ async function readRuntimeHud(window) {
         };
       });
       const activePrayerBackgrounds = new Map(
-        Array.from(document.querySelectorAll(".kronosPrayerActiveBackground")).map((background) => [
+        Array.from(document.querySelectorAll(".nhPrayerActiveBackground")).map((background) => [
           background.getAttribute("data-prayer-id") ?? "",
           Number(background.getAttribute("data-sprite-id"))
         ])
       );
-      const prayerIcons = Array.from(document.querySelectorAll(".kronosPrayerIconSprite")).map((icon) => {
+      const prayerIcons = Array.from(document.querySelectorAll(".nhPrayerIconSprite")).map((icon) => {
         const style = getComputedStyle(icon);
         const prayerId = icon.getAttribute("data-prayer-id") ?? "";
         return {
@@ -499,9 +499,9 @@ async function readRuntimeHud(window) {
           backgroundImage: style.backgroundImage
         };
       });
-      const spellbookIcons = Array.from(document.querySelectorAll(".kronosSpellbookIconSprite")).map((icon) => {
+      const spellbookIcons = Array.from(document.querySelectorAll(".nhSpellbookIconSprite")).map((icon) => {
         const style = getComputedStyle(icon);
-        const graphic = icon.querySelector(".kronosSpellbookIconGraphic");
+        const graphic = icon.querySelector(".nhSpellbookIconGraphic");
         const graphicStyle = graphic ? getComputedStyle(graphic) : null;
         const backgroundImage = graphicStyle ? graphicStyle.backgroundImage : style.backgroundImage;
         return {
@@ -536,18 +536,18 @@ async function readRuntimeHud(window) {
           backgroundImage
         };
       });
-      const statsSkills = Array.from(document.querySelectorAll(".kronosStatsSkillSlot")).map((slot) => {
+      const statsSkills = Array.from(document.querySelectorAll(".nhStatsSkillSlot")).map((slot) => {
         const style = getComputedStyle(slot);
         const skillId = slot.getAttribute("data-skill-id") ?? "";
         const skillSelector = CSS.escape(skillId);
-        const icon = document.querySelector('.kronosStatsSkillIconSprite[data-skill-id="' + skillSelector + '"]');
+        const icon = document.querySelector('.nhStatsSkillIconSprite[data-skill-id="' + skillSelector + '"]');
         const iconStyle = icon ? getComputedStyle(icon) : null;
-        const leftTile = document.querySelector('.kronosStatsTileSprite-left[data-skill-id="' + skillSelector + '"]');
-        const rightTile = document.querySelector('.kronosStatsTileSprite-right[data-skill-id="' + skillSelector + '"]');
+        const leftTile = document.querySelector('.nhStatsTileSprite-left[data-skill-id="' + skillSelector + '"]');
+        const rightTile = document.querySelector('.nhStatsTileSprite-right[data-skill-id="' + skillSelector + '"]');
         const rightTileStyle = rightTile ? getComputedStyle(rightTile) : null;
-        const texts = Array.from(document.querySelectorAll('.kronosStatsSkillLevelText[data-skill-id="' + skillSelector + '"]')).map((text) => {
+        const texts = Array.from(document.querySelectorAll('.nhStatsSkillLevelText[data-skill-id="' + skillSelector + '"]')).map((text) => {
           const textStyle = getComputedStyle(text);
-          const glyphs = Array.from(text.querySelectorAll(".kronosWidgetGlyph"));
+          const glyphs = Array.from(text.querySelectorAll(".nhWidgetGlyph"));
           const firstGlyphStyle = glyphs[0] ? getComputedStyle(glyphs[0]) : null;
           return {
             kind: text.getAttribute("data-level-kind") ?? "",
@@ -595,9 +595,9 @@ async function readRuntimeHud(window) {
           texts
         };
       });
-      const statsTotalNode = document.querySelector(".kronosStatsTotalLevelText");
+      const statsTotalNode = document.querySelector(".nhStatsTotalLevelText");
       const statsTotalStyle = statsTotalNode ? getComputedStyle(statsTotalNode) : null;
-      const statsTotalGlyphs = statsTotalNode ? Array.from(statsTotalNode.querySelectorAll(".kronosWidgetGlyph")) : [];
+      const statsTotalGlyphs = statsTotalNode ? Array.from(statsTotalNode.querySelectorAll(".nhWidgetGlyph")) : [];
       const statsTotalFirstGlyphStyle = statsTotalGlyphs[0] ? getComputedStyle(statsTotalGlyphs[0]) : null;
       const statsTotal = statsTotalNode
         ? {
@@ -631,7 +631,7 @@ async function readRuntimeHud(window) {
       const readCombatText = (selector) => {
         const node = document.querySelector(selector);
         const style = node ? getComputedStyle(node) : null;
-        const glyphs = node ? Array.from(node.querySelectorAll(".kronosWidgetGlyph")) : [];
+        const glyphs = node ? Array.from(node.querySelectorAll(".nhWidgetGlyph")) : [];
         const firstGlyphStyle = glyphs[0] ? getComputedStyle(glyphs[0]) : null;
         return node
           ? {
@@ -655,7 +655,7 @@ async function readRuntimeHud(window) {
             }
           : null;
       };
-      const combatPanelNode = document.querySelector(".kronosCombatPanelLayer");
+      const combatPanelNode = document.querySelector(".nhCombatPanelLayer");
       const combatPanel = combatPanelNode
         ? {
             groupId: Number(combatPanelNode.getAttribute("data-group-id")),
@@ -665,13 +665,13 @@ async function readRuntimeHud(window) {
             weaponTypeConfig: Number(combatPanelNode.getAttribute("data-weapon-type-config")),
             weaponTypeSource: combatPanelNode.getAttribute("data-weapon-type-source") ?? "",
             combatLevel: Number(combatPanelNode.getAttribute("data-combat-level")),
-            weaponNameText: readCombatText(".kronosCombatWeaponName"),
-            combatLevelText: readCombatText(".kronosCombatLevel"),
-            styleSlots: Array.from(document.querySelectorAll(".kronosCombatStyleSlot")).map((slot) => {
+            weaponNameText: readCombatText(".nhCombatWeaponName"),
+            combatLevelText: readCombatText(".nhCombatLevel"),
+            styleSlots: Array.from(document.querySelectorAll(".nhCombatStyleSlot")).map((slot) => {
               const style = getComputedStyle(slot);
               const slotIndex = slot.getAttribute("data-slot-index");
-              const text = readCombatText(\`.kronosCombatStyleText[data-slot-index="\${slotIndex}"]\`);
-              const icon = document.querySelector(\`.kronosCombatStyleIconSprite[data-slot-index="\${slotIndex}"]\`);
+              const text = readCombatText(\`.nhCombatStyleText[data-slot-index="\${slotIndex}"]\`);
+              const icon = document.querySelector(\`.nhCombatStyleIconSprite[data-slot-index="\${slotIndex}"]\`);
               const iconStyle = icon ? getComputedStyle(icon) : null;
               return {
                 slotIndex: Number(slotIndex),
@@ -720,12 +720,12 @@ async function readRuntimeHud(window) {
               };
             }),
             specialBar: (() => {
-              const bar = document.querySelector(".kronosCombatSpecialBar");
+              const bar = document.querySelector(".nhCombatSpecialBar");
               if (!bar) {
                 return null;
               }
               const style = getComputedStyle(bar);
-              const fill = bar.querySelector(".kronosCombatSpecialBarFill");
+              const fill = bar.querySelector(".nhCombatSpecialBarFill");
               const fillStyle = fill ? getComputedStyle(fill) : null;
               return {
                 actionChildId: Number(bar.getAttribute("data-action-child-id")),
@@ -760,11 +760,11 @@ async function readRuntimeHud(window) {
                 width: Number.parseInt(style.width, 10),
                 height: Number.parseInt(style.height, 10),
                 fillWidth: Number.parseInt(fillStyle?.width ?? "", 10),
-                text: readCombatText(".kronosCombatSpecialText")
+                text: readCombatText(".nhCombatSpecialText")
               };
             })(),
             autoRetaliate: (() => {
-              const control = document.querySelector(".kronosCombatAutoRetaliateSource");
+              const control = document.querySelector(".nhCombatAutoRetaliateSource");
               if (!control) {
                 return null;
               }
@@ -809,7 +809,7 @@ async function readRuntimeHud(window) {
           activeButtonIds: sideTabButtons.filter((tab) => tab.active === "true").map((tab) => tab.id),
           iconSprites: sideTabIconSprites,
           selectedSprites: selectedSideTabSprites,
-          inventoryVisible: Boolean(document.querySelector(".kronosInventoryGrid"))
+          inventoryVisible: Boolean(document.querySelector(".nhInventoryGrid"))
         }
       };
     })()
@@ -819,7 +819,7 @@ async function readRuntimeHud(window) {
 async function clickSideTab(window, tabId) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const tab = document.querySelector(${JSON.stringify(`.kronosSideTabButton[data-tab-id="${tabId}"]`)});
+      const tab = document.querySelector(${JSON.stringify(`.nhSideTabButton[data-tab-id="${tabId}"]`)});
       if (!tab) {
         return { ok: false, error: "missing side tab" };
       }
@@ -897,7 +897,7 @@ async function enableRuneliteSpecBarPlugin(window) {
 async function clickChatboxButton(window, buttonId) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const button = document.querySelector(${JSON.stringify(`.kronosChatboxButton[data-chatbox-button-id="${buttonId}"]`)});
+      const button = document.querySelector(${JSON.stringify(`.nhChatboxButton[data-chatbox-button-id="${buttonId}"]`)});
       if (!button) {
         return { ok: false, error: "missing chatbox button" };
       }
@@ -944,8 +944,8 @@ async function openContextMenuFromSelector(window, selector) {
         clientY: rect.top + rect.height / 2
       }));
       await new Promise((resolve) => requestAnimationFrame(resolve));
-      const menu = document.querySelector(".kronosContextMenu");
-      const options = Array.from(document.querySelectorAll(".kronosContextMenuOption")).map((option) => ({
+      const menu = document.querySelector(".nhContextMenu");
+      const options = Array.from(document.querySelectorAll(".nhContextMenuOption")).map((option) => ({
         action: option.getAttribute("data-menu-action") ?? "",
         actionKind: option.getAttribute("data-menu-action-kind") ?? "",
         opcode: Number(option.getAttribute("data-menu-opcode")),
@@ -976,14 +976,14 @@ async function openContextMenuFromSelector(window, selector) {
 async function clickContextMenuOption(window, actionText) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const option = Array.from(document.querySelectorAll(".kronosContextMenuOption"))
+      const option = Array.from(document.querySelectorAll(".nhContextMenuOption"))
         .find((candidate) => candidate.getAttribute("data-menu-action") === ${JSON.stringify(actionText)});
       if (!option) {
         return {
           ok: false,
           error: "missing context option",
           actionText: ${JSON.stringify(actionText)},
-          options: Array.from(document.querySelectorAll(".kronosContextMenuOption")).map((candidate) => ({
+          options: Array.from(document.querySelectorAll(".nhContextMenuOption")).map((candidate) => ({
             action: candidate.getAttribute("data-menu-action") ?? "",
             text: candidate.textContent ?? ""
           }))
@@ -1009,7 +1009,7 @@ async function clickContextMenuOption(window, actionText) {
 async function clickStatsSkill(window, skillId) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const skill = document.querySelector(${JSON.stringify(`.kronosStatsSkillSlot[data-skill-id="${skillId}"]`)});
+      const skill = document.querySelector(${JSON.stringify(`.nhStatsSkillSlot[data-skill-id="${skillId}"]`)});
       if (!skill) {
         return { ok: false, error: "missing stats skill" };
       }
@@ -1039,7 +1039,7 @@ async function clickStatsSkill(window, skillId) {
 async function clickCombatStyle(window, slotIndex) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const style = document.querySelector(${JSON.stringify(`.kronosCombatStyleSlot[data-slot-index="${slotIndex}"]`)});
+      const style = document.querySelector(${JSON.stringify(`.nhCombatStyleSlot[data-slot-index="${slotIndex}"]`)});
       if (!style) {
         return { ok: false, error: "missing combat style" };
       }
@@ -1069,7 +1069,7 @@ async function clickCombatStyle(window, slotIndex) {
 async function clickCombatAutoRetaliate(window) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const control = document.querySelector(".kronosCombatAutoRetaliateSource");
+      const control = document.querySelector(".nhCombatAutoRetaliateSource");
       if (!control) {
         return { ok: false, error: "missing combat auto-retaliate control" };
       }
@@ -1099,7 +1099,7 @@ async function clickCombatAutoRetaliate(window) {
 async function clickCombatSpecial(window) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const control = document.querySelector(".kronosCombatSpecialBar");
+      const control = document.querySelector(".nhCombatSpecialBar");
       if (!control) {
         return { ok: false, error: "missing combat special control" };
       }
@@ -1129,7 +1129,7 @@ async function clickCombatSpecial(window) {
 async function clickRunOrb(window) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const control = document.querySelector(".kronosFixedOrb-run");
+      const control = document.querySelector(".nhFixedOrb-run");
       if (!control) {
         return { ok: false, error: "missing run orb" };
       }
@@ -1159,7 +1159,7 @@ async function clickRunOrb(window) {
 async function clickEquipmentUtilityButton(window, buttonId) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const button = document.querySelector(${JSON.stringify(`.kronosEquipmentUtilityButton[data-button-id="${buttonId}"]`)});
+      const button = document.querySelector(${JSON.stringify(`.nhEquipmentUtilityButton[data-button-id="${buttonId}"]`)});
       if (!button) {
         return { ok: false, error: "missing equipment utility button" };
       }
@@ -1178,7 +1178,7 @@ async function clickEquipmentUtilityButton(window, buttonId) {
       await new Promise((resolve) => requestAnimationFrame(resolve));
       await new Promise((resolve) => requestAnimationFrame(resolve));
       const viewport = document.querySelector(".runtimeViewport");
-      const panel = document.querySelector(".kronosEquipmentUtilityPanel");
+      const panel = document.querySelector(".nhEquipmentUtilityPanel");
       return {
         ok: true,
         dataset: { ...viewport?.dataset },
@@ -1201,7 +1201,7 @@ async function clickEquipmentUtilityButton(window, buttonId) {
 async function clickEquipmentItemButton(window, slotId, waitMs = 0) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const button = document.querySelector(${JSON.stringify(`.kronosEquipmentItemButton[data-slot-id="${slotId}"]`)});
+      const button = document.querySelector(${JSON.stringify(`.nhEquipmentItemButton[data-slot-id="${slotId}"]`)});
       if (!button) {
         return { ok: false, error: "missing equipment item button" };
       }
@@ -1236,7 +1236,7 @@ async function clickEquipmentItemButton(window, slotId, waitMs = 0) {
 async function clickPrayerIcon(window, prayerId) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const prayer = document.querySelector(${JSON.stringify(`.kronosPrayerSlotButton[data-prayer-id="${prayerId}"]`)});
+      const prayer = document.querySelector(${JSON.stringify(`.nhPrayerSlotButton[data-prayer-id="${prayerId}"]`)});
       if (!prayer) {
         return { ok: false, error: "missing prayer icon" };
       }
@@ -1266,7 +1266,7 @@ async function clickPrayerIcon(window, prayerId) {
 async function clickSpellbookIcon(window, spellId) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const spell = document.querySelector(${JSON.stringify(`.kronosSpellbookIconSprite[data-spell-id="${spellId}"]`)});
+      const spell = document.querySelector(${JSON.stringify(`.nhSpellbookIconSprite[data-spell-id="${spellId}"]`)});
       if (!spell) {
         return { ok: false, error: "missing spell icon" };
       }
@@ -1484,7 +1484,7 @@ app.whenReady().then(async () => {
     ) {
       throw new Error(`Report chatbox click did not dispatch source widget menu metadata: ${JSON.stringify(reportChatboxDispatch)}`);
     }
-    const publicChatboxMenu = await openContextMenuFromSelector(window, '.kronosChatboxButton[data-chatbox-button-id="public"]');
+    const publicChatboxMenu = await openContextMenuFromSelector(window, '.nhChatboxButton[data-chatbox-button-id="public"]');
     const publicChatboxMenuActions = publicChatboxMenu.options.map((option) => option.action);
     const publicClearHistoryOption = publicChatboxMenu.options.find(
       (option) => option.action === "<col=ffff00>Public:</col> Clear history"
@@ -1513,7 +1513,7 @@ app.whenReady().then(async () => {
     ) {
       throw new Error(`Public chatbox context action did not dispatch selected widget action metadata: ${JSON.stringify(publicClearHistoryDispatch)}`);
     }
-    const inventorySideTabMenu = await openContextMenuFromSelector(window, '.kronosSideTabButton[data-tab-id="inventory"]');
+    const inventorySideTabMenu = await openContextMenuFromSelector(window, '.nhSideTabButton[data-tab-id="inventory"]');
     if (
       inventorySideTabMenu.menu?.optionCount !== 1 ||
       inventorySideTabMenu.options[0]?.action !== "*" ||
@@ -1934,7 +1934,7 @@ app.whenReady().then(async () => {
       combatPanel.specialBar?.specialActiveVarpId !== 301 ||
       combatPanel.specialBar?.specialAvailable !== true ||
       combatPanel.specialBar?.specialDrainPercent !== 40 ||
-      combatPanel.specialBar?.specialDrainSource !== "kronos-server:combat.special.ranged.ArmadylCrossbow" ||
+      combatPanel.specialBar?.specialDrainSource !== "nh-server:combat.special.ranged.ArmadylCrossbow" ||
       combatPanel.specialBar?.specialEnergyVarpId !== 300 ||
       combatPanel.specialBar?.varpId !== 300 ||
       combatPanel.specialBar?.weaponItemId !== 11785 ||
@@ -2029,7 +2029,7 @@ app.whenReady().then(async () => {
       specialDispatch.lastCombatSpecialActiveVarpId !== "301" ||
       specialDispatch.lastCombatSpecialAvailable !== "true" ||
       specialDispatch.lastCombatSpecialDrainPercent !== "40" ||
-      specialDispatch.lastCombatSpecialDrainSource !== "kronos-server:combat.special.ranged.ArmadylCrossbow" ||
+      specialDispatch.lastCombatSpecialDrainSource !== "nh-server:combat.special.ranged.ArmadylCrossbow" ||
       specialDispatch.lastCombatSpecialEnergy !== "100" ||
       specialDispatch.lastCombatSpecialEnergyVarpId !== "300" ||
       specialDispatch.lastCombatSpecialMutation !== "activate" ||
@@ -2041,7 +2041,7 @@ app.whenReady().then(async () => {
     ) {
       throw new Error(`Combat special click did not dispatch source PlayerCombat.toggleSpecial metadata for a special weapon: ${JSON.stringify({ specialDispatch, specialHud: specialHud.combatPanel?.specialBar })}`);
     }
-    if (process.env.KRONOS_RUNTIME_HUD_SCOPE === "combat") {
+    if (process.env.NH_RUNTIME_HUD_SCOPE === "combat") {
       process.stdout.write(
         `${JSON.stringify(
           {
@@ -2310,7 +2310,7 @@ app.whenReady().then(async () => {
       statsSkillDispatch.lastStatsSkillSourceOrder !== "22" ||
       statsSkillDispatch.lastStatsSkillWidgetId !== "20971543"
     ) {
-      throw new Error(`Fixed stats skill tile did not dispatch Kronos skill-guide metadata: ${JSON.stringify(statsSkillDispatch)}`);
+      throw new Error(`Fixed stats skill tile did not dispatch Nh skill-guide metadata: ${JSON.stringify(statsSkillDispatch)}`);
     }
     const prayerDispatch = await clickSideTab(window, "prayer");
     const prayerHud = await readRuntimeHud(window);
@@ -2873,7 +2873,7 @@ app.whenReady().then(async () => {
         inventorySlots: inventoryAfterUnequipHud.inventorySlots
       })}`);
     }
-    if (process.env.KRONOS_RUNTIME_HUD_SCOPE === "equipment") {
+    if (process.env.NH_RUNTIME_HUD_SCOPE === "equipment") {
       process.stdout.write(
         `${JSON.stringify(
           {

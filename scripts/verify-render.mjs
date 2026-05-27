@@ -13,7 +13,7 @@ const defaultOutputRoot = "C:\\codeximg";
 
 function parseArgs(argv) {
   const options = {
-    referenceRoot: process.env.KRONOS_CLIENT_REFERENCE_ROOT ?? defaultReferenceRoot,
+    referenceRoot: process.env.NH_CLIENT_REFERENCE_ROOT ?? defaultReferenceRoot,
     outputRoot: defaultOutputRoot
   };
 

@@ -33,7 +33,7 @@ export const renderWorkbench = {
         "fixtures/render/player-loadouts/ags-bandos.mesh.json",
         "fixtures/render/player-loadouts/gmaul-bandos.mesh.json"
       ],
-      acceptanceGate: "A real player mesh changes helmet, body, legs, cape, weapon, shield, and body colors from a Kronos appearance packet and sequence override path."
+      acceptanceGate: "A real player mesh changes helmet, body, legs, cape, weapon, shield, and body colors from a Nh appearance packet and sequence override path."
     },
     {
       id: "player-animation-playback",
@@ -56,7 +56,7 @@ export const renderWorkbench = {
         "fixtures/render/player-loadouts/ags-bandos.mesh.json",
         "fixtures/render/player-loadouts/gmaul-bandos.mesh.json"
       ],
-      acceptanceGate: "Frame lengths, label transforms, dual sequence application, and loadout vertex-group bindings match the Kronos client for idle, walk, attack, and spell casts."
+      acceptanceGate: "Frame lengths, label transforms, dual sequence application, and loadout vertex-group bindings match the Nh client for idle, walk, attack, and spell casts."
     },
     {
       id: "spotanim-projectile-layer",
@@ -87,7 +87,7 @@ export const renderWorkbench = {
         "fixtures/render/spotanims/gmaul_special.glb",
         "fixtures/render/projectiles/ice_barrage_projectile.json"
       ],
-      acceptanceGate: "Barrage, Blitz, ACB, standard bolt, dragon bolt, and Gmaul visuals use Kronos ids, start/end heights, delay, duration, curve, yaw, pitch, frame timing, and packet lifecycle semantics."
+      acceptanceGate: "Barrage, Blitz, ACB, standard bolt, dragon bolt, and Gmaul visuals use Nh ids, start/end heights, delay, duration, curve, yaw, pitch, frame timing, and packet lifecycle semantics."
     },
     {
       id: "actor-overlay-sprites",
@@ -125,7 +125,7 @@ export const renderWorkbench = {
         "fixtures/render/sprites/health_bars.png",
         "fixtures/render/sprites/health_bars.json"
       ],
-      acceptanceGate: "Prayer/skull/hitsplat/digit/health-bar sprites are cache-exported, atlas-indexed, and projected through Kronos actor overlay and viewport math in client order."
+      acceptanceGate: "Prayer/skull/hitsplat/digit/health-bar sprites are cache-exported, atlas-indexed, and projected through Nh actor overlay and viewport math in client order."
     },
     {
       id: "inferno-scene-camera",

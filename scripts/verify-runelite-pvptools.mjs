@@ -8,8 +8,8 @@ function read(relativePath) {
   return fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
+function readNhClient(relativePath) {
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
 }
 
 function assert(condition, message) {
@@ -18,10 +18,10 @@ function assert(condition, message) {
   }
 }
 
-const pluginSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/pvptools/PvpToolsPlugin.java");
-const panelSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/pvptools/PvpToolsPanel.java");
-const configSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/pvptools/PvpToolsConfig.java");
-const overlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/pvptools/PlayerCountOverlay.java");
+const pluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/pvptools/PvpToolsPlugin.java");
+const panelSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/pvptools/PvpToolsPanel.java");
+const configSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/pvptools/PvpToolsConfig.java");
+const overlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/pvptools/PlayerCountOverlay.java");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
 const runtimeSource = read("src/ui/RuntimeSceneViewer.tsx");
 const cssSource = read("src/ui/styles.css");

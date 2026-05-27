@@ -1,4 +1,4 @@
-import { kronosMenuBaseOpcode, selectKronosDefaultMenuEntry, type KronosMenuEntry } from "../render/kronosContextMenu";
+import { nhMenuBaseOpcode, selectNhDefaultMenuEntry, type NhMenuEntry } from "../render/nhContextMenu";
 
 export const RUNELITE_MOUSE_HIGHLIGHT_PLUGIN_ID = "mousehighlight";
 export const RUNELITE_MOUSE_HIGHLIGHT_CONFIG_GROUP = "mousehighlight";
@@ -34,7 +34,7 @@ export interface RuneliteMouseHighlightTooltipSnapshot {
 }
 
 export interface RuneliteMouseHighlightTooltipInput {
-  readonly entries: readonly KronosMenuEntry[];
+  readonly entries: readonly NhMenuEntry[];
   readonly config: RuneliteMouseHighlightConfigSnapshot;
   readonly region: RuneliteMouseHighlightTooltipRegion;
   readonly menuOpen: boolean;
@@ -58,7 +58,7 @@ export function runeliteMouseHighlightTooltipSnapshot({
     return null;
   }
 
-  const entry = selectKronosDefaultMenuEntry(entries);
+  const entry = selectNhDefaultMenuEntry(entries);
   if (!entry || runeliteMouseHighlightShouldNotRenderMenuAction(entry.opcode, config)) {
     return null;
   }
@@ -97,13 +97,13 @@ function runeliteMouseHighlightShouldNotRenderMenuAction(
   config: RuneliteMouseHighlightConfigSnapshot
 ): boolean {
   return (
-    kronosMenuBaseOpcode(opcode) === runeliteOverlayOpcode ||
+    nhMenuBaseOpcode(opcode) === runeliteOverlayOpcode ||
     (!config.rightClickOptionTooltip && runeliteMouseHighlightIsRightClickOnly(opcode))
   );
 }
 
 function runeliteMouseHighlightIsRightClickOnly(opcode: number): boolean {
-  return kronosMenuBaseOpcode(opcode) === examineItemBankEqOpcode;
+  return nhMenuBaseOpcode(opcode) === examineItemBankEqOpcode;
 }
 
 function runeliteMouseHighlightTrivialAction(actionText: string, targetText: string): boolean {
@@ -113,7 +113,7 @@ function runeliteMouseHighlightTrivialAction(actionText: string, targetText: str
   return actionText === "Move" && targetText.includes("Sliding piece");
 }
 
-function runeliteMouseHighlightTooltipText(entry: KronosMenuEntry): string {
+function runeliteMouseHighlightTooltipText(entry: NhMenuEntry): string {
   const text = entry.targetText.length > 0 ? `${entry.actionText} ${entry.targetText}` : entry.actionText;
   return text.endsWith("</col>") ? text : `${text}</col>`;
 }

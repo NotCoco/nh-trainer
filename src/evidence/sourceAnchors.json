@@ -3,7 +3,7 @@
     "id": "client-player-appearance-packet",
     "area": "render",
     "title": "Player appearance is twelve equipment slots, five body colors, skull/prayer icons, and movement sequences.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Player.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Player.java",
     "requiredSnippets": [
       "this.headIconPk = var1.readByte();",
       "this.headIconPrayer = var1.readByte();",
@@ -22,7 +22,7 @@
     "id": "client-player-model-assembly",
     "area": "render",
     "title": "Player models are composed from kit/item model parts, recolored, cached, then sequence transformed.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/PlayerAppearance.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/PlayerAppearance.java",
     "requiredSnippets": [
       "public Model method4156(SequenceDefinition primarySeq, int var2, SequenceDefinition var3, int var4)",
       "primarySeq.shield",
@@ -37,7 +37,7 @@
     "id": "client-model-geometry-contract",
     "area": "assets",
     "title": "Client model geometry exposes vertices, triangle indices, face colors, alpha, priorities, and textures.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Model.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Model.java",
     "requiredSnippets": [
       "int[] verticesX;",
       "int[] verticesY;",
@@ -54,7 +54,7 @@
     "id": "client-model-alpha-transform-contract",
     "area": "render",
     "title": "Model frame transform type 5 adjusts triangle alpha labels and clamps the byte alpha range.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Model.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Model.java",
     "requiredSnippets": [
       "} else if(var1 == 5) {",
       "if(this.faceLabelsAlpha != null && this.faceAlphas != null) {",
@@ -70,7 +70,7 @@
     "id": "cache-model-face-alpha-group-export-contract",
     "area": "assets",
     "title": "The cache model export carries both base face alpha and triangle skin labels for alpha transforms.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/cache/src/main/java/net/runelite/cache/tools/KronosNhTrainerAssetExport.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/cache/src/main/java/net/runelite/cache/tools/NhNhTrainerAssetExport.java",
     "requiredSnippets": [
       "dto.put(\"faceAlphas\", model.faceAlphas);",
       "dto.put(\"faceSkins\", model.faceSkins);"
@@ -81,7 +81,7 @@
     "id": "client-sequence-frame-contract",
     "area": "render",
     "title": "Sequence definitions use frame ids and frame lengths over OSRS frame-map transforms.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/SequenceDefinition.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/SequenceDefinition.java",
     "requiredSnippets": [
       "public int[] frameIds;",
       "public int[] frameLengths;",
@@ -94,7 +94,7 @@
     "id": "client-dual-sequence-application-contract",
     "area": "render",
     "title": "Primary actor sequences combine with movement sequences through the primary sequence interleave mask.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/SequenceDefinition.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/SequenceDefinition.java",
     "requiredSnippets": [
       "public Model copy$applyTransformations(Model var1, int var2, SequenceDefinition var3, int var4, byte var5)",
       "var4 = var3.frameIds[var4];",
@@ -106,7 +106,7 @@
     "id": "client-model-interleaved-transform-contract",
     "area": "render",
     "title": "Model.method2419 splits primary and movement frame transforms by interleave labels while preserving type-0 pivot transforms.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Model.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Model.java",
     "requiredSnippets": [
       "public void method2419(Frames var1, int var2, Frames var3, int var4, int[] var5)",
       "if(var5 != null && var4 != -1) {",
@@ -120,7 +120,7 @@
     "id": "cache-render-sequence-interleave-export-contract",
     "area": "assets",
     "title": "The render sequence export carries cache interleave labels needed for dual sequence playback.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/cache/src/main/java/net/runelite/cache/tools/KronosNhTrainerAssetExport.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/cache/src/main/java/net/runelite/cache/tools/NhNhTrainerAssetExport.java",
     "requiredSnippets": [
       "dto.put(\"interleaveLeave\", sequence.interleaveLeave);"
     ],
@@ -130,7 +130,7 @@
     "id": "client-sequence-movement-blocking-contract",
     "area": "render",
     "title": "Actor movement can be stalled by active primary sequences through precedenceAnimating and priority.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/class329.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/class329.java",
     "requiredSnippets": [
       "if(var0.sequence != -1 && var0.sequenceDelay == 0) {",
       "var2 = GrandExchangeOfferUnitPriceComparator.method1468(var0.sequence);",
@@ -145,7 +145,7 @@
     "id": "client-sequence-priority-default-contract",
     "area": "render",
     "title": "Sequence precedenceAnimating and priority default from interleave labels when not explicitly encoded.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/SequenceDefinition.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/SequenceDefinition.java",
     "requiredSnippets": [
       "void method4687() {",
       "if(this.field3436 == -1) {",
@@ -166,7 +166,7 @@
     "id": "client-actor-target-facing-contract",
     "area": "render",
     "title": "Target-facing uses exact actor coordinate deltas rather than eight-way path facing.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/class329.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/class329.java",
     "requiredSnippets": [
       "if(var0.targetIndex != -1) {",
       "var12 = var0.x - ((Actor)var13).x;",
@@ -180,7 +180,7 @@
     "id": "client-actor-turning-contract",
     "area": "render",
     "title": "Actor turning keeps orientation and rotation separate and only uses turn movement from ready movement.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/class329.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/class329.java",
     "requiredSnippets": [
       "if(var0.field720 != 0) {",
       "var11 = var0.orientation - var0.rotation & 2047;",
@@ -200,7 +200,7 @@
     "id": "client-actor-model-origin-contract",
     "area": "render",
     "title": "Model drawing rotates source-local vertices before applying actor translation.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Model.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Model.java",
     "requiredSnippets": [
       "public final void method2373(int var1, int var2, int var3, int var4, int var5, int var6, int var7, int var8) {",
       "int var21 = this.verticesX[var20];",
@@ -216,7 +216,7 @@
     "id": "client-actor-sequence-selection-contract",
     "area": "render",
     "title": "Player models apply primary action sequence first and use movement sequence when it differs from ready or when no primary action exists.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Player.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Player.java",
     "requiredSnippets": [
       "SequenceDefinition var2 = super.sequence != -1 && super.sequenceDelay == 0?GrandExchangeOfferUnitPriceComparator.method1468(super.sequence):null;",
       "SequenceDefinition var3 = super.movementSequence != -1 && !this.isUnanimated && (super.movementSequence != super.readySequence || var2 == null)?GrandExchangeOfferUnitPriceComparator.method1468(super.movementSequence):null;",
@@ -228,7 +228,7 @@
     "id": "client-actor-sequence-cycle-contract",
     "area": "render",
     "title": "Actor movement sequences loop, while primary action sequences advance by frame lengths and terminate or loop via frameCount/maxLoops.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/class329.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/class329.java",
     "requiredSnippets": [
       "++var0.movementFrameCycle;",
       "var0.movementFrameCycle = 0;",
@@ -244,7 +244,7 @@
     "id": "client-projectile-motion-contract",
     "area": "render",
     "title": "Projectile visual motion derives speed, yaw, pitch, frame cycle, and acceleration from source/target/cycle fields.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Projectile.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Projectile.java",
     "requiredSnippets": [
       "this.cycleStart = var6;",
       "this.cycleEnd = var7;",
@@ -257,13 +257,13 @@
       "this.pitch = (int)(Math.atan2(this.speedZ, this.speed) * 325.949D) & 2047;",
       "this.accelerationZ = 2.0D * ((double)var3 - this.z - var5 * this.speedZ) / (var5 * var5);"
     ],
-    "implementationRule": "Projectile renderer must be driven by Kronos projectile payloads and client motion math."
+    "implementationRule": "Projectile renderer must be driven by Nh projectile payloads and client motion math."
   },
   {
     "id": "client-spotanim-sequence-contract",
     "area": "render",
     "title": "Spot animations apply their sequence frame before scale and orientation transforms.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/SpotAnimationDefinition.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/SpotAnimationDefinition.java",
     "requiredSnippets": [
       "public int sequence;",
       "this.sequence = -1;",
@@ -278,7 +278,7 @@
     "id": "server-projectile-payload-contract",
     "area": "sim",
     "title": "Server projectile packets provide gfx id, source/target tiles, target index, heights, delay, duration, and curve.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/map/Projectile.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/map/Projectile.java",
     "requiredSnippets": [
       "int duration = this.durationStart + (durationIncrement * Math.max(0, distance - 1));",
       "p.getPacketSender().sendProjectile(gfxId, entityX, entityY, targetX, targetY, targetIndex,",
@@ -291,7 +291,7 @@
     "id": "server-targetspell-contract",
     "area": "sim",
     "title": "Target spells emit animation, cast graphics, optional projectile, delayed magic hit, block graphics, hit graphics, and XP.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/skills/magic/spells/TargetSpell.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/skills/magic/spells/TargetSpell.java",
     "requiredSnippets": [
       "entity.animate(animationId);",
       "entity.graphics(castGfx[0], castGfx[1], castGfx[2]);",
@@ -304,8 +304,8 @@
   {
     "id": "server-ice-barrage-contract",
     "area": "sim",
-    "title": "Ice Barrage uses Kronos spell ids, gfx ids, projectile id, max hit, and freeze duration.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/skills/magic/spells/ancient/IceBarrage.java",
+    "title": "Ice Barrage uses Nh spell ids, gfx ids, projectile id, max hit, and freeze duration.",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/skills/magic/spells/ancient/IceBarrage.java",
     "requiredSnippets": [
       "setAnimationId(1979);",
       "setHitGfx(369, 0);",
@@ -320,7 +320,7 @@
     "id": "server-food-lock-contract",
     "area": "sim",
     "title": "Food and karambwan locks are distinct and directly delay combat in different ways.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/item/actions/impl/Consumable.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/item/actions/impl/Consumable.java",
     "requiredSnippets": [
       "player.eatDelay.delay(ticks);",
       "player.getCombat().delayAttack(3);",
@@ -334,7 +334,7 @@
     "id": "server-consumable-inventory-mutation-contract",
     "area": "ui",
     "title": "Consumable item actions remove food, replace potion doses, and turn emptied potions into vials.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/item/actions/impl/Consumable.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/item/actions/impl/Consumable.java",
     "requiredSnippets": [
       "registerEat(385, 20, \"shark\");",
       "ItemDef.get(3144).consumable = true;",
@@ -345,13 +345,13 @@
       "item.setId(229);",
       "item.setId(newId);"
     ],
-    "implementationRule": "Clickable trainer inventory supplies must visibly mutate the widget slot the same way Kronos item actions mutate Item ids instead of only recording a local click event."
+    "implementationRule": "Clickable trainer inventory supplies must visibly mutate the widget slot the same way Nh item actions mutate Item ids instead of only recording a local click event."
   },
   {
     "id": "server-granite-maul-contract",
     "area": "sim",
     "title": "Granite maul specials queue through PlayerCombat, auto-attack after one tick, drain 50 percent each, and expire.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/entity/player/PlayerCombat.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/entity/player/PlayerCombat.java",
     "requiredSnippets": [
       "private int graniteMaulSpecials;",
       "graniteMaulTimeoutTicks = 5;",
@@ -366,7 +366,7 @@
     "id": "server-nh-melee-reach-contract",
     "area": "sim",
     "title": "NH bot melee reach accounts for same-tile under, cardinal adjacency, frozen diagonal failure, and one-tick step-in reach.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/entity/player/ai/scripts/NhStakerBot.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/entity/player/ai/scripts/NhStakerBot.java",
     "requiredSnippets": [
       "private boolean canMeleeReachThisTick(Player attacker, Player defender)",
       "if (dx == 0 && dy == 0) {",
@@ -381,7 +381,7 @@
     "id": "server-tick-config-contract",
     "area": "sim",
     "title": "Server tick length has live and training profiles.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/Server.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/Server.java",
     "requiredSnippets": [
       "private static final String DEFAULT_RUNTIME_PROFILE = \"live\";",
       "private static final String TRAINING_RUNTIME_PROFILE = \"training\";",
@@ -394,7 +394,7 @@
     "id": "server-core-worker-contract",
     "area": "sim",
     "title": "Core worker processes game events before online players.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/process/CoreWorker.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/process/CoreWorker.java",
     "requiredSnippets": [
       "private static void logic() {",
       "GameEventProcessor.pulse();",
@@ -407,7 +407,7 @@
     "id": "server-player-process-order-contract",
     "area": "sim",
     "title": "Player processing order separates hits, events, updates, pre-attack, target route, movement, attack, prayer, and stats.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/entity/player/Player.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/entity/player/Player.java",
     "requiredSnippets": [
       "processHits();",
       "processEvent();",
@@ -425,7 +425,7 @@
     "id": "server-hit-queue-contract",
     "area": "sim",
     "title": "Hits are defended, queued, and processed separately from direct HP deltas.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/entity/Entity.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/entity/Entity.java",
     "requiredSnippets": [
       "public int hit(Hit... hits) {",
       "if(hit.defend(this)) {",
@@ -439,7 +439,7 @@
     "id": "server-hit-resolution-contract",
     "area": "sim",
     "title": "Hit client delays convert projectile timing into server ticks before accuracy and damage finalization.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/combat/Hit.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/combat/Hit.java",
     "requiredSnippets": [
       "public Hit clientDelay(int delay, int cycleRate) {",
       "this.ticks = Math.max(1, (delay * cycleRate) / Server.tickMs());",
@@ -453,7 +453,7 @@
     "id": "server-movement-step-contract",
     "area": "sim",
     "title": "Movement consumes queued steps against the entity position each tick.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/entity/shared/Movement.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/entity/shared/Movement.java",
     "requiredSnippets": [
       "protected boolean step(Entity entity) {",
       "if(isAtDestination())",
@@ -466,8 +466,8 @@
   {
     "id": "server-route-reach-contract",
     "area": "sim",
-    "title": "Route reach checks use Kronos target route distance logic.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/map/route/routes/DumbRoute.java",
+    "title": "Route reach checks use Nh target route distance logic.",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/map/route/routes/DumbRoute.java",
     "requiredSnippets": [
       "public static void step(Entity entity, Entity target, int distance) {",
       "rf.routeEntity(target);",
@@ -480,7 +480,7 @@
     "id": "server-projectile-route-contract",
     "area": "sim",
     "title": "Projectile line of sight is checked through ProjectileRoute.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/map/route/routes/ProjectileRoute.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/map/route/routes/ProjectileRoute.java",
     "requiredSnippets": [
       "public static boolean allow(Entity entity, Entity target) {",
       "return allow(entity.getAbsX(), entity.getAbsY(), entity.getHeight(), entity.getSize(), target.getAbsX(), target.getAbsY(), target.getSize());",
@@ -492,7 +492,7 @@
     "id": "server-freeze-contract",
     "area": "sim",
     "title": "Freeze applies a timed delay, records freezer, and resets movement.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/entity/Entity.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/entity/Entity.java",
     "requiredSnippets": [
       "private TickDelay freezeDelay = new TickDelay();",
       "public void freeze(int seconds, Entity entity) {",
@@ -506,7 +506,7 @@
     "id": "server-movement-lock-contract",
     "area": "sim",
     "title": "Frozen entities fail the movement-block check unless freeze is explicitly ignored.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/entity/Entity.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/entity/Entity.java",
     "requiredSnippets": [
       "public boolean isMovementBlocked(boolean message, boolean ignoreFreeze) {",
       "if(!ignoreFreeze && isFrozen()) {",
@@ -519,7 +519,7 @@
     "id": "server-attack-delay-contract",
     "area": "sim",
     "title": "Combat attack delay tracks last attack tick plus additive food/potion attack delays.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/combat/Combat.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/combat/Combat.java",
     "requiredSnippets": [
       "private int attackDelayTicks;",
       "public void updateLastAttack(int tickDelay) {",
@@ -534,7 +534,7 @@
     "id": "server-player-attack-dispatch-contract",
     "area": "sim",
     "title": "Player combat dispatches magic, ranged, melee, and Gmaul only after target route reach checks.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/entity/player/PlayerCombat.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/entity/player/PlayerCombat.java",
     "requiredSnippets": [
       "public void attack() {",
       "if(target == null || !player.getRouteFinder().targetRoute.withinDistance)",
@@ -548,7 +548,7 @@
     "id": "server-ranged-attack-contract",
     "area": "sim",
     "title": "Ranged attacks use weapon ticks, rapid style reduction, max hit, special handling, and projectile graphics.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/entity/player/PlayerCombat.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/entity/player/PlayerCombat.java",
     "requiredSnippets": [
       "int maxDamage = CombatUtils.getMaxDamage(player, style, type);",
       "updateLastAttack(type == AttackType.RAPID_RANGED ? weaponType.attackTicks - 1 : weaponType.attackTicks);",
@@ -561,7 +561,7 @@
     "id": "server-combat-formula-contract",
     "area": "sim",
     "title": "Attack bonus calculations branch by magic, range, and melee attack styles.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/combat/CombatUtils.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/combat/CombatUtils.java",
     "requiredSnippets": [
       "public static double getAttackBonus(Entity entity, AttackStyle attackStyle, AttackType attackType) {",
       "if(attackStyle == AttackStyle.MAGIC) {",
@@ -575,8 +575,8 @@
   {
     "id": "server-hit-chance-contract",
     "area": "sim",
-    "title": "Hit chance compares attack and defence rolls using Kronos' branch formula.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/combat/Hit.java",
+    "title": "Hit chance compares attack and defence rolls using Nh' branch formula.",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/combat/Hit.java",
     "requiredSnippets": [
       "double defenceBonus = getDefenceBonus(target) * (1D + defenceBoost);",
       "if (attackBonus > defenceBonus)",
@@ -590,7 +590,7 @@
     "id": "server-weapon-type-contract",
     "area": "sim",
     "title": "Weapon type definitions contain attack distance, ticks, animations, sounds, styles, and render animations.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/combat/WeaponType.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/combat/WeaponType.java",
     "requiredSnippets": [
       "@Expose public int maxDistance;",
       "@Expose public int attackTicks;",
@@ -604,7 +604,7 @@
     "id": "server-item-bonus-contract",
     "area": "assets",
     "title": "Item bonus JSON order includes attack, defence, strength, damage, prayer, and weight fields.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/data/impl/items/item_info.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/data/impl/items/item_info.java",
     "requiredSnippets": [
       "String[] bonusOrder = {",
       "\"stab_attack_bonus\"",
@@ -619,7 +619,7 @@
     "id": "server-equipment-bonus-contract",
     "area": "assets",
     "title": "Equipment recomputes aggregate bonuses from worn items.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/item/containers/Equipment.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/item/containers/Equipment.java",
     "requiredSnippets": [
       "for(int i = 0; i < bonuses.length; i++)",
       "bonuses[i] = 0;",
@@ -632,7 +632,7 @@
     "id": "server-prayer-definition-contract",
     "area": "sim",
     "title": "Prayer definitions include overhead icons, level requirements, drain, and stat boosts.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/skills/prayer/Prayer.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/skills/prayer/Prayer.java",
     "requiredSnippets": [
       "PROTECT_FROM_MAGIC",
       "p.headIcon = 2;",
@@ -646,7 +646,7 @@
     "id": "server-player-prayer-contract",
     "area": "sim",
     "title": "Player prayer activation enforces requirements, disallowed groups, active flags, drain, and boosts.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/entity/player/PlayerPrayer.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/entity/player/PlayerPrayer.java",
     "requiredSnippets": [
       "private boolean activateInternal(Prayer prayer, boolean playSound) {",
       "if(!allowPrayer(prayer) || !checkReq(prayer))",
@@ -660,8 +660,8 @@
   {
     "id": "server-prayer-tab-toggle-contract",
     "area": "ui",
-    "title": "Kronos prayer tab child actions toggle Prayer.ordinal()+5 widgets.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/inter/handlers/TabPrayer.java",
+    "title": "Nh prayer tab child actions toggle Prayer.ordinal()+5 widgets.",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/inter/handlers/TabPrayer.java",
     "requiredSnippets": [
       "InterfaceHandler.register(Interface.PRAYER, h -> {",
       "for(Prayer prayer : Prayer.values()) {",
@@ -674,7 +674,7 @@
     "id": "server-prayer-damage-reduction-contract",
     "area": "sim",
     "title": "Protection prayers reduce player-versus-player damage to sixty percent for the matching style.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/entity/player/PlayerCombat.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/entity/player/PlayerCombat.java",
     "requiredSnippets": [
       "private void postDefend(Hit hit) {",
       "if(hit.attackStyle != null && !hit.prayerIgnored) {",
@@ -688,7 +688,7 @@
     "id": "server-equipment-equip-container-contract",
     "area": "sim",
     "title": "Equipment switches remove the selected inventory item and swap the worn item back into that same container slot.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/item/containers/Equipment.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/item/containers/Equipment.java",
     "requiredSnippets": [
       "public void equip(Item selectedItem) {",
       "Inventory inventory = player.getInventory();",
@@ -706,7 +706,7 @@
     "id": "client-container-widget-update-contract",
     "area": "ui",
     "title": "Container packets populate inventory widget item ids and quantities slot-by-slot.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
     "requiredSnippets": [
       "widget.itemIds = new int[28];",
       "widget.itemQuantities = new int[28];",
@@ -722,7 +722,7 @@
     "id": "client-stat-run-state-packet-contract",
     "area": "ui",
     "title": "Client stat and run-energy state is stored in current level arrays and runEnergy from server packets.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
     "requiredSnippets": [
       "static int runEnergy;",
       "static int[] currentLevels;",
@@ -738,7 +738,7 @@
     "id": "client-widget-cs1-stat-run-value-contract",
     "area": "ui",
     "title": "Widget CS1 value evaluation reads current levels, real levels, experience, varps, run energy, and weight.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/class223.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/class223.java",
     "requiredSnippets": [
       "var7 = Client.currentLevels[var2[var4++]];",
       "var7 = Client.levels[var2[var4++]];",
@@ -753,7 +753,7 @@
     "id": "server-brew-contract",
     "area": "sim",
     "title": "Saradomin brew boosts HP and defence while draining attack, strength, ranged, and magic.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/item/actions/impl/Consumable.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/item/actions/impl/Consumable.java",
     "requiredSnippets": [
       "registerPotion(Potion.SARADOMIN_BREW, p -> {",
       "p.getStats().get(StatType.Hitpoints).boost(2, 0.15);",
@@ -767,7 +767,7 @@
     "id": "server-restore-contract",
     "area": "sim",
     "title": "Restores iterate non-hitpoint stats and restore to fixed levels with super-restore scaling.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/item/actions/impl/Consumable.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/item/actions/impl/Consumable.java",
     "requiredSnippets": [
       "private static void restore(Player player, boolean superEffect) {",
       "for(StatType type : StatType.values()) {",
@@ -781,7 +781,7 @@
     "id": "server-granite-maul-definition-contract",
     "area": "sim",
     "title": "Granite maul special performs an immediate extra attack, animation, gfx, sound, and drains fifty percent.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/combat/special/melee/GraniteMaul.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/combat/special/melee/GraniteMaul.java",
     "requiredSnippets": [
       "player.animate(1667);",
       "player.graphics(340, 96, 0);",
@@ -796,7 +796,7 @@
     "id": "server-nh-bot-loop-contract",
     "area": "bot",
     "title": "NH bot run loop captures tick, heartbeat, food/potion flags, freeze route reset, and death state.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/entity/player/ai/scripts/NhStakerBot.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/entity/player/ai/scripts/NhStakerBot.java",
     "requiredSnippets": [
       "public boolean run() {",
       "long tick = Server.currentTick();",
@@ -812,7 +812,7 @@
     "id": "server-nh-policy-bridge-contract",
     "area": "bot",
     "title": "NH policy bridge has 77 inputs and action count derived from offence, defence, movement, supply, and spec intents.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/entity/player/ai/NhStakerSelfPlayManager.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/entity/player/ai/NhStakerSelfPlayManager.java",
     "requiredSnippets": [
       "private static final int BASE_ACTION_COUNT = OFFENCE_STYLES.length",
       "private static final int LEGACY_ACTION_COUNT = BASE_ACTION_COUNT * SPEC_INTENTS.length;",
@@ -826,7 +826,7 @@
     "id": "server-nh-observation-contract",
     "area": "bot",
     "title": "NH observations include visible position, movement, freeze, HP, supplies, current stat levels, fixed stat levels, special state, gear, and prayers.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/entity/player/ai/scripts/NhStakerBot.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/entity/player/ai/scripts/NhStakerBot.java",
     "requiredSnippets": [
       "private BotTickObservation captureObservation(Player opponent, long tick, CombatDecision scripted) {",
       "boolean selfFrozen = player.isFrozen();",
@@ -843,7 +843,7 @@
     "id": "server-nh-reward-contract",
     "area": "bot",
     "title": "NH reward uses raw damage accumulators, not HP deltas, and tracks prayer damage, supplies, special energy, and opponent spec estimates.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/entity/player/ai/scripts/NhStakerBot.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/entity/player/ai/scripts/NhStakerBot.java",
     "requiredSnippets": [
       "private void updateRewardEpisode(Player opponent, long tick) {",
       "int dealtDelta = consumeDealtDamageAccumulator();",
@@ -860,7 +860,7 @@
     "id": "client-sprite-draw-at-symbol-map",
     "area": "render",
     "title": "Sprite.method6159 is the implementation behind public Sprite.drawAt.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Sprite.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Sprite.java",
     "requiredSnippets": [
       "public void drawAt(int var1, int var2) {",
       "this.method6159(var1, var2);",
@@ -876,7 +876,7 @@
     "id": "client-actor-overlay-symbol-map",
     "area": "render",
     "title": "Actor 2D overlay placement draws player skull/prayer icons and hit splats from projected actor coordinates.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Scene.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Scene.java",
     "requiredSnippets": [
       "public static final void copy$drawActor2d(Actor var0, int var1, int var2, int var3, int var4, int var5, int var6) {",
       "World.method1253(var0, var0.defaultHeight + 15);",
@@ -891,7 +891,7 @@
     "id": "client-actor-default-height-contract",
     "area": "render",
     "title": "Actor initializes and exposes defaultHeight as the model-space logical height used by overlays.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Actor.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Actor.java",
     "requiredSnippets": [
       "this.defaultHeight = 200;",
       "public int getLogicalHeight() {",
@@ -903,7 +903,7 @@
     "id": "client-player-model-height-contract",
     "area": "render",
     "title": "Player model assembly updates defaultHeight from the animated model height.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Player.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Player.java",
     "requiredSnippets": [
       "Model var4 = this.appearance.method4156(var2, super.sequenceFrame, var3, super.movementFrame);",
       "var4.method2359();",
@@ -915,7 +915,7 @@
     "id": "client-head-icon-index-contract",
     "area": "render",
     "title": "Player headIconPrayer and headIconPk integer indexes map to named prayer and skull icons.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Player.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Player.java",
     "requiredSnippets": [
       "public HeadIcon getOverheadIcon() {",
       "switch(this.headIconPrayer) {",
@@ -938,7 +938,7 @@
     "id": "client-hitsplat-packet-contract",
     "area": "render",
     "title": "Client actor update packets carry primary and optional secondary hit splat type/value pairs plus a delay cycle.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/InterfaceParent.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/InterfaceParent.java",
     "requiredSnippets": [
       "if(var8 == 32767) {",
       "var8 = var1.readUnsignedSmart();",
@@ -954,7 +954,7 @@
     "id": "client-hitsplat-definition-contract",
     "area": "render",
     "title": "HitSplatDefinition supplies duration, priority, movement, fade, template, font, and up to four sprite components.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/HitSplatDefinition.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/HitSplatDefinition.java",
     "requiredSnippets": [
       "this.field3400 = 70;",
       "this.field3401 = -1;",
@@ -971,7 +971,7 @@
     "id": "client-hitsplat-transform-contract",
     "area": "render",
     "title": "HitSplatDefinition transform selection uses transformVarbit first, then transformVarp, and falls back to the final transform entry.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/HitSplatDefinition.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/HitSplatDefinition.java",
     "requiredSnippets": [
       "public final HitSplatDefinition method4645()",
       "if(this.transformVarbit != -1)",
@@ -990,7 +990,7 @@
     "id": "client-hitsplat-draw-contract",
     "area": "render",
     "title": "drawActor2d lays out primary and secondary hit splat sprite components, repeated middle sprites, text baseline, movement, and alpha.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Scene.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Scene.java",
     "requiredSnippets": [
       "Sprite var98 = var94.method4626();",
       "var99 = var94.method4623();",
@@ -1009,7 +1009,7 @@
     "id": "cache-hitsplat-definition-export-contract",
     "area": "assets",
     "title": "The cache exporter writes source HitSplatDefinition fields and sprite atlases for the cache hit splat corpus.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/cache/src/main/java/net/runelite/cache/tools/KronosNhTrainerAssetExport.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/cache/src/main/java/net/runelite/cache/tools/NhNhTrainerAssetExport.java",
     "requiredSnippets": [
       "writeSpriteSheet(store, spriteManager, hitSplatSpriteSheetSpec(store), spriteDir.resolve(\"hitsplats.png\"));",
       "private static SpriteSheetSpec hitSplatSpriteSheetSpec(Store store) throws IOException",
@@ -1028,7 +1028,7 @@
     "id": "cache-overhead-icon-export-contract",
     "area": "assets",
     "title": "The cache exporter writes client head-icon sprite indexes and cache sprite frames for player overhead icons.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/cache/src/main/java/net/runelite/cache/tools/KronosNhTrainerAssetExport.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/cache/src/main/java/net/runelite/cache/tools/NhNhTrainerAssetExport.java",
     "requiredSnippets": [
       "writeOverheadIconDefinitions(store, outDir);",
       "private static void writeOverheadIconDefinitions(Store store, Path outDir) throws IOException",
@@ -1044,7 +1044,7 @@
     "id": "client-healthbar-definition-contract",
     "area": "render",
     "title": "HealthBarDefinition supplies front/back sprites, width, padding, interpolation step, lifetime, and fade settings.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/HealthBarDefinition.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/HealthBarDefinition.java",
     "requiredSnippets": [
       "this.int1 = 255;",
       "this.int2 = 255;",
@@ -1062,7 +1062,7 @@
     "id": "client-healthbar-update-contract",
     "area": "render",
     "title": "HealthBar keeps up to four ordered HealthBarUpdate records and exposes the active update by cycle plus cycleOffset/lifetime.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/HealthBar.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/HealthBar.java",
     "requiredSnippets": [
       "HealthBarUpdate method2253(int var1) {",
       "if(this.definition.int5 + var2.cycleOffset + var2.cycle > var1) {",
@@ -1077,7 +1077,7 @@
     "id": "client-healthbar-draw-contract",
     "area": "render",
     "title": "drawActor2d draws health bars from back/front sprites, interpolates clip width, applies padding, stacks bars, and fades by definition fields.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Scene.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Scene.java",
     "requiredSnippets": [
       "HealthBarUpdate var78 = var90.method2253(Client.cycle);",
       "Sprite var14 = var13.getHealthBarBackSprite();",
@@ -1096,7 +1096,7 @@
     "id": "cache-healthbar-definition-export-contract",
     "area": "assets",
     "title": "The cache exporter writes source HealthBarDefinition fields and sprite atlases for the cache health-bar corpus.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/cache/src/main/java/net/runelite/cache/tools/KronosNhTrainerAssetExport.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/cache/src/main/java/net/runelite/cache/tools/NhNhTrainerAssetExport.java",
     "requiredSnippets": [
       "private static final int HEALTHBAR_CONFIG_ARCHIVE_ID = 33;",
       "writeSpriteSheet(store, spriteManager, healthBarSpriteSheetSpec(store), spriteDir.resolve(\"health_bars.png\"));",
@@ -1115,7 +1115,7 @@
     "id": "client-world-to-viewport-symbol-map",
     "area": "render",
     "title": "World.method1253 and PlayerAppearance.method4162 project actor world coordinates into viewportTempX/Y.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/PlayerAppearance.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/PlayerAppearance.java",
     "requiredSnippets": [
       "static final void method4162(int var0, int var1, int var2) {",
       "int var3 = MusicPatchPcmStream.method3798(var0, var1, WorldMapRectangle.plane) - var2;",
@@ -1130,7 +1130,7 @@
     "id": "client-project-actor-symbol-map",
     "area": "render",
     "title": "World.method1253 projects an actor to viewportTempX/Y at a supplied model-space height.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/World.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/World.java",
     "requiredSnippets": [
       "static final void method1253(Actor var0, int var1) {",
       "PlayerAppearance.method4162(var0.x, var0.y * 682054857, var1);"
@@ -1141,7 +1141,7 @@
     "id": "client-projectile-packet-lifecycle",
     "area": "render",
     "title": "Client projectile packets construct Projectile, set destination, and enqueue the projectile for rendering.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/GrandExchangeOfferTotalQuantityComparator.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/GrandExchangeOfferTotalQuantityComparator.java",
     "requiredSnippets": [
       "Projectile var34 = new Projectile(var37, WorldMapRectangle.plane, var4, var5, MusicPatchPcmStream.method3798(var4, var5, WorldMapRectangle.plane) - var14, var6 + Client.cycle, var7 + Client.cycle, var40, var10, var13, var9);",
       "var34.method2237(var12, var8, MusicPatchPcmStream.method3798(var12, var8, WorldMapRectangle.plane) - var9, var6 + Client.cycle);",
@@ -1153,7 +1153,7 @@
     "id": "client-scene-tile-container-contract",
     "area": "render",
     "title": "Tiles hold paint, model, boundary, wall decoration, floor decoration, item pile, and up to five game objects.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Tile.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Tile.java",
     "requiredSnippets": [
       "TileModel model;",
       "BoundaryObject boundaryObject;",
@@ -1169,7 +1169,7 @@
     "id": "client-tile-paint-contract",
     "area": "render",
     "title": "TilePaint carries the four corner colors, optional texture, RGB, and flatness flag used by underlay drawing.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/TilePaint.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/TilePaint.java",
     "requiredSnippets": [
       "int seColor;",
       "int rgb;",
@@ -1185,7 +1185,7 @@
     "id": "client-tile-model-contract",
     "area": "render",
     "title": "TileModel defines shaped terrain vertices, faces, triangle colors, textures, rotation, and flatness.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/TileModel.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/TileModel.java",
     "requiredSnippets": [
       "static final int[][] field1330;",
       "static final int[][] field1334;",
@@ -1202,7 +1202,7 @@
     "id": "client-scene-tile-draw-contract",
     "area": "render",
     "title": "Scene draws TileModel overlays and TilePaint underlays through client camera transforms and rasterizer color or texture paths.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Scene.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Scene.java",
     "requiredSnippets": [
       "public void copy$drawTileOverlay(TileModel var1, int var2, int var3, int var4, int var5, int var6, int var7) {",
       "TileModel.field1328[var9] = var10 * Rasterizer3D.Rasterizer3D_zoom / var12 + Rasterizer3D.Rasterizer3D_clipMidX;",
@@ -1219,7 +1219,7 @@
     "id": "cache-texture-image-export-contract",
     "area": "assets",
     "title": "The cache exporter writes texture metadata and 128px ARGB texture images from RSTextureProvider pixels.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/cache/src/main/java/net/runelite/cache/tools/KronosNhTrainerAssetExport.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/cache/src/main/java/net/runelite/cache/tools/NhNhTrainerAssetExport.java",
     "requiredSnippets": [
       "RSTextureProvider textureProvider = new RSTextureProvider(textureManager, spriteManager);",
       "int[] pixels = textureProvider.load(texture.getId());",
@@ -1233,7 +1233,7 @@
     "id": "client-object-placement-height-contract",
     "area": "render",
     "title": "Scene object placement swaps footprint by orientation and uses the four-corner center height.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/class11.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/class11.java",
     "requiredSnippets": [
       "if(var5 != 1 && var5 != 3) {",
       "var10 = var9.sizeX;",
@@ -1250,7 +1250,7 @@
     "id": "client-object-contour-ground-contract",
     "area": "render",
     "title": "ObjectDefinition only contours model vertices to ground when the object definition enables it.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/ObjectDefinition.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/ObjectDefinition.java",
     "requiredSnippets": [
       "if(this.clipType >= 0) {",
       "var9 = var9.method2354(var3, var4, var5, var6, true, this.clipType);",
@@ -1262,7 +1262,7 @@
     "id": "cache-object-render-lighting-fields",
     "area": "assets",
     "title": "The cache object export carries ambient and contrast needed by client object lighting.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/cache/src/main/java/net/runelite/cache/tools/KronosNhTrainerAssetExport.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/cache/src/main/java/net/runelite/cache/tools/NhNhTrainerAssetExport.java",
     "requiredSnippets": [
       "placement.put(\"ambient\", object.getAmbient());",
       "placement.put(\"contrast\", object.getContrast());",
@@ -1277,7 +1277,7 @@
     "id": "cache-object-action-export-contract",
     "area": "assets",
     "title": "The cache object export carries ObjectDefinition action slots with each arena placement.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/cache/src/main/java/net/runelite/cache/tools/KronosNhTrainerAssetExport.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/cache/src/main/java/net/runelite/cache/tools/NhNhTrainerAssetExport.java",
     "requiredSnippets": [
       "placement.put(\"name\", object.getName());",
       "placement.put(\"actions\", object.getActions());",
@@ -1289,7 +1289,7 @@
     "id": "client-scene-object-menu-contract",
     "area": "input",
     "title": "The client builds scene-object menu entries from ObjectDefinition actions, object tile, object id, and selected item or spell state.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/class19.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/class19.java",
     "requiredSnippets": [
       "ObjectDefinition var21 = GrandExchangeOfferOwnWorldComparator.getObjectDefinition(var19);",
       "if(var21.transforms != null) {",
@@ -1305,7 +1305,7 @@
     "id": "client-scene-object-packet-contract",
     "area": "input",
     "title": "The client maps scene-object menu opcodes to object, item-on-object, spell-on-object, and examine packets.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
     "requiredSnippets": [
       "if(var2 == 1)",
       "ClientPacket.field2386",
@@ -1321,8 +1321,8 @@
   {
     "id": "client-scene-object-clickbox-contract",
     "area": "input",
-    "title": "Kronos object picking tests projected model faces rather than whole object footprints.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
+    "title": "Nh object picking tests projected model faces rather than whole object footprints.",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
     "requiredSnippets": [
       "public void checkClickbox(net.runelite.api.Model var1",
       "if(this.boundingboxCheck(var12, var7, var8, var9))",
@@ -1335,8 +1335,8 @@
   {
     "id": "server-object-action-packet-contract",
     "area": "input",
-    "title": "Kronos server object action packets map packet ids to object action options and route to the object before invoking handlers.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/network/incoming/handlers/ObjectActionHandler.java",
+    "title": "Nh server object action packets map packet ids to object action options and route to the object before invoking handlers.",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/network/incoming/handlers/ObjectActionHandler.java",
     "requiredSnippets": [
       "@IdHolder(ids={51, 6, 42, 95, 50, 36 })",
       "int option = OPTIONS[opcode];",
@@ -1344,13 +1344,13 @@
       "player.getRouteFinder().routeObject(gameObject, () -> {",
       "int i = option - 1;"
     ],
-    "implementationRule": "Runtime object-action command records should expose the same server packet id and option that Kronos receives for object options 1-5 and examine."
+    "implementationRule": "Runtime object-action command records should expose the same server packet id and option that Nh receives for object options 1-5 and examine."
   },
   {
     "id": "server-interface-on-object-packet-contract",
     "area": "input",
-    "title": "Kronos server item-on-object and interface-on-object packets route to the object before invoking interface handlers.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/network/incoming/handlers/InterfaceOnObjectHandler.java",
+    "title": "Nh server item-on-object and interface-on-object packets route to the object before invoking interface handlers.",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/network/incoming/handlers/InterfaceOnObjectHandler.java",
     "requiredSnippets": [
       "@IdHolder(ids = {46})",
       "@IdHolder(ids = {68})",
@@ -1362,8 +1362,8 @@
   {
     "id": "server-object-route-contract",
     "area": "input",
-    "title": "Kronos object interactions route against object footprints, rotations, and access masks before running object actions.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/map/route/RouteFinder.java",
+    "title": "Nh object interactions route against object footprints, rotations, and access masks before running object actions.",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/map/route/RouteFinder.java",
     "requiredSnippets": [
       "public RouteObject routeObject(GameObject gameObject) {",
       "routeObject.set(gameObject.x, gameObject.y, xLength, yLength, ObjectType.values()[gameObject.type], gameObject.direction, someDirection);",
@@ -1376,8 +1376,8 @@
   {
     "id": "server-object-reach-contract",
     "area": "input",
-    "title": "Kronos object reach accepts adjacent object edges only when clipping and object access masks allow that side.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/map/ClipUtils.java",
+    "title": "Nh object reach accepts adjacent object edges only when clipping and object access masks allow that side.",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/map/ClipUtils.java",
     "requiredSnippets": [
       "public boolean method3066(int x, int y, int size, int destX, int destY, int xLength, int yLength, int objectDirectionClip)",
       "if(x == destX - 1 && y >= destY && y <= yAndLength",
@@ -1391,7 +1391,7 @@
     "id": "client-object-lighting-contract",
     "area": "render",
     "title": "ObjectDefinition lights object models through ModelData.method2778 with object ambient and contrast.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/ObjectDefinition.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/ObjectDefinition.java",
     "requiredSnippets": [
       "var9 = var10.method2778(this.ambient + 64, this.contrast + 768, -50, -10, -50);",
       "var10.ambient = (short)(this.ambient + 64);",
@@ -1403,7 +1403,7 @@
     "id": "client-modeldata-lighting-contract",
     "area": "render",
     "title": "ModelData computes face and vertex normals then adjusts HSL lightness through method2779.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/ModelData.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/ModelData.java",
     "requiredSnippets": [
       "public final Model copy$toModel(int var1, int var2, int var3, int var4, int var5) {",
       "int var6 = (int)Math.sqrt((double)(var5 * var5 + var3 * var3 + var4 * var4));",
@@ -1419,7 +1419,7 @@
     "id": "client-floor-decoration-layer-contract",
     "area": "render",
     "title": "Scene draws floor decorations as their own tile entity after terrain paint.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Scene.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Scene.java",
     "requiredSnippets": [
       "FloorDecoration var22 = var3.floorDecoration;",
       "Hooks.renderDraw(var22.entity, 0, Scene_cameraPitchSine, Scene_cameraPitchCosine, Scene_cameraYawSine, Scene_cameraYawCosine, var22.x - Scene_cameraX, var22.tileHeight - Scene_cameraY, var22.y - Scene_cameraZ, var22.tag);",
@@ -1431,7 +1431,7 @@
     "id": "client-object-model-transform-contract",
     "area": "render",
     "title": "ObjectDefinition rotates/mirrors model data in client X/Z before scale, offset, and scene placement.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/ObjectDefinition.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/ObjectDefinition.java",
     "requiredSnippets": [
       "final ModelData method4719(int var1, int var2) {",
       "boolean var10 = this.isRotated ^ var2 > 3;",
@@ -1452,7 +1452,7 @@
     "id": "client-modeldata-object-rotation-contract",
     "area": "render",
     "title": "ModelData object transforms mirror Z with face winding swap and rotate orientation in the X/Z plane.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/ModelData.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/ModelData.java",
     "requiredSnippets": [
       "public void method2772() {",
       "this.verticesZ[var1] = -this.verticesZ[var1];",
@@ -1474,7 +1474,7 @@
     "id": "client-camera-held-arrow-contract",
     "area": "input",
     "title": "Camera arrow keys are held state sampled by the client loop, with yaw/pitch smoothing and pitch clamps.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
     "requiredSnippets": [
       "if(KeyHandler.KeyHandler_pressedKeys[96])",
       "camAngleDY += (-24 - camAngleDY) / 2;",
@@ -1489,7 +1489,7 @@
     "id": "client-camera-arrow-keycode-map-contract",
     "area": "input",
     "title": "AWT arrow key codes map to the client camera held-key slots 96, 97, 98, and 99.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/KeyHandler.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/KeyHandler.java",
     "requiredSnippets": [
       "KeyHandler_keyCodes = new int[]{",
       "83, 104, 105, 103, 102, 96, 98, 97, 99",
@@ -1497,13 +1497,13 @@
       "field166[field174] = var2;",
       "field166[field174] = ~var2;"
     ],
-    "implementationRule": "Browser arrow keys must map to the same logical left/right/up/down camera slots as the Kronos client before the render-space yaw conversion is applied."
+    "implementationRule": "Browser arrow keys must map to the same logical left/right/up/down camera slots as the Nh client before the render-space yaw conversion is applied."
   },
   {
     "id": "client-camera-initial-angle-contract",
     "area": "render",
     "title": "The client initializes the normal camera pitch and yaw from Client.camAngleX/camAngleY.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
     "requiredSnippets": [
       "camAngleX = 128;",
       "camAngleY = 0;"
@@ -1514,7 +1514,7 @@
     "id": "client-camera-orbit-contract",
     "area": "render",
     "title": "The client converts camAngle pitch/yaw into cameraX/cameraY/cameraZ with viewport-height zoom scaling.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/NPCDefinition.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/NPCDefinition.java",
     "requiredSnippets": [
       "static final void method4403(int var0, int var1, int var2, int var3, int var4, int var5, int var6) {",
       "int var9 = (Client.zoomWidth - Client.zoomHeight) * var8 / 100 + Client.zoomHeight;",
@@ -1531,7 +1531,7 @@
     "id": "cache-click-cross-sprite-export",
     "area": "assets",
     "title": "The trainer cache export emits the eight click-cross sprites in client draw order.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/cache/src/main/java/net/runelite/cache/tools/KronosNhTrainerAssetExport.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/cache/src/main/java/net/runelite/cache/tools/NhNhTrainerAssetExport.java",
     "requiredSnippets": [
       "new SpriteSheetSpec(\"click_cross\", SpriteRef.ids(515, 516, 517, 518, 519, 520, 521, 522)),"
     ],
@@ -1541,7 +1541,7 @@
     "id": "client-click-cross-contract",
     "area": "ui",
     "title": "Walk and action clicks set mouse cross state/color and draw the yellow or red four-frame cross sprites.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
     "requiredSnippets": [
       "mouseCrossState += 20;",
       "mouseCrossColor = 1;",
@@ -1554,7 +1554,7 @@
     "id": "client-context-menu-font-contract",
     "area": "ui",
     "title": "The client context menu uses the bold12 cache font archive.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/FontName.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/FontName.java",
     "requiredSnippets": [
       "FontName_bold12 = new FontName(\"b12_full\");",
       "return new FontName[]{FontName_verdana13, FontName_bold12, FontName_verdana11, FontName_plain12, FontName_verdana15, FontName_plain11};"
@@ -1565,14 +1565,14 @@
     "id": "cache-client-font-metrics-export",
     "area": "assets",
     "title": "The trainer cache export emits client font advances, kerning, and glyph sheets for UI text.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/cache/src/main/java/net/runelite/cache/tools/KronosNhTrainerAssetExport.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/cache/src/main/java/net/runelite/cache/tools/NhNhTrainerAssetExport.java",
     "requiredSnippets": [
       "private static final String CLIENT_CONTEXT_MENU_FONT_ARCHIVE_NAME = \"b12_full\";",
       "new ClientFontSpec(\"plain11\", CLIENT_HITSPLAT_FONT_ARCHIVE_NAME, \"widget text and hitsplat fallback\", \"client_p11_font\")",
       "new ClientFontSpec(\"bold12\", CLIENT_CONTEXT_MENU_FONT_ARCHIVE_NAME, \"context menu\", \"context_menu_font\")",
       "writeClientFontMetrics(store, outDir);",
       "writeClientFontSheets(store, outDir);",
-      "metadata.put(\"source\", \"Kronos client FontName archives and AbstractFont.method5324 string-width metrics\");",
+      "metadata.put(\"source\", \"Nh client FontName archives and AbstractFont.method5324 string-width metrics\");",
       "metadata.put(\"id\", spec.sheetId);",
       "drawFontGlyph(sheetImage, glyph.sprite, glyph.x, 0, 0xFFFFFF);",
       "dto.put(\"sheetId\", spec.sheetId);",
@@ -1584,7 +1584,7 @@
     "id": "client-widget-text-draw-contract",
     "area": "ui",
     "title": "Widget type 4 text draws through the widget font, color, shadow, alignment, and line-height fields.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/ScriptEvent.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/ScriptEvent.java",
     "requiredSnippets": [
       "if(var10.type == 4) {",
       "var39 = var10.method3972();",
@@ -1599,7 +1599,7 @@
     "id": "client-context-menu-contract",
     "area": "ui",
     "title": "Right-click menus use client menu arrays, reverse option order, and a fixed 15 px option row height.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
     "requiredSnippets": [
       "public void draw2010Menu()",
       "var5.drawTextLeftAligned(\"Choose Option\", var1 + 3, var2 + 14, 13023381, -1);",
@@ -1612,7 +1612,7 @@
     "id": "client-context-menu-sizing-contract",
     "area": "ui",
     "title": "Context menu size is measured from option text, centered on click, and clamped to the canvas.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/UserComparator6.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/UserComparator6.java",
     "requiredSnippets": [
       "static void method3507(int var0, int var1) {",
       "int var2 = class170.fontBold12.method5324(\"Choose Option\");",
@@ -1628,7 +1628,7 @@
     "id": "client-player-menu-opcode-contract",
     "area": "ui",
     "title": "Player menu actions use the client player-menu opcode array.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
     "requiredSnippets": [
       "playerMenuOpcodes = new int[]{44, 45, 46, 47, 48, 49, 50, 51};",
       "playerMenuActions = new String[8];",
@@ -1640,7 +1640,7 @@
     "id": "client-player-context-menu-contract",
     "area": "ui",
     "title": "Player context menu entries come from Client.playerMenuActions with special attack-option handling.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/GrandExchangeEvent.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/GrandExchangeEvent.java",
     "requiredSnippets": [
       "static final void method6487(Player var0, int var1, int var2, int var3) {",
       "if(class215.localPlayer != var0) {",
@@ -1659,7 +1659,7 @@
     "id": "client-selected-player-target-packet-contract",
     "area": "ui",
     "title": "Selected item and selected spell player rows send the corresponding client packets.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/ClientPacket.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/ClientPacket.java",
     "requiredSnippets": [
       "field2395 = new ClientPacket(55, 9);",
       "field2399 = new ClientPacket(59, 11);"
@@ -1670,7 +1670,7 @@
     "id": "client-normal-player-action-packet-contract",
     "area": "ui",
     "title": "Normal player menu actions send one of the eight client player action packets.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
     "requiredSnippets": [
       "else if(var2 == 44) {",
       "InterfaceParent.method1140(ClientPacket.field2387, packetWriter.isaacCipher)",
@@ -1687,7 +1687,7 @@
     "id": "server-player-action-packet-contract",
     "area": "ui",
     "title": "Server player action slots are sent to the client with name, top flag, and one-based option index.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/network/PacketSender.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/network/PacketSender.java",
     "requiredSnippets": [
       "public void sendPlayerAction(String name, boolean top, int option) {",
       ".addByteS(top ? 1 : 0)",
@@ -1700,7 +1700,7 @@
     "id": "server-player-default-actions-contract",
     "area": "ui",
     "title": "Players receive source default Follow and Trade player actions on login.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/entity/player/Player.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/entity/player/Player.java",
     "requiredSnippets": [
       "private PlayerAction[] actions = new PlayerAction[8];",
       "setAction(2, PlayerAction.FOLLOW);",
@@ -1713,7 +1713,7 @@
     "id": "server-wilderness-attack-action-contract",
     "area": "ui",
     "title": "Wilderness-style PvP scenes expose Attack as player option 1.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/activities/wilderness/Wilderness.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/activities/wilderness/Wilderness.java",
     "requiredSnippets": [
       "player.setAction(1, PlayerAction.ATTACK);",
       "player.setAction(1, null);"
@@ -1724,7 +1724,7 @@
     "id": "client-inventory-slot-layout-contract",
     "area": "ui",
     "title": "Inventory slots are 36 by 32 pixels in a four-column grid with 42 by 36 slot stepping.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/scripts/script1158.cs2",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/scripts/script1158.cs2",
     "requiredSnippets": [
       "cc_setsize(36, 32, ^setsize_abs, ^setsize_abs);",
       "cc_setposition(calc($int3 + (($int1 % 4) * 42)), calc($int4 + (($int1 / 4) * 36)), ^setpos_abs_left, ^setpos_abs_top);"
@@ -1735,7 +1735,7 @@
     "id": "client-inventory-widget-item-draw-contract",
     "area": "ui",
     "title": "Inventory widgets draw item sprites from widget item ids and quantities.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/ScriptEvent.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/ScriptEvent.java",
     "requiredSnippets": [
       "if(var10.type == 2) {",
       "for(var20 = 0; var20 < var10.rawHeight; ++var20) {",
@@ -1751,7 +1751,7 @@
     "id": "client-inventory-selected-item-sprite-contract",
     "area": "ui",
     "title": "Selected inventory items use the client selected-item sprite outline instead of the normal slot sprite.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/ScriptEvent.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/ScriptEvent.java",
     "requiredSnippets": [
       "if(Client.isItemSelected == 1 && var19 == DevicePcmPlayerProvider.selectedItemSlot && var10.id == class12.selectedItemWidget) {",
       "var27 = GrandExchangeOfferWorldComparator.createSprite(var26, var10.itemQuantities[var19], 2, 0, 2, false);",
@@ -1763,7 +1763,7 @@
     "id": "client-inventory-item-menu-contract",
     "area": "ui",
     "title": "Inventory item context menus are built from item definition actions, Use, widget item actions, and Examine.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/MusicPatchNode.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/MusicPatchNode.java",
     "requiredSnippets": [
       "if(var0.itemIds[var19] > 0) {",
       "ItemDefinition var8 = Occluder.getItemDefinition(var0.itemIds[var19] - 1);",
@@ -1780,7 +1780,7 @@
     "id": "client-inventory-use-selection-contract",
     "area": "ui",
     "title": "Inventory opcode 38 enters selected-item state with source slot, widget, item id, and selected item name.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
     "requiredSnippets": [
       "if(var2 == 38) {",
       "class214.method3938();",
@@ -1796,7 +1796,7 @@
     "id": "client-inventory-use-target-menu-contract",
     "area": "ui",
     "title": "When an item is selected, inventory target slots expose only Use selected item to target item with opcode 31.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/MusicPatchNode.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/MusicPatchNode.java",
     "requiredSnippets": [
       "if(Client.isItemSelected == 1) {",
       "var10 = class12.method148(var0);",
@@ -1811,7 +1811,7 @@
     "id": "client-inventory-selection-clear-after-action-contract",
     "area": "ui",
     "title": "After ordinary menu actions, the client clears selected inventory item state and invalidates the selected widget.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
     "requiredSnippets": [
       "if(isItemSelected != 0) {",
       "isItemSelected = 0;",
@@ -1823,7 +1823,7 @@
     "id": "client-inventory-item-action-opcode-contract",
     "area": "ui",
     "title": "Inventory item definition actions map action slots 1-5 to opcodes 33-37 with Drop fallback.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/UrlRequest.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/UrlRequest.java",
     "requiredSnippets": [
       "static final void method2923(Widget var0, ItemDefinition var1, int var2, int var3, boolean var4) {",
       "if(var3 == 0) {",
@@ -1845,7 +1845,7 @@
     "id": "client-inventory-item-sprite-contract",
     "area": "ui",
     "title": "Inventory item icons are 36 by 32 model-projected sprites with source outline, shadow, and quantity handling.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/GrandExchangeOfferWorldComparator.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/GrandExchangeOfferWorldComparator.java",
     "requiredSnippets": [
       "public static final Sprite createSprite(int var0, int var1, int var2, int var3, int var4, boolean var5) {",
       "var8 = new Sprite(36, 32);",
@@ -1862,7 +1862,7 @@
     "id": "cache-item-sprite-factory-export-contract",
     "area": "assets",
     "title": "The cache module exposes an ItemSpriteFactory that renders client-sized item sprites from item, model, sprite, and texture providers.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/cache/src/main/java/net/runelite/cache/item/ItemSpriteFactory.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/cache/src/main/java/net/runelite/cache/item/ItemSpriteFactory.java",
     "requiredSnippets": [
       "public static final BufferedImage createSprite(ItemProvider itemProvider, ModelProvider modelProvider,",
       "Sprite spritePixels = new Sprite(36, 32);",
@@ -1879,7 +1879,7 @@
     "id": "cache-inventory-dose-sprite-export-contract",
     "area": "assets",
     "title": "The cache exporter includes inventory supply dose variants, coins, empty vial sprites, and count-object item sprite quantities.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/cache/src/main/java/net/runelite/cache/tools/KronosNhTrainerAssetExport.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/cache/src/main/java/net/runelite/cache/tools/NhNhTrainerAssetExport.java",
     "requiredSnippets": [
       "229, 385, 391, 995, 1201, 3024, 3026, 3028, 3030",
       "6685, 6687, 6689, 6691",
@@ -1900,7 +1900,7 @@
     "id": "cache-client-widget-layout-export",
     "area": "ui",
     "title": "The cache exporter writes fixed-mode widget groups and original widget layout fields.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/cache/src/main/java/net/runelite/cache/tools/KronosNhTrainerAssetExport.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/cache/src/main/java/net/runelite/cache/tools/NhNhTrainerAssetExport.java",
     "requiredSnippets": [
       "private static final int[] CLIENT_WIDGET_GROUP_IDS",
       "548, 160, 162, 149, 387, 541, 218, 593, 320",
@@ -1928,7 +1928,7 @@
     "id": "client-chatbox-widget-contract",
     "area": "ui",
     "title": "The fixed chatbox exposes group 162 button widgets and report text child ids.",
-    "sourcePath": "Kronos184-Client/runelite-api/src/main/java/net/runelite/api/widgets/WidgetID.java",
+    "sourcePath": "Nh184-Client/runelite-api/src/main/java/net/runelite/api/widgets/WidgetID.java",
     "requiredSnippets": [
       "public static final int CHATBOX_GROUP_ID = 162;",
       "static class Chatbox",
@@ -1941,7 +1941,7 @@
     "id": "client-chatbox-sprite-contract",
     "area": "ui",
     "title": "The RuneLite SpriteID table defines fixed chatbox background, button, selected, and report sprites.",
-    "sourcePath": "Kronos184-Client/runelite-api/src/main/java/net/runelite/api/SpriteID.java",
+    "sourcePath": "Nh184-Client/runelite-api/src/main/java/net/runelite/api/SpriteID.java",
     "requiredSnippets": [
       "public static final int CHATBOX = 1017;",
       "public static final int CHATBOX_BUTTONS_BACKGROUND_STONES = 1018;",
@@ -1955,7 +1955,7 @@
     "id": "cache-client-ui-orb-sprite-export",
     "area": "ui",
     "title": "The cache exporter includes fixed-mode data orb and side-panel sprites plus SpriteDefinition offsets in the client_ui atlas.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/cache/src/main/java/net/runelite/cache/tools/KronosNhTrainerAssetExport.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/cache/src/main/java/net/runelite/cache/tools/NhNhTrainerAssetExport.java",
     "requiredSnippets": [
       "new SpriteSheetSpec(\"client_ui\", new SpriteRef[]",
       "SpriteRef.id(\"minimap_orb_empty\", 1059),",
@@ -1993,7 +1993,7 @@
     "id": "client-equipment-widget-slot-contract",
     "area": "ui",
     "title": "The fixed equipment tab exposes each worn-equipment slot as group 387 child widgets.",
-    "sourcePath": "Kronos184-Client/runelite-api/src/main/java/net/runelite/api/widgets/WidgetID.java",
+    "sourcePath": "Nh184-Client/runelite-api/src/main/java/net/runelite/api/widgets/WidgetID.java",
     "requiredSnippets": [
       "public static final int EQUIPMENT_GROUP_ID = 387;",
       "static class Equipment",
@@ -2015,18 +2015,18 @@
     "id": "server-equipment-slot-index-contract",
     "area": "ui",
     "title": "Server equipment containers use fixed numeric slots for head, cape, amulet, weapon, body, shield, legs, hands, feet, ring, and ammo.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/item/containers/Equipment.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/item/containers/Equipment.java",
     "requiredSnippets": [
       "public static final int SLOT_HAT = 0, SLOT_CAPE = 1, SLOT_AMULET = 2, SLOT_WEAPON = 3, SLOT_CHEST = 4,",
       "SLOT_SHIELD = 5, SLOT_LEGS = 7, SLOT_HANDS = 9, SLOT_FEET = 10, SLOT_RING = 12, SLOT_AMMO = 13;"
     ],
-    "implementationRule": "The mounted equipment tab must map item definitions by Kronos server equipSlot values before placing item sprites into the client widget children."
+    "implementationRule": "The mounted equipment tab must map item definitions by Nh server equipSlot values before placing item sprites into the client widget children."
   },
   {
     "id": "server-equipment-tab-item-action-contract",
     "area": "ui",
     "title": "Equipment tab child actions route worn-item options to remove, registered equipment actions, or examine.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/inter/handlers/TabEquipment.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/inter/handlers/TabEquipment.java",
     "requiredSnippets": [
       "InterfaceHandler.register(Interface.EQUIPMENT, h -> {",
       "h.actions[9] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_WEAPON);",
@@ -2042,7 +2042,7 @@
     "id": "server-equipment-unequip-mutation-contract",
     "area": "ui",
     "title": "Equipment.unequip places the equipped item into an existing stack or the first free inventory slot, and blocks when none exists.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/item/containers/Equipment.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/item/containers/Equipment.java",
     "requiredSnippets": [
       "public boolean unequip(Item equipped) {",
       "Inventory inventory = player.getInventory();",
@@ -2058,7 +2058,7 @@
     "id": "client-combat-widget-contract",
     "area": "ui",
     "title": "The fixed combat tab uses group 593 widgets for weapon name, style slots, autocast, auto-retaliate, and special attack controls.",
-    "sourcePath": "Kronos184-Client/runelite-api/src/main/java/net/runelite/api/widgets/WidgetID.java",
+    "sourcePath": "Nh184-Client/runelite-api/src/main/java/net/runelite/api/widgets/WidgetID.java",
     "requiredSnippets": [
       "public static final int COMBAT_GROUP_ID = 593;",
       "static class Combat",
@@ -2080,7 +2080,7 @@
     "id": "client-combat-specbar-redraw-contract",
     "area": "ui",
     "title": "The combat special bar redraw script uses special-active and special-energy varps for text, colour, fill, and low-energy state.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/scripts/SpecbarRedraw.rs2asm",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/scripts/SpecbarRedraw.rs2asm",
     "requiredSnippets": [
       "get_varp               301",
       "iconst                 16776960",
@@ -2097,7 +2097,7 @@
     "id": "client-combat-interface-setup-contract",
     "area": "ui",
     "title": "The combat tab setup clientscript lays out visible attack style buttons and assigns per-weapon labels and graphics.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/scripts/[clientscript,combat_interface_setup].cs2",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/scripts/[clientscript,combat_interface_setup].cs2",
     "requiredSnippets": [
       "if ((%varbit357 = 18) | (%varbit357 = 21)) {",
       "$string0, $string4, $graphic14 = \"Accurate\", \"(Accurate)<br>(Ranged XP)\", \"combaticons2,5\";",
@@ -2114,7 +2114,7 @@
     "id": "client-options-button-frame-contract",
     "area": "ui",
     "title": "Combat style button selection is built from the options_button_on/off 9-slice graphics.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/scripts/[proc,options_button_off].cs2",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/scripts/[proc,options_button_off].cs2",
     "requiredSnippets": [
       "cc_setsize(6, 6, ^setsize_abs, ^setsize_abs);",
       "cc_setgraphic(\"graphic_1141\");",
@@ -2129,7 +2129,7 @@
     "id": "client-options-button-selected-frame-contract",
     "area": "ui",
     "title": "Selected combat style buttons use the corresponding options_button_on 9-slice graphics.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/scripts/[proc,options_button_on].cs2",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/scripts/[proc,options_button_on].cs2",
     "requiredSnippets": [
       "cc_setgraphic(\"graphic_1150\");",
       "cc_setgraphic(\"graphic_1151\");",
@@ -2137,13 +2137,13 @@
       "cc_setgraphic(\"graphic_1157\");",
       "cc_setgraphic(\"graphic_1158\");"
     ],
-    "implementationRule": "The selected trainer combat style background must preserve the same selected options_button frame geometry as Kronos."
+    "implementationRule": "The selected trainer combat style background must preserve the same selected options_button frame geometry as Nh."
   },
   {
     "id": "server-combat-tab-state-contract",
     "area": "ui",
-    "title": "Kronos sends combat-tab weapon text, weapon type config, attack-set config, and special state from PlayerCombat.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/entity/player/PlayerCombat.java",
+    "title": "Nh sends combat-tab weapon text, weapon type config, attack-set config, and special state from PlayerCombat.",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/entity/player/PlayerCombat.java",
     "requiredSnippets": [
       "Config.WEAPON_TYPE.set(player, weaponType.config);",
       "player.getPacketSender().sendString(COMBAT_OPTIONS, 1, wepDef == null ? \"Unarmed\" : wepDef.name);",
@@ -2156,8 +2156,8 @@
   {
     "id": "server-combat-level-widget-contract",
     "area": "ui",
-    "title": "Kronos combat level uses fixed stat levels and sends the Combat Lvl widget text.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/combat/CombatUtils.java",
+    "title": "Nh combat level uses fixed stat levels and sends the Combat Lvl widget text.",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/combat/CombatUtils.java",
     "requiredSnippets": [
       "double attack = stats.get(StatType.Attack).fixedLevel;",
       "double coreBase = (defence + hitpoints + (int) (prayer / 2D)) * 0.25;",
@@ -2165,13 +2165,13 @@
       "double rangedBase = ((int) (ranged / 2D) + ranged) * 0.325;",
       "return (int) (coreBase + Math.max(meleeBase, Math.max(rangedBase, magicBase)));"
     ],
-    "implementationRule": "Combat level text in the trainer must use the Kronos fixed-level combat formula, not a display-only constant."
+    "implementationRule": "Combat level text in the trainer must use the Nh fixed-level combat formula, not a display-only constant."
   },
   {
     "id": "server-combat-varp-contract",
     "area": "ui",
-    "title": "Kronos combat tab configs use varps for attack set and special energy.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/inter/utils/Config.java",
+    "title": "Nh combat tab configs use varps for attack set and special energy.",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/inter/utils/Config.java",
     "requiredSnippets": [
       "public static final Config ATTACK_SET = varp(43, true);",
       "public static final Config AUTO_RETALIATE = varp(172, true);",
@@ -2181,13 +2181,13 @@
       "public static final Config AUTOCAST = varpbit(276, true);",
       "public static final Config DEFENSIVE_CAST = varpbit(2668, true);"
     ],
-    "implementationRule": "Combat tab runtime state should keep attack set, auto-retaliate, weapon type, special energy, special active, autocast, and defensive cast aligned with Kronos config ids."
+    "implementationRule": "Combat tab runtime state should keep attack set, auto-retaliate, weapon type, special energy, special active, autocast, and defensive cast aligned with Nh config ids."
   },
   {
     "id": "client-attack-style-label-contract",
     "area": "ui",
     "title": "RuneLite labels attack styles as Accurate, Aggressive, Defensive, Controlled, Ranging, and Longrange.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStyle.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStyle.java",
     "requiredSnippets": [
       "ACCURATE(\"Accurate\", Skill.ATTACK),",
       "AGGRESSIVE(\"Aggressive\", Skill.STRENGTH),",
@@ -2195,13 +2195,13 @@
       "CONTROLLED(\"Controlled\", Skill.ATTACK, Skill.STRENGTH, Skill.DEFENCE),",
       "LONGRANGE(\"Longrange\", Skill.RANGED, Skill.DEFENCE),"
     ],
-    "implementationRule": "Rendered attack-style text must use client style labels, with Kronos server attack-set metadata selecting which labels are present."
+    "implementationRule": "Rendered attack-style text must use client style labels, with Nh server attack-set metadata selecting which labels are present."
   },
   {
     "id": "client-skills-widget-contract",
     "area": "ui",
     "title": "The fixed stats tab uses group 320 widgets for skill slots and the total-level tile.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/runelite-api/src/main/java/net/runelite/api/widgets/WidgetID.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/runelite-api/src/main/java/net/runelite/api/widgets/WidgetID.java",
     "requiredSnippets": [
       "public static final int SKILLS_GROUP_ID = 320;",
       "static final int STATS_TAB = 49;",
@@ -2212,8 +2212,8 @@
   {
     "id": "server-stats-tab-widget-contract",
     "area": "ui",
-    "title": "Kronos maps stats-tab child actions to concrete StatType values.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/inter/handlers/TabStats.java",
+    "title": "Nh maps stats-tab child actions to concrete StatType values.",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/inter/handlers/TabStats.java",
     "requiredSnippets": [
       "InterfaceHandler.register(Interface.SKILLS, h -> {",
       "h.actions[1] = (OptionAction) (player, option) -> handleStat(player, StatType.Attack);",
@@ -2231,7 +2231,7 @@
     "id": "client-skill-level-array-contract",
     "area": "ui",
     "title": "Client widget scripts read current and fixed skill levels from the client skill arrays and sum enabled skills for total level.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/runescape-client/src/main/java/class216.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/runescape-client/src/main/java/class216.java",
     "requiredSnippets": [
       "var7 = Client.currentLevels[var2[var4++]];",
       "var7 = Client.levels[var2[var4++]];",
@@ -2245,7 +2245,7 @@
     "id": "client-enabled-skills-contract",
     "area": "ui",
     "title": "Client total-level calculation is gated by the enabled skills mask.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/runescape-client/src/main/java/Skills.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/runescape-client/src/main/java/Skills.java",
     "requiredSnippets": [
       "@Export(\"Skills_enabled\")",
       "Skills_enabled = new boolean[]{true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false};"
@@ -2256,7 +2256,7 @@
     "id": "client-skill-sprite-contract",
     "area": "ui",
     "title": "RuneLite exposes the cache SpriteID constants used by stats tiles and skill icons.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/runelite-api/src/main/java/net/runelite/api/SpriteID.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/runelite-api/src/main/java/net/runelite/api/SpriteID.java",
     "requiredSnippets": [
       "public static final int STATS_TILE_HALF_LEFT = 174;",
       "public static final int STATS_TILE_HALF_RIGHT_WITH_SLASH = 175;",
@@ -2275,7 +2275,7 @@
     "id": "client-prayer-widget-order-contract",
     "area": "ui",
     "title": "RuneLite prayer reordering defines the prayer tab slot size, grid spacing, column count, and default widget order.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/reorderprayers/ReorderPrayersPlugin.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/reorderprayers/ReorderPrayersPlugin.java",
     "requiredSnippets": [
       "private static final int PRAYER_WIDTH = 34;",
       "private static final int PRAYER_HEIGHT = 34;",
@@ -2299,7 +2299,7 @@
     "id": "client-prayer-icon-sprite-contract",
     "area": "ui",
     "title": "RuneLite prayer types map every prayer to a cache SpriteID.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerType.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerType.java",
     "requiredSnippets": [
       "THICK_SKIN(\"Thick Skin\", Prayer.THICK_SKIN, \"+5% Defence\", SpriteID.PRAYER_THICK_SKIN, false),",
       "SHARP_EYE(\"Sharp Eye\", Prayer.SHARP_EYE, \"+5% Ranged\", SpriteID.PRAYER_SHARP_EYE, false),",
@@ -2314,7 +2314,7 @@
     "id": "cache-prayer-icon-sprite-export-contract",
     "area": "assets",
     "title": "The cache exporter writes the fixed prayer tab icon sprites into a trainer atlas.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/cache/src/main/java/net/runelite/cache/tools/KronosNhTrainerAssetExport.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/cache/src/main/java/net/runelite/cache/tools/NhNhTrainerAssetExport.java",
     "requiredSnippets": [
       "new SpriteSheetSpec(\"prayer_icons\", new SpriteRef[]",
       "SpriteRef.id(\"prayer_thick_skin\", 115),",
@@ -2324,13 +2324,13 @@
       "SpriteRef.id(\"prayer_augury\", 1421),",
       "SpriteRef.id(\"activated_prayer_background\", 155)"
     ],
-    "implementationRule": "The trainer must load prayer_icons from the Kronos cache exporter instead of drawing prayer tab icons from CSS or external assets."
+    "implementationRule": "The trainer must load prayer_icons from the Nh cache exporter instead of drawing prayer tab icons from CSS or external assets."
   },
   {
     "id": "client-spellbook-redraw-layout-contract",
     "area": "ui",
     "title": "The client redraw script builds visible spellbook icons from the active spellbook enum, then lays them out in 24px slots.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/scripts/MagicSpellBookRedraw.rs2asm",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/scripts/MagicSpellBookRedraw.rs2asm",
     "requiredSnippets": [
       "sconst                 \"startSpellRedraw\"",
       "iconst                 190",
@@ -2358,7 +2358,7 @@
     "id": "client-ancient-spellbook-widget-contract",
     "area": "ui",
     "title": "The spellbook group and ancient spell child widgets are fixed client widget IDs.",
-    "sourcePath": "Kronos184-Client/runelite-api/src/main/java/net/runelite/api/widgets/WidgetID.java",
+    "sourcePath": "Nh184-Client/runelite-api/src/main/java/net/runelite/api/widgets/WidgetID.java",
     "requiredSnippets": [
       "public static final int SPELLBOOK_GROUP_ID = 218;",
       "static final int FILTERED_SPELLS_PARENT = 1;",
@@ -2376,7 +2376,7 @@
     "id": "client-spell-icon-sprite-contract",
     "area": "ui",
     "title": "RuneLite exposes the cache SpriteID constants used by ancient spell icons.",
-    "sourcePath": "Kronos184-Client/runelite-api/src/main/java/net/runelite/api/SpriteID.java",
+    "sourcePath": "Nh184-Client/runelite-api/src/main/java/net/runelite/api/SpriteID.java",
     "requiredSnippets": [
       "public static final int SPELL_ICE_RUSH = 325;",
       "public static final int SPELL_ICE_BARRAGE = 328;",
@@ -2393,7 +2393,7 @@
     "id": "client-spell-selection-contract",
     "area": "ui",
     "title": "Spell default actions enter selected-spell state from widget click masks and target verbs.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Client.java",
     "requiredSnippets": [
       "if(var2 == 25)",
       "class19.method340(var1, var0, class12.method155(class12.method148(var17)), var17.itemId);",
@@ -2408,7 +2408,7 @@
     "id": "client-selected-spell-object-menu-contract",
     "area": "ui",
     "title": "Selected spells replace object actions with client menu opcode 2 when the object target flag is set.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/class19.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/class19.java",
     "requiredSnippets": [
       "static void method340(int var0, int var1, int var2, int var3) {",
       "Client.isSpellSelected = true;",
@@ -2422,7 +2422,7 @@
     "id": "cache-spellbook-definition-export-contract",
     "area": "assets",
     "title": "The cache exporter writes spellbook enum order, widget params, and spell icons into trainer fixtures.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/cache/src/main/java/net/runelite/cache/tools/KronosNhTrainerAssetExport.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/cache/src/main/java/net/runelite/cache/tools/NhNhTrainerAssetExport.java",
     "requiredSnippets": [
       "private static final SpellbookSpec[] SPELLBOOK_SPECS =",
       "new SpellbookSpec(\"standard\", 1982, 218),",
@@ -2436,13 +2436,13 @@
       "private static final int SPELL_NAME_PARAM_ID = 601;",
       "spell.put(\"enabledSpriteId\", intParam(params, SPELL_SMALL_ENABLED_SPRITE_PARAM_ID, \"enabled spell icon\", item.id));"
     ],
-    "implementationRule": "The trainer must load spellbook order and spell_icons from Kronos cache exports instead of hard-coding a browser-only magic tab grid."
+    "implementationRule": "The trainer must load spellbook order and spell_icons from Nh cache exports instead of hard-coding a browser-only magic tab grid."
   },
   {
     "id": "client-widget-resize-layout-contract",
     "area": "ui",
     "title": "Widget width and height are resolved from raw dimensions and alignment modes before viewport detection.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/TileItem.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/TileItem.java",
     "requiredSnippets": [
       "static void method1607(Widget var0, int var1, int var2, boolean var3) {",
       "if(var0.widthAlignment == 0) {",
@@ -2457,7 +2457,7 @@
     "id": "client-widget-position-layout-contract",
     "area": "ui",
     "title": "Widget x and y are resolved from raw positions and alignment modes inside the parent dimensions.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/class33.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/class33.java",
     "requiredSnippets": [
       "static void method678(Widget var0, int var1, int var2) {",
       "var0.x = var0.rawX;",
@@ -2472,7 +2472,7 @@
     "id": "client-fixed-viewport-render-contract",
     "area": "render",
     "title": "The client draws the 3D scene only when it reaches the content type 1337 viewport widget.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/ScriptEvent.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/ScriptEvent.java",
     "requiredSnippets": [
       "if(var10.contentType == 1337) {",
       "Client.viewportX = var12;",
@@ -2486,7 +2486,7 @@
     "id": "client-fixed-side-tab-widget-contract",
     "area": "ui",
     "title": "Runelite fixed viewport constants identify the source side tab and icon child widgets.",
-    "sourcePath": "Kronos184-Client/runelite-api/src/main/java/net/runelite/api/widgets/WidgetID.java",
+    "sourcePath": "Nh184-Client/runelite-api/src/main/java/net/runelite/api/widgets/WidgetID.java",
     "requiredSnippets": [
       "public static final int FIXED_VIEWPORT_GROUP_ID = 548;",
       "static class FixedViewport",
@@ -2508,7 +2508,7 @@
     "id": "client-interface-tab-order-contract",
     "area": "ui",
     "title": "Runelite InterfaceTab ids define the fixed side-panel tab container order.",
-    "sourcePath": "Kronos184-Client/runelite-api/src/main/java/net/runelite/api/vars/InterfaceTab.java",
+    "sourcePath": "Nh184-Client/runelite-api/src/main/java/net/runelite/api/vars/InterfaceTab.java",
     "requiredSnippets": [
       "COMBAT(0),",
       "STATS(1),",
@@ -2530,8 +2530,8 @@
   {
     "id": "server-fixed-display-tab-mapping-contract",
     "area": "ui",
-    "title": "Kronos DisplayHandler sends the fixed side-panel tab interfaces into default-frame child slots before moving them to the fixed game frame.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/network/incoming/handlers/DisplayHandler.java",
+    "title": "Nh DisplayHandler sends the fixed side-panel tab interfaces into default-frame child slots before moving them to the fixed game frame.",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/network/incoming/handlers/DisplayHandler.java",
     "requiredSnippets": [
       "ps.sendInterface(320, 165, 9, 1);",
       "ps.sendInterface(Interface.NOTICEBOARD, 165, 10, 1);",
@@ -2549,13 +2549,13 @@
       "ps.sendInterface(7, 165, 15, 1);",
       "ps.sendInterface(COMBAT_OPTIONS, 165, 8, 1);"
     ],
-    "implementationRule": "The trainer fixed side-panel group mapping must follow Kronos server display setup, including the noticeboard mounted under the quest and lower-left account/ignore container slots."
+    "implementationRule": "The trainer fixed side-panel group mapping must follow Nh server display setup, including the noticeboard mounted under the quest and lower-left account/ignore container slots."
   },
   {
     "id": "client-minimap-widget-draw-contract",
     "area": "ui",
     "title": "The client draws minimap content through the widget SpriteMask, then projects map icons, actors, hints, destination, and the local player marker.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/ClientPreferences.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/ClientPreferences.java",
     "requiredSnippets": [
       "static final void method1146(Widget var0, int var1, int var2, int var3) {",
       "SpriteMask var4 = var0.method3975(false);",
@@ -2577,7 +2577,7 @@
     "id": "client-scene-minimap-sprite-build-contract",
     "area": "ui",
     "title": "The client rebuilds sceneMinimapSprite from scene tiles and object minimap strokes when the plane changes.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/class47.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/class47.java",
     "requiredSnippets": [
       "int[] var1 = ObjectSound.sceneMinimapSprite.pixels;",
       "PacketWriter.scene.drawTile(var1, var4, 512, var0, var5, var3);",
@@ -2592,7 +2592,7 @@
     "id": "client-scene-minimap-draw-tile-contract",
     "area": "ui",
     "title": "Scene.drawTile rasterizes minimap TilePaint and TileModel terrain into 4x4 tile pixels.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Scene.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Scene.java",
     "requiredSnippets": [
       "this.tileShape2D = new int[][]{{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},",
       "this.tileRotation2D = new int[][]{{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},",
@@ -2608,7 +2608,7 @@
     "id": "client-scene-minimap-object-stroke-contract",
     "area": "ui",
     "title": "Minimap object rendering draws map-scene sprites or wall/diagonal object pixels into sceneMinimapSprite.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/class30.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/class30.java",
     "requiredSnippets": [
       "static final void drawObject(int var0, int var1, int var2, int var3, int var4) {",
       "int[] var11 = ObjectSound.sceneMinimapSprite.pixels;",
@@ -2626,7 +2626,7 @@
     "id": "client-minimap-dot-projection-contract",
     "area": "ui",
     "title": "Minimap dots rotate by camAngleY, hide beyond distance 6400, and switch to clipped drawing beyond distance 2500.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/class214.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/class214.java",
     "requiredSnippets": [
       "static final void method3936(int var0, int var1, int var2, int var3, Sprite var4, SpriteMask var5) {",
       "int var6 = Client.camAngleY & 2047;",
@@ -2642,7 +2642,7 @@
     "id": "client-minimap-hint-arrow-contract",
     "area": "ui",
     "title": "Minimap hint arrows use normal minimap projection nearby and clipped red-arrow edge projection at longer distances.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/FloorDecoration.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/FloorDecoration.java",
     "requiredSnippets": [
       "static final void method2432(int var0, int var1, int var2, int var3, Sprite var4, SpriteMask var5) {",
       "if(var6 > 4225 && var6 < 90000) {",
@@ -2658,7 +2658,7 @@
     "id": "client-minimap-click-contract",
     "area": "ui",
     "title": "Minimap clicks are accepted through the widget SpriteMask, rotated by camAngleY, then converted to destination tiles.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/BufferedSink.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/BufferedSink.java",
     "requiredSnippets": [
       "static final void method5774(Widget var0, int var1, int var2) {",
       "SpriteMask var3 = var0.method3975(true);",
@@ -2678,7 +2678,7 @@
     "id": "client-minimap-sprite-mask-row-contract",
     "area": "ui",
     "title": "Widget SpriteMasks are derived from each source sprite row's transparent-pixel span.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/Widget.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/Widget.java",
     "requiredSnippets": [
       "public SpriteMask method3975(boolean var1) {",
       "int[] var8 = new int[var7.subHeight];",
@@ -2694,7 +2694,7 @@
     "id": "client-sprite-mask-hit-test-contract",
     "area": "ui",
     "title": "SpriteMask hit testing accepts only x coordinates inside the stored row span.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/SpriteMask.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/SpriteMask.java",
     "requiredSnippets": [
       "public boolean method4191(int var1, int var2) {",
       "if(var2 >= 0 && var2 < this.xStarts.length) {",
@@ -2707,7 +2707,7 @@
     "id": "client-minimap-default-sprite-load-contract",
     "area": "ui",
     "title": "Minimap map-scene, map-dot, and marker sprite arrays are loaded from GraphicsDefaults ids through archive8.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/class188.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/class188.java",
     "requiredSnippets": [
       "WorldMapData_0.spriteIds = new GraphicsDefaults();",
       "WorldMapData_0.spriteIds.method5792(Client.archive17);",
@@ -2715,13 +2715,13 @@
       "GameObject.mapMarkerSprites = Canvas.method781(GrandExchangeOfferAgeComparator.archive8, WorldMapData_0.spriteIds.field3789, 0);",
       "class17.mapDotSprites = Canvas.method781(GrandExchangeOfferAgeComparator.archive8, WorldMapData_0.spriteIds.field3791, 0);"
     ],
-    "implementationRule": "The trainer minimap map-scene, dot, and marker atlases must resolve the same GraphicsDefaults sprite ids as the Kronos client loader."
+    "implementationRule": "The trainer minimap map-scene, dot, and marker atlases must resolve the same GraphicsDefaults sprite ids as the Nh client loader."
   },
   {
     "id": "cache-minimap-map-dot-sprite-export",
     "area": "assets",
     "title": "The cache exporter reads GraphicsDefaults and AreaDefinition sprites for compass, minimap map-scenes, dots, markers, and map icons.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/cache/src/main/java/net/runelite/cache/tools/KronosNhTrainerAssetExport.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/cache/src/main/java/net/runelite/cache/tools/NhNhTrainerAssetExport.java",
     "requiredSnippets": [
       "private static final int CLIENT_DEFAULTS_INDEX_ID = 17;",
       "private static final int GRAPHICS_DEFAULTS_GROUP_ID = 3;",
@@ -2745,7 +2745,7 @@
     "id": "cache-sprite-mask-row-export",
     "area": "assets",
     "title": "The cache exporter writes SpriteMask row spans for mask sprites.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/cache/src/main/java/net/runelite/cache/tools/KronosNhTrainerAssetExport.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/cache/src/main/java/net/runelite/cache/tools/NhNhTrainerAssetExport.java",
     "requiredSnippets": [
       "if (isSpriteMaskRef(ref))",
       "private static void addSpriteMaskRows(Map<String, Object> metadata, BufferedImage image, int width, int height)",
@@ -2758,7 +2758,7 @@
     "id": "cache-arena-object-minimap-metadata-export",
     "area": "assets",
     "title": "The cache exporter preserves object minimap scene and icon ids on arena placements.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/runelite/cache/src/main/java/net/runelite/cache/tools/KronosNhTrainerAssetExport.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/cache/src/main/java/net/runelite/cache/tools/NhNhTrainerAssetExport.java",
     "requiredSnippets": [
       "placement.put(\"mapSceneId\", object.getMapSceneID());",
       "placement.put(\"mapIconId\", object.getMapAreaId());"
@@ -2769,7 +2769,7 @@
     "id": "client-viewport-resize-contract",
     "area": "render",
     "title": "Viewport setup clamps dimensions, computes zoom, and stores viewport offsets and size.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/AbstractByteArrayCopier.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/AbstractByteArrayCopier.java",
     "requiredSnippets": [
       "static final void method3874(int var0, int var1, int var2, int var3, boolean var4) {",
       "Client.viewportZoom = var3 * var6 / 334;",
@@ -2784,7 +2784,7 @@
     "id": "client-object-collision-placement-contract",
     "area": "movement",
     "title": "Scene object placement swaps footprint by orientation and clips only interactable objects.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/class11.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/class11.java",
     "requiredSnippets": [
       "var10 = var9.sizeX;",
       "var11 = var9.sizeY;",
@@ -2798,7 +2798,7 @@
     "id": "client-route-finder-bfs-contract",
     "area": "movement",
     "title": "Client player routing uses the 128x128 BFS route finder and collision masks.",
-    "sourcePath": "Kronos184-Client/runelite-client/src/main/java/net/runelite/standalone/class198.java",
+    "sourcePath": "Nh184-Client/runelite-client/src/main/java/net/runelite/standalone/class198.java",
     "requiredSnippets": [
       "public static int method3815(int var0, int var1, int var2, RouteStrategy var3, CollisionMap var4, boolean var5, int[] var6, int[] var7) {",
       "if(var2 == 1) {",
@@ -2813,7 +2813,7 @@
     "id": "server-route-mask-contract",
     "area": "movement",
     "title": "Server route finder defines the movement clipping masks used by step checks.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/map/route/RouteFinder.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/map/route/RouteFinder.java",
     "requiredSnippets": [
       "public static final int OBJECT_MASK = 0x100;",
       "public static final int UNMOVABLE_MASK = 0x200000;",
@@ -2821,13 +2821,13 @@
       "public static final int WEST_MASK = 0x1240108, EAST_MASK = 0x1240180;",
       "public static final int SOUTH_WEST_MASK = 0x124010e, NORTH_WEST_MASK = 0x1240138;"
     ],
-    "implementationRule": "Trainer collision checks must share the same directional movement masks as Kronos route finding."
+    "implementationRule": "Trainer collision checks must share the same directional movement masks as Nh route finding."
   },
   {
     "id": "server-object-cliputils-contract",
     "area": "movement",
     "title": "Server clipping adds rectangular and directional object masks from map objects.",
-    "sourcePath": "kronos-osrs-184-master/kronos-osrs-184-master/Kronos-master/kronos-server/src/main/java/io/ruin/model/map/ClipUtils.java",
+    "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/map/ClipUtils.java",
     "requiredSnippets": [
       "public static void addClipping(int x, int y, int z, int xLength, int yLength, boolean solid, boolean projectile) {",
       "int mask = 256;",

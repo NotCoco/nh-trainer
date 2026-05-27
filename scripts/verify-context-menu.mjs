@@ -8,7 +8,7 @@ import { screenshotDir, uniqueScreenshotPath } from "./screenshot-paths.mjs";
 const require = createRequire(import.meta.url);
 const electronPath = require("electron");
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const screenshotPath = uniqueScreenshotPath("kronos-nh-trainer-context-menu");
+const screenshotPath = uniqueScreenshotPath("nh-nh-trainer-context-menu");
 const validatorPath = path.join(projectRoot, "scripts", "context-menu-validation-electron.cjs");
 
 await mkdir(screenshotDir, { recursive: true });

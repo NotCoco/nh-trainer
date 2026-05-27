@@ -8,8 +8,8 @@ function read(relativePath) {
   return fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
+function readNhClient(relativePath) {
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
 }
 
 function assert(condition, message) {
@@ -18,11 +18,11 @@ function assert(condition, message) {
   }
 }
 
-const pluginSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/pvpperformancetracker/PvpPerformanceTrackerPlugin.java");
-const configSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/pvpperformancetracker/PvpPerformanceTrackerConfig.java");
-const fightSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/pvpperformancetracker/controllers/FightPerformance.java");
-const fighterSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/pvpperformancetracker/controllers/Fighter.java");
-const trackedStatisticSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/pvpperformancetracker/models/TrackedStatistic.java");
+const pluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/pvpperformancetracker/PvpPerformanceTrackerPlugin.java");
+const configSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/pvpperformancetracker/PvpPerformanceTrackerConfig.java");
+const fightSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/pvpperformancetracker/controllers/FightPerformance.java");
+const fighterSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/pvpperformancetracker/controllers/Fighter.java");
+const trackedStatisticSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/pvpperformancetracker/models/TrackedStatistic.java");
 const runtimeCombatSource = read("src/sim/runtimePlayerCombat.ts");
 const runtimeViewerSource = read("src/ui/RuntimeSceneViewer.tsx");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");

@@ -61,7 +61,7 @@ async function readSpellIcons(window) {
   return window.webContents.executeJavaScript(`
     (() => {
       const icon = (spellId) => {
-        const element = document.querySelector('.kronosSpellbookIconSprite[data-spell-id="' + spellId + '"]');
+        const element = document.querySelector('.nhSpellbookIconSprite[data-spell-id="' + spellId + '"]');
         if (!element) {
           return null;
         }
@@ -104,10 +104,10 @@ function assertEnabledIcons(icons) {
 }
 
 function assertBrewDrainedIcons(icons) {
-  assert(icons.bloodBlitz?.requiredMagicLevel === 80, `Blood Blitz should expose Kronos requirement 80: ${JSON.stringify(icons)}`);
-  assert(icons.iceBlitz?.requiredMagicLevel === 82, `Ice Blitz should expose Kronos requirement 82: ${JSON.stringify(icons)}`);
-  assert(icons.bloodBarrage?.requiredMagicLevel === 92, `Blood Barrage should expose Kronos requirement 92: ${JSON.stringify(icons)}`);
-  assert(icons.iceBarrage?.requiredMagicLevel === 94, `Ice Barrage should expose Kronos requirement 94: ${JSON.stringify(icons)}`);
+  assert(icons.bloodBlitz?.requiredMagicLevel === 80, `Blood Blitz should expose Nh requirement 80: ${JSON.stringify(icons)}`);
+  assert(icons.iceBlitz?.requiredMagicLevel === 82, `Ice Blitz should expose Nh requirement 82: ${JSON.stringify(icons)}`);
+  assert(icons.bloodBarrage?.requiredMagicLevel === 92, `Blood Barrage should expose Nh requirement 92: ${JSON.stringify(icons)}`);
+  assert(icons.iceBarrage?.requiredMagicLevel === 94, `Ice Barrage should expose Nh requirement 94: ${JSON.stringify(icons)}`);
   assert(icons.bloodBarrage.currentMagicLevel === 90, `Saradomin brew should drain current Magic from 99 to 90 in the HUD path: ${JSON.stringify(icons)}`);
   assert(icons.iceBarrage.currentMagicLevel === 90, `Ice Barrage should see the same brew-drained current Magic level: ${JSON.stringify(icons)}`);
   assert(icons.bloodBlitz.spriteId === 335, `Blood Blitz should remain enabled at current Magic 90: ${JSON.stringify(icons)}`);
@@ -118,7 +118,7 @@ function assertBrewDrainedIcons(icons) {
   assert(!icons.bloodBarrage.canCast && !icons.iceBarrage.canCast, `Barrage spells should not be castable after brew-drained current Magic: ${JSON.stringify(icons)}`);
   assert(
     icons.bloodBlitz.selectable && icons.iceBlitz.selectable && icons.bloodBarrage.selectable && icons.iceBarrage.selectable,
-    `Kronos keeps the Cast op selectable; server combat rejects low-level casts: ${JSON.stringify(icons)}`
+    `Nh keeps the Cast op selectable; server combat rejects low-level casts: ${JSON.stringify(icons)}`
   );
   assert(
     icons.bloodBlitz.levelFilterAllows && icons.iceBlitz.levelFilterAllows && icons.bloodBarrage.levelFilterAllows && icons.iceBarrage.levelFilterAllows,
@@ -134,9 +134,9 @@ function assertBrewDrainedIcons(icons) {
 }
 
 function assertSourceGuards() {
-  const hudSource = fs.readFileSync(path.join(projectRoot, "src", "ui", "KronosClientHud.tsx"), "utf8");
+  const hudSource = fs.readFileSync(path.join(projectRoot, "src", "ui", "NhClientHud.tsx"), "utf8");
   const combatSource = fs.readFileSync(path.join(projectRoot, "src", "sim", "runtimePlayerCombat.ts"), "utf8");
-  assert(hudSource.includes("data-source-castable-state"), "KronosClientHud should document script2614 spell disabled sprite behavior");
+  assert(hudSource.includes("data-source-castable-state"), "NhClientHud should document script2614 spell disabled sprite behavior");
   assert(combatSource.includes("resetRuntimePlayerCombatFailedSpellCast"), "runtime combat should reset failed low-level spell casts like PlayerCombat.attackWithMagic");
 }
 
@@ -161,21 +161,21 @@ app.whenReady().then(async () => {
     await window.loadFile(path.join(projectRoot, "dist", "index.html"));
     await waitFor(
       window,
-      `Boolean(document.querySelector('.runtimeViewport') && document.querySelector('.kronosInventorySlot[data-inventory-item-id="6685"]'))`,
+      `Boolean(document.querySelector('.runtimeViewport') && document.querySelector('.nhInventorySlot[data-inventory-item-id="6685"]'))`,
       "runtime inventory HUD"
     );
 
-    await clickSelector(window, '.kronosSideTabButton[data-tab-id="magic"]');
-    await waitFor(window, `document.querySelectorAll('.kronosSpellbookIconSprite').length >= 26`, "magic spellbook icons");
+    await clickSelector(window, '.nhSideTabButton[data-tab-id="magic"]');
+    await waitFor(window, `document.querySelectorAll('.nhSpellbookIconSprite').length >= 26`, "magic spellbook icons");
     const enabledIcons = await readSpellIcons(window);
     assertEnabledIcons(enabledIcons);
 
-    await clickSelector(window, '.kronosSideTabButton[data-tab-id="inventory"]');
-    await clickSelector(window, '.kronosInventorySlot[data-inventory-item-id="6685"]');
-    await clickSelector(window, '.kronosSideTabButton[data-tab-id="magic"]');
+    await clickSelector(window, '.nhSideTabButton[data-tab-id="inventory"]');
+    await clickSelector(window, '.nhInventorySlot[data-inventory-item-id="6685"]');
+    await clickSelector(window, '.nhSideTabButton[data-tab-id="magic"]');
     await waitFor(
       window,
-      `document.querySelector('.kronosSpellbookIconSprite[data-spell-id="ice-barrage"]')?.getAttribute('data-current-magic-level') === "90"`,
+      `document.querySelector('.nhSpellbookIconSprite[data-spell-id="ice-barrage"]')?.getAttribute('data-current-magic-level') === "90"`,
       "brew-drained spellbook state"
     );
     const drainedIcons = await readSpellIcons(window);

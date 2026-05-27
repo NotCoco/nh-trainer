@@ -141,6 +141,11 @@ export function App(): JSX.Element {
               detailed information will be on the GitHub soon.
             </p>
           </details>
+          <p className="nhSiteNotice">
+            Free unofficial fan/practice project. Created using intellectual property belonging to
+            Jagex Limited under the terms of Jagex&apos;s Fan Content Policy. This content is not
+            endorsed by or affiliated with Jagex.
+          </p>
         </section>
       </div>
       <Suspense fallback={<RuntimeSceneViewerFallback />}>
@@ -166,7 +171,7 @@ function readStoredBotDifficulty(): BotDifficulty {
 
 async function loadDifficultyPolicy(difficulty: BotDifficulty): Promise<DefaultPolicyReadResult> {
   if (difficulty === "medium") {
-    const bridge = window.kronosTrainer;
+    const bridge = window.nhTrainer;
     if (bridge?.readDefaultPolicy) {
       try {
         return {

@@ -1,5 +1,5 @@
 {
-  "source": "Kronos cache InterfaceDefinition groups for fixed viewport, minimap orbs, chatbox, inventory, and side-panel tab contents",
+  "source": "Nh cache InterfaceDefinition groups for fixed viewport, minimap orbs, chatbox, inventory, and side-panel tab contents",
   "fixedCanvas": {
     "width": 765,
     "height": 503
@@ -51551,7 +51551,7 @@
           "spriteId": 0,
           "alternateSpriteId": 0,
           "fontId": 645,
-          "text": "Kronos",
+          "text": "Nh",
           "lineHeight": 0,
           "xTextAlignment": 1,
           "yTextAlignment": 1,

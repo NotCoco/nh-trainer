@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createKronosTileModel } from "./kronos-tile-model.mjs";
+import { createNhTileModel } from "./nh-tile-model.mjs";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const arenaJsonPath = path.join(projectRoot, "fixtures", "render", "maps", "inferno_arena.json");
@@ -672,7 +672,7 @@ function appendTileModelTerrain(mesh, materialKey, tile, arena, floorDefs, textu
   const heights = tile.heights ?? {};
   const underlayColors = underlayCornerColors(tile, floorDefs, blendedUnderlays, terrainLightness);
   const overlayColors = overlayCornerColors(tile, floorDefs, textureDefs, terrainLightness);
-  const model = createKronosTileModel({
+  const model = createNhTileModel({
     shape: tile.overlayPath + 1,
     rotation: tile.overlayRotation,
     texture: tile.overlayId > 0 ? overlayTextureId(tile, floorDefs) : -1,
@@ -1129,7 +1129,7 @@ function makeGlb(name, mesh, extras, materialName) {
       doubleSided: true,
       alphaMode: descriptor.kind === "texture" ? "MASK" : "OPAQUE",
       extras: {
-        kronosSceneLayer: descriptor.sceneLayer ?? "scene-object"
+        nhSceneLayer: descriptor.sceneLayer ?? "scene-object"
       },
       pbrMetallicRoughness: {
         baseColorFactor: [1, 1, 1, 1],
@@ -1155,7 +1155,7 @@ function makeGlb(name, mesh, extras, materialName) {
   });
 
   const gltf = {
-    asset: { version: "2.0", generator: "KronosNHTrainer export-arena-glb.mjs" },
+    asset: { version: "2.0", generator: "NhNHTrainer export-arena-glb.mjs" },
     scene: 0,
     scenes: [{ nodes: [0] }],
     nodes: [{ mesh: 0, name }],
@@ -1278,7 +1278,7 @@ await writeFile(
     "NH wilderness arena placed objects",
     objectMesh,
     {
-      source: "Kronos cache location archives plus ObjectDefinition model placements",
+      source: "Nh cache location archives plus ObjectDefinition model placements",
       bounds: arena.bounds,
       objectCount: objectMesh.sourceObjects.length,
       textureCount: textureDefs.size,

@@ -7,7 +7,7 @@ const require = createRequire(import.meta.url);
 const electronPath = require("electron");
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const validatorPath = path.join(projectRoot, "scripts", "runtime-hud-validation-electron.cjs");
-const timeoutMs = Number.parseInt(process.env.KRONOS_RUNTIME_HUD_VERIFY_TIMEOUT_MS ?? "300000", 10);
+const timeoutMs = Number.parseInt(process.env.NH_RUNTIME_HUD_VERIFY_TIMEOUT_MS ?? "300000", 10);
 
 const child = spawn(electronPath, [validatorPath, projectRoot], {
   cwd: projectRoot,

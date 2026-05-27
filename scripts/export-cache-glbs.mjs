@@ -208,7 +208,7 @@ function appendModelGeometry(mesh, model, recolorSource) {
   const sourceVertexBase = mesh.sourceVertexGroups.length;
   const sourceFaceBase = mesh.sourceFaceAlphaGroups.length;
   const sourceVertexGroups = modelVertexGroups(model);
-  const faceDrawOrder = kronosFaceRenderPriorityOrder(model, faceCount);
+  const faceDrawOrder = nhFaceRenderPriorityOrder(model, faceCount);
   const litFaces = createClientPlayerFaceColors(model, faceCount, (faceIndex) =>
     applyRecolors(model.faceColors[faceIndex], recolorSource)
   );
@@ -253,7 +253,7 @@ function appendModelGeometry(mesh, model, recolorSource) {
   }
 }
 
-function kronosFaceRenderPriorityOrder(model, faceCount) {
+function nhFaceRenderPriorityOrder(model, faceCount) {
   if (!model.faceRenderPriorities?.length) {
     return Array.from({ length: faceCount }, (_, faceIndex) => faceIndex);
   }
@@ -636,7 +636,7 @@ function makeGlb(mesh, exportDef) {
   const gltf = {
     asset: {
       version: "2.0",
-      generator: "KronosNHTrainer export-cache-glbs.mjs"
+      generator: "NhNHTrainer export-cache-glbs.mjs"
     },
     scene: 0,
     scenes: [{ nodes: [0] }],
@@ -656,7 +656,7 @@ function makeGlb(mesh, exportDef) {
           }
         ],
         extras: {
-          source: "Kronos cache ModelDefinition",
+          source: "Nh cache ModelDefinition",
           sourceModels: mesh.sourceModels
         }
       }
@@ -739,7 +739,7 @@ async function writeGlb(outputDir, exportDef, mesh) {
     `${JSON.stringify(
       {
         generatedBy: "scripts/export-cache-glbs.mjs",
-        source: "Kronos cache ModelDefinition vertexGroups mapped to exported GLB vertices",
+        source: "Nh cache ModelDefinition vertexGroups mapped to exported GLB vertices",
         glb: relativeOutput,
         sourceVertexCount: mesh.sourceVertexGroups.length,
         expandedVertexCount: mesh.positions.length / 3,

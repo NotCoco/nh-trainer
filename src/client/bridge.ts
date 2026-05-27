@@ -25,7 +25,7 @@ export interface ClientShellFrameConfig {
   readonly rememberScreenBounds: boolean;
 }
 
-export interface KronosTrainerBridge {
+export interface NhTrainerBridge {
   readonly appName: "NH Trainer";
   readonly sourceOfTruth: "reference-client";
   readonly listSimFixtures: () => Promise<readonly SimFixtureSummary[]>;

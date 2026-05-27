@@ -8,8 +8,8 @@ function read(relativePath) {
   return fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
+function readNhClient(relativePath) {
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
 }
 
 function assert(condition, message) {
@@ -18,14 +18,14 @@ function assert(condition, message) {
   }
 }
 
-const pluginSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStylesPlugin.java");
-const configSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStylesConfig.java");
-const overlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStylesOverlay.java");
-const attackStyleSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStyle.java");
-const weaponTypeSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/WeaponType.java");
+const pluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStylesPlugin.java");
+const configSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStylesConfig.java");
+const overlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStylesOverlay.java");
+const attackStyleSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStyle.java");
+const weaponTypeSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/WeaponType.java");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
 const runtimeSource = read("src/ui/RuntimeSceneViewer.tsx");
-const hudSource = read("src/ui/KronosClientHud.tsx");
+const hudSource = read("src/ui/NhClientHud.tsx");
 const attackStylesSource = read("src/ui/runeliteAttackStyles.ts");
 const cssSource = read("src/ui/styles.css");
 
@@ -98,8 +98,8 @@ for (const trainerAnchor of [
   'id: "attack-styles"',
   'name: "Attack Styles"',
   'group: "attackIndicator"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStylesPlugin.java"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStylesConfig.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStylesPlugin.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStylesConfig.java"',
   'keyName: "warnForDefensive"',
   'keyName: "hideAutoRetaliate"',
   'keyName: "removeWarnedStyles"',
@@ -162,12 +162,12 @@ for (const trainerAnchor of [
   "visibleStyleSlots",
   "visibleAutocastControls",
   "autoRetaliate && !hideAutoRetaliate",
-  "kronosCombatStyleHiddenByRuneliteAttackStyles",
-  "kronosAutocastControlHiddenByRuneliteAttackStyles",
+  "nhCombatStyleHiddenByRuneliteAttackStyles",
+  "nhAutocastControlHiddenByRuneliteAttackStyles",
   "config.removeWarnedStyles",
   "control.defensive ? 5 : 4"
 ]) {
-  assert(hudSource.includes(trainerAnchor), `KronosClientHud missing AttackStylesPlugin widget effect ${trainerAnchor}`);
+  assert(hudSource.includes(trainerAnchor), `NhClientHud missing AttackStylesPlugin widget effect ${trainerAnchor}`);
 }
 
 for (const cssAnchor of [

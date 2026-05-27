@@ -4,13 +4,13 @@ import type { PrayerIcon, SkullIcon, VisibleEquipment } from "./clientView";
 
 type PlayerBodyColors = readonly [number, number, number, number, number];
 
-interface KronosKitDefinition {
+interface NhKitDefinition {
   readonly id: number;
   readonly bodyPartId: number;
   readonly nonSelectable?: boolean;
 }
 
-interface KronosServerItemDefinition {
+interface NhServerItemDefinition {
   readonly id: number;
   readonly equipSlot: number | null;
   readonly twoHanded?: boolean;
@@ -19,9 +19,9 @@ interface KronosServerItemDefinition {
   readonly hideArms?: boolean;
 }
 
-type KronosEquippedServerItemDefinition = KronosServerItemDefinition & { readonly equipSlot: number };
+type NhEquippedServerItemDefinition = NhServerItemDefinition & { readonly equipSlot: number };
 
-interface KronosAppearanceSequences {
+interface NhAppearanceSequences {
   readonly ready: number;
   readonly turnLeft: number;
   readonly walk: number;
@@ -31,13 +31,13 @@ interface KronosAppearanceSequences {
   readonly run: number;
 }
 
-export interface KronosClientAppearancePacketOptions {
+export interface NhClientAppearancePacketOptions {
   readonly equipment: VisibleEquipment;
   readonly bodyColors?: PlayerBodyColors;
   readonly gender?: 0 | 1;
   readonly skullIcon?: SkullIcon;
   readonly prayerIcon?: PrayerIcon;
-  readonly sequences?: Partial<KronosAppearanceSequences>;
+  readonly sequences?: Partial<NhAppearanceSequences>;
   readonly username?: string;
   readonly prefix?: string;
   readonly suffix?: string;
@@ -46,8 +46,8 @@ export interface KronosClientAppearancePacketOptions {
   readonly hidden?: boolean;
 }
 
-const kits = kitsJson as Record<string, KronosKitDefinition>;
-const serverItems = serverItemsJson as readonly KronosServerItemDefinition[];
+const kits = kitsJson as Record<string, NhKitDefinition>;
+const serverItems = serverItemsJson as readonly NhServerItemDefinition[];
 const serverItemById = new Map(serverItems.map((item) => [item.id, item]));
 
 const defaultBodyColors = [0, 0, 0, 0, 0] as const satisfies PlayerBodyColors;
@@ -59,7 +59,7 @@ const defaultSequences = {
   walkLeft: 821,
   walkRight: 822,
   run: 824
-} as const satisfies KronosAppearanceSequences;
+} as const satisfies NhAppearanceSequences;
 
 const defaultMaleBodyParts = [
   { bodyPartId: 0, equipmentSlot: 8 },
@@ -71,8 +71,8 @@ const defaultMaleBodyParts = [
   { bodyPartId: 6, equipmentSlot: 10 }
 ] as const;
 
-export function createKronosClientAppearancePacket(
-  options: KronosClientAppearancePacketOptions
+export function createNhClientAppearancePacket(
+  options: NhClientAppearancePacketOptions
 ): readonly number[] {
   const bytes: number[] = [];
   const sequences = { ...defaultSequences, ...options.sequences };
@@ -81,7 +81,7 @@ export function createKronosClientAppearancePacket(
   pushByte(bytes, headIconPk(options.skullIcon ?? "none"));
   pushByte(bytes, headIconPrayer(options.prayerIcon ?? "none"));
 
-  for (const encoded of kronosAppearanceEquipmentSlots(options.equipment)) {
+  for (const encoded of nhAppearanceEquipmentSlots(options.equipment)) {
     if (encoded === 0) {
       pushByte(bytes, 0);
     } else {
@@ -114,17 +114,17 @@ export function createKronosClientAppearancePacket(
   return bytes;
 }
 
-export function kronosAppearanceEquipmentSlots(equipment: VisibleEquipment): readonly number[] {
+export function nhAppearanceEquipmentSlots(equipment: VisibleEquipment): readonly number[] {
   const hiddenKitSlots = new Set<number>();
   const equipmentSlots = new Array<number>(12).fill(0);
-  const equippedServerItems: KronosEquippedServerItemDefinition[] = [];
+  const equippedServerItems: NhEquippedServerItemDefinition[] = [];
 
   for (const item of Object.values(equipment)) {
     const serverItem = item ? serverItemById.get(item.itemId) : undefined;
     if (!serverItem || !isPlayerAppearanceSlot(serverItem.equipSlot)) {
       continue;
     }
-    const equippedServerItem = serverItem as KronosEquippedServerItemDefinition;
+    const equippedServerItem = serverItem as NhEquippedServerItemDefinition;
     equippedServerItems.push(equippedServerItem);
     markHiddenBodyKitSlots(hiddenKitSlots, equippedServerItem);
   }
@@ -138,7 +138,7 @@ export function kronosAppearanceEquipmentSlots(equipment: VisibleEquipment): rea
   for (const item of Object.values(equipment)) {
     const serverItem = item ? serverItemById.get(item.itemId) : undefined;
     if (serverItem && isPlayerAppearanceSlot(serverItem.equipSlot)) {
-      equipmentSlots[(serverItem as KronosEquippedServerItemDefinition).equipSlot] = item.itemId + 512;
+      equipmentSlots[(serverItem as NhEquippedServerItemDefinition).equipSlot] = item.itemId + 512;
     }
   }
   clearInvalidTwoHandedAppearanceSlots(equipmentSlots, equippedServerItems);
@@ -160,7 +160,7 @@ function isPlayerAppearanceSlot(slot: number | null): slot is number {
   return Number.isInteger(slot) && slot !== null && slot >= 0 && slot < 12;
 }
 
-function markHiddenBodyKitSlots(hiddenKitSlots: Set<number>, serverItem: KronosEquippedServerItemDefinition): void {
+function markHiddenBodyKitSlots(hiddenKitSlots: Set<number>, serverItem: NhEquippedServerItemDefinition): void {
   hiddenKitSlots.add(serverItem.equipSlot);
   if (serverItem.equipSlot === 0 && serverItem.hideHair) {
     hiddenKitSlots.add(8);
@@ -175,7 +175,7 @@ function markHiddenBodyKitSlots(hiddenKitSlots: Set<number>, serverItem: KronosE
 
 function clearInvalidTwoHandedAppearanceSlots(
   equipmentSlots: number[],
-  equippedServerItems: readonly KronosEquippedServerItemDefinition[]
+  equippedServerItems: readonly NhEquippedServerItemDefinition[]
 ): void {
   const weapon = equippedServerItems.find((item) => item.equipSlot === 3);
   if (weapon?.twoHanded) {

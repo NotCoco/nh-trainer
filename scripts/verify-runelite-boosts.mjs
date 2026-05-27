@@ -8,8 +8,8 @@ function read(relativePath) {
   return fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
+function readNhClient(relativePath) {
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
 }
 
 function assert(condition, message) {
@@ -18,14 +18,14 @@ function assert(condition, message) {
   }
 }
 
-const pluginSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/boosts/BoostsPlugin.java");
-const configSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/boosts/BoostsConfig.java");
-const overlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/boosts/BoostsOverlay.java");
-const combatIconsSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/boosts/CombatIconsOverlay.java");
-const boostIndicatorSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/boosts/BoostIndicator.java");
-const infoBoxOverlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/infobox/InfoBoxOverlay.java");
-const infoBoxManagerSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/infobox/InfoBoxManager.java");
-const runeLiteConfigSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/config/RuneLiteConfig.java");
+const pluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/boosts/BoostsPlugin.java");
+const configSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/boosts/BoostsConfig.java");
+const overlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/boosts/BoostsOverlay.java");
+const combatIconsSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/boosts/CombatIconsOverlay.java");
+const boostIndicatorSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/boosts/BoostIndicator.java");
+const infoBoxOverlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/infobox/InfoBoxOverlay.java");
+const infoBoxManagerSource = readNhClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/infobox/InfoBoxManager.java");
+const runeLiteConfigSource = readNhClient("runelite-client/src/main/java/net/runelite/client/config/RuneLiteConfig.java");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
 const runtimeSource = read("src/ui/RuntimeSceneViewer.tsx");
 const boostsSource = read("src/ui/runeliteBoosts.ts");
@@ -137,8 +137,8 @@ for (const trainerAnchor of [
   'id: "boosts-information"',
   'name: "Boosts Information"',
   'group: "boosts"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/boosts/BoostsPlugin.java"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/boosts/BoostsConfig.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/boosts/BoostsPlugin.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/boosts/BoostsConfig.java"',
   'keyName: "infoBoxVertical"',
   'keyName: "infoBoxWrap"',
   'keyName: "infoBoxSize"',

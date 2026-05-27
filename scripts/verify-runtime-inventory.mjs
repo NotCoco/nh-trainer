@@ -9,7 +9,7 @@ const require = createRequire(import.meta.url);
 const electronPath = require("electron");
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const validatorPath = path.join(projectRoot, "scripts", "runtime-inventory-validation-electron.cjs");
-const screenshotPath = uniqueScreenshotPath("kronos-nh-trainer-runtime-inventory-quantities-v1");
+const screenshotPath = uniqueScreenshotPath("nh-nh-trainer-runtime-inventory-quantities-v1");
 
 await mkdir(screenshotDir, { recursive: true });
 

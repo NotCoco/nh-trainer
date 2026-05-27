@@ -8,7 +8,7 @@ const require = createRequire(import.meta.url);
 const electronPath = require("electron");
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const scriptPath = path.join(projectRoot, "scripts", "inventory-spell-player-same-tick-electron.cjs");
-const kronosRoot = path.resolve(projectRoot, "..", "kronos-osrs-184-master", "kronos-osrs-184-master", "Kronos-master");
+const nhRoot = path.resolve(projectRoot, "..", "nh-osrs-184-master", "nh-osrs-184-master", "Nh-master");
 
 const runtimeSource = await readFile(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
 for (const snippet of [
@@ -18,11 +18,11 @@ for (const snippet of [
   "lastPlayerQueuedCombatKind = \"spell\"",
   "applyPlayerSpellCommand(packet.entry, packet.position, packet.spellId, \"queued\")",
   "actionSequenceKey: actionFrameActive ? actionSequenceKey ?? undefined : undefined",
-  "kronosAdvancePrimarySequenceCursor",
+  "nhAdvancePrimarySequenceCursor",
   "primaryFrameCycle > frameLength",
   "completedSequenceKey: actor.activeSequenceKey",
   "lastActionAnimationCycle",
-  "Kronos client LoginPacket.method3722 starts a sequence once, then class329 only advances"
+  "Nh client LoginPacket.method3722 starts a sequence once, then class329 only advances"
 ]) {
   if (!runtimeSource.includes(snippet)) {
     throw new Error(`RuntimeSceneViewer missing same-tick spell/player packet snippet: ${snippet}`);
@@ -30,7 +30,7 @@ for (const snippet of [
 }
 
 const clientSource = await readFile(
-  path.join(kronosRoot, "runelite", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "Client.java"),
+  path.join(nhRoot, "runelite", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "Client.java"),
   "utf8"
 );
 for (const snippet of [
@@ -41,16 +41,16 @@ for (const snippet of [
   "var10.packetBuffer.method5543(AttackOption.selectedSpellWidget);"
 ]) {
   if (!clientSource.includes(snippet)) {
-    throw new Error(`Kronos client selected-spell packet source evidence missing ${snippet}`);
+    throw new Error(`Nh client selected-spell packet source evidence missing ${snippet}`);
   }
 }
 
 const loginPacketSource = await readFile(
-  path.join(kronosRoot, "runelite", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "LoginPacket.java"),
+  path.join(nhRoot, "runelite", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "LoginPacket.java"),
   "utf8"
 );
 const clientActorStepSource = await readFile(
-  path.join(kronosRoot, "runelite", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "class329.java"),
+  path.join(nhRoot, "runelite", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "class329.java"),
   "utf8"
 );
 for (const snippet of [
@@ -60,20 +60,20 @@ for (const snippet of [
 ]) {
   const source = snippet.startsWith("++") ? clientActorStepSource : loginPacketSource;
   if (!source.includes(snippet)) {
-    throw new Error(`Kronos client animation sequence source evidence missing ${snippet}`);
+    throw new Error(`Nh client animation sequence source evidence missing ${snippet}`);
   }
 }
 
 const targetSpellSource = await readFile(
-  path.join(kronosRoot, "kronos-server", "src", "main", "java", "io", "ruin", "model", "skills", "magic", "spells", "TargetSpell.java"),
+  path.join(nhRoot, "nh-server", "src", "main", "java", "io", "ruin", "model", "skills", "magic", "spells", "TargetSpell.java"),
   "utf8"
 );
 if (!targetSpellSource.includes("entityAction = (p, e) -> p.getCombat().queueSpell(this, e);")) {
-  throw new Error("Kronos TargetSpell source evidence missing queueSpell entity action");
+  throw new Error("Nh TargetSpell source evidence missing queueSpell entity action");
 }
 
 const playerCombatSource = await readFile(
-  path.join(kronosRoot, "kronos-server", "src", "main", "java", "io", "ruin", "model", "entity", "player", "PlayerCombat.java"),
+  path.join(nhRoot, "nh-server", "src", "main", "java", "io", "ruin", "model", "entity", "player", "PlayerCombat.java"),
   "utf8"
 );
 for (const snippet of [
@@ -84,7 +84,7 @@ for (const snippet of [
   "if(!spell.cast(player, target))"
 ]) {
   if (!playerCombatSource.includes(snippet)) {
-    throw new Error(`Kronos PlayerCombat spell source evidence missing ${snippet}`);
+    throw new Error(`Nh PlayerCombat spell source evidence missing ${snippet}`);
   }
 }
 

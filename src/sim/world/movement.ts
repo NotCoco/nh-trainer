@@ -93,7 +93,7 @@ export function canMeleeReachThisTick(input: MeleeReachInput): MeleeReachResult 
     };
   }
 
-  // Kronos' NH helper allows a one-tick step only if that step lands cardinal-adjacent.
+  // Nh' NH helper allows a one-tick step only if that step lands cardinal-adjacent.
   if (dx <= 2 && dy <= 2) {
     const afterStepDx = Math.max(0, dx - 1);
     const afterStepDy = Math.max(0, dy - 1);

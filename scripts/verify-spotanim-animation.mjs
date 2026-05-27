@@ -153,9 +153,9 @@ function firstAnimatedDelta(sequence, metadata, fixtures, playbackMode) {
   let elapsed = 0;
   for (const sequenceFrame of sequence.frames) {
     const { root, positions } = geometryForMetadata(metadata);
-    attachKronosAnimationMetadata(root, metadata);
+    attachNhAnimationMetadata(root, metadata);
     const before = Float32Array.from(positions);
-    const frame = applyKronosSequenceAnimation(root, sequence, elapsed, fixtures, playbackMode);
+    const frame = applyNhSequenceAnimation(root, sequence, elapsed, fixtures, playbackMode);
     const delta = positionDelta(before, positions);
     if (frame && delta > 0.001) {
       return { frameKey: frame.frameKey, elapsed, delta };
@@ -169,9 +169,9 @@ function firstAlphaDelta(sequence, metadata, fixtures, playbackMode) {
   let elapsed = 0;
   for (const sequenceFrame of sequence.frames) {
     const { root, colors, material } = geometryForMetadata(metadata);
-    attachKronosAnimationMetadata(root, metadata);
+    attachNhAnimationMetadata(root, metadata);
     const before = Float32Array.from(colors);
-    const frame = applyKronosSequenceAnimation(root, sequence, elapsed, fixtures, playbackMode);
+    const frame = applyNhSequenceAnimation(root, sequence, elapsed, fixtures, playbackMode);
     const delta = colorAlphaDelta(before, colors);
     if (frame && delta > 0.001) {
       return { frameKey: frame.frameKey, elapsed, delta, materialTransparent: material.transparent };
@@ -214,11 +214,11 @@ function matchingAlphaTransformTypes(sequence, metadata, frameStore) {
 }
 
 const {
-  applyKronosSequenceAnimation,
-  attachKronosAnimationMetadata,
-  kronosRenderSequenceFromRawSequence,
-  sampleKronosSequenceFrame
-} = loadTsModule("src/render/kronosSequencePlayback.ts");
+  applyNhSequenceAnimation,
+  attachNhAnimationMetadata,
+  nhRenderSequenceFromRawSequence,
+  sampleNhSequenceFrame
+} = loadTsModule("src/render/nhSequencePlayback.ts");
 
 const rawSequences = readJson("fixtures/assets/animations/sequences.json");
 const frameStore = readJson("fixtures/assets/animations/frames.json");
@@ -239,7 +239,7 @@ const meshBySpotanim = new Map([
 ]);
 
 const sequencesById = new Map(
-  Object.values(rawSequences).map((sequence) => [sequence.id, kronosRenderSequenceFromRawSequence(sequence)])
+  Object.values(rawSequences).map((sequence) => [sequence.id, nhRenderSequenceFromRawSequence(sequence)])
 );
 const fixtures = {
   frameStore,
@@ -315,12 +315,12 @@ for (const [spotanimId, spec] of meshBySpotanim) {
 
 const barrageSequence = sequencesById.get(1964);
 const barrageTotalCycles = barrageSequence.frames.reduce((total, frame) => total + frame.lengthClientCycles, 0);
-const wrappedBarrage = sampleKronosSequenceFrame(barrageSequence, barrageTotalCycles + 1, "loop");
+const wrappedBarrage = sampleNhSequenceFrame(barrageSequence, barrageTotalCycles + 1, "loop");
 assert(wrappedBarrage?.frameKey === barrageSequence.frames[0].frameKey, "projectile spotanim playback should loop");
 
 const gmaulSequence = sequencesById.get(1668);
 const gmaulTotalCycles = gmaulSequence.frames.reduce((total, frame) => total + frame.lengthClientCycles, 0);
-assert(sampleKronosSequenceFrame(gmaulSequence, gmaulTotalCycles, "primary") === null, "actor spotanim playback should terminate");
+assert(sampleNhSequenceFrame(gmaulSequence, gmaulTotalCycles, "primary") === null, "actor spotanim playback should terminate");
 
 console.log(
   JSON.stringify(

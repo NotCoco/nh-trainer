@@ -89,8 +89,8 @@ function readJson(relativePath) {
   return JSON.parse(readFileSync(path.join(projectRoot, relativePath), "utf8"));
 }
 
-function readKronosClientSource(relativePath) {
-  return readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", ...relativePath.split("/")), "utf8");
+function readNhClientSource(relativePath) {
+  return readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", ...relativePath.split("/")), "utf8");
 }
 
 function assert(condition, message) {
@@ -211,7 +211,7 @@ function sceneMaterialTransparent(scene) {
 }
 
 function sceneHasTextureMaterial(scene, textureId) {
-  return sceneMaterials(scene).some((material) => material.userData?.kronosTextureId === textureId && material.map);
+  return sceneMaterials(scene).some((material) => material.userData?.nhTextureId === textureId && material.map);
 }
 
 function sceneTextureGeometryUvCount(scene, textureId) {
@@ -221,7 +221,7 @@ function sceneTextureGeometryUvCount(scene, textureId) {
       return;
     }
     const materials = Array.isArray(node.material) ? node.material : [node.material];
-    if (!materials.some((material) => material.userData?.kronosTextureId === textureId)) {
+    if (!materials.some((material) => material.userData?.nhTextureId === textureId)) {
       return;
     }
     uvCount += node.geometry.getAttribute("uv")?.count ?? 0;
@@ -231,7 +231,7 @@ function sceneTextureGeometryUvCount(scene, textureId) {
 
 function sceneTextureOffset(scene, textureId) {
   for (const material of sceneMaterials(scene)) {
-    if (material.userData?.kronosTextureId === textureId && material.map) {
+    if (material.userData?.nhTextureId === textureId && material.map) {
       return { x: material.map.offset.x, y: material.map.offset.y };
     }
   }
@@ -240,7 +240,7 @@ function sceneTextureOffset(scene, textureId) {
 
 function sceneTextureMaterialDepthTest(scene, textureId) {
   for (const material of sceneMaterials(scene)) {
-    if (material.userData?.kronosTextureId === textureId) {
+    if (material.userData?.nhTextureId === textureId) {
       return material.depthTest;
     }
   }
@@ -249,7 +249,7 @@ function sceneTextureMaterialDepthTest(scene, textureId) {
 
 function sceneTextureMaterialDepthWrite(scene, textureId) {
   for (const material of sceneMaterials(scene)) {
-    if (material.userData?.kronosTextureId === textureId) {
+    if (material.userData?.nhTextureId === textureId) {
       return material.depthWrite;
     }
   }
@@ -258,7 +258,7 @@ function sceneTextureMaterialDepthWrite(scene, textureId) {
 
 function sceneTextureMaterialTransparent(scene, textureId) {
   for (const material of sceneMaterials(scene)) {
-    if (material.userData?.kronosTextureId === textureId) {
+    if (material.userData?.nhTextureId === textureId) {
       return material.transparent;
     }
   }
@@ -268,11 +268,11 @@ function sceneTextureMaterialTransparent(scene, textureId) {
 function firstPainterGeometry(scene) {
   let found = null;
   scene.traverse?.((node) => {
-    if (!found && node.isMesh && node.geometry?.userData?.kronosPlayerPainter) {
+    if (!found && node.isMesh && node.geometry?.userData?.nhPlayerPainter) {
       found = node.geometry;
     }
   });
-  if (!found && scene.isMesh && scene.geometry?.userData?.kronosPlayerPainter) {
+  if (!found && scene.isMesh && scene.geometry?.userData?.nhPlayerPainter) {
     found = scene.geometry;
   }
   return found;
@@ -321,17 +321,17 @@ function colorDelta(left, right) {
   return delta;
 }
 
-const { composeKronosPlayerModel, updateKronosAnimatedTextures, updateKronosPlayerModelPainterOrder } = loadTsModule("src/render/kronosPlayerModel.ts");
+const { composeNhPlayerModel, updateNhAnimatedTextures, updateNhPlayerModelPainterOrder } = loadTsModule("src/render/nhPlayerModel.ts");
 const { runtimeLoadouts } = loadTsModule("src/render/runtimeScene.ts");
 const { clientViewTraceToRuntimeReplay } = loadTsModule("src/render/clientViewReplay.ts");
 const {
-  createKronosClientAppearancePacket,
-  kronosAppearanceEquipmentSlots
+  createNhClientAppearancePacket,
+  nhAppearanceEquipmentSlots
 } = loadTsModule("src/sim/clientAppearancePacket.ts");
 const {
-  decodeKronosPlayerAppearancePacket,
-  kronosRuntimeAppearanceFromDecodedPacket
-} = loadTsModule("src/render/kronosPlayerAppearancePacket.ts");
+  decodeNhPlayerAppearancePacket,
+  nhRuntimeAppearanceFromDecodedPacket
+} = loadTsModule("src/render/nhPlayerAppearancePacket.ts");
 const {
   assertValidClientViewTrace,
   createDefaultNhDuelClientViewTrace,
@@ -361,21 +361,21 @@ function isRenderableAppearanceItem(itemId) {
 const summary = [];
 const bodyColorPaletteLengths = sources.bodyColors.primaryPalettes.map((palette) => palette.length);
 
-const livePlayerSource = readKronosClientSource("runelite-client/src/main/java/net/runelite/standalone/Player.java");
-const clientActorMovementSource = readKronosClientSource("runelite-client/src/main/java/net/runelite/standalone/class329.java");
-const clientModelSource = readKronosClientSource("runelite-client/src/main/java/net/runelite/standalone/Model.java");
-const clientModelDataSource = readKronosClientSource("runelite-client/src/main/java/net/runelite/standalone/ModelData.java");
-const clientPlayerAppearanceSource = readKronosClientSource("runelite-client/src/main/java/net/runelite/standalone/PlayerAppearance.java");
-const clientRasterizer3dSource = readKronosClientSource("runelite-client/src/main/java/net/runelite/standalone/Rasterizer3D.java");
-const clientTextureSource = readKronosClientSource("runelite-client/src/main/java/net/runelite/standalone/Texture.java");
-const clientTextureProviderSource = readKronosClientSource("runelite-client/src/main/java/net/runelite/standalone/TextureProvider.java");
-const clientCycleSource = readKronosClientSource("runelite-client/src/main/java/net/runelite/standalone/Friend.java");
+const livePlayerSource = readNhClientSource("runelite-client/src/main/java/net/runelite/standalone/Player.java");
+const clientActorMovementSource = readNhClientSource("runelite-client/src/main/java/net/runelite/standalone/class329.java");
+const clientModelSource = readNhClientSource("runelite-client/src/main/java/net/runelite/standalone/Model.java");
+const clientModelDataSource = readNhClientSource("runelite-client/src/main/java/net/runelite/standalone/ModelData.java");
+const clientPlayerAppearanceSource = readNhClientSource("runelite-client/src/main/java/net/runelite/standalone/PlayerAppearance.java");
+const clientRasterizer3dSource = readNhClientSource("runelite-client/src/main/java/net/runelite/standalone/Rasterizer3D.java");
+const clientTextureSource = readNhClientSource("runelite-client/src/main/java/net/runelite/standalone/Texture.java");
+const clientTextureProviderSource = readNhClientSource("runelite-client/src/main/java/net/runelite/standalone/TextureProvider.java");
+const clientCycleSource = readNhClientSource("runelite-client/src/main/java/net/runelite/standalone/Friend.java");
 const captureClientReferenceSource = readFileSync(path.join(projectRoot, "scripts", "capture-client-reference.mjs"), "utf8");
 const runtimeViewerSource = readFileSync(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
 const renderParitySource = readFileSync(path.join(projectRoot, "scripts", "render-parity-electron.cjs"), "utf8");
 const electronMainSource = readFileSync(path.join(projectRoot, "src", "client", "main.ts"), "utf8");
-const playerModelSource = readFileSync(path.join(projectRoot, "src", "render", "kronosPlayerModel.ts"), "utf8");
-assertSourceIncludes(livePlayerSource, "byte[] kronosNhAppearancePacket;", "Player live appearance capture");
+const playerModelSource = readFileSync(path.join(projectRoot, "src", "render", "nhPlayerModel.ts"), "utf8");
+assertSourceIncludes(livePlayerSource, "byte[] nhNhAppearancePacket;", "Player live appearance capture");
 assertSourceIncludes(
   livePlayerSource,
   "Arrays.copyOf(var1.array, var1.offset)",
@@ -408,9 +408,9 @@ for (const snippet of [
   "client-actor-model-origin-contract",
   "Player.getModel() as a single composed model at the actor world position",
   "instance.position.set(0, 0, 0)",
-  "slot.group.rotation.y = kronosActorModelRotationRadiansFromFacingDegrees(pose.facingDegrees)",
-  "const orientationUnits = kronosFacingDegreesToOrientationUnits(degrees);",
-  "return (orientationUnits * Math.PI * 2) / KRONOS_ACTOR_ORIENTATION_UNITS;"
+  "slot.group.rotation.y = nhActorModelRotationRadiansFromFacingDegrees(pose.facingDegrees)",
+  "const orientationUnits = nhFacingDegreesToOrientationUnits(degrees);",
+  "return (orientationUnits * Math.PI * 2) / NH_ACTOR_ORIENTATION_UNITS;"
 ]) {
   assertSourceIncludes(runtimeViewerSource, snippet, "RuntimeSceneViewer actor model origin handling");
 }
@@ -429,7 +429,7 @@ for (const snippet of [
   assertSourceIncludes(
     snippet.includes("projectionMatrix") ? runtimeViewerSource : playerModelSource,
     snippet,
-    "Kronos player model client-coordinate basis"
+    "Nh player model client-coordinate basis"
   );
 }
 assert(
@@ -439,40 +439,40 @@ assert(
 assertSourceIncludes(
   clientActorMovementSource,
   "var0.orientation = (int)(Math.atan2((double)var12, (double)var4) * 325.949D) & 2047;",
-  "Kronos actor target-facing orientation"
+  "Nh actor target-facing orientation"
 );
 assertSourceIncludes(
   clientModelSource,
   "var42 = var41 * var36 + var39 * var37 >> 16;",
-  "Kronos Model.draw actor orientation rotation"
+  "Nh Model.draw actor orientation rotation"
 );
 for (const snippet of [
   "byte var33 = this.faceRenderPriorities[var11];",
   "for(var15 = 0; var15 < 10; ++var15)"
 ]) {
-  assertSourceIncludes(clientModelSource, snippet, "Kronos Model.draw face render priority order");
+  assertSourceIncludes(clientModelSource, snippet, "Nh Model.draw face render priority order");
 }
 for (const snippet of [
   "preparePlayerModelParts",
-  "kronosPlayerFaceDrawOrder",
-  "kronosModelFacePriority",
+  "nhPlayerFaceDrawOrder",
+  "nhModelFacePriority",
   "model.priority ?? 0",
   "createPlayerAppearanceScene",
   "geometry.addGroup",
   "playerTriangleMaterialKey",
-  "updateKronosPlayerModelPainterOrder",
-  "kronosPainterTriangleOrder",
-  "Kronos Model.method2375 projected depth bucket ordering and face priority pass",
+  "updateNhPlayerModelPainterOrder",
+  "nhPainterTriangleOrder",
+  "Nh Model.method2375 projected depth bucket ordering and face priority pass",
   "model.faceTextures?.[faceIndex]",
   "faceTextureUCoordinates",
   "render/textures/texture_${textureId}.png",
-  "updateKronosAnimatedTextures",
-  "Kronos Texture.copy$animate",
+  "updateNhAnimatedTextures",
+  "Nh Texture.copy$animate",
   "cache-composed-player-appearance-opaque",
   "cache-composed-player-appearance-alpha",
   "clonePlayerAppearanceGeometry",
   "playerTriangleUsesTransparentPass",
-  "kronosTriangleSourceIndices",
+  "nhTriangleSourceIndices",
   "Browser renderer split: opaque faces stay in Three's opaque path",
   "depthTest: true",
   "depthWrite: !transparent",
@@ -488,25 +488,25 @@ for (const snippet of [
   "if(this.animationDirection == 1 || this.animationDirection == 3)",
   "if(this.animationDirection == 2 || this.animationDirection == 4)"
 ]) {
-  assertSourceIncludes(clientTextureSource, snippet, "Kronos texture animation definition and software animate path");
+  assertSourceIncludes(clientTextureSource, snippet, "Nh texture animation definition and software animate path");
 }
 for (const snippet of [
   "var3.animationDirection != 0",
   "var3.method2345(var1)"
 ]) {
-  assertSourceIncludes(clientTextureProviderSource, snippet, "Kronos TextureProvider animated texture cycle");
+  assertSourceIncludes(clientTextureProviderSource, snippet, "Nh TextureProvider animated texture cycle");
 }
 assertSourceIncludes(
   clientCycleSource,
   "((TextureProvider)Rasterizer3D.Rasterizer3D_textureLoader).method2846(Client.field906);",
-  "Kronos client texture animation tick"
+  "Nh client texture animation tick"
 );
 for (const snippet of [
   "this.faceTextures != null && this.faceTextures[var1] != -1",
   "Rasterizer3D.method2957",
   "this.faceTextures[var1]"
 ]) {
-  assertSourceIncludes(clientModelSource, snippet, "Kronos Model textured face draw path");
+  assertSourceIncludes(clientModelSource, snippet, "Nh Model textured face draw path");
 }
 for (const snippet of [
   "var8.faceTextures = this.faceTextures",
@@ -514,13 +514,13 @@ for (const snippet of [
   "faceTextureUCoordinates",
   "faceTextureVCoordinates"
 ]) {
-  assertSourceIncludes(clientModelDataSource, snippet, "Kronos ModelData texture and UV transfer path");
+  assertSourceIncludes(clientModelDataSource, snippet, "Nh ModelData texture and UV transfer path");
 }
 for (const snippet of [
   "new ModelData(var16, var11)",
   "var8 = var18.method2778(64, 850, -30, -50, -30);"
 ]) {
-  assertSourceIncludes(clientPlayerAppearanceSource, snippet, "Kronos PlayerAppearance player model lighting call");
+  assertSourceIncludes(clientPlayerAppearanceSource, snippet, "Nh PlayerAppearance player model lighting call");
 }
 for (const snippet of [
   "this.method2774();",
@@ -529,7 +529,7 @@ for (const snippet of [
   "var8.faceColors3[var16] = -2;",
   "var8.faceColors1[var16] = 128;"
 ]) {
-  assertSourceIncludes(clientModelDataSource, snippet, "Kronos ModelData.method2778 lighting path");
+  assertSourceIncludes(clientModelDataSource, snippet, "Nh ModelData.method2778 lighting path");
 }
 for (const snippet of [
   "Rasterizer3D_colorPalette = new int[65536];",
@@ -537,7 +537,7 @@ for (const snippet of [
   "+ 0.0078125D",
   "+ 0.0625D"
 ]) {
-  assertSourceIncludes(clientRasterizer3dSource, snippet, "Kronos Rasterizer3D HSL color palette");
+  assertSourceIncludes(clientRasterizer3dSource, snippet, "Nh Rasterizer3D HSL color palette");
 }
 for (const snippet of [
   "RASTERIZER_3D_BRIGHTNESS = 0.9",
@@ -560,17 +560,17 @@ assert(
 );
 assertSourceIncludes(
   runtimeViewerSource,
-  "loadJson<NonNullable<KronosPlayerModelSources[\"textures\"]>>(\"assets/defs/textures.json\")",
+  "loadJson<NonNullable<NhPlayerModelSources[\"textures\"]>>(\"assets/defs/textures.json\")",
   "RuntimeSceneViewer player model texture metadata loading"
 );
 assertSourceIncludes(
   runtimeViewerSource,
-  "updateKronosAnimatedTextures(boundary.scene, renderClientCycle)",
+  "updateNhAnimatedTextures(boundary.scene, renderClientCycle)",
   "RuntimeSceneViewer player texture animation cycle"
 );
 assertSourceIncludes(
   runtimeViewerSource,
-  "updateKronosPlayerModelPainterOrder(boundary.scene, boundary.camera)",
+  "updateNhPlayerModelPainterOrder(boundary.scene, boundary.camera)",
   "RuntimeSceneViewer player model painter ordering cycle"
 );
 for (const snippet of [
@@ -595,7 +595,7 @@ for (const snippet of [
 
 const fireCapeModel = sources.cacheModels["9638"];
 const fireCapeTexture = sources.textures.textures.find((texture) => texture.id === 40);
-assert(fireCapeModel, "Fire cape worn model 9638 should be exported from the Kronos cache");
+assert(fireCapeModel, "Fire cape worn model 9638 should be exported from the Nh cache");
 assert(
   fireCapeModel.faceTextures?.includes(40),
   "Fire cape worn model 9638 should carry source face texture id 40"
@@ -603,16 +603,16 @@ assert(
 assert(
   fireCapeModel.faceTextureUCoordinates?.some((coords) => coords?.length === 3) &&
     fireCapeModel.faceTextureVCoordinates?.some((coords) => coords?.length === 3),
-  "Fire cape worn model 9638 should carry computed Kronos texture UVs"
+  "Fire cape worn model 9638 should carry computed Nh texture UVs"
 );
-assert(fireCapeTexture, "Fire cape texture 40 should be exported from Kronos texture definitions");
+assert(fireCapeTexture, "Fire cape texture 40 should be exported from Nh texture definitions");
 assert(
   fireCapeTexture.animationDirection === 1 && fireCapeTexture.animationSpeed === 2,
-  `Fire cape texture 40 should keep Kronos animation timing: ${JSON.stringify(fireCapeTexture)}`
+  `Fire cape texture 40 should keep Nh animation timing: ${JSON.stringify(fireCapeTexture)}`
 );
 
 for (const loadout of runtimeLoadouts) {
-  const composed = composeKronosPlayerModel(sources, {
+  const composed = composeNhPlayerModel(sources, {
     itemIds: loadout.itemIds,
     bodyColors: loadout.bodyColors
   });
@@ -647,34 +647,34 @@ for (const loadout of runtimeLoadouts) {
     );
     assert(
       sceneTextureMaterialDepthWrite(composed.scene, 40) === false,
-      `${loadout.id} Fire cape material should not self-write GPU depth before later Kronos painter faces`
+      `${loadout.id} Fire cape material should not self-write GPU depth before later Nh painter faces`
     );
     assert(
       sceneTextureMaterialTransparent(composed.scene, 40) === true,
       `${loadout.id} Fire cape material should stay in Three's transparent render pass so group order is not material-id sorted`
     );
     const painterGeometry = firstPainterGeometry(composed.scene);
-    assert(painterGeometry, `${loadout.id} should mark the composed actor geometry for Kronos painter sorting`);
+    assert(painterGeometry, `${loadout.id} should mark the composed actor geometry for Nh painter sorting`);
     assert(
-      painterGeometry.userData.kronosUsesFaceRenderPriorities === true,
-      `${loadout.id} should use the Kronos faceRenderPriorities path because Fire cape model 9638 has priorities`
+      painterGeometry.userData.nhUsesFaceRenderPriorities === true,
+      `${loadout.id} should use the Nh faceRenderPriorities path because Fire cape model 9638 has priorities`
     );
     const beforePainterIndex = Array.from(painterGeometry.index.array.slice(0, 90));
     const painterCamera = new PerspectiveCamera(45, 1, 0.1, 1000);
     painterCamera.position.set(0, 0, 12);
     painterCamera.lookAt(0, 0, 0);
-    updateKronosPlayerModelPainterOrder(composed.scene, painterCamera);
+    updateNhPlayerModelPainterOrder(composed.scene, painterCamera);
     const afterPainterIndex = Array.from(painterGeometry.index.array.slice(0, 90));
     assert(
       beforePainterIndex.some((value, index) => value !== afterPainterIndex[index]),
-      `${loadout.id} Kronos painter order should be recalculated from projected depth instead of staying static`
+      `${loadout.id} Nh painter order should be recalculated from projected depth instead of staying static`
     );
     assert(sceneTextureGeometryUvCount(composed.scene, 40) > 0, `${loadout.id} Fire cape texture mesh should carry UVs`);
-    updateKronosAnimatedTextures(composed.scene, 32);
+    updateNhAnimatedTextures(composed.scene, 32);
     const textureOffset = sceneTextureOffset(composed.scene, 40);
     assert(
       textureOffset?.y === -0.5 && textureOffset?.x === 0,
-      `${loadout.id} Fire cape texture 40 should animate with Kronos direction=1 speed=2 at client cycle 32: ${JSON.stringify(textureOffset)}`
+      `${loadout.id} Fire cape texture 40 should animate with Nh direction=1 speed=2 at client cycle 32: ${JSON.stringify(textureOffset)}`
     );
     assert(
       composed.metadata.sourceModels.some(
@@ -693,7 +693,7 @@ for (const loadout of runtimeLoadouts) {
     assert(sourceItemIds.has(itemId), `${loadout.id} should include equipped item ${itemId}`);
   }
 
-  const alternateBodyColors = composeKronosPlayerModel(sources, {
+  const alternateBodyColors = composeNhPlayerModel(sources, {
     itemIds: loadout.itemIds,
     bodyColors: [1, 1, 1, 1, 1]
   });
@@ -751,7 +751,7 @@ const rawAppearanceBytes = buildRawAppearancePacket({
   skillLevel: 2277,
   isHidden: true
 });
-const decodedPacket = decodeKronosPlayerAppearancePacket(rawAppearanceBytes, {
+const decodedPacket = decodeNhPlayerAppearancePacket(rawAppearanceBytes, {
   bodyColorPaletteLengths,
   itemTeamById: { 11785: 7 }
 });
@@ -759,8 +759,8 @@ assert(decodedPacket.bytesRead === rawAppearanceBytes.length, "raw appearance de
 assert(decodedPacket.isFemale, "raw appearance gender byte should map to PlayerAppearance.isFemale");
 assert(decodedPacket.headIconPk === -1, "raw appearance should decode signed pk icon byte");
 assert(decodedPacket.headIconPrayer === 2, "raw appearance should decode signed prayer icon byte");
-const redemptionPacket = decodeKronosPlayerAppearancePacket(
-  createKronosClientAppearancePacket({
+const redemptionPacket = decodeNhPlayerAppearancePacket(
+  createNhClientAppearancePacket({
     equipment: {},
     prayerIcon: "redemption",
     skullIcon: "none",
@@ -787,16 +787,16 @@ assertArrayEquals(
   "raw appearance item ids should be derived from encoded equipment slots"
 );
 
-const packetRuntimeAppearance = kronosRuntimeAppearanceFromDecodedPacket(decodedPacket);
+const packetRuntimeAppearance = nhRuntimeAppearanceFromDecodedPacket(decodedPacket);
 assert(packetRuntimeAppearance.source === "client-packet", "decoded packet runtime appearance should keep its source");
-const packetModel = composeKronosPlayerModel(sources, packetRuntimeAppearance);
+const packetModel = composeNhPlayerModel(sources, packetRuntimeAppearance);
 assertArrayEquals(
   packetModel.metadata.equipmentSlots,
   acbLoadout.equipmentSlots,
   "decoded packet appearance should compose with exact raw equipment slots"
 );
 
-const invalidBodyColorPacket = decodeKronosPlayerAppearancePacket(
+const invalidBodyColorPacket = decodeNhPlayerAppearancePacket(
   buildRawAppearancePacket({
     equipmentSlots: acbLoadout.equipmentSlots,
     bodyColors: [255, 2, 3, 4, 5],
@@ -807,7 +807,7 @@ const invalidBodyColorPacket = decodeKronosPlayerAppearancePacket(
 );
 assert(invalidBodyColorPacket.bodyColors[0] === 0, "raw appearance should clamp out-of-range body colors to zero");
 
-const npcTransformPacket = decodeKronosPlayerAppearancePacket(
+const npcTransformPacket = decodeNhPlayerAppearancePacket(
   buildRawAppearancePacket({
     equipmentSlots: [],
     bodyColors: [0, 0, 0, 0, 0],
@@ -825,14 +825,14 @@ const rawAppearanceTraceBase = createDefaultNhDuelClientViewTrace({ ticks: 2 });
 const generatedPacketActor = rawAppearanceTraceBase.ticks[0].actors.self;
 const generatedPacket = generatedPacketActor.appearancePacket;
 assert(Array.isArray(generatedPacket) && generatedPacket.length > 0, "generated NH trace actors should carry raw appearance packets");
-const generatedDecodedPacket = decodeKronosPlayerAppearancePacket(generatedPacket, { bodyColorPaletteLengths });
+const generatedDecodedPacket = decodeNhPlayerAppearancePacket(generatedPacket, { bodyColorPaletteLengths });
 assertArrayEquals(
   generatedDecodedPacket.equipmentSlots,
-  kronosAppearanceEquipmentSlots(generatedPacketActor.equipment),
+  nhAppearanceEquipmentSlots(generatedPacketActor.equipment),
   "generated raw appearance packet should encode the same source equipment slots exposed in the client-view actor"
 );
 assertArrayEquals(
-  createKronosClientAppearancePacket({ equipment: generatedPacketActor.equipment, prayerIcon: generatedPacketActor.overheadPrayer, skullIcon: generatedPacketActor.skullIcon, username: "Local trainer" }),
+  createNhClientAppearancePacket({ equipment: generatedPacketActor.equipment, prayerIcon: generatedPacketActor.overheadPrayer, skullIcon: generatedPacketActor.skullIcon, username: "Local trainer" }),
   generatedPacket,
   "generated raw appearance packet builder should be deterministic for the visible actor"
 );
@@ -910,7 +910,7 @@ const kodaiAppearanceTrace = {
             self: {
               ...tick.actors.self,
               equipment: kodaiVisibleEquipment,
-              appearancePacket: createKronosClientAppearancePacket({
+              appearancePacket: createNhClientAppearancePacket({
                 equipment: kodaiVisibleEquipment,
                 prayerIcon: tick.actors.self.overheadPrayer,
                 skullIcon: tick.actors.self.skullIcon,
@@ -930,7 +930,7 @@ assert(
   `Kodai equipment should resolve to the mage loadout after the shared Mage's book guard: ${JSON.stringify(kodaiAppearancePose)}`
 );
 
-const sequenceOverrideModel = composeKronosPlayerModel(sources, {
+const sequenceOverrideModel = composeNhPlayerModel(sources, {
   itemIds: [11785, 4736, 4738],
   bodyColors: [0, 0, 0, 0, 0],
   shieldOverrideId: 6889 + 512,
@@ -953,7 +953,7 @@ assert(sequenceOverrideItemIds.has(6914), "sequence weapon override should compo
 assert(sequenceOverrideItemIds.has(6889), "sequence shield override should compose the override shield model");
 assert(!sequenceOverrideItemIds.has(11785), "sequence weapon override should replace the base weapon model");
 
-const twoHandedLoadoutModel = composeKronosPlayerModel(sources, {
+const twoHandedLoadoutModel = composeNhPlayerModel(sources, {
   itemIds: [4153, 6889, 11832, 11834],
   bodyColors: [0, 0, 0, 0, 0]
 });
@@ -987,10 +987,10 @@ for (const trace of clientViewTraces) {
         const clientActorId = pose.actorId === "local-player" ? "self" : "opponent";
         const clientActor = traceTick?.actors[clientActorId];
         assert(clientActor?.appearancePacket, `${replay.id} ${pose.actorId} tick ${keyframe.cycle} is missing raw appearance bytes`);
-        const decoded = decodeKronosPlayerAppearancePacket(clientActor.appearancePacket, { bodyColorPaletteLengths });
+        const decoded = decodeNhPlayerAppearancePacket(clientActor.appearancePacket, { bodyColorPaletteLengths });
         assertArrayEquals(
           decoded.equipmentSlots,
-          kronosAppearanceEquipmentSlots(clientActor.equipment),
+          nhAppearanceEquipmentSlots(clientActor.equipment),
           `${replay.id} ${pose.actorId} tick ${keyframe.cycle} raw appearance bytes should encode visible equipment`
         );
         assert(
@@ -1013,7 +1013,7 @@ for (const trace of clientViewTraces) {
         assert(serverItemById.has(itemId), `${replay.id} appearance item ${itemId} is missing server definition`);
       }
 
-      const composed = composeKronosPlayerModel(sources, pose.appearance);
+      const composed = composeNhPlayerModel(sources, pose.appearance);
       const sourceItemIds = new Set(
         composed.metadata.sourceModels
           .filter((sourceModel) => sourceModel.kind === "item")

@@ -58,7 +58,7 @@ export function createDisabledMinimapClientViewTrace(): ClientViewTrace {
   return {
     schemaVersion: "client-view.v1",
     fixtureId: "generated-disabled-minimap-v1",
-    description: "Generated client-view trace for Kronos minimapState disabled-mask rendering.",
+    description: "Generated client-view trace for Nh minimapState disabled-mask rendering.",
     actors: ["self", "opponent"],
     sourceAnchorIds: [
       "client-camera-held-arrow-contract",

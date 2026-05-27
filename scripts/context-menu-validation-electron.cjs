@@ -92,11 +92,11 @@ async function openContextMenu(window) {
           stopPropagation() {},
           currentTarget: canvas
         });
-        let menu = document.querySelector(".kronosContextMenu");
+        let menu = document.querySelector(".nhContextMenu");
         const deadline = Date.now() + 1000;
         while (!menu && Date.now() < deadline) {
           await new Promise((resolve) => requestAnimationFrame(resolve));
-          menu = document.querySelector(".kronosContextMenu");
+          menu = document.querySelector(".nhContextMenu");
         }
         if (!menu) {
           return { ok: false, error: "context menu did not open", canvasRect: {
@@ -108,11 +108,11 @@ async function openContextMenu(window) {
         }
         const menuRect = menu.getBoundingClientRect();
         const canvasRect = canvas.getBoundingClientRect();
-        const title = menu.querySelector(".kronosContextMenuTitle")?.textContent ?? "";
-        const titleGlyphs = Array.from(menu.querySelectorAll(".kronosContextMenuTitle .kronosContextMenuGlyph"));
-        const options = Array.from(menu.querySelectorAll(".kronosContextMenuOption")).map((option) => {
+        const title = menu.querySelector(".nhContextMenuTitle")?.textContent ?? "";
+        const titleGlyphs = Array.from(menu.querySelectorAll(".nhContextMenuTitle .nhContextMenuGlyph"));
+        const options = Array.from(menu.querySelectorAll(".nhContextMenuOption")).map((option) => {
           const optionRect = option.getBoundingClientRect();
-          const glyphs = Array.from(option.querySelectorAll(".kronosContextMenuGlyph"));
+          const glyphs = Array.from(option.querySelectorAll(".nhContextMenuGlyph"));
           return {
             text: option.textContent ?? "",
             top: Number.parseFloat(option.style.top || "0"),
@@ -120,9 +120,9 @@ async function openContextMenu(window) {
             glyphCount: glyphs.length
           };
         });
-        const firstGlyph = menu.querySelector(".kronosContextMenuGlyph");
+        const firstGlyph = menu.querySelector(".nhContextMenuGlyph");
         const firstGlyphStyle = firstGlyph ? getComputedStyle(firstGlyph) : null;
-        const inventorySprites = Array.from(document.querySelectorAll(".kronosInventoryItemSprite")).map((sprite) => {
+        const inventorySprites = Array.from(document.querySelectorAll(".nhInventoryItemSprite")).map((sprite) => {
           const style = getComputedStyle(sprite);
           return {
             label: sprite.getAttribute("aria-label") ?? "",

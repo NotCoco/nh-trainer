@@ -15,7 +15,7 @@ async function waitForReady(window) {
       (() => Boolean(
         document.querySelector(".runeliteClientShell") &&
         document.querySelector(".glbStatus-ready") &&
-        document.querySelector('.kronosSideTabButton[data-tab-id="combat"]')
+        document.querySelector('.nhSideTabButton[data-tab-id="combat"]')
       ))()
     `);
     if (ready) {
@@ -39,7 +39,7 @@ async function openCombatTabWithKodai(window) {
       await nextFrame();
       await nextFrame();
 
-      const combatTab = document.querySelector('.kronosSideTabButton[data-tab-id="combat"]');
+      const combatTab = document.querySelector('.nhSideTabButton[data-tab-id="combat"]');
       if (!combatTab) {
         return { ok: false, error: "missing combat side tab" };
       }
@@ -91,14 +91,14 @@ async function readKodaiCombatState(window) {
       };
       const shell = document.querySelector(".runeliteClientShell");
       const shellRect = shell?.getBoundingClientRect();
-      const panel = document.querySelector(".kronosCombatPanelLayer");
-      const styles = Array.from(document.querySelectorAll(".kronosCombatStyleSlot")).map((slot) => {
+      const panel = document.querySelector(".nhCombatPanelLayer");
+      const styles = Array.from(document.querySelectorAll(".nhCombatStyleSlot")).map((slot) => {
         const slotIndex = slot.getAttribute("data-slot-index") ?? "";
-        const icon = document.querySelector('.kronosCombatStyleIconSprite[data-slot-index="' + slotIndex + '"]');
-        const iconFrame = icon?.querySelector(".kronosCombatSourceSpriteFrame") ?? null;
-        const text = document.querySelector('.kronosCombatStyleText[data-slot-index="' + slotIndex + '"]');
-        const buttonFrame = document.querySelector('.kronosCombatStyleButtonSprite[data-slot-index="' + slotIndex + '"]');
-        const buttonPieces = Array.from(buttonFrame?.querySelectorAll(".kronosCombatOptionsButtonPiece") ?? []).map((piece) => ({
+        const icon = document.querySelector('.nhCombatStyleIconSprite[data-slot-index="' + slotIndex + '"]');
+        const iconFrame = icon?.querySelector(".nhCombatSourceSpriteFrame") ?? null;
+        const text = document.querySelector('.nhCombatStyleText[data-slot-index="' + slotIndex + '"]');
+        const buttonFrame = document.querySelector('.nhCombatStyleButtonSprite[data-slot-index="' + slotIndex + '"]');
+        const buttonPieces = Array.from(buttonFrame?.querySelectorAll(".nhCombatOptionsButtonPiece") ?? []).map((piece) => ({
           key: piece.getAttribute("data-options-button-piece") ?? "",
           rect: styleRect(piece)
         }));
@@ -131,7 +131,7 @@ async function readKodaiCombatState(window) {
           textRect: styleRect(text)
         };
       });
-      const autocast = Array.from(document.querySelectorAll(".kronosCombatAutocastSource")).map((control) => ({
+      const autocast = Array.from(document.querySelectorAll(".nhCombatAutocastSource")).map((control) => ({
         childId: Number(control.getAttribute("data-action-child-id")),
         weaponType: control.getAttribute("data-weapon-type") ?? "",
         weaponTypeConfig: control.getAttribute("data-weapon-type-config") ?? "",
@@ -139,7 +139,7 @@ async function readKodaiCombatState(window) {
         selected: control.getAttribute("data-selected") ?? "",
         rect: styleRect(control)
       }));
-      const specOrb = document.querySelector(".kronosFixedOrb-spec");
+      const specOrb = document.querySelector(".nhFixedOrb-spec");
       return {
         activeSideTab: document.querySelector(".runtimeViewport")?.getAttribute("data-active-side-tab-id") ?? "",
         panel: panel ? {
@@ -157,7 +157,7 @@ async function readKodaiCombatState(window) {
         } : null,
         styles,
         autocast,
-        autoRetaliateRect: styleRect(document.querySelector(".kronosCombatAutoRetaliateSource")),
+        autoRetaliateRect: styleRect(document.querySelector(".nhCombatAutoRetaliateSource")),
         specOrb: specOrb ? {
           active: specOrb.getAttribute("data-active") ?? "",
           actionEnabled: specOrb.getAttribute("data-action-enabled") ?? "",
@@ -166,15 +166,15 @@ async function readKodaiCombatState(window) {
           activeFillerSpriteId: Number(specOrb.getAttribute("data-active-filler-sprite-id")),
           sourceFillerTransparency: Number(specOrb.getAttribute("data-source-filler-transparency")),
           sourceDrawState: specOrb.getAttribute("data-source-draw-state") ?? "",
-          hitboxCount: specOrb.querySelectorAll(".kronosFixedOrbHitbox").length
+          hitboxCount: specOrb.querySelectorAll(".nhFixedOrbHitbox").length
         } : null,
         staleCombatWidgetCount: document.querySelectorAll(
-          '.kronosMountedWidgetLayer[data-group-id="593"] .kronosWidgetRectangle[data-child-id], ' +
-          '.kronosMountedWidgetLayer[data-group-id="593"] .kronosWidgetSprite[data-child-id], ' +
-          '.kronosMountedWidgetLayer[data-group-id="593"] .kronosWidgetText[data-child-id]'
+          '.nhMountedWidgetLayer[data-group-id="593"] .nhWidgetRectangle[data-child-id], ' +
+          '.nhMountedWidgetLayer[data-group-id="593"] .nhWidgetSprite[data-child-id], ' +
+          '.nhMountedWidgetLayer[data-group-id="593"] .nhWidgetText[data-child-id]'
         ).length,
-        specialBarCount: document.querySelectorAll(".kronosCombatSpecialBar").length,
-        specOrbCount: document.querySelectorAll(".kronosFixedOrb-spec").length,
+        specialBarCount: document.querySelectorAll(".nhCombatSpecialBar").length,
+        specOrbCount: document.querySelectorAll(".nhFixedOrb-spec").length,
         screenshotClip: shellRect
           ? {
               x: Math.max(0, Math.floor(shellRect.left)),

@@ -8,12 +8,12 @@ function read(relativePath) {
   return fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
+function readNhClient(relativePath) {
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
 }
 
-const pluginSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/entityhider/EntityHiderPlugin.java");
-const configSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/entityhider/EntityHiderConfig.java");
+const pluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/entityhider/EntityHiderPlugin.java");
+const configSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/entityhider/EntityHiderConfig.java");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
 const runtimeSource = read("src/ui/RuntimeSceneViewer.tsx");
 const entityHiderSource = read("src/ui/runeliteEntityHider.ts");
@@ -38,7 +38,7 @@ for (const sourceAnchor of [
   'client.setProjectilesHidden(config.hideProjectiles())',
   'playerRegionID != 9520'
 ]) {
-  assert(pluginSource.includes(sourceAnchor), `Kronos RuneLite EntityHiderPlugin source missing ${sourceAnchor}`);
+  assert(pluginSource.includes(sourceAnchor), `Nh RuneLite EntityHiderPlugin source missing ${sourceAnchor}`);
 }
 
 for (const sourceAnchor of [
@@ -51,14 +51,14 @@ for (const sourceAnchor of [
   'default boolean hideLocalPlayer2D()',
   'default boolean hideProjectiles()'
 ]) {
-  assert(configSource.includes(sourceAnchor), `Kronos RuneLite EntityHiderConfig source missing ${sourceAnchor}`);
+  assert(configSource.includes(sourceAnchor), `Nh RuneLite EntityHiderConfig source missing ${sourceAnchor}`);
 }
 
 for (const trainerAnchor of [
   'id: "entity-hider"',
   'name: "Entity Hider"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/entityhider/EntityHiderPlugin.java"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/entityhider/EntityHiderConfig.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/entityhider/EntityHiderPlugin.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/entityhider/EntityHiderConfig.java"',
   'group: "entityhider"',
   'RuneliteEntityHiderConfigSnapshot',
   'entityHider: {',

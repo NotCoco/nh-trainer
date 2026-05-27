@@ -130,7 +130,7 @@ export function PolicyWorkbench({ onPolicyLoad }: PolicyWorkbenchProps): JSX.Ele
 }
 
 async function loadDefaultPolicy(): Promise<DefaultPolicyReadResult> {
-  const bridge = window.kronosTrainer;
+  const bridge = window.nhTrainer;
   if (bridge?.readDefaultPolicy) {
     try {
       return await bridge.readDefaultPolicy();

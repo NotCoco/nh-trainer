@@ -133,7 +133,7 @@ async function setRuntimeCamera(window, camera) {
         input.value = ${JSON.stringify(camera)};
         input.dispatchEvent(new Event("change", { bubbles: true }));
       }
-      window.dispatchEvent(new CustomEvent("kronos-runtime-camera", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-camera", {
         detail: { camera: ${JSON.stringify(camera)} }
       }));
     })()
@@ -154,7 +154,7 @@ async function setRuntimeCycle(window, cycle) {
         input.dispatchEvent(new Event("input", { bubbles: true }));
         input.dispatchEvent(new Event("change", { bubbles: true }));
       }
-      window.dispatchEvent(new CustomEvent("kronos-runtime-cycle", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-cycle", {
         detail: { cycle: ${JSON.stringify(cycle)} }
       }));
     })()
@@ -172,7 +172,7 @@ async function waitForPaint(window) {
 
 async function readOverlaySnapshot(window) {
   return window.webContents.executeJavaScript(`
-    (() => window.__kronosRuntimeDebug ?? null)()
+    (() => window.__nhRuntimeDebug ?? null)()
   `);
 }
 
@@ -239,7 +239,7 @@ async function openPlayerContextMenu(window) {
           clientY: rect.top + y
         }));
         await delayFrame();
-        let menu = document.querySelector(".kronosContextMenu");
+        let menu = document.querySelector(".nhContextMenu");
         if (!menu) {
           canvas.dispatchEvent(new MouseEvent("contextmenu", {
             bubbles: true,
@@ -251,10 +251,10 @@ async function openPlayerContextMenu(window) {
             clientY: rect.top + y
           }));
           await delayFrame();
-          menu = document.querySelector(".kronosContextMenu");
+          menu = document.querySelector(".nhContextMenu");
         }
         const options = menu
-          ? Array.from(menu.querySelectorAll(".kronosContextMenuOption")).map((option) => ({
+          ? Array.from(menu.querySelectorAll(".nhContextMenuOption")).map((option) => ({
               text: option.textContent ?? "",
               actionKind: option.getAttribute("data-menu-action-kind") ?? "",
               opcode: Number(option.getAttribute("data-menu-opcode"))
@@ -277,7 +277,7 @@ async function openPlayerContextMenu(window) {
 async function clickTopContextMenuOption(window) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const option = document.querySelector(".kronosContextMenuOption");
+      const option = document.querySelector(".nhContextMenuOption");
       if (!option) {
         return { ok: false, error: "missing top context menu option" };
       }
@@ -324,7 +324,7 @@ async function waitForManualCombatOverlays(window) {
 
 async function readDomOverlaySnapshot(window) {
   return window.webContents.executeJavaScript(`
-    (() => Array.from(document.querySelectorAll(".kronosActorOverlay")).map((overlay) => {
+    (() => Array.from(document.querySelectorAll(".nhActorOverlay")).map((overlay) => {
       const rect = overlay.getBoundingClientRect();
       return {
         actorId: overlay.getAttribute("data-actor-id") ?? "",
@@ -333,7 +333,7 @@ async function readDomOverlaySnapshot(window) {
         top: rect.top,
         width: rect.width,
         height: rect.height,
-        sprites: Array.from(overlay.querySelectorAll(".kronosActorOverlaySprite")).map((sprite) => {
+        sprites: Array.from(overlay.querySelectorAll(".nhActorOverlaySprite")).map((sprite) => {
           const spriteRect = sprite.getBoundingClientRect();
           const style = getComputedStyle(sprite);
           return {
@@ -477,7 +477,7 @@ app.whenReady().then(async () => {
     const opponentDomSkull = opponentDomOverlays.find((overlay) => overlay.sheetId === "pk_skull");
     const opponentDomHealthSprites = opponentDomHealthBars.flatMap((overlay) => overlay.sprites);
     const opponentDomHitsplatSprites = opponentDomHitsplats.flatMap((overlay) => overlay.sprites);
-    assert(domOverlays.length > 0, `actor overlays should be present in the Kronos 2D DOM overlay layer: ${JSON.stringify(domOverlays)}`);
+    assert(domOverlays.length > 0, `actor overlays should be present in the Nh 2D DOM overlay layer: ${JSON.stringify(domOverlays)}`);
     assert(
       opponentDomHealthBars.length === 1,
       `opponent should have one visible DOM health bar, not missing or stacked bars: ${JSON.stringify(opponentDomOverlays)}`

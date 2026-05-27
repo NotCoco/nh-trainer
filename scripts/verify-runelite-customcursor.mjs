@@ -9,8 +9,8 @@ function read(relativePath) {
   return fs.readFileSync(path.join(root, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
-  return fs.readFileSync(path.resolve(root, "..", "Kronos184-Client", relativePath), "utf8");
+function readNhClient(relativePath) {
+  return fs.readFileSync(path.resolve(root, "..", "Nh184-Client", relativePath), "utf8");
 }
 
 function check(condition, message) {
@@ -19,9 +19,9 @@ function check(condition, message) {
   }
 }
 
-const pluginSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/customcursor/CustomCursorPlugin.java");
-const configSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/customcursor/CustomCursorConfig.java");
-const enumSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/customcursor/CustomCursor.java");
+const pluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/customcursor/CustomCursorPlugin.java");
+const configSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/customcursor/CustomCursorConfig.java");
+const enumSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/customcursor/CustomCursor.java");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
 const packageSource = read("package.json");
 
@@ -71,9 +71,9 @@ for (const trainerAnchor of [
   'id: "custom-cursor"',
   'name: "Custom Cursor"',
   'description: "Replaces your mouse cursor image"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/customcursor/CustomCursorPlugin.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/customcursor/CustomCursorPlugin.java"',
   'group: "customcursor"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/customcursor/CustomCursorConfig.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/customcursor/CustomCursorConfig.java"',
   'keyName: "cursorStyle"',
   'options: RUNELITE_CUSTOM_CURSOR_ASSETS.map((cursor) => cursor.id)',
   'const customCursorValues = configValuesByPluginId["custom-cursor"] ?? {}',

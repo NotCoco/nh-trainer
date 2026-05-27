@@ -67,8 +67,8 @@ export const zeroBonuses: BonusTable = {
   prayer_bonus: 0
 };
 
-export const KRONOS_PVP_MAGIC_ACCURACY_MODIFIER = 1.22;
-export const KRONOS_PVP_MELEE_ACCURACY_MODIFIER = 1.12;
+export const NH_PVP_MAGIC_ACCURACY_MODIFIER = 1.22;
+export const NH_PVP_MELEE_ACCURACY_MODIFIER = 1.12;
 
 export function aggregateBonuses(items: readonly { readonly bonuses: Partial<BonusTable> }[]): BonusTable {
   const total: Record<BonusKey, number> = { ...zeroBonuses };

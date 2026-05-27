@@ -89,7 +89,7 @@ async function selectRuntimeReplay(window, replayId) {
 async function setRuntimeCycle(window, cycle) {
   await window.webContents.executeJavaScript(`
     (() => {
-      window.dispatchEvent(new CustomEvent("kronos-runtime-cycle", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-cycle", {
         detail: { cycle: ${JSON.stringify(cycle)} }
       }));
     })()
@@ -100,7 +100,7 @@ async function setRuntimeCycle(window, cycle) {
 async function setRuntimeCamera(window, camera) {
   await window.webContents.executeJavaScript(`
     (() => {
-      window.dispatchEvent(new CustomEvent("kronos-runtime-camera", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-camera", {
         detail: { camera: ${JSON.stringify(camera)} }
       }));
     })()
@@ -111,18 +111,18 @@ async function setRuntimeCamera(window, camera) {
 async function readRuntimeMinimap(window) {
   return window.webContents.executeJavaScript(`
     (() => {
-      const root = document.querySelector(".kronosMinimapOverlay");
+      const root = document.querySelector(".nhMinimapOverlay");
       if (!root) {
         return { ok: false, error: "missing minimap overlay" };
       }
       const rootStyle = getComputedStyle(root);
-      const sceneSprite = root.querySelector(".kronosMinimapSceneSprite");
+      const sceneSprite = root.querySelector(".nhMinimapSceneSprite");
       const sceneStyle = sceneSprite ? getComputedStyle(sceneSprite) : null;
-      const sceneCell = sceneSprite?.querySelector(".kronosMinimapSceneCell");
-      const sceneOverlayPixel = sceneSprite?.querySelector(".kronosMinimapSceneOverlayPixel");
-      const sceneSegment = sceneSprite?.querySelector(".kronosMinimapSceneSegment");
-      const sceneMapScene = sceneSprite?.querySelector(".kronosMinimapSceneMapScene");
-      const disabledFill = root.querySelector(".kronosMinimapDisabledFill");
+      const sceneCell = sceneSprite?.querySelector(".nhMinimapSceneCell");
+      const sceneOverlayPixel = sceneSprite?.querySelector(".nhMinimapSceneOverlayPixel");
+      const sceneSegment = sceneSprite?.querySelector(".nhMinimapSceneSegment");
+      const sceneMapScene = sceneSprite?.querySelector(".nhMinimapSceneMapScene");
+      const disabledFill = root.querySelector(".nhMinimapDisabledFill");
       const sceneCellStyle = sceneCell ? getComputedStyle(sceneCell) : null;
       const sceneOverlayPixelStyle = sceneOverlayPixel ? getComputedStyle(sceneOverlayPixel) : null;
       const sceneSegmentStyle = sceneSegment ? getComputedStyle(sceneSegment) : null;
@@ -181,7 +181,7 @@ async function readRuntimeMinimap(window) {
           maskImage: rootStyle.webkitMaskImage || rootStyle.maskImage || "",
           maskPosition: rootStyle.webkitMaskPosition || rootStyle.maskPosition || "",
           maskSize: rootStyle.webkitMaskSize || rootStyle.maskSize || "",
-          fallbackDotCount: root.querySelectorAll(".kronosMinimapDot-fallback").length
+          fallbackDotCount: root.querySelectorAll(".nhMinimapDot-fallback").length
         },
         disabledFill: disabledFill ? {
           sourceShape: disabledFill.getAttribute("data-source-shape") ?? "",
@@ -192,9 +192,9 @@ async function readRuntimeMinimap(window) {
         scene: sceneSprite ? {
           cellCount: Number(sceneSprite.getAttribute("data-scene-cell-count")),
           overlayPixelCount: Number(sceneSprite.getAttribute("data-scene-overlay-pixel-count")),
-          overlayPixelDomCount: sceneSprite.querySelectorAll(".kronosMinimapSceneOverlayPixel").length,
+          overlayPixelDomCount: sceneSprite.querySelectorAll(".nhMinimapSceneOverlayPixel").length,
           segmentCount: Number(sceneSprite.getAttribute("data-scene-segment-count")),
-          mapSceneDomCount: sceneSprite.querySelectorAll(".kronosMinimapSceneMapScene").length,
+          mapSceneDomCount: sceneSprite.querySelectorAll(".nhMinimapSceneMapScene").length,
           mapSceneObjectCount: Number(sceneSprite.getAttribute("data-scene-mapscene-object-count")),
           mapIconObjectCount: Number(sceneSprite.getAttribute("data-scene-mapicon-object-count")),
           colorMode: sceneSprite.getAttribute("data-scene-color-mode") ?? "",
@@ -251,10 +251,10 @@ async function readRuntimeMinimap(window) {
             backgroundPosition: sceneMapSceneStyle?.backgroundPosition ?? ""
           } : null
         } : null,
-        local: readDot(root.querySelector(".kronosMinimapLocalPlayer")),
-        mapIcons: Array.from(root.querySelectorAll(".kronosMinimapMapIcon")).map(readDot),
-        dots: Array.from(root.querySelectorAll(".kronosMinimapDot")).map(readDot),
-        markers: Array.from(root.querySelectorAll(".kronosMinimapMarker")).map(readDot)
+        local: readDot(root.querySelector(".nhMinimapLocalPlayer")),
+        mapIcons: Array.from(root.querySelectorAll(".nhMinimapMapIcon")).map(readDot),
+        dots: Array.from(root.querySelectorAll(".nhMinimapDot")).map(readDot),
+        markers: Array.from(root.querySelectorAll(".nhMinimapMarker")).map(readDot)
       };
     })()
   `);
@@ -263,7 +263,7 @@ async function readRuntimeMinimap(window) {
 async function clickMinimap(window, clickX, clickY) {
   const result = await window.webContents.executeJavaScript(`
     (() => {
-      const root = document.querySelector(".kronosMinimapOverlay");
+      const root = document.querySelector(".nhMinimapOverlay");
       if (!root) {
         return { ok: false, error: "missing minimap overlay" };
       }
@@ -308,7 +308,7 @@ async function clickMinimap(window, clickX, clickY) {
 async function clearMinimapClickDataset(window) {
   await window.webContents.executeJavaScript(`
     (() => {
-      const root = document.querySelector(".kronosMinimapOverlay");
+      const root = document.querySelector(".nhMinimapOverlay");
       root?.removeAttribute("data-last-click-x");
       root?.removeAttribute("data-last-click-y");
       root?.removeAttribute("data-last-click-tile-x");
@@ -320,7 +320,7 @@ async function clearMinimapClickDataset(window) {
 async function readRuntimeControlState(window) {
   return window.webContents.executeJavaScript(`
     (() => {
-      const cross = document.querySelector(".kronosClickCross");
+      const cross = document.querySelector(".nhClickCross");
       const crossStyle = cross ? getComputedStyle(cross) : null;
       const crossNumberAttr = (name) => cross?.hasAttribute(name) ? Number(cross.getAttribute(name)) : null;
       const poseTexts = Array.from(document.querySelectorAll(".runtimePoseList code")).map((node) => node.textContent ?? "");
@@ -606,7 +606,7 @@ app.whenReady().then(async () => {
         Math.abs(afterRoute.localPose.z - beforeClick.localPose.z) < 0.001,
       `north-facing minimap east click should queue movement and only advance the logical tile after the client reaches the routed tile: ${JSON.stringify({ beforeClick, minimapClick, movementState, afterRoute })}`
     );
-    assert(afterRoute.localPose.sequence === "wand_ready", `local actor should return to the Kronos weapon-ready pose after the routed minimap step: ${JSON.stringify(afterRoute)}`);
+    assert(afterRoute.localPose.sequence === "wand_ready", `local actor should return to the Nh weapon-ready pose after the routed minimap step: ${JSON.stringify(afterRoute)}`);
 
     await selectRuntimeReplay(window, "generated-minimap-semantics-v1");
     await setRuntimeCycle(window, 0);
@@ -693,7 +693,7 @@ app.whenReady().then(async () => {
     if (screenshotPath) {
       const captureRect = await window.webContents.executeJavaScript(`
         (() => {
-          const root = document.querySelector(".kronosMinimapOverlay");
+          const root = document.querySelector(".nhMinimapOverlay");
           if (!root) {
             return null;
           }

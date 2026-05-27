@@ -8,7 +8,7 @@ import { screenshotDir, uniqueScreenshotPath } from "./screenshot-paths.mjs";
 const require = createRequire(import.meta.url);
 const electronPath = require("electron");
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const screenshotPath = uniqueScreenshotPath("kronos-nh-trainer-render-smoke");
+const screenshotPath = uniqueScreenshotPath("nh-nh-trainer-render-smoke");
 const smokeMainPath = path.join(projectRoot, "scripts", "render-smoke-electron.cjs");
 
 const runtimeViewerSource = await readFile(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");

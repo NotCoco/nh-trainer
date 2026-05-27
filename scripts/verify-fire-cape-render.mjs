@@ -8,7 +8,7 @@ import { screenshotDir, uniqueScreenshotPath } from "./screenshot-paths.mjs";
 const require = createRequire(import.meta.url);
 const electronPath = require("electron");
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const screenshotPath = uniqueScreenshotPath("kronos-nh-trainer-fire-cape");
+const screenshotPath = uniqueScreenshotPath("nh-nh-trainer-fire-cape");
 const shellMainPath = path.join(projectRoot, "scripts", "fire-cape-render-electron.cjs");
 
 await mkdir(screenshotDir, { recursive: true });

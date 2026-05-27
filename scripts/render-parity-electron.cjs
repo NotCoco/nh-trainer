@@ -5,13 +5,13 @@ const path = require("node:path");
 const [, , projectRoot, referenceRoot, outputRoot] = process.argv;
 const manifestPath = path.join(referenceRoot, "manifest.json");
 const simFixturesRoot = path.join(projectRoot, "fixtures", "sim");
-const kronosRoot = path.resolve(projectRoot, "..");
+const nhRoot = path.resolve(projectRoot, "..");
 const defaultPolicyPath = path.join(
-  kronosRoot,
-  "kronos-osrs-184-master",
-  "kronos-osrs-184-master",
-  "Kronos-master",
-  "kronos-server",
+  nhRoot,
+  "nh-osrs-184-master",
+  "nh-osrs-184-master",
+  "Nh-master",
+  "nh-server",
   "data",
   "ai",
   "nhstaker-selfplay-policy-nhstake-ags.tsv"
@@ -54,7 +54,7 @@ async function readManifest() {
       throw new Error(
         [
           `Missing render reference manifest: ${manifestPath}`,
-          "Run `npm run capture:client -- --source <folder-with-real-kronos-client-pngs>` first."
+          "Run `npm run capture:client -- --source <folder-with-real-nh-client-pngs>` first."
         ].join("\n")
       );
     }
@@ -178,7 +178,7 @@ async function setRuntimeCamera(window, camera) {
         input.value = ${JSON.stringify(camera)};
         input.dispatchEvent(new Event("change", { bubbles: true }));
       }
-      window.dispatchEvent(new CustomEvent("kronos-runtime-camera", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-camera", {
         detail: { camera: ${JSON.stringify(camera)} }
       }));
     })()
@@ -198,7 +198,7 @@ async function setRuntimeCycle(window, cycle) {
         input.dispatchEvent(new Event("input", { bubbles: true }));
         input.dispatchEvent(new Event("change", { bubbles: true }));
       }
-      window.dispatchEvent(new CustomEvent("kronos-runtime-cycle", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-cycle", {
         detail: { cycle: ${JSON.stringify(cycle)} }
       }));
     })()
@@ -410,8 +410,8 @@ app.whenReady().then(async () => {
       const referencePath = path.join(referenceRoot, frame.fileName);
       const referencePng = await fs.readFile(referencePath);
       const safeId = sanitizeFilePart(frame.id);
-      const actualPath = path.join(outputRoot, `kronos-render-parity-${safeId}-actual.png`);
-      const diffPath = path.join(outputRoot, `kronos-render-parity-${safeId}-diff.png`);
+      const actualPath = path.join(outputRoot, `nh-render-parity-${safeId}-actual.png`);
+      const diffPath = path.join(outputRoot, `nh-render-parity-${safeId}-diff.png`);
       const tolerance = { ...defaultTolerance, ...(frame.tolerance ?? {}) };
       const comparison = await comparePngs(window, asDataUrl(actualPng), asDataUrl(referencePng), tolerance);
 

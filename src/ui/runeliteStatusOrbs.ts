@@ -1,4 +1,4 @@
-import type { KronosFixedClientCssLayout, KronosFixedClientLayout, KronosFixedOrbId, KronosFixedOrbLayout } from "../render/kronosFixedLayout";
+import type { NhFixedClientCssLayout, NhFixedClientLayout, NhFixedOrbId, NhFixedOrbLayout } from "../render/nhFixedLayout";
 import type { RuntimeHudState } from "../render/runtimeScene";
 import type { RuneliteStatusOrbsConfigSnapshot } from "./RuneliteClientShell";
 
@@ -28,7 +28,7 @@ export interface RuneliteStatusOrbsRunTimeOptions {
 
 export interface RuneliteStatusOrbSnapshot {
   readonly id: RuneliteStatusOrbKind;
-  readonly orbId: KronosFixedOrbId;
+  readonly orbId: NhFixedOrbId;
   readonly sourceWidget: string;
   readonly sourceX: number;
   readonly sourceY: number;
@@ -42,8 +42,8 @@ export interface RuneliteStatusOrbSnapshot {
 }
 
 export function runeliteStatusOrbSnapshots(
-  fixedLayout: KronosFixedClientLayout | null,
-  cssLayout: KronosFixedClientCssLayout | null,
+  fixedLayout: NhFixedClientLayout | null,
+  cssLayout: NhFixedClientCssLayout | null,
   hud: RuntimeHudState,
   config: RuneliteStatusOrbsConfigSnapshot,
   gameTick: number
@@ -159,10 +159,10 @@ export function runeliteStatusOrbArcPath(percent: number): string {
 
 function runeliteStatusOrbSnapshot(
   id: RuneliteStatusOrbKind,
-  orbId: KronosFixedOrbId,
+  orbId: NhFixedOrbId,
   sourceWidget: string,
-  fixedLayout: KronosFixedClientLayout,
-  cssLayout: KronosFixedClientCssLayout,
+  fixedLayout: NhFixedClientLayout,
+  cssLayout: NhFixedClientCssLayout,
   percent: number,
   color: string,
   activeOverlay: boolean
@@ -192,7 +192,7 @@ function runeliteStatusOrbSnapshot(
   };
 }
 
-function statusOrbLayout(fixedLayout: KronosFixedClientLayout, id: KronosFixedOrbId): KronosFixedOrbLayout | null {
+function statusOrbLayout(fixedLayout: NhFixedClientLayout, id: NhFixedOrbId): NhFixedOrbLayout | null {
   return fixedLayout.orbs.find((orb) => orb.id === id) ?? null;
 }
 

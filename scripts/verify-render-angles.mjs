@@ -9,7 +9,7 @@ const require = createRequire(import.meta.url);
 const electronPath = require("electron");
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const validatorPath = path.join(projectRoot, "scripts", "render-angle-validation-electron.cjs");
-const screenshotRunId = path.basename(uniqueScreenshotPath("kronos-nh-trainer-render-angles-run"), ".png").replace(/^kronos-nh-trainer-render-angles-run-/, "");
+const screenshotRunId = path.basename(uniqueScreenshotPath("nh-nh-trainer-render-angles-run"), ".png").replace(/^nh-nh-trainer-render-angles-run-/, "");
 
 await mkdir(screenshotDir, { recursive: true });
 

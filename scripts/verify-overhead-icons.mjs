@@ -105,27 +105,27 @@ function cloneJson(value) {
 }
 
 const {
-  createKronosOverheadIconDefinitionStore,
-  defaultKronosOverheadIconDefinitions,
-  kronosPrayerOverheadDefinition,
-  kronosSkullOverheadDefinition
-} = loadTsModule("src/render/kronosOverheadIcons.ts");
+  createNhOverheadIconDefinitionStore,
+  defaultNhOverheadIconDefinitions,
+  nhPrayerOverheadDefinition,
+  nhSkullOverheadDefinition
+} = loadTsModule("src/render/nhOverheadIcons.ts");
 const { assertValidClientViewTrace } = loadTsModule("src/sim/clientView.ts");
 const { clientViewTraceToRuntimeReplay } = loadTsModule("src/render/clientViewReplay.ts");
 
 const overheadIconSource = readJson("fixtures/assets/defs/overhead-icons.json");
 const prayerAtlas = readJson("fixtures/render/sprites/prayer_overheads.json");
 const skullAtlas = readJson("fixtures/render/sprites/pk_skull.json");
-const overheadIconDefinitions = createKronosOverheadIconDefinitionStore(overheadIconSource);
+const overheadIconDefinitions = createNhOverheadIconDefinitionStore(overheadIconSource);
 
-const melee = kronosPrayerOverheadDefinition("protect_from_melee", overheadIconDefinitions);
-const missiles = kronosPrayerOverheadDefinition("protect_from_missiles", overheadIconDefinitions);
-const magic = kronosPrayerOverheadDefinition("protect_from_magic", overheadIconDefinitions);
-const retribution = kronosPrayerOverheadDefinition("retribution", overheadIconDefinitions);
-const smite = kronosPrayerOverheadDefinition("smite", overheadIconDefinitions);
-const redemption = kronosPrayerOverheadDefinition("redemption", overheadIconDefinitions);
-const whiteSkull = kronosSkullOverheadDefinition("white_pk", overheadIconDefinitions);
-const redSkull = kronosSkullOverheadDefinition("red_pk", overheadIconDefinitions);
+const melee = nhPrayerOverheadDefinition("protect_from_melee", overheadIconDefinitions);
+const missiles = nhPrayerOverheadDefinition("protect_from_missiles", overheadIconDefinitions);
+const magic = nhPrayerOverheadDefinition("protect_from_magic", overheadIconDefinitions);
+const retribution = nhPrayerOverheadDefinition("retribution", overheadIconDefinitions);
+const smite = nhPrayerOverheadDefinition("smite", overheadIconDefinitions);
+const redemption = nhPrayerOverheadDefinition("redemption", overheadIconDefinitions);
+const whiteSkull = nhSkullOverheadDefinition("white_pk", overheadIconDefinitions);
+const redSkull = nhSkullOverheadDefinition("red_pk", overheadIconDefinitions);
 
 assert(melee && missiles && magic && retribution && smite && redemption, "expected exported prayer overhead definitions for every headIconPrayer frame");
 assert(whiteSkull && redSkull, "expected exported skull overhead definitions for white and red skulls");
@@ -140,22 +140,22 @@ assert(redemption.headIconIndex === 5, "redemption should preserve client headIc
 assert(whiteSkull.headIconIndex === 0, "white skull should preserve client headIconPk index 0");
 assert(redSkull.headIconIndex === 1, "red skull should preserve client headIconPk index 1");
 assert(
-  defaultKronosOverheadIconDefinitions.prayers.size === Object.keys(overheadIconSource.prayers).length,
+  defaultNhOverheadIconDefinitions.prayers.size === Object.keys(overheadIconSource.prayers).length,
   "default prayer overhead definitions should cover the full exported source frame corpus"
 );
 assert(
-  defaultKronosOverheadIconDefinitions.prayers.get("protect_from_magic")?.spriteId === magic.spriteId &&
-    defaultKronosOverheadIconDefinitions.prayers.get("protect_from_magic")?.spriteFrame === magic.spriteFrame,
+  defaultNhOverheadIconDefinitions.prayers.get("protect_from_magic")?.spriteId === magic.spriteId &&
+    defaultNhOverheadIconDefinitions.prayers.get("protect_from_magic")?.spriteFrame === magic.spriteFrame,
   "default magic overhead definition should match the source archive/frame model"
 );
 assert(
-  defaultKronosOverheadIconDefinitions.prayers.get("redemption")?.spriteFrame === redemption.spriteFrame &&
-    defaultKronosOverheadIconDefinitions.prayers.get("redemption")?.width === redemption.width,
+  defaultNhOverheadIconDefinitions.prayers.get("redemption")?.spriteFrame === redemption.spriteFrame &&
+    defaultNhOverheadIconDefinitions.prayers.get("redemption")?.width === redemption.width,
   "default redemption overhead definition should match the source frame dimensions"
 );
 assert(
-  defaultKronosOverheadIconDefinitions.skulls.get("red_pk")?.spriteId === redSkull.spriteId &&
-    defaultKronosOverheadIconDefinitions.skulls.get("red_pk")?.spriteFrame === redSkull.spriteFrame,
+  defaultNhOverheadIconDefinitions.skulls.get("red_pk")?.spriteId === redSkull.spriteId &&
+    defaultNhOverheadIconDefinitions.skulls.get("red_pk")?.spriteFrame === redSkull.spriteFrame,
   "default red skull definition should match the source archive/frame model"
 );
 assert(atlasSprite(prayerAtlas, magic), "protect from magic definition should point at an exported prayer atlas sprite/frame");

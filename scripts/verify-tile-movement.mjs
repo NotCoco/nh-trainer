@@ -57,34 +57,34 @@ function resolveRelativeTsModule(parentPath, request) {
 }
 
 const {
-  buildKronosSceneCollision,
-  KRONOS_FLOOR_DECORATION_MASK,
-  KRONOS_OBJECT_MASK,
-  KRONOS_PROJECTILE_MASK,
-  KRONOS_WEST_MASK,
-  KRONOS_EAST_MASK
-} = loadTsModule("src/render/kronosSceneCollision.ts");
+  buildNhSceneCollision,
+  NH_FLOOR_DECORATION_MASK,
+  NH_OBJECT_MASK,
+  NH_PROJECTILE_MASK,
+  NH_WEST_MASK,
+  NH_EAST_MASK
+} = loadTsModule("src/render/nhSceneCollision.ts");
 const {
-  findKronosObjectRouteWaypoints,
-  findKronosTargetRouteWaypoints,
-  findKronosTileRouteWaypoints,
-  kronosSceneObjectRouteReached,
-  kronosSceneProjectileRouteClear,
-  kronosSceneTargetRouteReached,
-  KRONOS_TILE_WORLD_UNITS
-} = loadTsModule("src/render/kronosTileMovement.ts");
+  findNhObjectRouteWaypoints,
+  findNhTargetRouteWaypoints,
+  findNhTileRouteWaypoints,
+  nhSceneObjectRouteReached,
+  nhSceneProjectileRouteClear,
+  nhSceneTargetRouteReached,
+  NH_TILE_WORLD_UNITS
+} = loadTsModule("src/render/nhTileMovement.ts");
 const {
-  kronosContainsSourceTriangle,
-  kronosPickSceneTileFromViewportPoint
-} = loadTsModule("src/render/kronosSceneTilePicking.ts");
+  nhContainsSourceTriangle,
+  nhPickSceneTileFromViewportPoint
+} = loadTsModule("src/render/nhSceneTilePicking.ts");
 
 const serverRoot = path.resolve(
   projectRoot,
   "..",
-  "kronos-osrs-184-master",
-  "kronos-osrs-184-master",
-  "Kronos-master",
-  "kronos-server",
+  "nh-osrs-184-master",
+  "nh-osrs-184-master",
+  "Nh-master",
+  "nh-server",
   "src",
   "main",
   "java",
@@ -97,19 +97,19 @@ const targetRouteSource = readFileSync(path.join(serverRoot, "model", "map", "ro
 const movementSource = readFileSync(path.join(serverRoot, "model", "entity", "shared", "Movement.java"), "utf8");
 const playerMovementSource = readFileSync(path.join(serverRoot, "model", "entity", "player", "PlayerMovement.java"), "utf8");
 const sceneSource = readFileSync(
-  path.resolve(projectRoot, "..", "Kronos184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "Scene.java"),
+  path.resolve(projectRoot, "..", "Nh184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "Scene.java"),
   "utf8"
 );
 const clientActorMovementSource = readFileSync(
-  path.resolve(projectRoot, "..", "Kronos184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "class329.java"),
+  path.resolve(projectRoot, "..", "Nh184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "class329.java"),
   "utf8"
 );
 const clientPlayerSource = readFileSync(
-  path.resolve(projectRoot, "..", "Kronos184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "Player.java"),
+  path.resolve(projectRoot, "..", "Nh184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "Player.java"),
   "utf8"
 );
 const clientLoginPacketSource = readFileSync(
-  path.resolve(projectRoot, "..", "Kronos184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "LoginPacket.java"),
+  path.resolve(projectRoot, "..", "Nh184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "LoginPacket.java"),
   "utf8"
 );
 const runtimeSceneViewerSource = readFileSync(path.resolve(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
@@ -150,7 +150,7 @@ function makeArena(width, height) {
 }
 
 function buildCollision(objects = [], width = 9, height = 9) {
-  return buildKronosSceneCollision(makeArena(width, height), objects, { x: 0, y: 0, z: 0 });
+  return buildNhSceneCollision(makeArena(width, height), objects, { x: 0, y: 0, z: 0 });
 }
 
 function objectPlacement(overrides) {
@@ -195,7 +195,7 @@ function expandWaypointPath(name, collision, start, path) {
       const next = stepTowardWaypoint(current, waypoint);
       const dx = Math.abs(next.x - current.x);
       const dz = Math.abs(next.z - current.z);
-      assert(dx <= KRONOS_TILE_WORLD_UNITS && dz <= KRONOS_TILE_WORLD_UNITS, `${name} waypoint ${waypointIndex} step is not adjacent`);
+      assert(dx <= NH_TILE_WORLD_UNITS && dz <= NH_TILE_WORLD_UNITS, `${name} waypoint ${waypointIndex} step is not adjacent`);
       assert(dx > 0 || dz > 0, `${name} waypoint ${waypointIndex} step did not move`);
       assert(collision.canStep(current, next), `${name} waypoint ${waypointIndex} step is blocked`);
       expanded.push(next);
@@ -208,11 +208,11 @@ function expandWaypointPath(name, collision, start, path) {
 }
 
 function stepTowardWaypoint(fromTile, waypoint) {
-  const deltaX = Math.sign(Math.round((waypoint.x - fromTile.x) / KRONOS_TILE_WORLD_UNITS));
-  const deltaZ = Math.sign(Math.round((waypoint.z - fromTile.z) / KRONOS_TILE_WORLD_UNITS));
+  const deltaX = Math.sign(Math.round((waypoint.x - fromTile.x) / NH_TILE_WORLD_UNITS));
+  const deltaZ = Math.sign(Math.round((waypoint.z - fromTile.z) / NH_TILE_WORLD_UNITS));
   return {
-    x: fromTile.x + deltaX * KRONOS_TILE_WORLD_UNITS,
-    z: fromTile.z + deltaZ * KRONOS_TILE_WORLD_UNITS
+    x: fromTile.x + deltaX * NH_TILE_WORLD_UNITS,
+    z: fromTile.z + deltaZ * NH_TILE_WORLD_UNITS
   };
 }
 
@@ -238,7 +238,7 @@ assertWorldRoundTrip(openCollision, 8, 8);
 
 const openStart = openCollision.worldToSceneTile(worldTile(1, 1));
 const openDestination = openCollision.worldToSceneTile(worldTile(4, 4));
-const openWaypoints = findKronosTileRouteWaypoints(openStart, openDestination, openCollision);
+const openWaypoints = findNhTileRouteWaypoints(openStart, openDestination, openCollision);
 assert(openWaypoints.length === 1, `expected one compressed diagonal waypoint, got ${openWaypoints.length}`);
 assertSame("open diagonal destination", openWaypoints.at(-1), openDestination);
 const openSteps = expandWaypointPath("open diagonal", openCollision, openStart, openWaypoints);
@@ -251,7 +251,7 @@ for (const [label, destinationWorld] of [
   ["south adjacent", worldTile(1, 0)]
 ]) {
   const adjacentDestination = openCollision.worldToSceneTile(destinationWorld);
-  const adjacentWaypoints = findKronosTileRouteWaypoints(openStart, adjacentDestination, openCollision);
+  const adjacentWaypoints = findNhTileRouteWaypoints(openStart, adjacentDestination, openCollision);
   assert(adjacentWaypoints.length === 1, `${label} should produce one direct waypoint, got ${adjacentWaypoints.length}`);
   assertSame(`${label} direct destination`, adjacentWaypoints[0], adjacentDestination);
   const adjacentSteps = expandWaypointPath(label, openCollision, openStart, adjacentWaypoints);
@@ -262,29 +262,29 @@ for (const [label, destinationWorld] of [
 const targetCollision = buildCollision([], 13, 5);
 const targetStart = targetCollision.worldToSceneTile(worldTile(1, 1));
 const meleeTarget = targetCollision.worldToSceneTile(worldTile(4, 1));
-const meleeTargetWaypoints = findKronosTargetRouteWaypoints(targetStart, meleeTarget, 1, targetCollision);
+const meleeTargetWaypoints = findNhTargetRouteWaypoints(targetStart, meleeTarget, 1, targetCollision);
 const meleeTargetSteps = expandWaypointPath("melee target route", targetCollision, targetStart, meleeTargetWaypoints);
 const meleeRouteEnd = meleeTargetSteps.at(-1) ?? targetStart;
 assert(!sameTile(meleeRouteEnd, meleeTarget), "TargetRoute-style melee routing should not walk onto the target tile");
 assert(
-  kronosSceneTargetRouteReached(meleeRouteEnd, meleeTarget, 1, targetCollision),
+  nhSceneTargetRouteReached(meleeRouteEnd, meleeTarget, 1, targetCollision),
   `TargetRoute-style melee routing should stop cardinal-adjacent: ${JSON.stringify({ meleeRouteEnd, meleeTarget })}`
 );
-const sameTileTargetWaypoints = findKronosTargetRouteWaypoints(meleeTarget, meleeTarget, 1, targetCollision);
+const sameTileTargetWaypoints = findNhTargetRouteWaypoints(meleeTarget, meleeTarget, 1, targetCollision);
 const sameTileTargetSteps = expandWaypointPath("same-tile target route", targetCollision, meleeTarget, sameTileTargetWaypoints);
 const sameTileRouteEnd = sameTileTargetSteps.at(-1) ?? meleeTarget;
 assert(!sameTile(sameTileRouteEnd, meleeTarget), "TargetRoute-style same-tile routing should step out instead of staying stacked");
 assert(
-  kronosSceneTargetRouteReached(sameTileRouteEnd, meleeTarget, 1, targetCollision),
+  nhSceneTargetRouteReached(sameTileRouteEnd, meleeTarget, 1, targetCollision),
   `TargetRoute-style same-tile routing should end on an adjacent attack tile: ${JSON.stringify({ sameTileRouteEnd, meleeTarget })}`
 );
 const rangedTarget = targetCollision.worldToSceneTile(worldTile(11, 1));
-const rangedTargetWaypoints = findKronosTargetRouteWaypoints(targetStart, rangedTarget, 8, targetCollision);
+const rangedTargetWaypoints = findNhTargetRouteWaypoints(targetStart, rangedTarget, 8, targetCollision);
 const rangedTargetSteps = expandWaypointPath("ranged target route", targetCollision, targetStart, rangedTargetWaypoints);
 const rangedRouteEnd = rangedTargetSteps.at(-1) ?? targetStart;
 assert(!sameTile(rangedRouteEnd, rangedTarget), "TargetRoute-style ranged routing should not walk onto the target tile");
 assert(
-  kronosSceneTargetRouteReached(rangedRouteEnd, rangedTarget, 8, targetCollision),
+  nhSceneTargetRouteReached(rangedRouteEnd, rangedTarget, 8, targetCollision),
   `TargetRoute-style ranged routing should stop once the target is in range: ${JSON.stringify({ rangedRouteEnd, rangedTarget })}`
 );
 
@@ -294,11 +294,11 @@ const sourceTriangle = {
   c: { x: 100, y: 100 }
 };
 assert(
-  kronosContainsSourceTriangle({ x: 20, y: 90 }, sourceTriangle.a, sourceTriangle.b, sourceTriangle.c),
+  nhContainsSourceTriangle({ x: 20, y: 90 }, sourceTriangle.a, sourceTriangle.b, sourceTriangle.c),
   "source containsBounds port should accept points inside a projected tile triangle"
 );
 assert(
-  !kronosContainsSourceTriangle({ x: 90, y: 20 }, sourceTriangle.a, sourceTriangle.b, sourceTriangle.c),
+  !nhContainsSourceTriangle({ x: 90, y: 20 }, sourceTriangle.a, sourceTriangle.b, sourceTriangle.c),
   "source containsBounds port should reject points outside a projected tile triangle"
 );
 
@@ -310,7 +310,7 @@ pickCamera.lookAt(0.75, 0, 0.75);
 pickCamera.updateProjectionMatrix();
 pickCamera.updateMatrixWorld(true);
 const pickedWorldCenter = { x: 0.75, y: 0, z: 0.75 };
-const pickedTile = kronosPickSceneTileFromViewportPoint({
+const pickedTile = nhPickSceneTileFromViewportPoint({
   camera: pickCamera,
   viewport: pickViewport,
   arena: pickArena,
@@ -330,8 +330,8 @@ const blockedCollision = buildCollision([
 ]);
 const blockedDestination = blockedCollision.worldToSceneTile(worldTile(4, 4));
 assert(!blockedCollision.canStand(blockedDestination), "blocked rectangle destination should not be standable");
-assert((blockedCollision.getFlagWorld(WEST + 4, SOUTH + 4) & KRONOS_OBJECT_MASK) !== 0, "blocked rectangle mask missing");
-const fallbackWaypoints = findKronosTileRouteWaypoints(openStart, blockedDestination, blockedCollision);
+assert((blockedCollision.getFlagWorld(WEST + 4, SOUTH + 4) & NH_OBJECT_MASK) !== 0, "blocked rectangle mask missing");
+const fallbackWaypoints = findNhTileRouteWaypoints(openStart, blockedDestination, blockedCollision);
 assert(fallbackWaypoints.length > 0, "blocked destination should route to nearest reachable fallback");
 const fallbackEnd = fallbackWaypoints.at(-1);
 assert(!sameTile(fallbackEnd, blockedDestination), "blocked destination path ended on the blocked tile");
@@ -354,7 +354,7 @@ const objectRoutePlacement = objectPlacement({
 });
 const objectRouteCollision = buildCollision([objectRoutePlacement], 9, 9);
 const objectRouteStart = objectRouteCollision.worldToSceneTile(worldTile(1, 4));
-const objectRouteWaypoints = findKronosObjectRouteWaypoints(objectRouteStart, objectRoutePlacement, objectRouteCollision);
+const objectRouteWaypoints = findNhObjectRouteWaypoints(objectRouteStart, objectRoutePlacement, objectRouteCollision);
 assert(objectRouteWaypoints.length > 0, "object route should find a reachable footprint edge");
 const objectRouteEnd = objectRouteWaypoints.at(-1);
 const objectRouteEndWorld = objectRouteCollision.sceneToWorldTile(objectRouteEnd);
@@ -363,21 +363,21 @@ assert(
   `object route should stop on the west footprint edge, got ${JSON.stringify(objectRouteEndWorld)}`
 );
 assert(
-  kronosSceneObjectRouteReached(objectRouteEnd, objectRoutePlacement, objectRouteCollision),
+  nhSceneObjectRouteReached(objectRouteEnd, objectRoutePlacement, objectRouteCollision),
   "object route endpoint should satisfy the source route-object reach check"
 );
 assert(!objectRouteCollision.canStand(objectRouteCollision.worldToSceneTile(worldTile(4, 4))), "object center should remain blocked");
 assert(
-  findKronosObjectRouteWaypoints(objectRouteEnd, objectRoutePlacement, objectRouteCollision).length === 0,
+  findNhObjectRouteWaypoints(objectRouteEnd, objectRoutePlacement, objectRouteCollision).length === 0,
   "already-reached object route should not enqueue movement"
 );
 assert(
-  kronosSceneObjectRouteReached(objectRouteEnd, objectRoutePlacement, objectRouteCollision),
+  nhSceneObjectRouteReached(objectRouteEnd, objectRoutePlacement, objectRouteCollision),
   "already-reached object route should still report successful reach"
 );
 
 const westBlockedObject = { ...objectRoutePlacement, accessBlockMask: 0x8 };
-const westBlockedObjectRoute = findKronosObjectRouteWaypoints(
+const westBlockedObjectRoute = findNhObjectRouteWaypoints(
   objectRouteStart,
   westBlockedObject,
   objectRouteCollision
@@ -389,7 +389,7 @@ assert(
   `object access mask should prevent using the west footprint edge: ${JSON.stringify(westBlockedEndWorld)}`
 );
 assert(
-  kronosSceneObjectRouteReached(westBlockedObjectRoute.at(-1), westBlockedObject, objectRouteCollision),
+  nhSceneObjectRouteReached(westBlockedObjectRoute.at(-1), westBlockedObject, objectRouteCollision),
   "access-mask object route endpoint should satisfy object reach"
 );
 
@@ -407,9 +407,9 @@ const wallWest = wallCollision.worldToSceneTile(worldTile(3, 4));
 const wallEast = wallCollision.worldToSceneTile(worldTile(4, 4));
 assert(!wallCollision.canStep(wallWest, wallEast), "type 0 west wall should block west-to-east entry");
 assert(!wallCollision.canStep(wallEast, wallWest), "type 0 west wall should block east-to-west exit");
-assert((wallCollision.getFlagWorld(WEST + 3, SOUTH + 4) & KRONOS_WEST_MASK) !== 0, "west-side wall mask missing");
-assert((wallCollision.getFlagWorld(WEST + 4, SOUTH + 4) & KRONOS_EAST_MASK) !== 0, "east-side wall mask missing");
-const wallWaypoints = findKronosTileRouteWaypoints(wallWest, wallCollision.worldToSceneTile(worldTile(5, 4)), wallCollision);
+assert((wallCollision.getFlagWorld(WEST + 3, SOUTH + 4) & NH_WEST_MASK) !== 0, "west-side wall mask missing");
+assert((wallCollision.getFlagWorld(WEST + 4, SOUTH + 4) & NH_EAST_MASK) !== 0, "east-side wall mask missing");
+const wallWaypoints = findNhTileRouteWaypoints(wallWest, wallCollision.worldToSceneTile(worldTile(5, 4)), wallCollision);
 assert(wallWaypoints.length > 0, "wall route should find an alternate path");
 const wallSteps = expandWaypointPath("wall alternate", wallCollision, wallWest, wallWaypoints);
 assertSame("wall alternate destination", wallWaypoints.at(-1), wallCollision.worldToSceneTile(worldTile(5, 4)));
@@ -424,7 +424,7 @@ assert(
 const edgeCollision = buildCollision([], 3, 3);
 const edgeStart = edgeCollision.worldToSceneTile(worldTile(0, 0));
 const outsideDestination = edgeCollision.worldToSceneTile(worldTile(5, 5));
-assert(findKronosTileRouteWaypoints(edgeStart, outsideDestination, edgeCollision).length > 0, "near outside click should fallback");
+assert(findNhTileRouteWaypoints(edgeStart, outsideDestination, edgeCollision).length > 0, "near outside click should fallback");
 const blockedStartCollision = buildCollision([
   objectPlacement({
     x: WEST,
@@ -435,7 +435,7 @@ const blockedStartCollision = buildCollision([
   })
 ]);
 assert(
-  findKronosTileRouteWaypoints(blockedStartCollision.worldToSceneTile(worldTile(0, 0)), openDestination, blockedStartCollision)
+  findNhTileRouteWaypoints(blockedStartCollision.worldToSceneTile(worldTile(0, 0)), openDestination, blockedStartCollision)
     .length === 0,
   "blocked start tile should not route"
 );
@@ -451,7 +451,7 @@ const floorDecorationCollision = buildCollision([
 const floorDecorationTile = floorDecorationCollision.worldToSceneTile(worldTile(2, 2));
 assert(!floorDecorationCollision.canStand(floorDecorationTile), "type 22 clipped decoration should block standing");
 assert(
-  (floorDecorationCollision.getFlagWorld(WEST + 2, SOUTH + 2) & KRONOS_FLOOR_DECORATION_MASK) !== 0,
+  (floorDecorationCollision.getFlagWorld(WEST + 2, SOUTH + 2) & NH_FLOOR_DECORATION_MASK) !== 0,
   "type 22 clipped decoration mask missing"
 );
 
@@ -478,10 +478,10 @@ const rotatedRectangleCollision = buildCollision([
     sizeY: 3
   })
 ]);
-assert((rotatedRectangleCollision.getFlagWorld(WEST + 2, SOUTH + 2) & KRONOS_OBJECT_MASK) !== 0, "rotated rectangle west tile missing object mask");
-assert((rotatedRectangleCollision.getFlagWorld(WEST + 3, SOUTH + 2) & KRONOS_OBJECT_MASK) !== 0, "rotated rectangle center tile missing object mask");
-assert((rotatedRectangleCollision.getFlagWorld(WEST + 4, SOUTH + 2) & KRONOS_OBJECT_MASK) !== 0, "rotated rectangle east tile missing object mask");
-assert((rotatedRectangleCollision.getFlagWorld(WEST + 2, SOUTH + 3) & KRONOS_OBJECT_MASK) === 0, "rotated rectangle did not swap footprint by orientation");
+assert((rotatedRectangleCollision.getFlagWorld(WEST + 2, SOUTH + 2) & NH_OBJECT_MASK) !== 0, "rotated rectangle west tile missing object mask");
+assert((rotatedRectangleCollision.getFlagWorld(WEST + 3, SOUTH + 2) & NH_OBJECT_MASK) !== 0, "rotated rectangle center tile missing object mask");
+assert((rotatedRectangleCollision.getFlagWorld(WEST + 4, SOUTH + 2) & NH_OBJECT_MASK) !== 0, "rotated rectangle east tile missing object mask");
+assert((rotatedRectangleCollision.getFlagWorld(WEST + 2, SOUTH + 3) & NH_OBJECT_MASK) === 0, "rotated rectangle did not swap footprint by orientation");
 
 const projectileRectangleCollision = buildCollision([
   objectPlacement({
@@ -492,11 +492,11 @@ const projectileRectangleCollision = buildCollision([
   })
 ]);
 assert(
-  (projectileRectangleCollision.getFlagWorld(WEST + 6, SOUTH + 6) & KRONOS_PROJECTILE_MASK) !== 0,
+  (projectileRectangleCollision.getFlagWorld(WEST + 6, SOUTH + 6) & NH_PROJECTILE_MASK) !== 0,
   "solid rectangle should preserve the source projectile mask"
 );
 assert(
-  (projectileRectangleCollision.getProjectileFlagWorld(WEST + 6, SOUTH + 6) & KRONOS_PROJECTILE_MASK) !== 0,
+  (projectileRectangleCollision.getProjectileFlagWorld(WEST + 6, SOUTH + 6) & NH_PROJECTILE_MASK) !== 0,
   "solid rectangle should be present in projectile clipping"
 );
 
@@ -515,14 +515,14 @@ const projectileBlockedCollision = buildCollision(
 const projectileSourceTile = projectileBlockedCollision.worldToSceneTile(worldTile(1, 1));
 const projectileTargetTile = projectileBlockedCollision.worldToSceneTile(worldTile(7, 1));
 assert(
-  !kronosSceneProjectileRouteClear(projectileSourceTile, projectileTargetTile, projectileBlockedCollision),
+  !nhSceneProjectileRouteClear(projectileSourceTile, projectileTargetTile, projectileBlockedCollision),
   "ProjectileRoute parity should block a straight cast through a tall object"
 );
 assert(
-  !kronosSceneTargetRouteReached(projectileSourceTile, projectileTargetTile, 10, projectileBlockedCollision),
+  !nhSceneTargetRouteReached(projectileSourceTile, projectileTargetTile, 10, projectileBlockedCollision),
   "TargetRoute parity should not mark ranged/magic in-range when projectile clipping blocks line of sight"
 );
-const projectileRoute = findKronosTargetRouteWaypoints(
+const projectileRoute = findNhTargetRouteWaypoints(
   projectileSourceTile,
   projectileTargetTile,
   10,
@@ -531,7 +531,7 @@ const projectileRoute = findKronosTargetRouteWaypoints(
 const projectileRouteEnd = projectileRoute.length === 0 ? projectileSourceTile : projectileRoute[projectileRoute.length - 1];
 assert(projectileRoute.length > 0, "blocked projectile target route should path to a tile with line of sight");
 assert(
-  kronosSceneTargetRouteReached(projectileRouteEnd, projectileTargetTile, 10, projectileBlockedCollision),
+  nhSceneTargetRouteReached(projectileRouteEnd, projectileTargetTile, 10, projectileBlockedCollision),
   "blocked projectile target route should stop only when range and projectile line of sight are both satisfied"
 );
 
@@ -552,7 +552,7 @@ assert(
   "movement-only object should still block standing"
 );
 assert(
-  kronosSceneProjectileRouteClear(
+  nhSceneProjectileRouteClear(
     movementOnlyCollision.worldToSceneTile(worldTile(1, 1)),
     movementOnlyCollision.worldToSceneTile(worldTile(7, 1)),
     movementOnlyCollision
@@ -637,13 +637,13 @@ assert(
   "Scene source no longer matches viewport-relative tile-picking assumptions"
 );
 assert(
-  runtimeSceneViewerSource.includes("kronosPickSceneTileFromViewportPoint") &&
+  runtimeSceneViewerSource.includes("nhPickSceneTileFromViewportPoint") &&
     runtimeSceneViewerSource.includes("boundary.sceneTilePicker") &&
     !runtimeSceneViewerSource.includes("runtimeGroundPlane"),
   "RuntimeSceneViewer should pick world clicks from source-shaped terrain triangles instead of a flat ground plane"
 );
 assert(
-  runtimeSceneViewerSource.includes("kronosSceneProjectileRouteClear") &&
+  runtimeSceneViewerSource.includes("nhSceneProjectileRouteClear") &&
     runtimeSceneViewerSource.includes("runtimeCombatProjectileLineOfSight") &&
     runtimeSceneViewerSource.includes("projectileLineOfSight: collisionMap") &&
     !runtimeSceneViewerSource.includes("if (!profile.melee) {\n    return input.actor;\n  }"),
@@ -653,13 +653,13 @@ assert(
     runtimeSceneViewerSource.includes("renderTile: manualActor.renderTile") &&
     runtimeSceneViewerSource.includes("snapManualActorToCollision") &&
     runtimeSceneViewerSource.includes("renderTile: tile") &&
-    runtimeSceneViewerSource.includes("expandKronosManualRoutePath(startTile, routeSegment, collision)") &&
-    runtimeSceneViewerSource.includes("setKronosManualServerRoutePath(routePath)") &&
+    runtimeSceneViewerSource.includes("expandNhManualRoutePath(startTile, routeSegment, collision)") &&
+    runtimeSceneViewerSource.includes("setNhManualServerRoutePath(routePath)") &&
     runtimeSceneViewerSource.includes("manualActorRouteClientPosition(actor, startTile)") &&
-    runtimeSceneViewerSource.includes("actor.clientPosition ?? kronosClientPositionFromRuntimeTile(actor.renderTile ?? startTile)") &&
+    runtimeSceneViewerSource.includes("actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile ?? startTile)") &&
     runtimeSceneViewerSource.includes("Entity.freeze() calls Movement.reset(), which clears queued steps without rewriting Position") &&
-    runtimeSceneViewerSource.includes("const clientPosition = actor.clientPosition ?? kronosClientPositionFromRuntimeTile(actor.renderTile)") &&
-    !runtimeSceneViewerSource.includes("const clientPosition = kronosClientPositionFromRuntimeTile(actor.tile)") &&
+    runtimeSceneViewerSource.includes("const clientPosition = actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile)") &&
+    !runtimeSceneViewerSource.includes("const clientPosition = nhClientPositionFromRuntimeTile(actor.tile)") &&
     !runtimeSceneViewerSource.includes("actor: advanceManualActorServerRouteTick({") &&
     runtimeSceneViewerSource.includes("stopManualActorMovementIfMovementGated") &&
     runtimeSceneViewerSource.includes("clearManualActorMovementRoute") &&
@@ -682,34 +682,34 @@ assert(
     runtimeSceneViewerSource.includes("movementFrameCycle > frameLength") &&
     runtimeSceneViewerSource.includes("movementFrameCycle = 1") &&
     runtimeSceneViewerSource.includes("movementFrame = 0") &&
-    runtimeSceneViewerSource.includes("kronosMovementFrameCursor(actor)") &&
+    runtimeSceneViewerSource.includes("nhMovementFrameCursor(actor)") &&
     runtimeSceneViewerSource.includes("movementBlockedBySequence") &&
     runtimeSceneViewerSource.includes("advanceManualActorClientCycle") &&
-    runtimeSceneViewerSource.includes("kronosMoveClientAxis(clientPosition.x, targetPosition.x, speed)") &&
-    runtimeSceneViewerSource.includes("kronosMovementSequenceNameForSpeed(speed, initialMovementSequenceName)") &&
-    runtimeSceneViewerSource.includes("rotateManualActorTowardKronosOrientation") &&
-    runtimeSceneViewerSource.includes("rotationUnits += KRONOS_ACTOR_TURN_SPEED_UNITS") &&
-    runtimeSceneViewerSource.includes("KRONOS_ACTOR_TURN_ANIMATION_DELAY_TICKS") &&
-    runtimeSceneViewerSource.includes("KRONOS_CLIENT_MAX_CYCLES_PER_RENDER_FRAME") &&
+    runtimeSceneViewerSource.includes("nhMoveClientAxis(clientPosition.x, targetPosition.x, speed)") &&
+    runtimeSceneViewerSource.includes("nhMovementSequenceNameForSpeed(speed, initialMovementSequenceName)") &&
+    runtimeSceneViewerSource.includes("rotateManualActorTowardNhOrientation") &&
+    runtimeSceneViewerSource.includes("rotationUnits += NH_ACTOR_TURN_SPEED_UNITS") &&
+    runtimeSceneViewerSource.includes("NH_ACTOR_TURN_ANIMATION_DELAY_TICKS") &&
+    runtimeSceneViewerSource.includes("NH_CLIENT_MAX_CYCLES_PER_RENDER_FRAME") &&
     runtimeSceneViewerSource.includes("animationCycle - targetMovementCycle > maxCycleCatchUp ? animationCycle : targetMovementCycle") &&
-    runtimeSceneViewerSource.includes("kronosTurnSequenceForReadyMovement(actor.sequenceName, turnTicks, stillTurning)") &&
+    runtimeSceneViewerSource.includes("nhTurnSequenceForReadyMovement(actor.sequenceName, turnTicks, stillTurning)") &&
     runtimeSceneViewerSource.includes('return sequenceName === "idle" || runtimeSequenceIsWeaponReady(sequenceName);') &&
     runtimeSceneViewerSource.includes("tile: actor.tile") &&
-    runtimeSceneViewerSource.includes("renderTile: runtimeTileFromKronosClientPosition(clientPosition)") &&
+    runtimeSceneViewerSource.includes("renderTile: runtimeTileFromNhClientPosition(clientPosition)") &&
     runtimeSceneViewerSource.includes('hitActor?.actorId === "local-player" ? null : hitActor') &&
     runtimeSceneViewerSource.includes("advanceManualActorsForRenderFrame(now)") &&
     runtimeSceneViewerSource.includes("clientCycle <= localActor.lastMovementClientCycle") &&
     runtimeSceneViewerSource.includes("animationCycle: clientCycle + frameCycleOffset") &&
     !runtimeSceneViewerSource.includes("runtimeAnimationSmoothingManualActorFramePose") &&
-    !runtimeSceneViewerSource.includes("renderTile: runtimeTileFromKronosClientPosition(smoothedPosition)") &&
-    !runtimeSceneViewerSource.includes("KRONOS_RENDER_MAX_CLIENT_CYCLE_CATCH_UP") &&
+    !runtimeSceneViewerSource.includes("renderTile: runtimeTileFromNhClientPosition(smoothedPosition)") &&
+    !runtimeSceneViewerSource.includes("NH_RENDER_MAX_CLIENT_CYCLE_CATCH_UP") &&
     !runtimeSceneViewerSource.includes("window.setInterval(() => {\n      const combatState = manualCombatStateRef.current") &&
     !runtimeSceneViewerSource.includes("manualActorFacingTarget(clearManualActorRoutes(localActorSource), opponentActorSource)") &&
-    !runtimeSceneViewerSource.includes("kronosManualQueuedRouteEndTile(actor, startTile)") &&
-    !runtimeSceneViewerSource.includes("appendKronosManualRoutePath(actor, routePath)") &&
-    !runtimeSceneViewerSource.includes("facingDegrees: kronosFacingDegrees(startTile, routeWaypoints[0])") &&
-    !runtimeSceneViewerSource.includes("facingDegrees: kronosFacingDegrees(startTile, movement.finalTile)") &&
-    !runtimeSceneViewerSource.includes("tile: interpolateKronosTile") &&
+    !runtimeSceneViewerSource.includes("nhManualQueuedRouteEndTile(actor, startTile)") &&
+    !runtimeSceneViewerSource.includes("appendNhManualRoutePath(actor, routePath)") &&
+    !runtimeSceneViewerSource.includes("facingDegrees: nhFacingDegrees(startTile, routeWaypoints[0])") &&
+    !runtimeSceneViewerSource.includes("facingDegrees: nhFacingDegrees(startTile, movement.finalTile)") &&
+    !runtimeSceneViewerSource.includes("tile: interpolateNhTile") &&
     !runtimeSceneViewerSource.includes("tile: collision.snapTile(renderTile)") &&
     !runtimeSceneViewerSource.includes("tile: nextLogicalTile") &&
     !runtimeSceneViewerSource.includes("collision.snapTile(actor.stepTo ?? actor.tile)"),
@@ -718,7 +718,7 @@ assert(
 assert(
   /const nextCombatState = resetRuntimePlayerCombatActorTarget\(manualScene\.combatState, "local-player"\);\s+const movementStatus = movementGate\(/.test(runtimeSceneViewerSource) &&
     /if \(movementStatus\.blocked\) \{[\s\S]*manualCombatStateRef\.current = nextCombatState;[\s\S]*setManualCombatState\(nextCombatState\);[\s\S]*showClickCross\(position, color\);[\s\S]*lastTileCommandBlockedByMovementGate/.test(runtimeSceneViewerSource),
-  "blocked tile commands should reset combat actions like Kronos WalkHandler and preserve the client-side command click-cross color"
+  "blocked tile commands should reset combat actions like Nh WalkHandler and preserve the client-side command click-cross color"
 );
 assert(
   clientActorMovementSource.includes("var4 = var0.pathX[var0.pathLength - 1] * 128 + var0.size * 64;") &&
@@ -733,7 +733,7 @@ assert(
     clientActorMovementSource.includes("var0.orientation = 1536;") &&
     clientActorMovementSource.includes("if(var0.readySequence == var0.movementSequence && (var0.field719 > 25 || var14))") &&
     clientActorMovementSource.includes("if(var11 != var4 || var12 != var5)"),
-  "Kronos client actor movement source no longer matches next-path-tile facing and catch-up assumptions"
+  "Nh client actor movement source no longer matches next-path-tile facing and catch-up assumptions"
 );
 assert(
   clientPlayerSource.includes("if(super.pathLength < 9)") &&
@@ -743,13 +743,13 @@ assert(
     clientPlayerSource.includes("super.pathX[0] = var1;") &&
     clientPlayerSource.includes("super.pathY[0] = var2;") &&
     clientPlayerSource.includes("super.pathTraversed[0] = var3;"),
-  "Kronos Player.method1100 source no longer matches path queue insertion assumptions"
+  "Nh Player.method1100 source no longer matches path queue insertion assumptions"
 );
 assert(
   clientLoginPacketSource.includes("var0.sequence = var1;") &&
     clientLoginPacketSource.includes("var0.sequenceDelay = var2;") &&
     clientLoginPacketSource.includes("var0.field726 = var0.pathLength;"),
-  "Kronos LoginPacket.method3722 source no longer matches action-sequence path-length snapshot assumptions"
+  "Nh LoginPacket.method3722 source no longer matches action-sequence path-length snapshot assumptions"
 );
 
 function sameTile(left, right) {

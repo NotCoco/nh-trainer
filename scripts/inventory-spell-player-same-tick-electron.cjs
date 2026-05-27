@@ -31,8 +31,8 @@ async function waitForReady(window) {
         document.querySelector(".runeliteClientShell") &&
         document.querySelector(".glbStatus-ready") &&
         document.querySelector(".runtimeViewport canvas") &&
-        document.querySelector('.kronosInventorySlot[data-inventory-item-id="21006"]') &&
-        document.querySelector('.kronosSideTabButton[data-tab-id="magic"]')
+        document.querySelector('.nhInventorySlot[data-inventory-item-id="21006"]') &&
+        document.querySelector('.nhSideTabButton[data-tab-id="magic"]')
       ))()
     `);
     if (ready) {
@@ -57,7 +57,7 @@ async function clickSideTab(window, tabId) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
       const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
-      const tab = document.querySelector(${JSON.stringify(`.kronosSideTabButton[data-tab-id="${tabId}"]`)});
+      const tab = document.querySelector(${JSON.stringify(`.nhSideTabButton[data-tab-id="${tabId}"]`)});
       if (!tab) {
         return { ok: false, error: "missing side tab", tabId: ${JSON.stringify(tabId)} };
       }
@@ -122,7 +122,7 @@ async function locateOpponentClick(window) {
           clientY
         }));
         await settle();
-        let menu = document.querySelector(".kronosContextMenu");
+        let menu = document.querySelector(".nhContextMenu");
         if (!menu) {
           canvas.dispatchEvent(new MouseEvent("contextmenu", {
             bubbles: true,
@@ -134,10 +134,10 @@ async function locateOpponentClick(window) {
             clientY
           }));
           await settle();
-          menu = document.querySelector(".kronosContextMenu");
+          menu = document.querySelector(".nhContextMenu");
         }
         const options = menu
-          ? Array.from(menu.querySelectorAll(".kronosContextMenuOption")).map((option) => ({
+          ? Array.from(menu.querySelectorAll(".nhContextMenuOption")).map((option) => ({
               text: option.textContent ?? "",
               actionKind: option.getAttribute("data-menu-action-kind") ?? "",
               opcode: Number(option.getAttribute("data-menu-opcode"))
@@ -168,8 +168,8 @@ async function equipKodaiSelectBarrageAndClickOpponentBeforeTick(window, opponen
     (async () => {
       const settle = (ms = 20) => new Promise((resolve) => setTimeout(resolve, ms));
       const viewport = document.querySelector(".runtimeViewport");
-      const kodaiSlot = document.querySelector('.kronosInventorySlot[data-inventory-item-id="21006"]');
-      const magicTab = document.querySelector('.kronosSideTabButton[data-tab-id="magic"]');
+      const kodaiSlot = document.querySelector('.nhInventorySlot[data-inventory-item-id="21006"]');
+      const magicTab = document.querySelector('.nhSideTabButton[data-tab-id="magic"]');
       const canvas = document.querySelector(".runtimeViewport canvas");
       if (!kodaiSlot || !magicTab || !canvas) {
         return { ok: false, error: "missing Kodai slot, magic tab, or canvas" };
@@ -179,7 +179,7 @@ async function equipKodaiSelectBarrageAndClickOpponentBeforeTick(window, opponen
       const slotX = slotRect.left + slotRect.width / 2;
       const slotY = slotRect.top + slotRect.height / 2;
       const slotTarget = document.elementFromPoint(slotX, slotY);
-      if (!slotTarget || slotTarget.closest(".kronosInventorySlot") !== kodaiSlot) {
+      if (!slotTarget || slotTarget.closest(".nhInventorySlot") !== kodaiSlot) {
         return { ok: false, error: "Kodai slot is not the pointer target" };
       }
 
@@ -232,7 +232,7 @@ async function equipKodaiSelectBarrageAndClickOpponentBeforeTick(window, opponen
       }));
       await settle(30);
 
-      const barrage = document.querySelector('.kronosSpellbookIconSprite[data-spell-id="ice-barrage"]');
+      const barrage = document.querySelector('.nhSpellbookIconSprite[data-spell-id="ice-barrage"]');
       if (!barrage) {
         return { ok: false, error: "missing Ice Barrage icon after opening magic tab", dataset: { ...viewport?.dataset } };
       }
@@ -266,7 +266,7 @@ async function equipKodaiSelectBarrageAndClickOpponentBeforeTick(window, opponen
         clientY: opponentY
       }));
       await settle(20);
-      const spellOption = Array.from(document.querySelectorAll(".kronosContextMenuOption")).find(
+      const spellOption = Array.from(document.querySelectorAll(".nhContextMenuOption")).find(
         (option) =>
           option.getAttribute("data-menu-action-kind") === "player-spell-selected" &&
           (option.textContent ?? "").includes("Ice Barrage")
@@ -275,7 +275,7 @@ async function equipKodaiSelectBarrageAndClickOpponentBeforeTick(window, opponen
         return {
           ok: false,
           error: "missing selected Ice Barrage player context option",
-          options: Array.from(document.querySelectorAll(".kronosContextMenuOption")).map((option) => ({
+          options: Array.from(document.querySelectorAll(".nhContextMenuOption")).map((option) => ({
             text: option.textContent ?? "",
             actionKind: option.getAttribute("data-menu-action-kind") ?? "",
             opcode: Number(option.getAttribute("data-menu-opcode"))
@@ -320,7 +320,7 @@ async function readRuntimeState(window) {
         const pose = document.querySelector('.runtimeActorPose[data-actor-id="local-player"]');
         return { loadoutId: pose?.getAttribute("data-loadout-id") ?? "" };
       })(),
-      equipmentItems: Array.from(document.querySelectorAll(".kronosEquipmentItemSprite")).map((item) => ({
+      equipmentItems: Array.from(document.querySelectorAll(".nhEquipmentItemSprite")).map((item) => ({
         slotId: item.getAttribute("data-slot-id") ?? "",
         itemId: Number(item.getAttribute("data-item-id")),
         itemName: item.getAttribute("data-item-name") ?? ""
@@ -332,18 +332,18 @@ async function readRuntimeState(window) {
 async function installXpDropObserver(window) {
   await window.webContents.executeJavaScript(`
     (() => {
-      window.__kronosXpDropRecords = [];
-      window.__kronosXpDropObservedElements = new WeakSet();
+      window.__nhXpDropRecords = [];
+      window.__nhXpDropObservedElements = new WeakSet();
       const record = () => {
         const now = performance.now();
         for (const element of document.querySelectorAll(".runeliteXpDropOverlay")) {
           const hitId = element.getAttribute("data-hit-id") ?? "";
-          if (!hitId || window.__kronosXpDropObservedElements.has(element)) {
+          if (!hitId || window.__nhXpDropObservedElements.has(element)) {
             continue;
           }
-          window.__kronosXpDropObservedElements.add(element);
-          window.__kronosXpDropRecords.push({
-            key: hitId + "@" + window.__kronosXpDropRecords.length,
+          window.__nhXpDropObservedElements.add(element);
+          window.__nhXpDropRecords.push({
+            key: hitId + "@" + window.__nhXpDropRecords.length,
             hitId,
             damage: element.getAttribute("data-damage") ?? "",
             xpTotal: element.getAttribute("data-xp-total") ?? "",
@@ -352,9 +352,9 @@ async function installXpDropObserver(window) {
           });
         }
       };
-      window.__kronosXpDropObserver?.disconnect?.();
-      window.__kronosXpDropObserver = new MutationObserver(record);
-      window.__kronosXpDropObserver.observe(document.body, { childList: true, subtree: true });
+      window.__nhXpDropObserver?.disconnect?.();
+      window.__nhXpDropObserver = new MutationObserver(record);
+      window.__nhXpDropObserver.observe(document.body, { childList: true, subtree: true });
       record();
     })()
   `);
@@ -363,8 +363,8 @@ async function installXpDropObserver(window) {
 async function installActionSequenceObserver(window) {
   await window.webContents.executeJavaScript(`
     (() => {
-      window.__kronosActionSequenceObserver?.cancel?.();
-      window.__kronosActionSequenceApplyLog = [];
+      window.__nhActionSequenceObserver?.cancel?.();
+      window.__nhActionSequenceApplyLog = [];
       const state = {
         samples: [],
         starts: [],
@@ -380,7 +380,7 @@ async function installActionSequenceObserver(window) {
         }
       };
       const sample = () => {
-        const motion = window.__kronosRuntimeDebug?.motion;
+        const motion = window.__nhRuntimeDebug?.motion;
         const local = motion?.actors?.find((actor) => actor.actorId === "local-player") ?? null;
         const actionKey = local?.actionSequenceKey ?? "";
         const animationCycle = Number(local?.animationCycle);
@@ -423,7 +423,7 @@ async function installActionSequenceObserver(window) {
         }
         state.raf = requestAnimationFrame(sample);
       };
-      window.__kronosActionSequenceObserver = state;
+      window.__nhActionSequenceObserver = state;
       state.raf = requestAnimationFrame(sample);
     })()
   `);
@@ -432,15 +432,15 @@ async function installActionSequenceObserver(window) {
 async function readVisualCombatState(window) {
   return window.webContents.executeJavaScript(`
     (() => {
-      const xpDropRecords = window.__kronosXpDropRecords ?? [];
+      const xpDropRecords = window.__nhXpDropRecords ?? [];
       const xpDropCountsByHitId = {};
       for (const record of xpDropRecords) {
         xpDropCountsByHitId[record.hitId] = (xpDropCountsByHitId[record.hitId] ?? 0) + 1;
       }
       const pvpOverlay = document.querySelector(".runelitePvpOverlay");
       const pvpStyle = pvpOverlay ? getComputedStyle(pvpOverlay) : null;
-      const compass = document.querySelector(".kronosCompassOverlay");
-      const compassSprite = document.querySelector(".kronosCompassSprite");
+      const compass = document.querySelector(".nhCompassOverlay");
+      const compassSprite = document.querySelector(".nhCompassSprite");
       const compassSpriteStyle = compassSprite ? getComputedStyle(compassSprite) : null;
       return {
         xpDropRecords,
@@ -457,10 +457,10 @@ async function readVisualCombatState(window) {
           backgroundImage: compassSpriteStyle?.backgroundImage ?? ""
         },
         actionSequence: {
-          starts: window.__kronosActionSequenceObserver?.starts ?? [],
-          regressions: window.__kronosActionSequenceObserver?.regressions ?? [],
-          samples: window.__kronosActionSequenceObserver?.samples ?? [],
-          applyLog: window.__kronosActionSequenceApplyLog ?? [],
+          starts: window.__nhActionSequenceObserver?.starts ?? [],
+          regressions: window.__nhActionSequenceObserver?.regressions ?? [],
+          samples: window.__nhActionSequenceObserver?.samples ?? [],
+          applyLog: window.__nhActionSequenceApplyLog ?? [],
           rewindSuppressed: Number(document.querySelector(".runtimeViewport canvas")?.dataset.lastLocalActionAnimationRewindSuppressed ?? "0")
         }
       };
@@ -490,13 +490,13 @@ app.whenReady().then(async () => {
   try {
     await window.loadFile(path.join(projectRoot, "dist", "index.html"));
     await waitForReady(window);
-    await dispatchEvent(window, "kronos-runtime-camera", { camera: "isometric" });
-    await dispatchEvent(window, "kronos-runtime-cycle", { cycle: 200 });
-    await dispatchEvent(window, "kronos-runtime-spellbook", { spellbookId: "ancient" });
+    await dispatchEvent(window, "nh-runtime-camera", { camera: "isometric" });
+    await dispatchEvent(window, "nh-runtime-cycle", { cycle: 200 });
+    await dispatchEvent(window, "nh-runtime-spellbook", { spellbookId: "ancient" });
     await delay(200);
     await clickSideTab(window, "inventory");
     const opponent = await locateOpponentClick(window);
-    await dispatchEvent(window, "kronos-runtime-reset-tick-origin", {});
+    await dispatchEvent(window, "nh-runtime-reset-tick-origin", {});
     await installXpDropObserver(window);
     await installActionSequenceObserver(window);
     await delay(80);
@@ -604,7 +604,7 @@ app.whenReady().then(async () => {
       !visualState.compass.backgroundImage.includes("compass.png") ||
       !visualState.compass.sourceDraw.includes("AttackOption.compass.method6205")
     ) {
-      throw new Error(`fixed compass should render the exported Kronos compass sprite: ${JSON.stringify(visualState, null, 2)}`);
+      throw new Error(`fixed compass should render the exported Nh compass sprite: ${JSON.stringify(visualState, null, 2)}`);
     }
 
     console.log(JSON.stringify({ ok: true, opponent, dispatch, state, visualState }, null, 2));

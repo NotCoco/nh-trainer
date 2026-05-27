@@ -1,7 +1,7 @@
 import type { VisibleEquipment } from "../clientView";
 import {
-  KRONOS_PVP_MAGIC_ACCURACY_MODIFIER,
-  KRONOS_PVP_MELEE_ACCURACY_MODIFIER,
+  NH_PVP_MAGIC_ACCURACY_MODIFIER,
+  NH_PVP_MELEE_ACCURACY_MODIFIER,
   aggregateBonuses,
   estimateStyleEv,
   type BonusTable,
@@ -38,7 +38,7 @@ export interface VisibleStyleEvInput {
   readonly maxMagicDamage?: number;
 }
 
-const kronosMagicInterferenceSlots = ["body", "legs"] as const;
+const nhMagicInterferenceSlots = ["body", "legs"] as const;
 
 export function equipmentRowsByItemId(rows: readonly EquipmentBonusRow[]): ReadonlyMap<number, EquipmentBonusRow> {
   return new Map(rows.map((row) => [row.id, row]));
@@ -62,7 +62,7 @@ export function estimateVisibleStyleEvs(input: VisibleStyleEvInput): readonly St
   const defenderPrayer = aggregatePrayerBoosts(input.defenderPrayers ?? []);
   const defenderProtectionPrayer = activeProtectionPrayer(input.defenderPrayers ?? []);
   const styles = input.styles ?? (["magic", "ranged", "slash"] as const);
-  const magicInterference = kronosVisibleMagicInterference(input.attackerEquipment, input.equipmentRows);
+  const magicInterference = nhVisibleMagicInterference(input.attackerEquipment, input.equipmentRows);
 
   return styles.map((style) => {
     const attackBoostMultiplier =
@@ -82,7 +82,7 @@ export function estimateVisibleStyleEvs(input: VisibleStyleEvInput): readonly St
       defenderBonuses,
       attackBoostMultiplier,
       strengthBoostMultiplier,
-      accuracyModifier: kronosVisiblePvpAccuracyModifier(style),
+      accuracyModifier: nhVisiblePvpAccuracyModifier(style),
       defenceBoostMultiplier: 1 + defenderPrayer.defence,
       magicDefenceBoostMultiplier: 1 + defenderPrayer.magic,
       maxMagicDamage: input.maxMagicDamage
@@ -106,13 +106,13 @@ export function strongestVisibleStyle(input: VisibleStyleEvInput): StyleEvEstima
   return [...estimateVisibleStyleEvs(input)].sort((left, right) => right.expectedDamage - left.expectedDamage)[0];
 }
 
-export function kronosVisibleMagicInterference(
+export function nhVisibleMagicInterference(
   equipment: VisibleEquipment,
   equipmentRows: readonly EquipmentBonusRow[]
 ): number {
   const rowsById = equipmentRowsByItemId(equipmentRows);
   let interferenceCount = 0;
-  for (const slot of kronosMagicInterferenceSlots) {
+  for (const slot of nhMagicInterferenceSlots) {
     const item = equipment[slot];
     const row = item ? rowsById.get(item.itemId) : undefined;
     if ((row?.bonuses.magic_attack_bonus ?? 0) < 0) {
@@ -122,12 +122,12 @@ export function kronosVisibleMagicInterference(
   return interferenceCount * 0.45;
 }
 
-function kronosVisiblePvpAccuracyModifier(style: CombatStyle): number {
+function nhVisiblePvpAccuracyModifier(style: CombatStyle): number {
   if (style === "magic") {
-    return KRONOS_PVP_MAGIC_ACCURACY_MODIFIER;
+    return NH_PVP_MAGIC_ACCURACY_MODIFIER;
   }
   if (style === "stab" || style === "slash" || style === "crush") {
-    return KRONOS_PVP_MELEE_ACCURACY_MODIFIER;
+    return NH_PVP_MELEE_ACCURACY_MODIFIER;
   }
   return 1;
 }

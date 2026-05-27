@@ -8,8 +8,8 @@ function read(relativePath) {
   return fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
+function readNhClient(relativePath) {
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
 }
 
 function assert(condition, message) {
@@ -18,9 +18,9 @@ function assert(condition, message) {
   }
 }
 
-const overlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/Overlay.java");
-const overlayRendererSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/OverlayRenderer.java");
-const overlayManagerSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/OverlayManager.java");
+const overlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/Overlay.java");
+const overlayRendererSource = readNhClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/OverlayRenderer.java");
+const overlayManagerSource = readNhClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/OverlayManager.java");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
 const runtimeSource = read("src/ui/RuntimeSceneViewer.tsx");
 const positionSource = read("src/ui/runeliteOverlayPosition.ts");

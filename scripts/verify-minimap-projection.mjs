@@ -7,7 +7,7 @@ import ts from "typescript";
 
 const require = createRequire(import.meta.url);
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const kronosClientRoot = path.resolve(projectRoot, "..", "Kronos184-Client");
+const nhClientRoot = path.resolve(projectRoot, "..", "Nh184-Client");
 const moduleCache = new Map();
 
 function loadTsModule(relativePath) {
@@ -84,8 +84,8 @@ function readProjectSource(relativePath) {
   return readFileSync(path.join(projectRoot, relativePath), "utf8");
 }
 
-function readKronosClientSource(relativePath) {
-  return readFileSync(path.join(kronosClientRoot, relativePath), "utf8");
+function readNhClientSource(relativePath) {
+  return readFileSync(path.join(nhClientRoot, relativePath), "utf8");
 }
 
 function assertSourceIncludes(source, snippet, label) {
@@ -93,38 +93,38 @@ function assertSourceIncludes(source, snippet, label) {
 }
 
 const {
-  KRONOS_MINIMAP_DOT_SIZE,
-  KRONOS_MINIMAP_LOCAL_PLAYER_DOT_COLOR,
-  KRONOS_MINIMAP_LOCAL_PLAYER_DOT_SIZE,
-  kronosMinimapActorTile,
-  kronosMinimapActorDeltas,
-  kronosMinimapClickToTile,
-  kronosMinimapDestinationDeltas,
-  kronosMinimapDestinationMarker,
-  kronosMinimapDotOffset,
-  kronosMinimapDotsForSnapshot,
-  kronosMinimapHintMarker,
-  kronosMinimapLocalPlayerDot,
-  kronosMinimapMaskContains,
-  kronosMinimapMapIconForObject,
-  kronosMinimapMapIconForSource,
-  kronosMinimapMapDotSpriteIndex,
-  kronosMinimapMapMarkerSpriteIndex
-} = loadTsModule("src/render/kronosMinimap.ts");
+  NH_MINIMAP_DOT_SIZE,
+  NH_MINIMAP_LOCAL_PLAYER_DOT_COLOR,
+  NH_MINIMAP_LOCAL_PLAYER_DOT_SIZE,
+  nhMinimapActorTile,
+  nhMinimapActorDeltas,
+  nhMinimapClickToTile,
+  nhMinimapDestinationDeltas,
+  nhMinimapDestinationMarker,
+  nhMinimapDotOffset,
+  nhMinimapDotsForSnapshot,
+  nhMinimapHintMarker,
+  nhMinimapLocalPlayerDot,
+  nhMinimapMaskContains,
+  nhMinimapMapIconForObject,
+  nhMinimapMapIconForSource,
+  nhMinimapMapDotSpriteIndex,
+  nhMinimapMapMarkerSpriteIndex
+} = loadTsModule("src/render/nhMinimap.ts");
 const {
-  buildKronosMinimapSceneSprite,
-  kronosMinimapSceneCenter,
-  kronosMinimapSceneTransform
-} = loadTsModule("src/render/kronosMinimapScene.ts");
+  buildNhMinimapSceneSprite,
+  nhMinimapSceneCenter,
+  nhMinimapSceneTransform
+} = loadTsModule("src/render/nhMinimapScene.ts");
 const { assertValidClientViewTrace } = loadTsModule("src/sim/clientView.ts");
 const { createDisabledMinimapClientViewTrace, createMinimapSemanticClientViewTrace } = loadTsModule("src/sim/clientViewFixtures.ts");
 const { clientViewTraceToRuntimeReplay, sampleRuntimeReplayScene } = loadTsModule("src/render/clientViewReplay.ts");
 
-const clientSource = readKronosClientSource("runelite-client/src/main/java/net/runelite/standalone/Client.java");
-const clientSceneSource = readKronosClientSource("runelite-client/src/main/java/net/runelite/standalone/Scene.java");
-const spriteMaskSource = readKronosClientSource("runelite-client/src/main/java/net/runelite/standalone/SpriteMask.java");
-const minimapSceneSource = readProjectSource("src/render/kronosMinimapScene.ts");
-const minimapProjectionSource = readProjectSource("src/render/kronosMinimap.ts");
+const clientSource = readNhClientSource("runelite-client/src/main/java/net/runelite/standalone/Client.java");
+const clientSceneSource = readNhClientSource("runelite-client/src/main/java/net/runelite/standalone/Scene.java");
+const spriteMaskSource = readNhClientSource("runelite-client/src/main/java/net/runelite/standalone/SpriteMask.java");
+const minimapSceneSource = readProjectSource("src/render/nhMinimapScene.ts");
+const minimapProjectionSource = readProjectSource("src/render/nhMinimap.ts");
 for (const snippet of [
   "static int camAngleY;",
   "static int minimapState;",
@@ -135,11 +135,11 @@ for (const snippet of [
   "static int hintArrowType;",
   "static int destinationX;"
 ]) {
-  assertSourceIncludes(clientSource, snippet, "Kronos Client minimap source fields");
+  assertSourceIncludes(clientSource, snippet, "Nh Client minimap source fields");
 }
-assertSourceIncludes(clientSceneSource, "if(var9 != 0)", "Kronos scene minimap TilePaint draw");
-assertSourceIncludes(clientSceneSource, "if(var12 != 0)", "Kronos scene minimap TileModel draw");
-assertSourceIncludes(spriteMaskSource, "var1 <= var3 + this.xWidths[var2]", "Kronos SpriteMask row hit test");
+assertSourceIncludes(clientSceneSource, "if(var9 != 0)", "Nh scene minimap TilePaint draw");
+assertSourceIncludes(clientSceneSource, "if(var12 != 0)", "Nh scene minimap TileModel draw");
+assertSourceIncludes(spriteMaskSource, "var1 <= var3 + this.xWidths[var2]", "Nh SpriteMask row hit test");
 assert(
   !minimapSceneSource.includes("fallbackTerrainColor"),
   "minimap terrain should leave blank source pixels untouched instead of using a handmade fallback terrain color"
@@ -190,7 +190,7 @@ assert(playerMapDot, "expected exported minimap_map_dots atlas to include map_do
 function mapDotSpriteSizeForKind(kind) {
   const alias = `map_dot_${kind.replace("-", "_")}`;
   const sprite = mapDotAtlas.sprites.find((candidate) => candidate.alias === alias)
-    ?? mapDotAtlas.sprites.find((candidate) => candidate.frame === kronosMinimapMapDotSpriteIndex(kind));
+    ?? mapDotAtlas.sprites.find((candidate) => candidate.frame === nhMinimapMapDotSpriteIndex(kind));
   return sprite ? { width: sprite.width, height: sprite.height } : null;
 }
 assertSame("cache player map dot frame", {
@@ -225,7 +225,7 @@ const arena = JSON.parse(readFileSync(path.join(projectRoot, "fixtures", "render
 const arenaObjects = JSON.parse(readFileSync(path.join(projectRoot, "fixtures", "render", "maps", "inferno_arena_objects.json"), "utf8"));
 const floors = JSON.parse(readFileSync(path.join(projectRoot, "fixtures", "assets", "defs", "floors.json"), "utf8"));
 const textures = JSON.parse(readFileSync(path.join(projectRoot, "fixtures", "assets", "defs", "textures.json"), "utf8"));
-const sceneSprite = buildKronosMinimapSceneSprite(arena, arenaObjects, floors, textures);
+const sceneSprite = buildNhMinimapSceneSprite(arena, arenaObjects, floors, textures);
 assertSame("cache scene minimap sprite shape", {
   width: sceneSprite.width,
   height: sceneSprite.height,
@@ -268,7 +268,7 @@ assertSame("cache scene minimap TileModel overlay pixel", sceneSprite.overlayPix
   rotation: 1,
   maskIndex: 12
 });
-const blankTerrainScene = buildKronosMinimapSceneSprite(
+const blankTerrainScene = buildNhMinimapSceneSprite(
   {
     ...arena,
     bounds: {
@@ -329,7 +329,7 @@ const syntheticMapIconObject = {
   mapSceneId: -1,
   mapIconId: sampleMapIconSprite.areaId
 };
-const syntheticMapIconScene = buildKronosMinimapSceneSprite(arena, [syntheticMapIconObject], floors, textures);
+const syntheticMapIconScene = buildNhMinimapSceneSprite(arena, [syntheticMapIconObject], floors, textures);
 assertSame("cache scene minimap map-icon object", syntheticMapIconScene.mapIconObjects[0], {
   key: `mapicon:12345:${syntheticMapIconObject.x}:${syntheticMapIconObject.y}:10:0:${sampleMapIconSprite.areaId}`,
   x: 260,
@@ -343,18 +343,18 @@ assertSame("cache scene minimap map-icon object", syntheticMapIconScene.mapIconO
   orientation: 0
 });
 assertSame("cache scene minimap origin", sceneSprite.originWorldTile, { x: 3103, y: 3532, plane: 0 });
-assertSame("cache scene minimap local center", kronosMinimapSceneCenter(sceneSprite, { x: -2, z: 0 }), {
+assertSame("cache scene minimap local center", nhMinimapSceneCenter(sceneSprite, { x: -2, z: 0 }), {
   x: 250,
   y: 254
 });
-assertSame("cache scene minimap north transform", kronosMinimapSceneTransform(sceneSprite, { x: -2, z: 0 }, 0, mask), {
+assertSame("cache scene minimap north transform", nhMinimapSceneTransform(sceneSprite, { x: -2, z: 0 }, 0, mask), {
   centerX: 250,
   centerY: 254,
   angleDegrees: 0,
   left: -178,
   top: -179
 });
-assertSame("cache scene minimap south transform", kronosMinimapSceneTransform(sceneSprite, { x: -2, z: 0 }, 1024, mask), {
+assertSame("cache scene minimap south transform", nhMinimapSceneTransform(sceneSprite, { x: -2, z: 0 }, 1024, mask), {
   centerX: 250,
   centerY: 254,
   angleDegrees: 180,
@@ -362,13 +362,13 @@ assertSame("cache scene minimap south transform", kronosMinimapSceneTransform(sc
   top: -179
 });
 
-const east = kronosMinimapDotOffset({
+const east = nhMinimapDotOffset({
   ...mask,
   deltaX: 4,
   deltaY: 0,
   camAngleY: 0,
-  spriteWidth: KRONOS_MINIMAP_DOT_SIZE,
-  spriteHeight: KRONOS_MINIMAP_DOT_SIZE
+  spriteWidth: NH_MINIMAP_DOT_SIZE,
+  spriteHeight: NH_MINIMAP_DOT_SIZE
 });
 assertSame("east dot projection", east, {
   left: 74,
@@ -379,13 +379,13 @@ assertSame("east dot projection", east, {
   clipped: false
 });
 
-const north = kronosMinimapDotOffset({
+const north = nhMinimapDotOffset({
   ...mask,
   deltaX: 0,
   deltaY: 4,
   camAngleY: 0,
-  spriteWidth: KRONOS_MINIMAP_DOT_SIZE,
-  spriteHeight: KRONOS_MINIMAP_DOT_SIZE
+  spriteWidth: NH_MINIMAP_DOT_SIZE,
+  spriteHeight: NH_MINIMAP_DOT_SIZE
 });
 assertSame("north dot projection", north, {
   left: 70,
@@ -396,13 +396,13 @@ assertSame("north dot projection", north, {
   clipped: false
 });
 
-const rotated = kronosMinimapDotOffset({
+const rotated = nhMinimapDotOffset({
   ...mask,
   deltaX: 4,
   deltaY: 0,
   camAngleY: 512,
-  spriteWidth: KRONOS_MINIMAP_DOT_SIZE,
-  spriteHeight: KRONOS_MINIMAP_DOT_SIZE
+  spriteWidth: NH_MINIMAP_DOT_SIZE,
+  spriteHeight: NH_MINIMAP_DOT_SIZE
 });
 assertSame("quarter-turn dot projection", rotated, {
   left: 70,
@@ -413,43 +413,43 @@ assertSame("quarter-turn dot projection", rotated, {
   clipped: false
 });
 
-const clipped = kronosMinimapDotOffset({
+const clipped = nhMinimapDotOffset({
   ...mask,
   deltaX: 51,
   deltaY: 0,
   camAngleY: 0,
-  spriteWidth: KRONOS_MINIMAP_DOT_SIZE,
-  spriteHeight: KRONOS_MINIMAP_DOT_SIZE
+  spriteWidth: NH_MINIMAP_DOT_SIZE,
+  spriteHeight: NH_MINIMAP_DOT_SIZE
 });
 assert(clipped?.clipped === true, `expected clipped dot beyond 2500 distance squared: ${JSON.stringify(clipped)}`);
 assert(
-  kronosMinimapDotOffset({
+  nhMinimapDotOffset({
     ...mask,
     deltaX: 81,
     deltaY: 0,
     camAngleY: 0,
-    spriteWidth: KRONOS_MINIMAP_DOT_SIZE,
-    spriteHeight: KRONOS_MINIMAP_DOT_SIZE
+    spriteWidth: NH_MINIMAP_DOT_SIZE,
+    spriteHeight: NH_MINIMAP_DOT_SIZE
   }) === null,
   "expected dots beyond 6400 distance squared to be hidden"
 );
 
-const local = kronosMinimapLocalPlayerDot(mask);
+const local = nhMinimapLocalPlayerDot(mask);
 assertSame("local player center dot", local, { left: 71, top: 74, width: 3, height: 3 });
-assert(KRONOS_MINIMAP_LOCAL_PLAYER_DOT_SIZE === 3, "local player dot should use the client fillRectangle width/height");
-assert(KRONOS_MINIMAP_LOCAL_PLAYER_DOT_COLOR === 16777215, "local player dot should use the client fillRectangle color");
-assertSame("runtime tile to minimap units", kronosMinimapActorDeltas({ x: -2, z: 0 }, { x: 2, z: -1 }), {
+assert(NH_MINIMAP_LOCAL_PLAYER_DOT_SIZE === 3, "local player dot should use the client fillRectangle width/height");
+assert(NH_MINIMAP_LOCAL_PLAYER_DOT_COLOR === 16777215, "local player dot should use the client fillRectangle color");
+assertSame("runtime tile to minimap units", nhMinimapActorDeltas({ x: -2, z: 0 }, { x: 2, z: -1 }), {
   deltaX: 16,
   deltaY: -4
 });
 assertSame(
   "actor minimap position prefers render tile",
-  kronosMinimapActorTile({ tile: { x: -2, z: 0 }, renderTile: { x: -1.5, z: 0 } }),
+  nhMinimapActorTile({ tile: { x: -2, z: 0 }, renderTile: { x: -1.5, z: 0 } }),
   { x: -1.5, z: 0 }
 );
 assertSame(
   "actor dots use rendered local tile",
-  kronosMinimapDotsForSnapshot(
+  nhMinimapDotsForSnapshot(
     {
       actors: [
         {
@@ -490,17 +490,17 @@ assertSame(
     height: 5
   }
 );
-assert(kronosMinimapMapDotSpriteIndex("player") === 2, "plain player dots should use class17.mapDotSprites[2]");
-assert(kronosMinimapMapDotSpriteIndex("item") === 0, "ground item dots should use class17.mapDotSprites[0]");
-assert(kronosMinimapMapDotSpriteIndex("npc") === 1, "NPC dots should use class17.mapDotSprites[1]");
-assert(kronosMinimapMapDotSpriteIndex("friend") === 3, "friend player dots should use class17.mapDotSprites[3]");
-assert(kronosMinimapMapDotSpriteIndex("team") === 4, "team player dots should use class17.mapDotSprites[4]");
-assert(kronosMinimapMapDotSpriteIndex("friends-chat") === 5, "friends-chat player dots should use class17.mapDotSprites[5]");
-assert(kronosMinimapMapMarkerSpriteIndex("destination") === 0, "destination markers should use GameObject.mapMarkerSprites[0]");
-assert(kronosMinimapMapMarkerSpriteIndex("hint") === 1, "hint markers should use GameObject.mapMarkerSprites[1]");
+assert(nhMinimapMapDotSpriteIndex("player") === 2, "plain player dots should use class17.mapDotSprites[2]");
+assert(nhMinimapMapDotSpriteIndex("item") === 0, "ground item dots should use class17.mapDotSprites[0]");
+assert(nhMinimapMapDotSpriteIndex("npc") === 1, "NPC dots should use class17.mapDotSprites[1]");
+assert(nhMinimapMapDotSpriteIndex("friend") === 3, "friend player dots should use class17.mapDotSprites[3]");
+assert(nhMinimapMapDotSpriteIndex("team") === 4, "team player dots should use class17.mapDotSprites[4]");
+assert(nhMinimapMapDotSpriteIndex("friends-chat") === 5, "friends-chat player dots should use class17.mapDotSprites[5]");
+assert(nhMinimapMapMarkerSpriteIndex("destination") === 0, "destination markers should use GameObject.mapMarkerSprites[0]");
+assert(nhMinimapMapMarkerSpriteIndex("hint") === 1, "hint markers should use GameObject.mapMarkerSprites[1]");
 assertSame(
   "destination tile to minimap units",
-  kronosMinimapDestinationDeltas({ x: -1, z: 0 }, { x: 0, z: 0 }),
+  nhMinimapDestinationDeltas({ x: -1, z: 0 }, { x: 0, z: 0 }),
   {
     deltaX: 6,
     deltaY: 2
@@ -508,7 +508,7 @@ assertSame(
 );
 assertSame(
   "destination marker projection",
-  kronosMinimapDestinationMarker(
+  nhMinimapDestinationMarker(
     { x: -1, z: 0 },
     { x: 0, z: 0 },
     0,
@@ -530,7 +530,7 @@ assertSame(
     height: 15
   }
 );
-const syntheticProjectedMapIcon = kronosMinimapMapIconForObject(
+const syntheticProjectedMapIcon = nhMinimapMapIconForObject(
   syntheticMapIconScene.mapIconObjects[0],
   { x: 0, z: 0 },
   0,
@@ -553,7 +553,7 @@ assertSame("map-icon object projection", syntheticProjectedMapIcon, {
 });
 assertSame(
   "client-view source map-icon projection",
-  kronosMinimapMapIconForSource(
+  nhMinimapMapIconForSource(
     { id: "live-map-icon-0", objectId: 12345, mapIconId: sampleMapIconSprite.areaId, tile: { x: 1, z: 0 } },
     { x: 0, z: 0 },
     0,
@@ -577,7 +577,7 @@ assertSame(
 );
 assertSame(
   "near hint marker projection",
-  kronosMinimapHintMarker(
+  nhMinimapHintMarker(
     "near-target",
     { x: -1, z: 0 },
     { x: 0, z: 0 },
@@ -600,7 +600,7 @@ assertSame(
     height: 15
   }
 );
-const edgeHint = kronosMinimapHintMarker(
+const edgeHint = nhMinimapHintMarker(
   "far-target",
   { x: -2, z: 0 },
   { x: 20, z: 0 },
@@ -637,12 +637,12 @@ assertSame("far hint marker clipped edge projection", {
   rotationDegrees: 88.727
 });
 assert(
-  kronosMinimapHintMarker("too-far-target", { x: -2, z: 0 }, { x: 80, z: 0 }, 0, mask, { width: 15, height: 15 }) === null,
+  nhMinimapHintMarker("too-far-target", { x: -2, z: 0 }, { x: 80, z: 0 }, 0, mask, { width: 15, height: 15 }) === null,
   "hint markers beyond the client 90000 distance gate should be hidden"
 );
 assertSame(
   "center minimap click",
-  kronosMinimapClickToTile({ ...mask, localTile: { x: -2, z: 0 }, clickX: 72, clickY: 75, camAngleY: 0 }),
+  nhMinimapClickToTile({ ...mask, localTile: { x: -2, z: 0 }, clickX: 72, clickY: 75, camAngleY: 0 }),
   {
     tile: { x: -2, z: 0 },
     centeredX: 0,
@@ -653,7 +653,7 @@ assertSame(
 );
 assertSame(
   "east minimap click",
-  kronosMinimapClickToTile({ ...mask, localTile: { x: -2, z: 0 }, clickX: 76, clickY: 75, camAngleY: 0 }),
+  nhMinimapClickToTile({ ...mask, localTile: { x: -2, z: 0 }, clickX: 76, clickY: 75, camAngleY: 0 }),
   {
     tile: { x: -1, z: 0 },
     centeredX: 4,
@@ -664,7 +664,7 @@ assertSame(
 );
 assertSame(
   "north minimap click",
-  kronosMinimapClickToTile({ ...mask, localTile: { x: -2, z: 0 }, clickX: 72, clickY: 71, camAngleY: 0 }),
+  nhMinimapClickToTile({ ...mask, localTile: { x: -2, z: 0 }, clickX: 72, clickY: 71, camAngleY: 0 }),
   {
     tile: { x: -2, z: 1 },
     centeredX: 0,
@@ -675,7 +675,7 @@ assertSame(
 );
 assertSame(
   "south camera minimap click",
-  kronosMinimapClickToTile({ ...mask, localTile: { x: -2, z: 0 }, clickX: 76, clickY: 75, camAngleY: 1024 }),
+  nhMinimapClickToTile({ ...mask, localTile: { x: -2, z: 0 }, clickX: 76, clickY: 75, camAngleY: 1024 }),
   {
     tile: { x: -3, z: 0 },
     centeredX: 4,
@@ -685,16 +685,16 @@ assertSame(
   }
 );
 assert(
-  kronosMinimapClickToTile({ ...mask, localTile: { x: -2, z: 0 }, clickX: 145, clickY: 75, camAngleY: 0 }) === null,
+  nhMinimapClickToTile({ ...mask, localTile: { x: -2, z: 0 }, clickX: 145, clickY: 75, camAngleY: 0 }) === null,
   "outside minimap click should be rejected before dispatch"
 );
-assert(kronosMinimapMaskContains(mask, 72, 75), "center minimap click should be accepted by SpriteMask rows");
+assert(nhMinimapMaskContains(mask, 72, 75), "center minimap click should be accepted by SpriteMask rows");
 assert(
-  kronosMinimapMaskContains({ width: 4, height: 1, xStarts: [2], xWidths: [3] }, 5, 0),
+  nhMinimapMaskContains({ width: 4, height: 1, xStarts: [2], xWidths: [3] }, 5, 0),
   "SpriteMask rows should accept the inclusive source right edge"
 );
 assert(
-  !kronosMinimapMaskContains({ width: 4, height: 1, xStarts: [2], xWidths: [3] }, 6, 0),
+  !nhMinimapMaskContains({ width: 4, height: 1, xStarts: [2], xWidths: [3] }, 6, 0),
   "SpriteMask rows should reject points beyond the inclusive source right edge"
 );
 const rejectedMaskRow = mask.xStarts.findIndex((xStart, y) => xStart > 0 || mask.xWidths[y] < mask.width);
@@ -707,11 +707,11 @@ assert(
   `derived rejected SpriteMask test point must remain inside the minimap rectangle: ${JSON.stringify({ rejectedMaskX, rejectedMaskRow })}`
 );
 assert(
-  !kronosMinimapMaskContains(mask, rejectedMaskX, rejectedMaskRow),
+  !nhMinimapMaskContains(mask, rejectedMaskX, rejectedMaskRow),
   `inside-rect point should be rejected by SpriteMask rows: ${JSON.stringify({ rejectedMaskX, rejectedMaskRow })}`
 );
 assert(
-  kronosMinimapClickToTile({
+  nhMinimapClickToTile({
     ...mask,
     localTile: { x: -2, z: 0 },
     clickX: rejectedMaskX,
@@ -721,7 +721,7 @@ assert(
   "SpriteMask-rejected minimap click should not dispatch movement"
 );
 
-const snapshotDots = kronosMinimapDotsForSnapshot(
+const snapshotDots = nhMinimapDotsForSnapshot(
   {
     cycle: 0,
     keyframeCycle: 0,
@@ -769,7 +769,7 @@ assert(snapshotDots[0].sourceSpriteIndex === 2, `expected player source sprite i
 assert(snapshotDots[0].width === 4 && snapshotDots[0].height === 5, `expected cache player dot dimensions: ${JSON.stringify(snapshotDots)}`);
 assertSame(
   "missing minimap dot sprite suppresses fallback dot",
-  kronosMinimapDotsForSnapshot(
+  nhMinimapDotsForSnapshot(
     {
       cycle: 0,
       keyframeCycle: 0,
@@ -813,7 +813,7 @@ assertSame(
   ),
   []
 );
-const semanticDots = kronosMinimapDotsForSnapshot(
+const semanticDots = nhMinimapDotsForSnapshot(
   {
     cycle: 0,
     keyframeCycle: 0,

@@ -8,18 +8,18 @@ function read(relativePath) {
   return fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
+function readNhClient(relativePath) {
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
 }
 
-function readKronosServerScript(fileName) {
+function readNhServerScript(fileName) {
   return fs.readFileSync(
     path.resolve(
       projectRoot,
       "..",
-      "kronos-osrs-184-master",
-      "kronos-osrs-184-master",
-      "Kronos-master",
+      "nh-osrs-184-master",
+      "nh-osrs-184-master",
+      "Nh-master",
       "scripts",
       fileName
     ),
@@ -33,18 +33,18 @@ function assert(condition, message) {
   }
 }
 
-const pluginSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerPlugin.java");
-const configSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerConfig.java");
-const flickLocationSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerFlickLocation.java");
-const barOverlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerBarOverlay.java");
-const flickOverlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerFlickOverlay.java");
+const pluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerPlugin.java");
+const configSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerConfig.java");
+const flickLocationSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerFlickLocation.java");
+const barOverlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerBarOverlay.java");
+const flickOverlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerFlickOverlay.java");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
 const runtimeSource = read("src/ui/RuntimeSceneViewer.tsx");
 const prayerSource = read("src/ui/runelitePrayer.ts");
-const hudSource = read("src/ui/KronosClientHud.tsx");
+const hudSource = read("src/ui/NhClientHud.tsx");
 const cssSource = read("src/ui/styles.css");
-const prayerInitSource = readKronosServerScript("[clientscript,prayer_init].cs2");
-const prayerUpdateButtonSource = readKronosServerScript("[proc,prayer_updatebutton].cs2");
+const prayerInitSource = readNhServerScript("[clientscript,prayer_init].cs2");
+const prayerUpdateButtonSource = readNhServerScript("[proc,prayer_updatebutton].cs2");
 
 for (const sourceAnchor of [
   'name = "Prayer"',
@@ -104,8 +104,8 @@ for (const trainerAnchor of [
   'id: "prayer"',
   'name: "Prayer"',
   'group: "prayer"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerPlugin.java"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerConfig.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerPlugin.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerConfig.java"',
   'prayerFlickLocation: "NONE"',
   'showPrayerDoseIndicator: true',
   'hideIfNotPraying: true',
@@ -122,7 +122,7 @@ for (const trainerAnchor of [
   "RUNELITE_PRAYER_GAME_TICK_LENGTH_MS = 600",
   "runelitePrayerBarSnapshot",
   "runelitePrayerFlickOrbSnapshot",
-  "kronosActivePrayerIds"
+  "nhActivePrayerIds"
 ]) {
   assert(prayerSource.includes(trainerAnchor), `runelitePrayer module missing source-backed anchor ${trainerAnchor}`);
 }
@@ -133,14 +133,14 @@ for (const sourceAnchor of [
   ".cc_setsize(30, 30, ^setsize_abs, ^setsize_abs);",
   ".cc_setposition(0, 0, ^setpos_abs_centre, ^setpos_abs_centre);"
 ]) {
-  assert(prayerInitSource.includes(sourceAnchor), `Kronos prayer_init source missing ${sourceAnchor}`);
+  assert(prayerInitSource.includes(sourceAnchor), `Nh prayer_init source missing ${sourceAnchor}`);
 }
 
 for (const sourceAnchor of [
   ".cc_setgraphic(enum(int, graphic, enum_865, $int1));",
   ".cc_setgraphic(enum(int, graphic, enum_864, $int1));"
 ]) {
-  assert(prayerUpdateButtonSource.includes(sourceAnchor), `Kronos prayer_updatebutton source missing ${sourceAnchor}`);
+  assert(prayerUpdateButtonSource.includes(sourceAnchor), `Nh prayer_updatebutton source missing ${sourceAnchor}`);
 }
 
 for (const trainerAnchor of [
@@ -149,7 +149,7 @@ for (const trainerAnchor of [
   "slot.rect.height - prayerIconGraphicSize.height",
   'data-source-graphic-widget="prayer_init child 1 cc_setsize(30, 30) cc_setposition(abs_centre, abs_centre)"'
 ]) {
-  assert(hudSource.includes(trainerAnchor), `KronosClientHud missing prayer icon placement anchor ${trainerAnchor}`);
+  assert(hudSource.includes(trainerAnchor), `NhClientHud missing prayer icon placement anchor ${trainerAnchor}`);
 }
 
 for (const trainerAnchor of [
@@ -158,7 +158,7 @@ for (const trainerAnchor of [
   "PrayerBarOverlay setPosition(DYNAMIC) setPriority(HIGH) setLayer(ABOVE_SCENE)",
   "PrayerFlickOverlay setPosition(DYNAMIC) setLayer(ABOVE_WIDGETS)",
   "Perspective.localToCanvas(localPlayer, logicalHeight + 10)",
-  "KRONOS_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS + RUNELITE_PRAYER_BAR_LOCAL_HEIGHT_OFFSET_PX",
+  "NH_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS + RUNELITE_PRAYER_BAR_LOCAL_HEIGHT_OFFSET_PX",
   "projectRuntimeActorClientOverlay(",
   "bounds.x + 24, bounds.y - 1",
   "RUNELITE_PRAYER_ORB_FLICK_RGBA",

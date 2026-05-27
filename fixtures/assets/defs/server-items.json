@@ -2,7 +2,7 @@
   {
     "id": 391,
     "name": "Manta ray",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": null,
     "weaponType": null,
@@ -41,7 +41,7 @@
   {
     "id": 861,
     "name": "Magic shortbow",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 3,
     "weaponType": "SHORTBOW",
@@ -80,7 +80,7 @@
   {
     "id": 1201,
     "name": "Rune kiteshield",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 5,
     "weaponType": null,
@@ -119,7 +119,7 @@
   {
     "id": 2444,
     "name": "Ranging potion(4)",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": null,
     "weaponType": null,
@@ -158,7 +158,7 @@
   {
     "id": 3024,
     "name": "Super restore(4)",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": null,
     "weaponType": null,
@@ -197,7 +197,7 @@
   {
     "id": 3144,
     "name": "Cooked karambwan",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": null,
     "weaponType": null,
@@ -236,7 +236,7 @@
   {
     "id": 4091,
     "name": "Mystic robe top",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 4,
     "weaponType": null,
@@ -275,7 +275,7 @@
   {
     "id": 4093,
     "name": "Mystic robe bottom",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 7,
     "weaponType": null,
@@ -314,7 +314,7 @@
   {
     "id": 4151,
     "name": "Abyssal whip",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 3,
     "weaponType": "WHIP",
@@ -353,7 +353,7 @@
   {
     "id": 4153,
     "name": "Granite maul",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 3,
     "weaponType": "GRANITE_MAUL",
@@ -364,7 +364,7 @@
     "hideArms": false,
     "specialAttack": {
       "drainPercent": 50,
-      "source": "kronos-server:combat.special.melee.GraniteMaul"
+      "source": "nh-server:combat.special.melee.GraniteMaul"
     },
     "weight": 4.5,
     "protectValue": 31386,
@@ -395,7 +395,7 @@
   {
     "id": 4675,
     "name": "Ancient staff",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 3,
     "weaponType": "MAGIC_STAFF",
@@ -434,7 +434,7 @@
   {
     "id": 4712,
     "name": "Ahrim's robetop",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 4,
     "weaponType": null,
@@ -473,7 +473,7 @@
   {
     "id": 4714,
     "name": "Ahrim's robeskirt",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 7,
     "weaponType": null,
@@ -512,7 +512,7 @@
   {
     "id": 4736,
     "name": "Karil's leathertop",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 4,
     "weaponType": null,
@@ -551,7 +551,7 @@
   {
     "id": 4738,
     "name": "Karil's leatherskirt",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 7,
     "weaponType": null,
@@ -590,7 +590,7 @@
   {
     "id": 4759,
     "name": "Verac's plateskirt",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 7,
     "weaponType": null,
@@ -629,7 +629,7 @@
   {
     "id": 6570,
     "name": "Fire cape",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": false,
     "equipSlot": 1,
     "weaponType": null,
@@ -668,7 +668,7 @@
   {
     "id": 6585,
     "name": "Amulet of fury",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 2,
     "weaponType": null,
@@ -707,7 +707,7 @@
   {
     "id": 6685,
     "name": "Saradomin brew(4)",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": null,
     "weaponType": null,
@@ -746,7 +746,7 @@
   {
     "id": 6889,
     "name": "Mage's book",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 5,
     "weaponType": null,
@@ -785,7 +785,7 @@
   {
     "id": 6914,
     "name": "Master wand",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 3,
     "weaponType": "WAND",
@@ -824,7 +824,7 @@
   {
     "id": 7462,
     "name": "Barrows gloves",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": false,
     "equipSlot": 9,
     "weaponType": null,
@@ -863,7 +863,7 @@
   {
     "id": 9185,
     "name": "Rune crossbow",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 3,
     "weaponType": "CROSSBOW",
@@ -902,7 +902,7 @@
   {
     "id": 10828,
     "name": "Helm of neitiznot",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 0,
     "weaponType": null,
@@ -941,7 +941,7 @@
   {
     "id": 10925,
     "name": "Sanfew serum(4)",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": null,
     "weaponType": null,
@@ -980,7 +980,7 @@
   {
     "id": 11283,
     "name": "Dragonfire shield",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": false,
     "equipSlot": 5,
     "weaponType": null,
@@ -1019,7 +1019,7 @@
   {
     "id": 11770,
     "name": "Seers ring (i)",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": false,
     "equipSlot": 12,
     "weaponType": null,
@@ -1058,7 +1058,7 @@
   {
     "id": 11785,
     "name": "Armadyl crossbow",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 3,
     "weaponType": "ARMADYL_CROSSBOW",
@@ -1069,7 +1069,7 @@
     "hideArms": false,
     "specialAttack": {
       "drainPercent": 40,
-      "source": "kronos-server:combat.special.ranged.ArmadylCrossbow"
+      "source": "nh-server:combat.special.ranged.ArmadylCrossbow"
     },
     "weight": 1,
     "protectValue": 24188639,
@@ -1100,7 +1100,7 @@
   {
     "id": 11791,
     "name": "Staff of the dead",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 3,
     "weaponType": "STAFF_OF_DEAD",
@@ -1111,7 +1111,7 @@
     "hideArms": false,
     "specialAttack": {
       "drainPercent": 100,
-      "source": "kronos-server:combat.special.magic.StaffOfTheDead"
+      "source": "nh-server:combat.special.magic.StaffOfTheDead"
     },
     "weight": 1,
     "protectValue": 5094655,
@@ -1142,7 +1142,7 @@
   {
     "id": 11802,
     "name": "Armadyl godsword",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 3,
     "weaponType": "GODSWORD",
@@ -1153,7 +1153,7 @@
     "hideArms": false,
     "specialAttack": {
       "drainPercent": 50,
-      "source": "kronos-server:combat.special.melee.ArmadylGodsword"
+      "source": "nh-server:combat.special.melee.ArmadylGodsword"
     },
     "weight": 11,
     "protectValue": 25492354,
@@ -1184,7 +1184,7 @@
   {
     "id": 11828,
     "name": "Armadyl chestplate",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 4,
     "weaponType": null,
@@ -1223,7 +1223,7 @@
   {
     "id": 11830,
     "name": "Armadyl chainskirt",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 7,
     "weaponType": null,
@@ -1262,7 +1262,7 @@
   {
     "id": 11832,
     "name": "Bandos chestplate",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 4,
     "weaponType": null,
@@ -1301,7 +1301,7 @@
   {
     "id": 11834,
     "name": "Bandos tassets",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 7,
     "weaponType": null,
@@ -1340,7 +1340,7 @@
   {
     "id": 11840,
     "name": "Dragon boots",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 10,
     "weaponType": null,
@@ -1379,7 +1379,7 @@
   {
     "id": 12002,
     "name": "Occult necklace",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 2,
     "weaponType": null,
@@ -1418,7 +1418,7 @@
   {
     "id": 12006,
     "name": "Abyssal tentacle",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": false,
     "equipSlot": 3,
     "weaponType": "WHIP",
@@ -1429,7 +1429,7 @@
     "hideArms": false,
     "specialAttack": {
       "drainPercent": 50,
-      "source": "kronos-server:combat.special.melee.AbyssalTentacle"
+      "source": "nh-server:combat.special.melee.AbyssalTentacle"
     },
     "weight": 0,
     "protectValue": 1200000,
@@ -1460,7 +1460,7 @@
   {
     "id": 12695,
     "name": "Super combat potion(4)",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": null,
     "weaponType": null,
@@ -1499,7 +1499,7 @@
   {
     "id": 12791,
     "name": "Rune pouch",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": false,
     "equipSlot": null,
     "weaponType": null,
@@ -1538,7 +1538,7 @@
   {
     "id": 12831,
     "name": "Blessed spirit shield",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 5,
     "weaponType": null,
@@ -1577,7 +1577,7 @@
   {
     "id": 12929,
     "name": "Serpentine helm (uncharged)",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 0,
     "weaponType": null,
@@ -1616,7 +1616,7 @@
   {
     "id": 12954,
     "name": "Dragon defender",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": false,
     "equipSlot": 5,
     "weaponType": null,
@@ -1655,7 +1655,7 @@
   {
     "id": 13239,
     "name": "Primordial boots",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 10,
     "weaponType": null,
@@ -1694,7 +1694,7 @@
   {
     "id": 13441,
     "name": "Anglerfish",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": null,
     "weaponType": null,
@@ -1733,7 +1733,7 @@
   {
     "id": 19547,
     "name": "Necklace of anguish",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 2,
     "weaponType": null,
@@ -1772,7 +1772,7 @@
   {
     "id": 19553,
     "name": "Amulet of torture",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 2,
     "weaponType": null,
@@ -1811,7 +1811,7 @@
   {
     "id": 19710,
     "name": "Ring of suffering (i)",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": false,
     "equipSlot": 12,
     "weaponType": null,
@@ -1850,7 +1850,7 @@
   {
     "id": 21006,
     "name": "Kodai wand",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 3,
     "weaponType": "WAND",
@@ -1889,7 +1889,7 @@
   {
     "id": 21018,
     "name": "Ancestral hat",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 0,
     "weaponType": null,
@@ -1928,7 +1928,7 @@
   {
     "id": 21021,
     "name": "Ancestral robe top",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 4,
     "weaponType": null,
@@ -1967,7 +1967,7 @@
   {
     "id": 21024,
     "name": "Ancestral robe bottom",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 7,
     "weaponType": null,
@@ -2006,7 +2006,7 @@
   {
     "id": 21791,
     "name": "Imbued saradomin cape",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": false,
     "equipSlot": 1,
     "weaponType": null,
@@ -2045,7 +2045,7 @@
   {
     "id": 21902,
     "name": "Dragon crossbow",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 3,
     "weaponType": "CROSSBOW",
@@ -2084,7 +2084,7 @@
   {
     "id": 21932,
     "name": "Opal dragon bolts (e)",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 13,
     "weaponType": null,
@@ -2123,7 +2123,7 @@
   {
     "id": 21948,
     "name": "Dragonstone dragon bolts (e)",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 13,
     "weaponType": null,
@@ -2162,7 +2162,7 @@
   {
     "id": 22109,
     "name": "Ava's assembler",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": false,
     "equipSlot": 1,
     "weaponType": null,
@@ -2201,7 +2201,7 @@
   {
     "id": 22296,
     "name": "Staff of light",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": true,
     "equipSlot": 3,
     "weaponType": "STAFF_OF_DEAD",
@@ -2212,7 +2212,7 @@
     "hideArms": false,
     "specialAttack": {
       "drainPercent": 100,
-      "source": "kronos-server:combat.special.magic.StaffOfTheDead"
+      "source": "nh-server:combat.special.magic.StaffOfTheDead"
     },
     "weight": 1,
     "protectValue": 5094655,
@@ -2243,7 +2243,7 @@
   {
     "id": 22322,
     "name": "Avernic defender",
-    "source": "kronos-server:item_info",
+    "source": "nh-server:item_info",
     "tradeable": false,
     "equipSlot": 5,
     "weaponType": null,
@@ -2282,7 +2282,7 @@
   {
     "id": 22461,
     "name": "Bastion potion(4)",
-    "source": "kronos-server:Consumable.registerBastionPotion",
+    "source": "nh-server:Consumable.registerBastionPotion",
     "tradeable": true,
     "equipSlot": null,
     "weaponType": null,

@@ -9,8 +9,8 @@ function read(relativePath) {
   return fs.readFileSync(path.join(root, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
-  return fs.readFileSync(path.resolve(root, "..", "Kronos184-Client", relativePath), "utf8");
+function readNhClient(relativePath) {
+  return fs.readFileSync(path.resolve(root, "..", "Nh184-Client", relativePath), "utf8");
 }
 
 function check(condition, message) {
@@ -19,15 +19,15 @@ function check(condition, message) {
   }
 }
 
-const runeliteConfigSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/config/RuneLiteConfig.java");
-const runeliteConstantsSource = readKronosClient("runelite-api/src/main/java/net/runelite/api/config/Constants.java");
-const clientPanelSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/ui/ClientPanel.java");
-const clientPluginToolbarSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/ui/ClientPluginToolbar.java");
-const clientUiSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/ui/ClientUI.java");
-const titlePropertiesSource = readKronosClient("runelite-client/src/main/resources/open.osrs.properties");
-const warningOnExitSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/config/WarningOnExit.java");
-const resizeTypeSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/config/ExpandResizeType.java");
-const containableFrameSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/ui/ContainableFrame.java");
+const runeliteConfigSource = readNhClient("runelite-client/src/main/java/net/runelite/client/config/RuneLiteConfig.java");
+const runeliteConstantsSource = readNhClient("runelite-api/src/main/java/net/runelite/api/config/Constants.java");
+const clientPanelSource = readNhClient("runelite-client/src/main/java/net/runelite/client/ui/ClientPanel.java");
+const clientPluginToolbarSource = readNhClient("runelite-client/src/main/java/net/runelite/client/ui/ClientPluginToolbar.java");
+const clientUiSource = readNhClient("runelite-client/src/main/java/net/runelite/client/ui/ClientUI.java");
+const titlePropertiesSource = readNhClient("runelite-client/src/main/resources/open.osrs.properties");
+const warningOnExitSource = readNhClient("runelite-client/src/main/java/net/runelite/client/config/WarningOnExit.java");
+const resizeTypeSource = readNhClient("runelite-client/src/main/java/net/runelite/client/config/ExpandResizeType.java");
+const containableFrameSource = readNhClient("runelite-client/src/main/java/net/runelite/client/ui/ContainableFrame.java");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
 const bridgeSource = read("src/client/bridge.ts");
 const preloadSource = read("src/client/preload.cts");
@@ -35,7 +35,7 @@ const mainSource = read("src/client/main.ts");
 const packageSource = read("package.json");
 
 for (const sourceAnchor of [
-  'open.osrs.title=Kronos'
+  'open.osrs.title=Nh'
 ]) {
   check(titlePropertiesSource.includes(sourceAnchor), `open.osrs.properties missing ${sourceAnchor}`);
 }
@@ -187,14 +187,14 @@ for (const trainerAnchor of [
 for (const trainerAnchor of [
   "ClientShellFrameConfig",
   "registerClientShellIpc",
-  "KRONOS_FIXED_CLIENT_WIDTH = 765",
-  "KRONOS_FIXED_CLIENT_HEIGHT = 503",
+  "NH_FIXED_CLIENT_WIDTH = 765",
+  "NH_FIXED_CLIENT_HEIGHT = 503",
   "RUNELITE_PLUGIN_TOOLBAR_WIDTH = 36",
   "RUNELITE_SHELL_BORDER_PX = 0",
-  "RUNELITE_MIN_CONTENT_WIDTH = KRONOS_FIXED_CLIENT_WIDTH + RUNELITE_PLUGIN_TOOLBAR_WIDTH + RUNELITE_SHELL_BORDER_PX",
-  "RUNELITE_MIN_CONTENT_HEIGHT = KRONOS_FIXED_CLIENT_HEIGHT + RUNELITE_SHELL_BORDER_PX",
+  "RUNELITE_MIN_CONTENT_WIDTH = NH_FIXED_CLIENT_WIDTH + RUNELITE_PLUGIN_TOOLBAR_WIDTH + RUNELITE_SHELL_BORDER_PX",
+  "RUNELITE_MIN_CONTENT_HEIGHT = NH_FIXED_CLIENT_HEIGHT + RUNELITE_SHELL_BORDER_PX",
   'clientWindowBoundsDirectoryName = "NHTrainer"',
-  'legacyClientWindowBoundsDirectoryName = "KronosNHTrainer"',
+  'legacyClientWindowBoundsDirectoryName = "NhNHTrainer"',
   "client-window-bounds.json",
   'legacyElectronUserDataDirectoryName = "Electron"',
   "readRememberedClientWindowBounds",

@@ -138,7 +138,7 @@ state = runtimeCombat.advanceRuntimePlayerCombat(state, {
 const hit = state.queuedHits[0];
 assert(
   hit?.spellId === "ice-barrage" && hit.freezeDurationTicks === undefined,
-  `Ice Barrage queued damage should not carry a second delayed freeze after Kronos' immediate hold: ${JSON.stringify(hit)}`
+  `Ice Barrage queued damage should not carry a second delayed freeze after Nh' immediate hold: ${JSON.stringify(hit)}`
 );
 const castFreezeUntilTick = state.actors.opponent.locks.freezeUntilTick;
 assert(

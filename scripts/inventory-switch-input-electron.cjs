@@ -14,8 +14,8 @@ async function waitForReady(window) {
       (() => Boolean(
         document.querySelector(".runeliteClientShell") &&
         document.querySelector(".glbStatus-ready") &&
-        document.querySelector('.kronosSideTabButton[data-tab-id="inventory"]') &&
-        document.querySelector('.kronosInventorySlot[data-slot-index="0"]')
+        document.querySelector('.nhSideTabButton[data-tab-id="inventory"]') &&
+        document.querySelector('.nhInventorySlot[data-slot-index="0"]')
       ))()
     `);
     if (ready) {
@@ -29,7 +29,7 @@ async function waitForReady(window) {
 async function resetRuntimeTickOrigin(window) {
   await window.webContents.executeJavaScript(`
     (() => {
-      window.dispatchEvent(new CustomEvent("kronos-runtime-reset-tick-origin"));
+      window.dispatchEvent(new CustomEvent("nh-runtime-reset-tick-origin"));
     })()
   `);
   await delay(50);
@@ -38,7 +38,7 @@ async function resetRuntimeTickOrigin(window) {
 async function setRuntimeCycle(window, cycle) {
   await window.webContents.executeJavaScript(`
     (() => {
-      window.dispatchEvent(new CustomEvent("kronos-runtime-cycle", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-cycle", {
         detail: { cycle: ${JSON.stringify(cycle)} }
       }));
     })()
@@ -50,7 +50,7 @@ async function clickSideTab(window, tabId) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
       const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
-      const tab = document.querySelector(${JSON.stringify(`.kronosSideTabButton[data-tab-id="${tabId}"]`)});
+      const tab = document.querySelector(${JSON.stringify(`.nhSideTabButton[data-tab-id="${tabId}"]`)});
       if (!tab) {
         return { ok: false, error: "missing side tab", tabId: ${JSON.stringify(tabId)} };
       }
@@ -97,7 +97,7 @@ async function pointerReleaseInventorySwitchWithoutClick(window, slotIndices) {
       const slotIndices = ${JSON.stringify(slotIndices)};
       const clicked = [];
       for (const slotIndex of slotIndices) {
-        const slot = document.querySelector('.kronosInventorySlot[data-slot-index="' + slotIndex + '"]');
+        const slot = document.querySelector('.nhInventorySlot[data-slot-index="' + slotIndex + '"]');
         if (!slot) {
           return { ok: false, error: "missing inventory slot", slotIndex };
         }
@@ -105,7 +105,7 @@ async function pointerReleaseInventorySwitchWithoutClick(window, slotIndices) {
         const clientX = rect.left + rect.width / 2;
         const clientY = rect.top + rect.height / 2;
         const target = document.elementFromPoint(clientX, clientY);
-        if (!target || target.closest('.kronosInventorySlot[data-slot-index="' + slotIndex + '"]') !== slot) {
+        if (!target || target.closest('.nhInventorySlot[data-slot-index="' + slotIndex + '"]') !== slot) {
           return { ok: false, error: "inventory slot is not the real pointer target", slotIndex };
         }
         const pointerId = 100 + slotIndex;
@@ -138,7 +138,7 @@ async function pointerReleaseInventorySwitchWithoutClick(window, slotIndices) {
       const viewport = document.querySelector(".runtimeViewport");
       const pending = slotIndices.map((slotIndex) => ({
         slotIndex,
-        pendingEquip: document.querySelector('.kronosInventorySlot[data-slot-index="' + slotIndex + '"]')?.getAttribute("data-pending-equip") ?? ""
+        pendingEquip: document.querySelector('.nhInventorySlot[data-slot-index="' + slotIndex + '"]')?.getAttribute("data-pending-equip") ?? ""
       }));
       return { ok: true, clicked, pending, dataset: { ...viewport?.dataset } };
     })()
@@ -152,8 +152,8 @@ async function pointerReleaseInventorySwitchWithoutClick(window, slotIndices) {
 async function readRuntimeInventory(window) {
   return window.webContents.executeJavaScript(`
     (() => ({
-      slots: Array.from(document.querySelectorAll(".kronosInventorySlot")).map((slot) => {
-        const sprite = slot.querySelector(".kronosInventoryItemSprite");
+      slots: Array.from(document.querySelectorAll(".nhInventorySlot")).map((slot) => {
+        const sprite = slot.querySelector(".nhInventoryItemSprite");
         return {
           slotIndex: Number(slot.getAttribute("data-slot-index")),
           pendingEquip: slot.getAttribute("data-pending-equip") ?? "",
@@ -168,7 +168,7 @@ async function readRuntimeInventory(window) {
 async function readRuntimeEquipment(window) {
   return window.webContents.executeJavaScript(`
     (() => ({
-      items: Array.from(document.querySelectorAll(".kronosEquipmentItemSprite")).map((item) => ({
+      items: Array.from(document.querySelectorAll(".nhEquipmentItemSprite")).map((item) => ({
         slotId: item.getAttribute("data-slot-id") ?? "",
         itemId: Number(item.getAttribute("data-item-id"))
       }))

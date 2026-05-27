@@ -8,8 +8,8 @@ function read(relativePath) {
   return fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
+function readNhClient(relativePath) {
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
 }
 
 function assert(condition, message) {
@@ -18,14 +18,14 @@ function assert(condition, message) {
   }
 }
 
-const pluginSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/OpponentInfoPlugin.java");
-const configSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/OpponentInfoConfig.java");
-const overlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/OpponentInfoOverlay.java");
-const comparisonOverlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/PlayerComparisonOverlay.java");
-const styleSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/HitpointsDisplayStyle.java");
-const progressSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/components/ProgressBarComponent.java");
-const panelSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/components/PanelComponent.java");
-const constantsSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/components/ComponentConstants.java");
+const pluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/OpponentInfoPlugin.java");
+const configSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/OpponentInfoConfig.java");
+const overlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/OpponentInfoOverlay.java");
+const comparisonOverlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/PlayerComparisonOverlay.java");
+const styleSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/HitpointsDisplayStyle.java");
+const progressSource = readNhClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/components/ProgressBarComponent.java");
+const panelSource = readNhClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/components/PanelComponent.java");
+const constantsSource = readNhClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/components/ComponentConstants.java");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
 const runtimeSource = read("src/ui/RuntimeSceneViewer.tsx");
 const opponentInfoSource = read("src/ui/runeliteOpponentInfo.ts");
@@ -127,8 +127,8 @@ for (const sourceAnchor of [
 for (const trainerAnchor of [
   'id: "opponent-info"',
   'name: "Opponent Information"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/OpponentInfoPlugin.java"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/OpponentInfoConfig.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/OpponentInfoPlugin.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/OpponentInfoConfig.java"',
   'group: "opponentinfo"',
   'hitpointsDisplayStyle: "Hitpoints"',
   'showOpponentsOpponent: true',

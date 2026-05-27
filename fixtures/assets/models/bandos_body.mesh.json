@@ -1,6 +1,6 @@
 {
   "generatedBy": "scripts/export-cache-glbs.mjs",
-  "source": "Kronos cache ModelDefinition vertexGroups mapped to exported GLB vertices",
+  "source": "Nh cache ModelDefinition vertexGroups mapped to exported GLB vertices",
   "glb": "fixtures/assets/models/bandos_body.glb",
   "sourceVertexCount": 559,
   "expandedVertexCount": 2958,

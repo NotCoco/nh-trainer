@@ -9,7 +9,7 @@ const require = createRequire(import.meta.url);
 const electronPath = require("electron");
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const verifierMainPath = path.join(projectRoot, "scripts", "runelite-window-bounds-persistence-electron.cjs");
-const marker = "@@kronos-window-bounds@@";
+const marker = "@@nh-window-bounds@@";
 const targetContentSize = {
   width: 936,
   height: 584
@@ -77,7 +77,7 @@ async function runElectronMode(mode, appDataRoot) {
   return payload;
 }
 
-const appDataRoot = await mkdtemp(path.join(os.tmpdir(), "kronos-nh-window-bounds-"));
+const appDataRoot = await mkdtemp(path.join(os.tmpdir(), "nh-nh-window-bounds-"));
 
 try {
   const saved = await runElectronMode("save", appDataRoot);
@@ -87,7 +87,7 @@ try {
       {
         ok: true,
         source: "ClientUI.show restores CONFIG_CLIENT_BOUNDS when rememberScreenBounds is enabled; trainer persists Electron contentBounds for useContentSize windows",
-        minimumSource: "Kronos Constants.GAME_FIXED_SIZE 765x503 plus ClientPluginToolbar.TOOLBAR_WIDTH 36x503",
+        minimumSource: "Nh Constants.GAME_FIXED_SIZE 765x503 plus ClientPluginToolbar.TOOLBAR_WIDTH 36x503",
         appDataRoot,
         expectedMinimumContentSize,
         targetContentSize,

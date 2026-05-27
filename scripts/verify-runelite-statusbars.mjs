@@ -8,21 +8,21 @@ function read(relativePath) {
   return fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
+function readNhClient(relativePath) {
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
 }
 
-const statusBarsPluginSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/statusbars/StatusBarsPlugin.java");
-const statusBarsConfigSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/statusbars/StatusBarsConfig.java");
-const statusBarsOverlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/statusbars/StatusBarsOverlay.java");
-const statusBarsViewportSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/statusbars/Viewport.java");
-const barRendererSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/statusbars/renderer/BarRenderer.java");
-const hitpointsRendererSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/statusbars/renderer/HitPointsRenderer.java");
-const prayerRendererSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/statusbars/renderer/PrayerRenderer.java");
+const statusBarsPluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/statusbars/StatusBarsPlugin.java");
+const statusBarsConfigSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/statusbars/StatusBarsConfig.java");
+const statusBarsOverlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/statusbars/StatusBarsOverlay.java");
+const statusBarsViewportSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/statusbars/Viewport.java");
+const barRendererSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/statusbars/renderer/BarRenderer.java");
+const hitpointsRendererSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/statusbars/renderer/HitPointsRenderer.java");
+const prayerRendererSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/statusbars/renderer/PrayerRenderer.java");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
 const runtimeSource = read("src/ui/RuntimeSceneViewer.tsx");
 const statusBarsSource = read("src/ui/runeliteStatusBars.ts");
-const fixedLayoutSource = read("src/render/kronosFixedLayout.ts");
+const fixedLayoutSource = read("src/render/nhFixedLayout.ts");
 const cssSource = read("src/ui/styles.css");
 
 function assert(condition, message) {
@@ -43,7 +43,7 @@ for (const sourceAnchor of [
 ]) {
   assert(
     statusBarsPluginSource.includes(sourceAnchor) || statusBarsConfigSource.includes(sourceAnchor),
-    `Kronos RuneLite Status Bars source missing ${sourceAnchor}`
+    `Nh RuneLite Status Bars source missing ${sourceAnchor}`
   );
 }
 
@@ -59,7 +59,7 @@ for (const sourceAnchor of [
 ]) {
   assert(
     statusBarsOverlaySource.includes(sourceAnchor) || statusBarsViewportSource.includes(sourceAnchor),
-    `Kronos RuneLite Status Bars overlay source missing ${sourceAnchor}`
+    `Nh RuneLite Status Bars overlay source missing ${sourceAnchor}`
   );
 }
 
@@ -72,7 +72,7 @@ for (const sourceAnchor of [
   'private static int getBarHeight',
   'Math.round(ratio * size)'
 ]) {
-  assert(barRendererSource.includes(sourceAnchor), `Kronos RuneLite BarRenderer source missing ${sourceAnchor}`);
+  assert(barRendererSource.includes(sourceAnchor), `Nh RuneLite BarRenderer source missing ${sourceAnchor}`);
 }
 
 for (const sourceAnchor of [
@@ -80,7 +80,7 @@ for (const sourceAnchor of [
   'iconManager.getSkillImage(Skill.HITPOINTS, true)',
   'new Color(255, 112, 6, 150)'
 ]) {
-  assert(hitpointsRendererSource.includes(sourceAnchor), `Kronos RuneLite HitPointsRenderer source missing ${sourceAnchor}`);
+  assert(hitpointsRendererSource.includes(sourceAnchor), `Nh RuneLite HitPointsRenderer source missing ${sourceAnchor}`);
 }
 
 for (const sourceAnchor of [
@@ -88,13 +88,13 @@ for (const sourceAnchor of [
   'ImageUtil.resizeImage(iconManager.getSkillImage(Skill.PRAYER, true), SIZE, SIZE)',
   'new Color(57, 255, 186, 75)'
 ]) {
-  assert(prayerRendererSource.includes(sourceAnchor), `Kronos RuneLite PrayerRenderer source missing ${sourceAnchor}`);
+  assert(prayerRendererSource.includes(sourceAnchor), `Nh RuneLite PrayerRenderer source missing ${sourceAnchor}`);
 }
 
 for (const trainerAnchor of [
   'id: "status-bars"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusbars/StatusBarsPlugin.java"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusbars/StatusBarsConfig.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusbars/StatusBarsPlugin.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusbars/StatusBarsConfig.java"',
   'group: "statusbars"',
   'leftBarMode: "Hitpoints"',
   'rightBarMode: "Prayer"',
@@ -104,9 +104,9 @@ for (const trainerAnchor of [
 }
 
 for (const trainerAnchor of [
-  'KRONOS_FIXED_VIEWPORT_INTERFACE_CONTAINER_CHILD_ID = 65',
+  'NH_FIXED_VIEWPORT_INTERFACE_CONTAINER_CHILD_ID = 65',
   'fixedViewportInterfaceContainer',
-  'findFixedWidgetByChildId(resolvedWidgets, KRONOS_FIXED_VIEWPORT_INTERFACE_CONTAINER_CHILD_ID)'
+  'findFixedWidgetByChildId(resolvedWidgets, NH_FIXED_VIEWPORT_INTERFACE_CONTAINER_CHILD_ID)'
 ]) {
   assert(fixedLayoutSource.includes(trainerAnchor), `fixed layout missing source-backed Status Bars widget anchor ${trainerAnchor}`);
 }

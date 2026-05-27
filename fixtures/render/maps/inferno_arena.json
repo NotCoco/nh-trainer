@@ -1,6 +1,6 @@
 {
   "id": "nh-wilderness-arena",
-  "source": "Kronos cache terrain via RegionLoader, bounded to the NH wilderness arena coordinate contract",
+  "source": "Nh cache terrain via RegionLoader, bounded to the NH wilderness arena coordinate contract",
   "tileSizeModelUnits": 128,
   "bounds": {
     "west": 3090,

@@ -103,9 +103,9 @@ async function readShellState(window) {
       const initialStretchedModeListEnabled = initialStretchedModeListItem?.getAttribute("data-plugin-enabled") ?? "";
       const initialAttackStylesListItem = queryShell('.runelitePluginListItem[data-plugin-list-item-id="attack-styles"]');
       const initialRuntimeCanvas = queryShell(".runtimeViewport canvas");
-      const initialKronosHudSprite = queryShell(".kronosFixedClient span");
+      const initialNhHudSprite = queryShell(".nhFixedClient span");
       const initialRuntimeCanvasImageRendering = initialRuntimeCanvas ? getComputedStyle(initialRuntimeCanvas).imageRendering : "";
-      const initialKronosHudSpriteImageRendering = initialKronosHudSprite ? getComputedStyle(initialKronosHudSprite).imageRendering : "";
+      const initialNhHudSpriteImageRendering = initialNhHudSprite ? getComputedStyle(initialNhHudSprite).imageRendering : "";
       const initialStretchedModeToggle = initialStretchedModeListItem?.querySelector(".runelitePluginToggleButton");
       if (initialStretchedModeEnabled === "true" && initialStretchedModeToggle) {
         initialStretchedModeToggle.click();
@@ -377,7 +377,7 @@ async function readShellState(window) {
             sourceTickLength: runtimeCanvas.getAttribute("data-source-anti-drag-tick-length")
           }
         : null;
-      const antiDragInventorySlot = queryShell(".kronosInventorySlot");
+      const antiDragInventorySlot = queryShell(".nhInventorySlot");
       const antiDragInventorySlotDataset = antiDragInventorySlot
         ? {
             delayClientTicks: antiDragInventorySlot.getAttribute("data-inventory-drag-delay-client-ticks"),
@@ -908,7 +908,7 @@ async function readShellState(window) {
           initialStretchedModeSourceMouse ===
             "TranslateMouseListener divides stretched mouse X/Y by stretchedDimensions / realDimensions before dispatch" &&
           initialRuntimeCanvasImageRendering === "auto" &&
-          initialKronosHudSpriteImageRendering === "auto" &&
+          initialNhHudSpriteImageRendering === "auto" &&
           initialDisabledPluginSource ===
             "NH trainer disables AttackStylesPlugin at the plugin manager boundary; combat tab attack-style widgets remain source-backed." &&
           !initialAttackStylesListItem &&
@@ -1316,7 +1316,7 @@ async function readShellState(window) {
           sourceDimensions: initialStretchedModeSourceDimensions,
           sourceMouse: initialStretchedModeSourceMouse,
           canvasImageRendering: initialRuntimeCanvasImageRendering,
-          hudSpriteImageRendering: initialKronosHudSpriteImageRendering
+          hudSpriteImageRendering: initialNhHudSpriteImageRendering
         },
         disabledPlugins: {
           attackStylesPresent: Boolean(initialAttackStylesListItem),

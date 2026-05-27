@@ -3,7 +3,7 @@ export type EvidenceStatus = "unverified" | "verified";
 export interface AssetRecord {
   readonly id: string;
   readonly label: string;
-  readonly source: "kronos-cache" | "kronos-client" | "kronos-server";
+  readonly source: "nh-cache" | "nh-client" | "nh-server";
   readonly evidenceStatus: EvidenceStatus;
   readonly sourceAnchorIds: readonly string[];
   readonly requiredArtifacts: readonly string[];
@@ -15,7 +15,7 @@ export const assetCatalog: readonly AssetRecord[] = [
   {
     id: "model-geometry",
     label: "Model geometry exporter",
-    source: "kronos-client",
+    source: "nh-client",
     evidenceStatus: "verified",
     sourceAnchorIds: ["client-model-geometry-contract"],
     requiredArtifacts: [
@@ -45,7 +45,7 @@ export const assetCatalog: readonly AssetRecord[] = [
   {
     id: "item-equipment-defs",
     label: "Item and equipment definitions",
-    source: "kronos-server",
+    source: "nh-server",
     evidenceStatus: "verified",
     sourceAnchorIds: ["server-item-bonus-contract", "server-equipment-bonus-contract"],
     requiredArtifacts: [
@@ -61,7 +61,7 @@ export const assetCatalog: readonly AssetRecord[] = [
   {
     id: "player-kits-and-colors",
     label: "Player kit and body color data",
-    source: "kronos-client",
+    source: "nh-client",
     evidenceStatus: "verified",
     sourceAnchorIds: ["client-player-appearance-packet", "client-player-model-assembly"],
     requiredArtifacts: [
@@ -69,12 +69,12 @@ export const assetCatalog: readonly AssetRecord[] = [
       "fixtures/assets/defs/body-colors.json"
     ],
     acceptanceGate: "Runtime can rebuild a player's visible body parts and colors from the same appearance fields the client reads.",
-    notes: "This prevents a fake mannequin renderer; the player mesh must be composed the Kronos-client way."
+    notes: "This prevents a fake mannequin renderer; the player mesh must be composed the Nh-client way."
   },
   {
     id: "sequence-frames",
     label: "Sequence and frame transforms",
-    source: "kronos-client",
+    source: "nh-client",
     evidenceStatus: "verified",
     sourceAnchorIds: [
       "client-sequence-frame-contract",
@@ -100,7 +100,7 @@ export const assetCatalog: readonly AssetRecord[] = [
   {
     id: "spotanim-projectiles",
     label: "Spot animation and projectile assets",
-    source: "kronos-cache",
+    source: "nh-cache",
     evidenceStatus: "verified",
     sourceAnchorIds: [
       "client-projectile-motion-contract",
@@ -132,7 +132,7 @@ export const assetCatalog: readonly AssetRecord[] = [
   {
     id: "ui-sprites",
     label: "Cache UI sprites",
-    source: "kronos-client",
+    source: "nh-client",
     evidenceStatus: "verified",
     sourceAnchorIds: [
       "client-actor-overlay-symbol-map",
@@ -225,7 +225,7 @@ export const assetCatalog: readonly AssetRecord[] = [
       "fixtures/render/sprites/client_ui.json",
       "fixtures/render/sprites/compass.png",
       "fixtures/render/sprites/compass.json",
-      "fixtures/render/sprites/kronos_fkey_icon.png",
+      "fixtures/render/sprites/nh_fkey_icon.png",
       "fixtures/render/sprites/item_sprites.png",
       "fixtures/render/sprites/item_sprites.json",
       "fixtures/assets/defs/emotes.json",
@@ -253,13 +253,13 @@ export const assetCatalog: readonly AssetRecord[] = [
       "fixtures/render/sprites/health_bars.png",
       "fixtures/render/sprites/health_bars.json"
     ],
-    acceptanceGate: "Overheads, hitsplats, actor default/model heights, click crosses, client font metrics/glyphs, minimap scene metadata/sprites, minimap dots/markers, SpriteMask rows, fixed-mode client sprites, chatbox group 162 buttons/actions, DisplayHandler side-panel tab groups, combat tab group 593 with server-backed weapon/style/special state and SpecbarRedraw active/drain behavior, stats tab group 320, equipment tab group 387 item slots, worn-item Remove dispatch/mutation, and utility-button actions, prayer icons/toggle metadata/active background, emote names/icon sprites from clientscript enum ids, standard/ancient/lunar/arceuus spellbook icons/order, and widget layout data are exported from Kronos cache/client contracts.",
+    acceptanceGate: "Overheads, hitsplats, actor default/model heights, click crosses, client font metrics/glyphs, minimap scene metadata/sprites, minimap dots/markers, SpriteMask rows, fixed-mode client sprites, chatbox group 162 buttons/actions, DisplayHandler side-panel tab groups, combat tab group 593 with server-backed weapon/style/special state and SpecbarRedraw active/drain behavior, stats tab group 320, equipment tab group 387 item slots, worn-item Remove dispatch/mutation, and utility-button actions, prayer icons/toggle metadata/active background, emote names/icon sprites from clientscript enum ids, standard/ancient/lunar/arceuus spellbook icons/order, and widget layout data are exported from Nh cache/client contracts.",
     notes: "DOM can host the HUD layer, but visible fixed-mode imagery and slot sizing must come from cache sprites and source widget layout rules."
   },
   {
     id: "inferno-arena-map",
     label: "Inferno arena scene data",
-    source: "kronos-cache",
+    source: "nh-cache",
     evidenceStatus: "verified",
     sourceAnchorIds: ["client-model-geometry-contract"],
     requiredArtifacts: [

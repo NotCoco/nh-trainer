@@ -3,14 +3,14 @@ const fs = require("node:fs/promises");
 const path = require("node:path");
 
 const [, , projectRoot] = process.argv;
-const kronosRoot = path.resolve(projectRoot, "..");
+const nhRoot = path.resolve(projectRoot, "..");
 const simFixturesRoot = path.join(projectRoot, "fixtures", "sim");
 const defaultPolicyPath = path.join(
-  kronosRoot,
-  "kronos-osrs-184-master",
-  "kronos-osrs-184-master",
-  "Kronos-master",
-  "kronos-server",
+  nhRoot,
+  "nh-osrs-184-master",
+  "nh-osrs-184-master",
+  "Nh-master",
+  "nh-server",
   "data",
   "ai",
   "nhstaker-selfplay-policy-nhstake-ags.tsv"
@@ -65,7 +65,7 @@ async function waitForValue(window, expression, predicate, label, rendererMessag
   }
   const debug = await window.webContents.executeJavaScript(`
     (() => ({
-      bridge: typeof window.kronosTrainer,
+      bridge: typeof window.nhTrainer,
       policyLoaded: document.querySelector("main.clientOnlyShell")?.getAttribute("data-default-policy-loaded") ?? "",
       viewport: { ...(document.querySelector(".runtimeViewport")?.dataset ?? {}) },
       body: document.body?.innerText?.slice(0, 1000) ?? ""
@@ -91,7 +91,7 @@ async function waitForText(window, selector, expected, label, rendererMessages) 
   }
   const debug = await window.webContents.executeJavaScript(`
     (() => ({
-      bridge: typeof window.kronosTrainer,
+      bridge: typeof window.nhTrainer,
       policyText: document.querySelector(".policyStatus")?.textContent ?? "",
       body: document.body?.innerText?.slice(0, 1000) ?? ""
     }))()
@@ -128,12 +128,12 @@ app.whenReady().then(async () => {
   try {
     await window.loadFile(path.join(projectRoot, "dist", "index.html"));
     await window.webContents.executeJavaScript(`
-      window.__kronosValidationErrors = [];
+      window.__nhValidationErrors = [];
       window.addEventListener("error", (event) => {
-        window.__kronosValidationErrors.push(event.message);
+        window.__nhValidationErrors.push(event.message);
       });
       window.addEventListener("unhandledrejection", (event) => {
-        window.__kronosValidationErrors.push(String(event.reason));
+        window.__nhValidationErrors.push(String(event.reason));
       });
     `);
     const policyLoaded = await waitForValue(
@@ -185,7 +185,7 @@ app.whenReady().then(async () => {
           clientVitalsDelayTicks: dataset.lastManualOpponentPolicyClientVitalsDelayTicks ?? "",
           replayOptions,
           runtimeCycleValue,
-          errors: window.__kronosValidationErrors ?? []
+          errors: window.__nhValidationErrors ?? []
         };
       })()
     `);

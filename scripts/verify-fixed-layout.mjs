@@ -36,32 +36,32 @@ function loadTsModule(relativePath) {
 }
 
 const {
-  KRONOS_FIXED_ROOT_GROUP_ID,
-  KRONOS_FIXED_VIEWPORT_INTERFACE_CONTAINER_CHILD_ID,
-  KRONOS_GAME_VIEWPORT_CONTENT_TYPE,
-  KRONOS_MINIMAP_CONTENT_TYPE,
-  KRONOS_COMPASS_CONTENT_TYPE,
-  KRONOS_CHATBOX_GROUP_ID,
-  KRONOS_COMBAT_GROUP_ID,
-  KRONOS_SKILLS_GROUP_ID,
-  KRONOS_EQUIPMENT_GROUP_ID,
-  KRONOS_PRAYER_GROUP_ID,
-  KRONOS_SPELLBOOK_GROUP_ID,
-  KRONOS_CLAN_CHAT_GROUP_ID,
-  KRONOS_NOTICEBOARD_GROUP_ID,
-  KRONOS_FRIENDS_GROUP_ID,
-  KRONOS_IGNORES_GROUP_ID,
-  KRONOS_LOGOUT_GROUP_ID,
-  KRONOS_OPTIONS_GROUP_ID,
-  KRONOS_EMOTES_GROUP_ID,
-  KRONOS_MUSIC_GROUP_ID,
-  kronosSelectedSpellName,
-  kronosSpellTargetFlagsFromClickMask,
-  pointInKronosRect,
-  resolveKronosFixedClientLayout,
-  scaleKronosFixedClientLayout
-} = loadTsModule("src/render/kronosFixedLayout.ts");
-const { kronosViewportZoomToFovDegrees } = loadTsModule("src/render/kronosClientCamera.ts");
+  NH_FIXED_ROOT_GROUP_ID,
+  NH_FIXED_VIEWPORT_INTERFACE_CONTAINER_CHILD_ID,
+  NH_GAME_VIEWPORT_CONTENT_TYPE,
+  NH_MINIMAP_CONTENT_TYPE,
+  NH_COMPASS_CONTENT_TYPE,
+  NH_CHATBOX_GROUP_ID,
+  NH_COMBAT_GROUP_ID,
+  NH_SKILLS_GROUP_ID,
+  NH_EQUIPMENT_GROUP_ID,
+  NH_PRAYER_GROUP_ID,
+  NH_SPELLBOOK_GROUP_ID,
+  NH_CLAN_CHAT_GROUP_ID,
+  NH_NOTICEBOARD_GROUP_ID,
+  NH_FRIENDS_GROUP_ID,
+  NH_IGNORES_GROUP_ID,
+  NH_LOGOUT_GROUP_ID,
+  NH_OPTIONS_GROUP_ID,
+  NH_EMOTES_GROUP_ID,
+  NH_MUSIC_GROUP_ID,
+  nhSelectedSpellName,
+  nhSpellTargetFlagsFromClickMask,
+  pointInNhRect,
+  resolveNhFixedClientLayout,
+  scaleNhFixedClientLayout
+} = loadTsModule("src/render/nhFixedLayout.ts");
+const { nhViewportZoomToFovDegrees } = loadTsModule("src/render/nhClientCamera.ts");
 
 const definitions = JSON.parse(
   readFileSync(path.join(projectRoot, "fixtures", "assets", "defs", "client-widgets.json"), "utf8")
@@ -81,15 +81,15 @@ const clientUiAtlas = JSON.parse(
 const compassAtlas = JSON.parse(
   readFileSync(path.join(projectRoot, "fixtures", "render", "sprites", "compass.json"), "utf8")
 );
-const hudSource = readFileSync(path.join(projectRoot, "src", "ui", "KronosClientHud.tsx"), "utf8");
+const hudSource = readFileSync(path.join(projectRoot, "src", "ui", "NhClientHud.tsx"), "utf8");
 const runtimeSceneSource = readFileSync(path.join(projectRoot, "src", "render", "runtimeScene.ts"), "utf8");
 const assetManifestSource = readFileSync(path.join(projectRoot, "src", "assets", "index.ts"), "utf8");
 const compassDrawSource = readFileSync(
-  path.resolve(projectRoot, "..", "Kronos184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "SoundSystem.java"),
+  path.resolve(projectRoot, "..", "Nh184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "SoundSystem.java"),
   "utf8"
 );
 const compassLoadSource = readFileSync(
-  path.resolve(projectRoot, "..", "Kronos184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "class188.java"),
+  path.resolve(projectRoot, "..", "Nh184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "class188.java"),
   "utf8"
 );
 
@@ -111,10 +111,10 @@ function assertAlmost(name, actual, expected, epsilon = 1e-9) {
   }
 }
 
-const layout = resolveKronosFixedClientLayout(definitions, spellbookDefinitions);
-assert(layout.viewportWidget.widget.groupId === KRONOS_FIXED_ROOT_GROUP_ID, "viewport widget root group mismatch");
+const layout = resolveNhFixedClientLayout(definitions, spellbookDefinitions);
+assert(layout.viewportWidget.widget.groupId === NH_FIXED_ROOT_GROUP_ID, "viewport widget root group mismatch");
 assert(
-  layout.viewportWidget.widget.contentType === KRONOS_GAME_VIEWPORT_CONTENT_TYPE,
+  layout.viewportWidget.widget.contentType === NH_GAME_VIEWPORT_CONTENT_TYPE,
   "viewport widget content type mismatch"
 );
 assertSame("fixed viewport interface container", {
@@ -122,25 +122,25 @@ assertSame("fixed viewport interface container", {
   widgetId: layout.fixedViewportInterfaceContainer?.widget.id,
   rect: layout.fixedViewportInterfaceContainer?.rect
 }, {
-  childId: KRONOS_FIXED_VIEWPORT_INTERFACE_CONTAINER_CHILD_ID,
+  childId: NH_FIXED_VIEWPORT_INTERFACE_CONTAINER_CHILD_ID,
   widgetId: 35913793,
   rect: { x: 547, y: 205, width: 190, height: 261 }
 });
-assert(layout.minimapWidget?.widget.contentType === KRONOS_MINIMAP_CONTENT_TYPE, "minimap widget content type mismatch");
-assert(layout.compassWidget?.widget.contentType === KRONOS_COMPASS_CONTENT_TYPE, "compass widget content type mismatch");
+assert(layout.minimapWidget?.widget.contentType === NH_MINIMAP_CONTENT_TYPE, "minimap widget content type mismatch");
+assert(layout.compassWidget?.widget.contentType === NH_COMPASS_CONTENT_TYPE, "compass widget content type mismatch");
 
 assertSame("fixed canvas", layout.fixedCanvas, { width: 765, height: 503 });
 assertSame("game viewport rect", layout.viewport.rect, { x: 4, y: 4, width: 512, height: 334 });
 assert(layout.viewport.zoom === 256, `expected fixed viewport zoom 256, got ${layout.viewport.zoom}`);
 assert(
   clientUiAtlas.sprites.some((sprite) => sprite.spriteId === 4 && sprite.alias === "rs2_window_frame_edge_left"),
-  "client_ui atlas should include Kronos RS2_WINDOW_FRAME_EDGE_LEFT sprite 4 for the fixed viewport left border"
+  "client_ui atlas should include Nh RS2_WINDOW_FRAME_EDGE_LEFT sprite 4 for the fixed viewport left border"
 );
 assertSame("minimap rect", layout.minimapWidget?.rect, { x: 570, y: 9, width: 145, height: 151 });
 assertSame("compass rect", layout.compassWidget?.rect, { x: 545, y: 4, width: 32, height: 33 });
 const compassSprite = compassAtlas.sprites.find((sprite) => sprite.alias === "compass");
-assert(compassSprite, "missing exported Kronos compass sprite");
-assertSame("Kronos compass sprite metadata", {
+assert(compassSprite, "missing exported Nh compass sprite");
+assertSame("Nh compass sprite metadata", {
   spriteId: compassSprite?.spriteId,
   width: compassSprite?.width,
   height: compassSprite?.height
@@ -151,18 +151,18 @@ assertSame("Kronos compass sprite metadata", {
 });
 assert(
   compassDrawSource.includes("AttackOption.compass.method6205(var1, var2, var4.width, var4.height, 25, 25, Client.camAngleY, 256, var4.xStarts, var4.xWidths);"),
-  "Kronos client compass draw contract changed"
+  "Nh client compass draw contract changed"
 );
 assert(
   compassLoadSource.includes("AttackOption.compass = NPCDefinition.method4417(GrandExchangeOfferAgeComparator.archive8, WorldMapData_0.spriteIds.compass, 0"),
-  "Kronos client compass load contract changed"
+  "Nh client compass load contract changed"
 );
 assert(hudSource.includes('compassAtlas={spriteAtlases.get("compass")}'), "HUD should pass the exported compass sprite atlas");
-assert(hudSource.includes('findSprite(compassAtlas, "compass")'), "HUD should render the exported Kronos compass sprite");
+assert(hudSource.includes('findSprite(compassAtlas, "compass")'), "HUD should render the exported Nh compass sprite");
 assert(hudSource.includes("AttackOption.compass.method6205(var1,var2,mask.width,mask.height,25,25,Client.camAngleY,256,mask.xStarts,mask.xWidths)"), "HUD should keep the source compass draw contract anchored");
 assert(runtimeSceneSource.includes('| "compass"'), "Runtime sprite sheet ids should include compass");
 assert(assetManifestSource.includes('"fixtures/render/sprites/compass.png"'), "asset manifest should require compass sprite sheet");
-assert(layout.chatbox?.groupId === KRONOS_CHATBOX_GROUP_ID, "chatbox group mismatch");
+assert(layout.chatbox?.groupId === NH_CHATBOX_GROUP_ID, "chatbox group mismatch");
 assertSame("chatbox mount", layout.chatbox?.rect, { x: 0, y: 338, width: 519, height: 165 });
 const chatboxSprites = (layout.chatbox?.widgets ?? []).filter(
   (entry) => entry.widget.type === 5 && entry.widget.spriteId > 0
@@ -209,7 +209,7 @@ assertSame("chatbox Report text", chatboxTexts.get("Report"), {
 assertSame("inventory grid", layout.inventoryGrid, {
   groupId: 149,
   widgetId: 9764864,
-  containerGroupId: KRONOS_FIXED_ROOT_GROUP_ID,
+  containerGroupId: NH_FIXED_ROOT_GROUP_ID,
   containerWidgetId: 35913797,
   containerChildId: 69,
   containerRect: { x: 547, y: 205, width: 190, height: 261 },
@@ -227,7 +227,7 @@ assertSame("fixed side panel", {
   defaultTabId: layout.sidePanel?.defaultTabId,
   tabCount: layout.sidePanel?.tabs.length
 }, {
-  groupId: KRONOS_FIXED_ROOT_GROUP_ID,
+  groupId: NH_FIXED_ROOT_GROUP_ID,
   rect: { x: 547, y: 205, width: 190, height: 261 },
   backgroundSpriteId: 1031,
   defaultTabId: "inventory",
@@ -275,91 +275,91 @@ const sidePanelInterfaceSummary = Object.fromEntries(
 );
 assertSame("fixed side panel mounted interfaces", sidePanelInterfaceSummary, {
   combat: {
-    groupId: KRONOS_COMBAT_GROUP_ID,
+    groupId: NH_COMBAT_GROUP_ID,
     rect: { x: 547, y: 205, width: 190, height: 261 },
     widgetCount: 43,
     renderableSpriteCount: 3,
     actionWidgetCount: 8
   },
   stats: {
-    groupId: KRONOS_SKILLS_GROUP_ID,
+    groupId: NH_SKILLS_GROUP_ID,
     rect: { x: 547, y: 205, width: 190, height: 261 },
     widgetCount: 29,
     renderableSpriteCount: 2,
     actionWidgetCount: 24
   },
   quests: {
-    groupId: KRONOS_NOTICEBOARD_GROUP_ID,
+    groupId: NH_NOTICEBOARD_GROUP_ID,
     rect: { x: 547, y: 205, width: 190, height: 261 },
     widgetCount: 39,
     renderableSpriteCount: 0,
     actionWidgetCount: 8
   },
   equipment: {
-    groupId: KRONOS_EQUIPMENT_GROUP_ID,
+    groupId: NH_EQUIPMENT_GROUP_ID,
     rect: { x: 547, y: 205, width: 190, height: 261 },
     widgetCount: 25,
     renderableSpriteCount: 9,
     actionWidgetCount: 15
   },
   prayer: {
-    groupId: KRONOS_PRAYER_GROUP_ID,
+    groupId: NH_PRAYER_GROUP_ID,
     rect: { x: 547, y: 205, width: 190, height: 261 },
     widgetCount: 35,
     renderableSpriteCount: 0,
     actionWidgetCount: 29
   },
   magic: {
-    groupId: KRONOS_SPELLBOOK_GROUP_ID,
+    groupId: NH_SPELLBOOK_GROUP_ID,
     rect: { x: 547, y: 205, width: 190, height: 261 },
     widgetCount: 189,
     renderableSpriteCount: 0,
     actionWidgetCount: 73
   },
   "clan-chat": {
-    groupId: KRONOS_CLAN_CHAT_GROUP_ID,
+    groupId: NH_CLAN_CHAT_GROUP_ID,
     rect: { x: 547, y: 205, width: 190, height: 261 },
     widgetCount: 26,
     renderableSpriteCount: 0,
     actionWidgetCount: 2
   },
   ignores: {
-    groupId: KRONOS_IGNORES_GROUP_ID,
+    groupId: NH_IGNORES_GROUP_ID,
     rect: { x: 547, y: 205, width: 190, height: 261 },
     widgetCount: 17,
     renderableSpriteCount: 3,
     actionWidgetCount: 3
   },
   friends: {
-    groupId: KRONOS_FRIENDS_GROUP_ID,
+    groupId: NH_FRIENDS_GROUP_ID,
     rect: { x: 547, y: 205, width: 190, height: 261 },
     widgetCount: 19,
     renderableSpriteCount: 3,
     actionWidgetCount: 3
   },
   logout: {
-    groupId: KRONOS_LOGOUT_GROUP_ID,
+    groupId: NH_LOGOUT_GROUP_ID,
     rect: { x: 547, y: 205, width: 190, height: 261 },
     widgetCount: 40,
     renderableSpriteCount: 6,
     actionWidgetCount: 9
   },
   options: {
-    groupId: KRONOS_OPTIONS_GROUP_ID,
+    groupId: NH_OPTIONS_GROUP_ID,
     rect: { x: 547, y: 205, width: 190, height: 261 },
     widgetCount: 110,
     renderableSpriteCount: 20,
     actionWidgetCount: 44
   },
   emotes: {
-    groupId: KRONOS_EMOTES_GROUP_ID,
+    groupId: NH_EMOTES_GROUP_ID,
     rect: { x: 547, y: 205, width: 190, height: 261 },
     widgetCount: 4,
     renderableSpriteCount: 0,
     actionWidgetCount: 0
   },
   music: {
-    groupId: KRONOS_MUSIC_GROUP_ID,
+    groupId: NH_MUSIC_GROUP_ID,
     rect: { x: 547, y: 205, width: 190, height: 261 },
     widgetCount: 14,
     renderableSpriteCount: 3,
@@ -367,21 +367,21 @@ assertSame("fixed side panel mounted interfaces", sidePanelInterfaceSummary, {
   }
 });
 
-const kronosServerRoot = path.resolve(
+const nhServerRoot = path.resolve(
   projectRoot,
   "..",
-  "kronos-osrs-184-master",
-  "kronos-osrs-184-master",
-  "Kronos-master"
+  "nh-osrs-184-master",
+  "nh-osrs-184-master",
+  "Nh-master"
 );
 const interfaceSource = readFileSync(
-  path.join(kronosServerRoot, "kronos-server", "src", "main", "java", "io", "ruin", "model", "inter", "Interface.java"),
+  path.join(nhServerRoot, "nh-server", "src", "main", "java", "io", "ruin", "model", "inter", "Interface.java"),
   "utf8"
 );
 const tabSocialSource = readFileSync(
   path.join(
-    kronosServerRoot,
-    "kronos-server",
+    nhServerRoot,
+    "nh-server",
     "src",
     "main",
     "java",
@@ -396,8 +396,8 @@ const tabSocialSource = readFileSync(
 );
 const tabQuestSource = readFileSync(
   path.join(
-    kronosServerRoot,
-    "kronos-server",
+    nhServerRoot,
+    "nh-server",
     "src",
     "main",
     "java",
@@ -412,7 +412,7 @@ const tabQuestSource = readFileSync(
 );
 const assetExporterSource = readFileSync(
   path.join(
-    kronosServerRoot,
+    nhServerRoot,
     "runelite",
     "cache",
     "src",
@@ -422,36 +422,36 @@ const assetExporterSource = readFileSync(
     "runelite",
     "cache",
     "tools",
-    "KronosNhTrainerAssetExport.java"
+    "NhNhTrainerAssetExport.java"
   ),
   "utf8"
 );
-const emoteInitSource = readFileSync(path.join(kronosServerRoot, "scripts", "[clientscript,emote_init].cs2"), "utf8");
-const fixedLayoutSource = readFileSync(path.join(projectRoot, "src", "render", "kronosFixedLayout.ts"), "utf8");
-assert(interfaceSource.includes("public static final int IGNORE_LIST = 432;"), "Kronos Interface.IGNORE_LIST should be group 432");
-assert(tabSocialSource.includes("p.openInterface(InterfaceType.SOCIAL_TAB, Interface.IGNORE_LIST);"), "friends tab should swap to Kronos ignore list");
-assert(tabSocialSource.includes("p.openInterface(InterfaceType.SOCIAL_TAB, Interface.FRIENDS_LIST);"), "ignore tab should swap to Kronos friends list");
-assert(fixedLayoutSource.includes("ignores: KRONOS_IGNORES_GROUP_ID"), "trainer fixed layout should mount Interface.IGNORE_LIST on the ignore tab");
-assert(tabQuestSource.includes("player.getPacketSender().sendString(Interface.NOTICEBOARD"), "Kronos TabQuest should server-send noticeboard strings");
-assert(tabQuestSource.includes('"Players Online: " + Color.GREEN.wrap'), "noticeboard should preserve Kronos server information text");
-assert(hudSource.includes("kronosNoticeboardTextByChildId"), "trainer HUD should replace exported noticeboard placeholders with TabQuest strings");
-assert(hudSource.includes("renderTaggedWidgetGlyphRun"), "trainer HUD should render Kronos <col> tagged widget text instead of showing tags");
-assert(emoteInitSource.includes("while ($int6 <= 48)"), "Kronos emote clientscript should scan slots 0..48");
-assert(emoteInitSource.includes("cc_setsize(42, 48"), "Kronos emote clientscript should create 42x48 emote cells");
-assert(emoteInitSource.includes("cc_setposition(calc(($int4 % 4) * 43), $int5"), "Kronos emote clientscript should use four columns with 43px x-step");
-assert(assetExporterSource.includes('SpriteRef.id("rs2_window_frame_edge_left", 4)'), "client_ui exporter should include Kronos RS2_WINDOW_FRAME_EDGE_LEFT sprite 4");
-assert(assetExporterSource.includes("EMOTE_UNLOCKED_SPRITE_ENUM_ID = 1001"), "emote exporter should read Kronos unlocked emote sprite enum 1001");
+const emoteInitSource = readFileSync(path.join(nhServerRoot, "scripts", "[clientscript,emote_init].cs2"), "utf8");
+const fixedLayoutSource = readFileSync(path.join(projectRoot, "src", "render", "nhFixedLayout.ts"), "utf8");
+assert(interfaceSource.includes("public static final int IGNORE_LIST = 432;"), "Nh Interface.IGNORE_LIST should be group 432");
+assert(tabSocialSource.includes("p.openInterface(InterfaceType.SOCIAL_TAB, Interface.IGNORE_LIST);"), "friends tab should swap to Nh ignore list");
+assert(tabSocialSource.includes("p.openInterface(InterfaceType.SOCIAL_TAB, Interface.FRIENDS_LIST);"), "ignore tab should swap to Nh friends list");
+assert(fixedLayoutSource.includes("ignores: NH_IGNORES_GROUP_ID"), "trainer fixed layout should mount Interface.IGNORE_LIST on the ignore tab");
+assert(tabQuestSource.includes("player.getPacketSender().sendString(Interface.NOTICEBOARD"), "Nh TabQuest should server-send noticeboard strings");
+assert(tabQuestSource.includes('"Players Online: " + Color.GREEN.wrap'), "noticeboard should preserve Nh server information text");
+assert(hudSource.includes("nhNoticeboardTextByChildId"), "trainer HUD should replace exported noticeboard placeholders with TabQuest strings");
+assert(hudSource.includes("renderTaggedWidgetGlyphRun"), "trainer HUD should render Nh <col> tagged widget text instead of showing tags");
+assert(emoteInitSource.includes("while ($int6 <= 48)"), "Nh emote clientscript should scan slots 0..48");
+assert(emoteInitSource.includes("cc_setsize(42, 48"), "Nh emote clientscript should create 42x48 emote cells");
+assert(emoteInitSource.includes("cc_setposition(calc(($int4 % 4) * 43), $int5"), "Nh emote clientscript should use four columns with 43px x-step");
+assert(assetExporterSource.includes('SpriteRef.id("rs2_window_frame_edge_left", 4)'), "client_ui exporter should include Nh RS2_WINDOW_FRAME_EDGE_LEFT sprite 4");
+assert(assetExporterSource.includes("EMOTE_UNLOCKED_SPRITE_ENUM_ID = 1001"), "emote exporter should read Nh unlocked emote sprite enum 1001");
 assert(assetExporterSource.includes("emote_icons"), "emote exporter should emit a dedicated emote icon atlas");
-assert(emoteDefinitions.nameEnumId === 1000, "emote names should come from Kronos enum 1000");
-assert(emoteDefinitions.unlockedSpriteEnumId === 1001, "emote unlocked icons should come from Kronos enum 1001");
-assert(emoteDefinitions.lockedSpriteEnumId === 1002, "emote locked icons should come from Kronos enum 1002");
-assert(emoteDefinitions.emotes.length === 48, "expected 48 exported Kronos emote definitions");
+assert(emoteDefinitions.nameEnumId === 1000, "emote names should come from Nh enum 1000");
+assert(emoteDefinitions.unlockedSpriteEnumId === 1001, "emote unlocked icons should come from Nh enum 1001");
+assert(emoteDefinitions.lockedSpriteEnumId === 1002, "emote locked icons should come from Nh enum 1002");
+assert(emoteDefinitions.emotes.length === 48, "expected 48 exported Nh emote definitions");
 assert(emoteDefinitions.emotes.some((entry) => entry.slot === 0 && entry.label === "Yes" && entry.unlockedSpriteId === 700), "expected exported Yes emote sprite 700");
 assert(emoteIconAtlas.id === "emote_icons", "expected exported emote_icons atlas");
-assert(emoteIconAtlas.sprites.some((sprite) => sprite.spriteId === 700 && sprite.maxWidth === 48 && sprite.maxHeight === 48), "expected Kronos emote sprite 700 in emote_icons atlas");
+assert(emoteIconAtlas.sprites.some((sprite) => sprite.spriteId === 700 && sprite.maxWidth === 48 && sprite.maxHeight === 48), "expected Nh emote sprite 700 in emote_icons atlas");
 assert(hudSource.includes("data-source-client-script=\"emote_init\""), "trainer HUD should mount the emote clientscript-derived panel layer");
 assert(hudSource.includes("spriteAtlases.get(\"emote_icons\")"), "trainer HUD should render emotes from the exported emote_icons atlas");
-assert(hudSource.includes("kronosEmoteSpriteStyle"), "trainer HUD should size emote icons through the clientscript 42x48 cell geometry");
+assert(hudSource.includes("nhEmoteSpriteStyle"), "trainer HUD should size emote icons through the clientscript 42x48 cell geometry");
 
 assertSame(
   "fixed combat panel static sprites",
@@ -477,7 +477,7 @@ assertSame(
     combatLevel: layout.combatPanel?.combatLevel
   },
   {
-    groupId: KRONOS_COMBAT_GROUP_ID,
+    groupId: NH_COMBAT_GROUP_ID,
     weaponName: {
       widgetId: 38862849,
       childId: 1,
@@ -786,7 +786,7 @@ assertSame("fixed stats panel slots", {
       }
     : null
 }, {
-  groupId: KRONOS_SKILLS_GROUP_ID,
+  groupId: NH_SKILLS_GROUP_ID,
   rect: { x: 547, y: 205, width: 190, height: 261 },
   columns: 3,
   slot: { width: 62, height: 32 },
@@ -853,7 +853,7 @@ assertSame("fixed equipment panel slots", {
     spriteRect: button.spriteRect
   }))
 }, {
-  groupId: KRONOS_EQUIPMENT_GROUP_ID,
+  groupId: NH_EQUIPMENT_GROUP_ID,
   rect: { x: 547, y: 205, width: 190, height: 261 },
   slots: [
     { id: "head", serverSlot: 0, childId: 6, widgetId: 25362438, rect: { x: 624, y: 209, width: 36, height: 36 }, actionCount: 10 },
@@ -928,7 +928,7 @@ assertSame("fixed prayer panel slots", {
     actionCount: slot.actions.length
   }))
 }, {
-  groupId: KRONOS_PRAYER_GROUP_ID,
+  groupId: NH_PRAYER_GROUP_ID,
   rect: { x: 547, y: 205, width: 190, height: 261 },
   containerWidgetId: 35454980,
   containerChildId: 4,
@@ -1024,7 +1024,7 @@ assertSame("fixed ancient spellbook panel", {
   disableFilteringVarbitId: 6718,
   disableFilteringVarbitValue: 1,
   layoutMode: "disable-filtering-fixed",
-  groupId: KRONOS_SPELLBOOK_GROUP_ID,
+  groupId: NH_SPELLBOOK_GROUP_ID,
   rect: { x: 547, y: 205, width: 190, height: 261 },
   parentWidgetId: 14286849,
   parentChildId: 1,
@@ -1064,9 +1064,9 @@ assertSame(
   {
     clickMask: smokeRushSpell?.clickMask,
     targetFlags: smokeRushSpell?.targetFlags,
-    targetFlagsFromMask: smokeRushSpell ? kronosSpellTargetFlagsFromClickMask(smokeRushSpell.clickMask) : null,
+    targetFlagsFromMask: smokeRushSpell ? nhSpellTargetFlagsFromClickMask(smokeRushSpell.clickMask) : null,
     spellActionName: smokeRushSpell?.spellActionName,
-    selectedSpellName: smokeRushSpell ? kronosSelectedSpellName(smokeRushSpell) : null
+    selectedSpellName: smokeRushSpell ? nhSelectedSpellName(smokeRushSpell) : null
   },
   {
     clickMask: 20480,
@@ -1107,10 +1107,10 @@ assertSame(
     ])
   ),
   {
-    standard: { enumId: 1982, groupId: KRONOS_SPELLBOOK_GROUP_ID, spells: 70, columns: 7, rows: 10 },
-    ancient: { enumId: 1983, groupId: KRONOS_SPELLBOOK_GROUP_ID, spells: 26, columns: 4, rows: 7 },
-    lunar: { enumId: 1984, groupId: KRONOS_SPELLBOOK_GROUP_ID, spells: 45, columns: 6, rows: 8 },
-    arceuus: { enumId: 1985, groupId: KRONOS_SPELLBOOK_GROUP_ID, spells: 36, columns: 4, rows: 9 }
+    standard: { enumId: 1982, groupId: NH_SPELLBOOK_GROUP_ID, spells: 70, columns: 7, rows: 10 },
+    ancient: { enumId: 1983, groupId: NH_SPELLBOOK_GROUP_ID, spells: 26, columns: 4, rows: 7 },
+    lunar: { enumId: 1984, groupId: NH_SPELLBOOK_GROUP_ID, spells: 45, columns: 6, rows: 8 },
+    arceuus: { enumId: 1985, groupId: NH_SPELLBOOK_GROUP_ID, spells: 36, columns: 4, rows: 9 }
   }
 );
 const chargeWaterOrbSpell = layout.spellbookPanels.standard?.spells.find((spell) => spell.id === "charge-water-orb");
@@ -1119,9 +1119,9 @@ assertSame(
   {
     clickMask: chargeWaterOrbSpell?.clickMask,
     targetFlags: chargeWaterOrbSpell?.targetFlags,
-    targetFlagsFromMask: chargeWaterOrbSpell ? kronosSpellTargetFlagsFromClickMask(chargeWaterOrbSpell.clickMask) : null,
+    targetFlagsFromMask: chargeWaterOrbSpell ? nhSpellTargetFlagsFromClickMask(chargeWaterOrbSpell.clickMask) : null,
     spellActionName: chargeWaterOrbSpell?.spellActionName,
-    selectedSpellName: chargeWaterOrbSpell ? kronosSelectedSpellName(chargeWaterOrbSpell) : null,
+    selectedSpellName: chargeWaterOrbSpell ? nhSelectedSpellName(chargeWaterOrbSpell) : null,
     childId: chargeWaterOrbSpell?.childId,
     widgetId: chargeWaterOrbSpell?.widgetId,
     spriteId: chargeWaterOrbSpell?.spriteId,
@@ -1426,22 +1426,22 @@ assertSame("fixed orbs", layout.orbs, [
   }
 ]);
 
-const fixedCss = scaleKronosFixedClientLayout(layout, { width: 1280, height: 900 });
+const fixedCss = scaleNhFixedClientLayout(layout, { width: 1280, height: 900 });
 assert(fixedCss.scale === 1, `large container should preserve 1:1 fixed canvas scale, got ${fixedCss.scale}`);
 assertSame("large container viewport", fixedCss.viewportRect, layout.viewport.rect);
 
-const halfCss = scaleKronosFixedClientLayout(layout, { width: 382.5, height: 251.5 });
+const halfCss = scaleNhFixedClientLayout(layout, { width: 382.5, height: 251.5 });
 assert(halfCss.scale === 0.5, `half container scale mismatch: ${halfCss.scale}`);
 assertSame("half scale viewport", halfCss.viewportRect, { x: 2, y: 2, width: 256, height: 167 });
 
-assert(pointInKronosRect(layout.viewport.rect, 4, 4), "viewport should include top-left pixel");
-assert(pointInKronosRect(layout.viewport.rect, 515, 337), "viewport should include bottom-right interior pixel");
-assert(!pointInKronosRect(layout.viewport.rect, 516, 337), "viewport should exclude right edge");
-assert(!pointInKronosRect(layout.viewport.rect, 515, 338), "viewport should exclude bottom edge");
-assert(!pointInKronosRect(layout.viewport.rect, 3, 4), "viewport should exclude left outside pixel");
+assert(pointInNhRect(layout.viewport.rect, 4, 4), "viewport should include top-left pixel");
+assert(pointInNhRect(layout.viewport.rect, 515, 337), "viewport should include bottom-right interior pixel");
+assert(!pointInNhRect(layout.viewport.rect, 516, 337), "viewport should exclude right edge");
+assert(!pointInNhRect(layout.viewport.rect, 515, 338), "viewport should exclude bottom edge");
+assert(!pointInNhRect(layout.viewport.rect, 3, 4), "viewport should exclude left outside pixel");
 
 const expectedFov = (Math.atan(layout.viewport.rect.height / (2 * layout.viewport.zoom)) * 360) / Math.PI;
-const fixedFov = kronosViewportZoomToFovDegrees(layout.viewport.rect.height, layout.viewport.zoom);
+const fixedFov = nhViewportZoomToFovDegrees(layout.viewport.rect.height, layout.viewport.zoom);
 assertAlmost("fixed viewport fov", fixedFov, expectedFov);
 assertAlmost("fixed viewport fov stable value", fixedFov, 66.23633715063609);
 

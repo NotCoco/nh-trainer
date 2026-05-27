@@ -8,18 +8,18 @@ function read(relativePath) {
   return fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
+function readNhClient(relativePath) {
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
 }
 
-function readKronosServerScript(fileName) {
+function readNhServerScript(fileName) {
   return fs.readFileSync(
     path.resolve(
       projectRoot,
       "..",
-      "kronos-osrs-184-master",
-      "kronos-osrs-184-master",
-      "Kronos-master",
+      "nh-osrs-184-master",
+      "nh-osrs-184-master",
+      "Nh-master",
       "scripts",
       fileName
     ),
@@ -27,14 +27,14 @@ function readKronosServerScript(fileName) {
   );
 }
 
-function readKronosServer(relativePath) {
+function readNhServer(relativePath) {
   return fs.readFileSync(
     path.resolve(
       projectRoot,
       "..",
-      "kronos-osrs-184-master",
-      "kronos-osrs-184-master",
-      "Kronos-master",
+      "nh-osrs-184-master",
+      "nh-osrs-184-master",
+      "Nh-master",
       relativePath
     ),
     "utf8"
@@ -47,25 +47,25 @@ function assert(condition, message) {
   }
 }
 
-const pluginSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/experiencedrop/XpDropPlugin.java");
-const configSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/experiencedrop/XpDropConfig.java");
-const overlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/experiencedrop/XpDropOverlay.java");
+const pluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/experiencedrop/XpDropPlugin.java");
+const configSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/experiencedrop/XpDropConfig.java");
+const overlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/experiencedrop/XpDropOverlay.java");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
 const runtimeSource = read("src/ui/RuntimeSceneViewer.tsx");
-const hudSource = read("src/ui/KronosClientHud.tsx");
-const fixedLayoutSource = read("src/render/kronosFixedLayout.ts");
+const hudSource = read("src/ui/NhClientHud.tsx");
+const fixedLayoutSource = read("src/render/nhFixedLayout.ts");
 const cssSource = read("src/ui/styles.css");
 const combatSource = read("src/sim/runtimePlayerCombat.ts");
-const statTransmitSource = readKronosServerScript("[clientscript,xpdrops_stattransmit].cs2");
-const dropletMoveSource = readKronosServerScript("[clientscript,xpdrops_dropletmove].cs2");
-const setPositionSource = readKronosServerScript("[proc,xpdrops_setposition].cs2");
-const setDropSizeSource = readKronosServerScript("[proc,xpdrops_setdropsize].cs2");
-const orbUpdateSource = readKronosServerScript("[proc,orbs_xpdrops_update].cs2");
-const orbOpSource = readKronosServerScript("[clientscript,orbs_xpdrops_op].cs2");
-const xpCounterSource = readKronosServer("kronos-server/src/main/java/io/ruin/model/inter/handlers/XpCounter.java");
-const combatUtilsSource = readKronosServer("kronos-server/src/main/java/io/ruin/model/combat/CombatUtils.java");
-const iceBarrageSource = readKronosServer("kronos-server/src/main/java/io/ruin/model/skills/magic/spells/ancient/IceBarrage.java");
-const bloodBarrageSource = readKronosServer("kronos-server/src/main/java/io/ruin/model/skills/magic/spells/ancient/BloodBarrage.java");
+const statTransmitSource = readNhServerScript("[clientscript,xpdrops_stattransmit].cs2");
+const dropletMoveSource = readNhServerScript("[clientscript,xpdrops_dropletmove].cs2");
+const setPositionSource = readNhServerScript("[proc,xpdrops_setposition].cs2");
+const setDropSizeSource = readNhServerScript("[proc,xpdrops_setdropsize].cs2");
+const orbUpdateSource = readNhServerScript("[proc,orbs_xpdrops_update].cs2");
+const orbOpSource = readNhServerScript("[clientscript,orbs_xpdrops_op].cs2");
+const xpCounterSource = readNhServer("nh-server/src/main/java/io/ruin/model/inter/handlers/XpCounter.java");
+const combatUtilsSource = readNhServer("nh-server/src/main/java/io/ruin/model/combat/CombatUtils.java");
+const iceBarrageSource = readNhServer("nh-server/src/main/java/io/ruin/model/skills/magic/spells/ancient/IceBarrage.java");
+const bloodBarrageSource = readNhServer("nh-server/src/main/java/io/ruin/model/skills/magic/spells/ancient/BloodBarrage.java");
 
 for (const sourceAnchor of [
   'name = "XP Drop"',
@@ -131,7 +131,7 @@ for (const trainerAnchor of [
   'name: "Native XP drop size"',
   'Config.XP_DROPS_SIZE varbit 4693',
   'Trainer extension: start the source-backed XP-drop plugin enabled',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/experiencedrop/XpDropPlugin.java"'
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/experiencedrop/XpDropPlugin.java"'
 ]) {
   assert(shellSource.includes(trainerAnchor), `RuneliteClientShell missing XP Drop anchor ${trainerAnchor}`);
 }
@@ -155,7 +155,7 @@ for (const trainerAnchor of [
   "RUNELITE_XP_DROP_SOURCE_WIDTH_PADDING = 3",
   "runeliteXpDropSourceWidth(textWidth, skillIcons.length, textSizeSpec.textHeight)",
   "runeliteXpDropSkillIcons(droplet.xpDrops)",
-  'kronosClientFontStringWidth(font, text)',
+  'nhClientFontStringWidth(font, text)',
   'RuneliteXpDropGlyphText',
   'RUNELITE_XP_DROP_DURATION_CLIENT_CYCLES = 120',
   'RUNELITE_XP_DROP_STACK_MIN_PANEL_HEIGHT = 100',
@@ -190,18 +190,18 @@ for (const trainerAnchor of [
 }
 
 for (const trainerAnchor of [
-  "resolveKronosXpDropOrb",
+  "resolveNhXpDropOrb",
   "entry.widget.childId === 1 && entry.widget.spriteId === 1196",
   "activeSpriteId: 1197",
   "hoverSpriteId: 1198",
   "activeHoverSpriteId: 1199",
-  "xpDropOrb: resolveKronosXpDropOrb"
+  "xpDropOrb: resolveNhXpDropOrb"
 ]) {
-  assert(fixedLayoutSource.includes(trainerAnchor), `kronosFixedLayout missing XP orb layout anchor ${trainerAnchor}`);
+  assert(fixedLayoutSource.includes(trainerAnchor), `nhFixedLayout missing XP orb layout anchor ${trainerAnchor}`);
 }
 
 for (const trainerAnchor of [
-  "KronosXpDropOrb",
+  "NhXpDropOrb",
   "sourceLayout.xpDropOrb",
   "data-source-client-script=\"orbs_xpdrops_op\"",
   "data-source-update-script=\"orbs_xpdrops_update varbit4702 sprite orb_xp,0/1/2/3\"",
@@ -209,7 +209,7 @@ for (const trainerAnchor of [
   "onXpDropOrbDefaultAction",
   "onXpDropOrbContextMenu"
 ]) {
-  assert(hudSource.includes(trainerAnchor), `KronosClientHud missing XP orb anchor ${trainerAnchor}`);
+  assert(hudSource.includes(trainerAnchor), `NhClientHud missing XP orb anchor ${trainerAnchor}`);
 }
 
 for (const combatAnchor of [
@@ -240,11 +240,11 @@ for (const sourceAnchor of [
   "double xp = baseXp + (damage * 2D);",
   "player.getStats().addXp(StatType.Hitpoints, damage * 1.33, multiplier);"
 ]) {
-  assert(combatUtilsSource.includes(sourceAnchor), `Kronos CombatUtils source missing ${sourceAnchor}`);
+  assert(combatUtilsSource.includes(sourceAnchor), `Nh CombatUtils source missing ${sourceAnchor}`);
 }
 
-assert(iceBarrageSource.includes("setBaseXp(52.0);"), "Kronos IceBarrage source missing base XP 52.0.");
-assert(bloodBarrageSource.includes("setBaseXp(51.0);"), "Kronos BloodBarrage source missing base XP 51.0.");
+assert(iceBarrageSource.includes("setBaseXp(52.0);"), "Nh IceBarrage source missing base XP 52.0.");
+assert(bloodBarrageSource.includes("setBaseXp(51.0);"), "Nh BloodBarrage source missing base XP 51.0.");
 
 for (const sourceAnchor of [
   "def_int $int41 = 16;",
@@ -257,8 +257,8 @@ for (const sourceAnchor of [
   'if_setontimer("xpdrops_dropletmove($component47, $int44)", $component47)'
 ]) {
   assert(
-    statTransmitSource.includes(sourceAnchor) || setDropSizeSource.includes(sourceAnchor) || readKronosServerScript("[proc,xpdrops_redraw].cs2").includes(sourceAnchor),
-    `Kronos XP drop source missing ${sourceAnchor}`
+    statTransmitSource.includes(sourceAnchor) || setDropSizeSource.includes(sourceAnchor) || readNhServerScript("[proc,xpdrops_redraw].cs2").includes(sourceAnchor),
+    `Nh XP drop source missing ${sourceAnchor}`
   );
 }
 
@@ -268,7 +268,7 @@ for (const sourceAnchor of [
   "cc_setposition(cc_getx, $int2, ^setpos_abs_left, ^setpos_5);",
   "cc_sethide(true);"
 ]) {
-  assert(dropletMoveSource.includes(sourceAnchor), `Kronos xpdrops_dropletmove source missing ${sourceAnchor}`);
+  assert(dropletMoveSource.includes(sourceAnchor), `Nh xpdrops_dropletmove source missing ${sourceAnchor}`);
 }
 
 for (const sourceAnchor of [
@@ -278,7 +278,7 @@ for (const sourceAnchor of [
 ]) {
   assert(
     setPositionSource.includes(sourceAnchor) || setDropSizeSource.includes(sourceAnchor),
-    `Kronos XP drop position/size source missing ${sourceAnchor}`
+    `Nh XP drop position/size source missing ${sourceAnchor}`
   );
 }
 
@@ -289,11 +289,11 @@ for (const sourceAnchor of [
   'if_setop(1, $string0, $component0);',
   'if_setonmouserepeat("graphic_swapper(event_com, $graphic2)", $component0);'
 ]) {
-  assert(orbUpdateSource.includes(sourceAnchor), `Kronos XP orb update source missing ${sourceAnchor}`);
+  assert(orbUpdateSource.includes(sourceAnchor), `Nh XP orb update source missing ${sourceAnchor}`);
 }
 
 for (const sourceAnchor of ["sound_synth(synth_2266, 1, 0);", "%varbit4702 = $int2;", "~orbs_xpdrops_update($component1);"]) {
-  assert(orbOpSource.includes(sourceAnchor), `Kronos XP orb op source missing ${sourceAnchor}`);
+  assert(orbOpSource.includes(sourceAnchor), `Nh XP orb op source missing ${sourceAnchor}`);
 }
 
 for (const sourceAnchor of [
@@ -308,13 +308,13 @@ for (const sourceAnchor of [
   "h.actions[55] = (SlotAction) (player, slot) -> Config.XP_COUNTER_COLOUR.set(player, slot - 1);",
   "h.actions[56] = (SlotAction) (player, slot) -> Config.XP_COUNTER_GROUP.set(player, slot - 1);"
 ]) {
-  assert(xpCounterSource.includes(sourceAnchor), `Kronos XpCounter source missing ${sourceAnchor}`);
+  assert(xpCounterSource.includes(sourceAnchor), `Nh XpCounter source missing ${sourceAnchor}`);
 }
 
 assert(cssSource.includes(".runeliteXpDropDamageOverlay"), "CSS missing XP Drop damage overlay class.");
 assert(cssSource.includes(".runeliteXpDropOverlay"), "CSS missing source-backed XP Drop overlay class.");
 assert(cssSource.includes(".runeliteXpDropGlyphText"), "CSS missing source font XP Drop glyph text class.");
 assert(cssSource.includes(".runeliteConfigNumberInput"), "CSS missing XP Drop numeric config input class.");
-assert(cssSource.includes(".kronosXpDropOrb"), "CSS missing XP Drop orb class.");
+assert(cssSource.includes(".nhXpDropOrb"), "CSS missing XP Drop orb class.");
 
 console.log("RuneLite XP Drop verifier passed: source scripts, combat XP math, trainer numeric controls, and overlays are anchored.");

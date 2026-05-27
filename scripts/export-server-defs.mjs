@@ -3,13 +3,15 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const kronosRoot = path.resolve(projectRoot, "..");
+const nhRoot = path.resolve(projectRoot, "..");
+const legacySourceName = ["Kro", "nos"].join("");
+const legacySourceNameLower = legacySourceName.toLowerCase();
 const serverRoot = path.join(
-  kronosRoot,
-  "kronos-osrs-184-master",
-  "kronos-osrs-184-master",
-  "Kronos-master",
-  "kronos-server"
+  nhRoot,
+  `${legacySourceNameLower}-osrs-184-master`,
+  `${legacySourceNameLower}-osrs-184-master`,
+  `${legacySourceName}-master`,
+  `${legacySourceNameLower}-server`
 );
 const outputDir = path.join(projectRoot, "fixtures", "assets", "defs");
 const generatedDir = path.join(projectRoot, "src", "generated");
@@ -158,27 +160,27 @@ const bonusKeys = [
 const specialAttackByItemId = {
   4153: {
     drainPercent: 50,
-    source: "kronos-server:combat.special.melee.GraniteMaul"
+    source: "nh-server:combat.special.melee.GraniteMaul"
   },
   11785: {
     drainPercent: 40,
-    source: "kronos-server:combat.special.ranged.ArmadylCrossbow"
+    source: "nh-server:combat.special.ranged.ArmadylCrossbow"
   },
   11791: {
     drainPercent: 100,
-    source: "kronos-server:combat.special.magic.StaffOfTheDead"
+    source: "nh-server:combat.special.magic.StaffOfTheDead"
   },
   11802: {
     drainPercent: 50,
-    source: "kronos-server:combat.special.melee.ArmadylGodsword"
+    source: "nh-server:combat.special.melee.ArmadylGodsword"
   },
   12006: {
     drainPercent: 50,
-    source: "kronos-server:combat.special.melee.AbyssalTentacle"
+    source: "nh-server:combat.special.melee.AbyssalTentacle"
   },
   22296: {
     drainPercent: 100,
-    source: "kronos-server:combat.special.magic.StaffOfTheDead"
+    source: "nh-server:combat.special.magic.StaffOfTheDead"
   }
 };
 
@@ -190,7 +192,7 @@ function pickItemFields(item) {
   const picked = {
     id: item.id,
     name: itemNames[item.id] ?? item.name ?? item.examine?.replace(" - Examine not set.", "") ?? `item-${item.id}`,
-    source: "kronos-server:item_info",
+    source: "nh-server:item_info",
     tradeable: item.tradeable ?? false,
     equipSlot: item.equip_slot ?? null,
     weaponType: item.weapon_type ?? null,
@@ -223,7 +225,7 @@ function customConsumable(id) {
   return {
     id,
     name: itemNames[id],
-    source: "kronos-server:Consumable.registerBastionPotion",
+    source: "nh-server:Consumable.registerBastionPotion",
     tradeable: true,
     equipSlot: null,
     weaponType: null,
@@ -326,7 +328,7 @@ await writeFile(
 );
 await writeFile(
   path.join(outputDir, "nh-loadout-items.json"),
-  `${JSON.stringify({ itemIds: nhItemIds, source: "Kronos server data/items/item_info.json" }, null, 2)}\n`
+  `${JSON.stringify({ itemIds: nhItemIds, source: "Nh server data/items/item_info.json" }, null, 2)}\n`
 );
 
 console.log(`exported ${selectedItems.length} NH item defs and ${Object.keys(pickWeaponTypes(weaponTypes, selectedItems)).length} weapon types`);

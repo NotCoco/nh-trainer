@@ -9,7 +9,7 @@ const require = createRequire(import.meta.url);
 const electronPath = require("electron");
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const verifierMainPath = path.join(projectRoot, "scripts", "fixed-viewport-left-edge-electron.cjs");
-const screenshotPath = uniqueScreenshotPath("kronos-nh-trainer-left-edge");
+const screenshotPath = uniqueScreenshotPath("nh-nh-trainer-left-edge");
 
 await mkdir(screenshotDir, { recursive: true });
 

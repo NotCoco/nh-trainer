@@ -20,12 +20,12 @@ function readText(relativePath) {
   return readFileSync(path.join(projectRoot, relativePath), "utf8");
 }
 
-function readKronosClientSource(relativePath) {
+function readNhClientSource(relativePath) {
   return readFileSync(
     path.resolve(
       projectRoot,
       "..",
-      "Kronos184-Client",
+      "Nh184-Client",
       "runelite-client",
       "src",
       "main",
@@ -105,8 +105,8 @@ function resolveModulePath(candidatePath) {
   throw new Error(`Cannot resolve module ${candidatePath}`);
 }
 
-const hideUnderSource = readKronosClientSource("HideUnder.java");
-const playerContainerSource = readKronosClientSource("PlayerContainer.java");
+const hideUnderSource = readNhClientSource("HideUnder.java");
+const playerContainerSource = readNhClientSource("PlayerContainer.java");
 const shellSource = readText("src/ui/RuneliteClientShell.tsx");
 const runtimeSource = readText("src/ui/RuntimeSceneViewer.tsx");
 const moduleSource = readText("src/ui/runeliteHideUnder.ts");

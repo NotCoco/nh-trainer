@@ -1,16 +1,16 @@
 import {
-  createKronosHitsplatRenderState,
-  KRONOS_HITSPLAT_DAMAGE_TYPE,
-  kronosHitsplatPrimarySpriteId,
-  type KronosHitsplatRenderState
-} from "./kronosHitsplats";
+  createNhHitsplatRenderState,
+  NH_HITSPLAT_DAMAGE_TYPE,
+  nhHitsplatPrimarySpriteId,
+  type NhHitsplatRenderState
+} from "./nhHitsplats";
 import {
-  createKronosHealthBarRenderState,
-  type KronosHealthBarRenderState
-} from "./kronosHealthBars";
-import { kronosPrayerOverheadDefinition } from "./kronosOverheadIcons";
-import type { KronosPrayerStates } from "./kronosPrayer";
-import type { KronosSequencePlaybackMode } from "./kronosSequencePlayback";
+  createNhHealthBarRenderState,
+  type NhHealthBarRenderState
+} from "./nhHealthBars";
+import { nhPrayerOverheadDefinition } from "./nhOverheadIcons";
+import type { NhPrayerStates } from "./nhPrayer";
+import type { NhSequencePlaybackMode } from "./nhSequencePlayback";
 import { renderTodoGates, type RenderTodoGate } from "./todoGates";
 import { canonicalNhLoadoutItemIds } from "../sim/nh/canonicalGear";
 
@@ -27,7 +27,7 @@ export interface RuntimeActorPose {
   readonly appearance?: RuntimePlayerAppearance;
   readonly minimapDotKind?: RuntimeMinimapDotKind;
   readonly sequenceName: RuntimeSequenceName;
-  readonly sequenceMode?: KronosSequencePlaybackMode;
+  readonly sequenceMode?: NhSequencePlaybackMode;
   readonly movementSequenceName?: RuntimeSequenceName;
   readonly actionSequenceKey?: string;
   readonly facingDegrees: number;
@@ -278,7 +278,7 @@ export interface RuntimeHudState {
   readonly weaponTypeConfig?: number;
   readonly autocast?: number;
   readonly defensiveCast?: boolean;
-  readonly prayers?: KronosPrayerStates;
+  readonly prayers?: NhPrayerStates;
   readonly skills?: RuntimeSkillStates;
 }
 
@@ -341,8 +341,8 @@ export interface RuntimeRenderEvent {
   readonly clientOrder?: number;
   readonly clientCycle?: number;
   readonly healthRatio?: number;
-  readonly healthBar?: KronosHealthBarRenderState;
-  readonly hitsplat?: KronosHitsplatRenderState;
+  readonly healthBar?: NhHealthBarRenderState;
+  readonly hitsplat?: NhHitsplatRenderState;
   readonly combatHit?: {
     readonly attackerId: RuntimeActorId;
     readonly style: string;
@@ -591,12 +591,12 @@ export const runtimeTimeline = [
   }
 ] satisfies readonly RuntimeKeyframe[];
 
-const protectMagicOverhead = kronosPrayerOverheadDefinition("protect_from_magic");
+const protectMagicOverhead = nhPrayerOverheadDefinition("protect_from_magic");
 if (!protectMagicOverhead) {
   throw new Error("missing exported protect-from-magic overhead definition");
 }
-const damageHitsplat = createKronosHitsplatRenderState({
-  primaryType: KRONOS_HITSPLAT_DAMAGE_TYPE,
+const damageHitsplat = createNhHitsplatRenderState({
+  primaryType: NH_HITSPLAT_DAMAGE_TYPE,
   primaryValue: 38,
   secondaryType: -1,
   secondaryValue: 0,
@@ -604,7 +604,7 @@ const damageHitsplat = createKronosHitsplatRenderState({
   delayCycles: 0,
   slotIndex: 0
 });
-const opponentHealthBar = createKronosHealthBarRenderState(9, 0.64, 1, 1);
+const opponentHealthBar = createNhHealthBarRenderState(9, 0.64, 1, 1);
 const opponentHealthBarEndCycle =
   opponentHealthBar.update.cycle + opponentHealthBar.definition.lifetimeCycles + opponentHealthBar.update.cycleOffset - 1;
 
@@ -667,7 +667,7 @@ export const runtimeRenderEvents = [
     endCycle: 11,
     actorId: "opponent",
     spriteSheetId: "hitsplats",
-    spriteId: kronosHitsplatPrimarySpriteId(damageHitsplat),
+    spriteId: nhHitsplatPrimarySpriteId(damageHitsplat),
     clientOrder: 40,
     hitsplat: damageHitsplat
   },
@@ -739,7 +739,7 @@ export const runtimeSceneGates = [
     id: "actors",
     label: "Player appearance composition gate",
     reason:
-      "Runtime actors now compose their meshes from PlayerAppearance-style equipment slots, five body colors, raw decoded appearance-packet slots carried by generated, fixture, and capture-bridge client-view traces, cache item/kit model parts, Kronos server equipment hide rules, and primary sequence weapon/shield override slots instead of loading prebuilt player GLBs; capture-bridge traces can also carry fixed inventory widget slots, selected-item state, full client currentLevels/levels skill snapshots, HUD stat/run/spec snapshots, and the fixed side-tab shell now mounts inventory through group 548 child 69 plus exported DisplayHandler side-panel groups, with the chatbox preserving group 162 button hitboxes/default actions through the source widget menu path, the combat tab rendering group 593 weapon name, fixed-level combat text, HUD weaponTypeConfig-selected WeaponType attack-style labels, HUD attackSet-selected style metadata, auto-retaliate state, SpecbarRedraw-style varp-300/301 special energy, active text color, drain-aware fill state, and source button actions for TabCombat.changeAttackSet, Config.AUTO_RETALIATE.toggle, and PlayerCombat.toggleSpecial inside source widget geometry, the stats tab rendering group 320 skill slots from Kronos TabStats child mappings, SpriteID skill icons, CS1 currentLevels/levels/total-level operands, runtime current/fixed levels, the source total-level tile, and skill-tile clicks that dispatch TabStats skill-guide config/client-script metadata, inventory context menus and default actions validating Wield, Use, item-on-item, Drink, Eat, Empty, and Drop source opcodes/mutations, Wield updating the visible equipment container from the actual current worn item, the equipment tab rendering local worn item sprites in group 387 child slots from Kronos server equipSlot values plus worn-item Remove dispatch, full-inventory blocking, free-slot inventory mutation, and utility-button actions from group 387 widgets, the prayer tab rendering cache prayer icons in group 541 widget order with PlayerPrayer.toggle-style active varpbits, overhead disallowed-group clearing, and active-background sprite state, and the magic tab rendering standard, ancient, lunar, and arceuus spellbooks from cache enums 1982-1985 through the MagicSpellBookRedraw layout while targetable spell clicks enter selected-spell state from widget click masks/target flags, including object-target Charge Water Orb dispatch, but remaining work is collecting live reference traces, comparing synthesized stats text placement against those traces, and comparing broader actor-frame parity."
+      "Runtime actors now compose their meshes from PlayerAppearance-style equipment slots, five body colors, raw decoded appearance-packet slots carried by generated, fixture, and capture-bridge client-view traces, cache item/kit model parts, Nh server equipment hide rules, and primary sequence weapon/shield override slots instead of loading prebuilt player GLBs; capture-bridge traces can also carry fixed inventory widget slots, selected-item state, full client currentLevels/levels skill snapshots, HUD stat/run/spec snapshots, and the fixed side-tab shell now mounts inventory through group 548 child 69 plus exported DisplayHandler side-panel groups, with the chatbox preserving group 162 button hitboxes/default actions through the source widget menu path, the combat tab rendering group 593 weapon name, fixed-level combat text, HUD weaponTypeConfig-selected WeaponType attack-style labels, HUD attackSet-selected style metadata, auto-retaliate state, SpecbarRedraw-style varp-300/301 special energy, active text color, drain-aware fill state, and source button actions for TabCombat.changeAttackSet, Config.AUTO_RETALIATE.toggle, and PlayerCombat.toggleSpecial inside source widget geometry, the stats tab rendering group 320 skill slots from Nh TabStats child mappings, SpriteID skill icons, CS1 currentLevels/levels/total-level operands, runtime current/fixed levels, the source total-level tile, and skill-tile clicks that dispatch TabStats skill-guide config/client-script metadata, inventory context menus and default actions validating Wield, Use, item-on-item, Drink, Eat, Empty, and Drop source opcodes/mutations, Wield updating the visible equipment container from the actual current worn item, the equipment tab rendering local worn item sprites in group 387 child slots from Nh server equipSlot values plus worn-item Remove dispatch, full-inventory blocking, free-slot inventory mutation, and utility-button actions from group 387 widgets, the prayer tab rendering cache prayer icons in group 541 widget order with PlayerPrayer.toggle-style active varpbits, overhead disallowed-group clearing, and active-background sprite state, and the magic tab rendering standard, ancient, lunar, and arceuus spellbooks from cache enums 1982-1985 through the MagicSpellBookRedraw layout while targetable spell clicks enter selected-spell state from widget click masks/target flags, including object-target Charge Water Orb dispatch, but remaining work is collecting live reference traces, comparing synthesized stats text placement against those traces, and comparing broader actor-frame parity."
   },
   {
     id: "arena-objects",
@@ -751,7 +751,7 @@ export const runtimeSceneGates = [
     id: "projectiles",
     label: "Projectile motion gate",
     reason:
-      "Projectile samples now carry Kronos server payload fields through the client packet lifecycle, use client motion math, and apply cache spotanim geometry and alpha sequence frames to ice barrage, ACB special, standard bolt, dragon-bolt, and Gmaul effect meshes; remaining work is live-client reference-frame parity."
+      "Projectile samples now carry Nh server payload fields through the client packet lifecycle, use client motion math, and apply cache spotanim geometry and alpha sequence frames to ice barrage, ACB special, standard bolt, dragon-bolt, and Gmaul effect meshes; remaining work is live-client reference-frame parity."
   },
   {
     id: "animations",
@@ -763,7 +763,7 @@ export const runtimeSceneGates = [
     id: "overlays",
     label: "Overlay sprite projection gate",
     reason:
-      "Prayer, skull, hitsplat, digit, and health-bar sprite placement now projects through the fixed Kronos viewport; actor mesh scale and overlay anchors share Actor.defaultHeight client units, and hitsplats and health bars now load the broader cache-exported definition and sprite-atlas corpus, including hitsplat duration, fade, component layout, movement offsets, transformVarbit/transformVarp display-definition selection, null-transform suppression, HealthBarDefinition width/fade variants, and HealthBarUpdate-style previous-to-target health interpolation, with remaining work in custom-font hitsplat behavior if source data appears and live-client reference-frame parity."
+      "Prayer, skull, hitsplat, digit, and health-bar sprite placement now projects through the fixed Nh viewport; actor mesh scale and overlay anchors share Actor.defaultHeight client units, and hitsplats and health bars now load the broader cache-exported definition and sprite-atlas corpus, including hitsplat duration, fade, component layout, movement offsets, transformVarbit/transformVarp display-definition selection, null-transform suppression, HealthBarDefinition width/fade variants, and HealthBarUpdate-style previous-to-target health interpolation, with remaining work in custom-font hitsplat behavior if source data appears and live-client reference-frame parity."
   },
   {
     id: "minimap",
@@ -775,7 +775,7 @@ export const runtimeSceneGates = [
     id: "tile-movement",
     label: "Tile click and route movement gate",
     reason:
-      "World clicks now use the resolved fixed viewport pixels, source Scene.containsBounds-style projected cache terrain triangles, Kronos object clipping masks, 128x128 route BFS fallback, compressed route waypoints, snapped logical actor tiles split from visual-only render interpolation, one-step walk and PlayerMovement-style two-step run consumption, ObjectDefinition action-slot menus, selected-item and selected-spell object menu overrides, selected spell player-target rows, Kronos object/player packet id metadata, exported client yellow/red click-cross sprite feedback, and object-footprint reach routing when action-bearing object metadata is present; real Wilderness Ditch, 2x2 Tree footprint, selected-item-on-object dispatch, selected-spell-on-player dispatch, selected-spell-on-object Charge Water Orb dispatch, plain scene-tile selected-item clearing plus yellow movement cross, object context action red cross, and non-object-target selected-spell object menu suppression are covered by runtime validation, with remaining work in live-client scene-selection frame comparison."
+      "World clicks now use the resolved fixed viewport pixels, source Scene.containsBounds-style projected cache terrain triangles, Nh object clipping masks, 128x128 route BFS fallback, compressed route waypoints, snapped logical actor tiles split from visual-only render interpolation, one-step walk and PlayerMovement-style two-step run consumption, ObjectDefinition action-slot menus, selected-item and selected-spell object menu overrides, selected spell player-target rows, Nh object/player packet id metadata, exported client yellow/red click-cross sprite feedback, and object-footprint reach routing when action-bearing object metadata is present; real Wilderness Ditch, 2x2 Tree footprint, selected-item-on-object dispatch, selected-spell-on-player dispatch, selected-spell-on-object Charge Water Orb dispatch, plain scene-tile selected-item clearing plus yellow movement cross, object context action red cross, and non-object-target selected-spell object menu suppression are covered by runtime validation, with remaining work in live-client scene-selection frame comparison."
   }
 ] satisfies readonly RuntimeSceneGate[];
 

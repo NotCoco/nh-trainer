@@ -109,12 +109,12 @@ app.whenReady().then(async () => {
       zoomHeight: 512,
       zoomWidth: 512
     });
-    assertWheelState("scroll up zoom clamps at Kronos outer limit", state.afterOuterClamp, {
+    assertWheelState("scroll up zoom clamps at Nh outer limit", state.afterOuterClamp, {
       lastRotation: "1",
       zoomHeight: 128,
       zoomWidth: 128
     });
-    assertWheelState("scroll down zoom clamps at Kronos inner limit", state.afterInnerClamp, {
+    assertWheelState("scroll down zoom clamps at Nh inner limit", state.afterInnerClamp, {
       lastRotation: "-1",
       zoomHeight: 896,
       zoomWidth: 896

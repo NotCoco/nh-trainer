@@ -80,27 +80,27 @@ function assertSame(name, actual, expected) {
 }
 
 const {
-  KRONOS_MOUSE_CROSS_DRAW_OFFSET,
-  KRONOS_MOUSE_CROSS_FRAME_COUNT,
-  KRONOS_MOUSE_CROSS_FRAME_MS,
-  KRONOS_MOUSE_CROSS_FRAME_STATE_CYCLES,
-  KRONOS_MOUSE_CROSS_LIFETIME_MS,
-  KRONOS_MOUSE_CROSS_LIFETIME_STATE,
-  KRONOS_MOUSE_CROSS_RED_COLOR,
-  KRONOS_MOUSE_CROSS_STATE_STEP,
-  KRONOS_MOUSE_CROSS_YELLOW_COLOR,
-  createKronosClickCrossDefinitionStore,
-  kronosClickCrossDefinition,
-  kronosClickCrossExpired,
-  kronosClickCrossFrameFromElapsedMs,
-  kronosClickCrossFrameFromState,
-  kronosClickCrossStateFromElapsedMs
-} = loadTsModule("src/render/kronosClickCross.ts");
+  NH_MOUSE_CROSS_DRAW_OFFSET,
+  NH_MOUSE_CROSS_FRAME_COUNT,
+  NH_MOUSE_CROSS_FRAME_MS,
+  NH_MOUSE_CROSS_FRAME_STATE_CYCLES,
+  NH_MOUSE_CROSS_LIFETIME_MS,
+  NH_MOUSE_CROSS_LIFETIME_STATE,
+  NH_MOUSE_CROSS_RED_COLOR,
+  NH_MOUSE_CROSS_STATE_STEP,
+  NH_MOUSE_CROSS_YELLOW_COLOR,
+  createNhClickCrossDefinitionStore,
+  nhClickCrossDefinition,
+  nhClickCrossExpired,
+  nhClickCrossFrameFromElapsedMs,
+  nhClickCrossFrameFromState,
+  nhClickCrossStateFromElapsedMs
+} = loadTsModule("src/render/nhClickCross.ts");
 const { assertValidClientViewTrace } = loadTsModule("src/sim/clientView.ts");
 const { clientViewTraceToRuntimeReplay, sampleRuntimeReplayScene } = loadTsModule("src/render/clientViewReplay.ts");
-const clickCrossSource = readFileSync(path.join(projectRoot, "src", "render", "kronosClickCross.ts"), "utf8");
+const clickCrossSource = readFileSync(path.join(projectRoot, "src", "render", "nhClickCross.ts"), "utf8");
 assert(!clickCrossSource.includes("fallbackClickCrossSpriteIds"), "click-cross definitions should not keep hardcoded fallback sprite ids");
-assertSame("missing click-cross atlas returns no definitions", [...createKronosClickCrossDefinitionStore(null).values()], []);
+assertSame("missing click-cross atlas returns no definitions", [...createNhClickCrossDefinitionStore(null).values()], []);
 
 const clickCrossAtlas = JSON.parse(
   readFileSync(path.join(projectRoot, "fixtures", "render", "sprites", "click_cross.json"), "utf8")
@@ -111,34 +111,34 @@ assertSame(
   [515, 516, 517, 518, 519, 520, 521, 522]
 );
 
-const definitions = createKronosClickCrossDefinitionStore(clickCrossAtlas);
-for (let frame = 0; frame < KRONOS_MOUSE_CROSS_FRAME_COUNT; frame += 1) {
-  const yellow = kronosClickCrossDefinition(definitions, "yellow", frame);
-  const red = kronosClickCrossDefinition(definitions, "red", frame);
+const definitions = createNhClickCrossDefinitionStore(clickCrossAtlas);
+for (let frame = 0; frame < NH_MOUSE_CROSS_FRAME_COUNT; frame += 1) {
+  const yellow = nhClickCrossDefinition(definitions, "yellow", frame);
+  const red = nhClickCrossDefinition(definitions, "red", frame);
   assertSame(`yellow click-cross frame ${frame}`, yellow, {
     color: "yellow",
-    mouseCrossColor: KRONOS_MOUSE_CROSS_YELLOW_COLOR,
+    mouseCrossColor: NH_MOUSE_CROSS_YELLOW_COLOR,
     frame,
     spriteId: clickCrossAtlas.sprites[frame].spriteId,
-    drawOffset: KRONOS_MOUSE_CROSS_DRAW_OFFSET
+    drawOffset: NH_MOUSE_CROSS_DRAW_OFFSET
   });
   assertSame(`red click-cross frame ${frame}`, red, {
     color: "red",
-    mouseCrossColor: KRONOS_MOUSE_CROSS_RED_COLOR,
+    mouseCrossColor: NH_MOUSE_CROSS_RED_COLOR,
     frame,
-    spriteId: clickCrossAtlas.sprites[frame + KRONOS_MOUSE_CROSS_FRAME_COUNT].spriteId,
-    drawOffset: KRONOS_MOUSE_CROSS_DRAW_OFFSET
+    spriteId: clickCrossAtlas.sprites[frame + NH_MOUSE_CROSS_FRAME_COUNT].spriteId,
+    drawOffset: NH_MOUSE_CROSS_DRAW_OFFSET
   });
 }
 
 assertSame("client mouse-cross timing constants", {
-  frameCount: KRONOS_MOUSE_CROSS_FRAME_COUNT,
-  frameStateCycles: KRONOS_MOUSE_CROSS_FRAME_STATE_CYCLES,
-  stateStep: KRONOS_MOUSE_CROSS_STATE_STEP,
-  lifetimeState: KRONOS_MOUSE_CROSS_LIFETIME_STATE,
-  drawOffset: KRONOS_MOUSE_CROSS_DRAW_OFFSET,
-  frameMs: KRONOS_MOUSE_CROSS_FRAME_MS,
-  lifetimeMs: KRONOS_MOUSE_CROSS_LIFETIME_MS
+  frameCount: NH_MOUSE_CROSS_FRAME_COUNT,
+  frameStateCycles: NH_MOUSE_CROSS_FRAME_STATE_CYCLES,
+  stateStep: NH_MOUSE_CROSS_STATE_STEP,
+  lifetimeState: NH_MOUSE_CROSS_LIFETIME_STATE,
+  drawOffset: NH_MOUSE_CROSS_DRAW_OFFSET,
+  frameMs: NH_MOUSE_CROSS_FRAME_MS,
+  lifetimeMs: NH_MOUSE_CROSS_LIFETIME_MS
 }, {
   frameCount: 4,
   frameStateCycles: 100,
@@ -148,14 +148,14 @@ assertSame("client mouse-cross timing constants", {
   frameMs: 100,
   lifetimeMs: 400
 });
-assert(kronosClickCrossFrameFromState(0) === 0, "state 0 should draw frame 0");
-assert(kronosClickCrossFrameFromState(99) === 0, "state 99 should draw frame 0");
-assert(kronosClickCrossFrameFromState(100) === 1, "state 100 should draw frame 1");
-assert(kronosClickCrossFrameFromState(399) === 3, "state 399 should draw frame 3");
-assert(kronosClickCrossStateFromElapsedMs(99) === 80, "elapsed 99 ms should represent four client cycles");
-assert(kronosClickCrossFrameFromElapsedMs(100) === 1, "elapsed 100 ms should draw frame 1");
-assert(kronosClickCrossExpired(399) === false, "click cross should still be visible before state 400");
-assert(kronosClickCrossExpired(400) === true, "click cross should clear at source state 400");
+assert(nhClickCrossFrameFromState(0) === 0, "state 0 should draw frame 0");
+assert(nhClickCrossFrameFromState(99) === 0, "state 99 should draw frame 0");
+assert(nhClickCrossFrameFromState(100) === 1, "state 100 should draw frame 1");
+assert(nhClickCrossFrameFromState(399) === 3, "state 399 should draw frame 3");
+assert(nhClickCrossStateFromElapsedMs(99) === 80, "elapsed 99 ms should represent four client cycles");
+assert(nhClickCrossFrameFromElapsedMs(100) === 1, "elapsed 100 ms should draw frame 1");
+assert(nhClickCrossExpired(399) === false, "click cross should still be visible before state 400");
+assert(nhClickCrossExpired(400) === true, "click cross should clear at source state 400");
 
 const baseActor = {
   equipment: {},
@@ -257,7 +257,7 @@ const clientSource = readFileSync(
   path.resolve(
     projectRoot,
     "..",
-    "Kronos184-Client",
+    "Nh184-Client",
     "runelite-client",
     "src",
     "main",
@@ -269,12 +269,12 @@ const clientSource = readFileSync(
   ),
   "utf8"
 );
-assert(clientSource.includes("mouseCrossState += 20"), "Kronos Client should advance click-cross state by 20 each client cycle");
-assert(clientSource.includes("if(mouseCrossState >= 400)"), "Kronos Client should expire click-cross state at 400");
+assert(clientSource.includes("mouseCrossState += 20"), "Nh Client should advance click-cross state by 20 each client cycle");
+assert(clientSource.includes("if(mouseCrossState >= 400)"), "Nh Client should expire click-cross state at 400");
 assert(
   clientSource.includes("UrlRequest.crossSprites[mouseCrossState / 100].method6159(mouseCrossX - 8, mouseCrossY - 8)") &&
     clientSource.includes("UrlRequest.crossSprites[mouseCrossState / 100 + 4].method6159(mouseCrossX - 8, mouseCrossY - 8)"),
-  "Kronos Client should draw yellow/red click crosses from mouseCrossState / 100 with an 8px draw offset"
+  "Nh Client should draw yellow/red click crosses from mouseCrossState / 100 with an 8px draw offset"
 );
 
 const captureImporter = readFileSync(path.join(projectRoot, "scripts", "capture-client-reference.mjs"), "utf8");

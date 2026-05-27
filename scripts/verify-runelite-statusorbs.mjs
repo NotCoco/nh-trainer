@@ -8,13 +8,13 @@ function read(relativePath) {
   return fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
+function readNhClient(relativePath) {
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
 }
 
-const statusOrbsPluginSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/statusorbs/StatusOrbsPlugin.java");
-const statusOrbsConfigSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/statusorbs/StatusOrbsConfig.java");
-const statusOrbsOverlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/statusorbs/StatusOrbsOverlay.java");
+const statusOrbsPluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/statusorbs/StatusOrbsPlugin.java");
+const statusOrbsConfigSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/statusorbs/StatusOrbsConfig.java");
+const statusOrbsOverlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/statusorbs/StatusOrbsOverlay.java");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
 const runtimeSource = read("src/ui/RuntimeSceneViewer.tsx");
 const statusOrbsSource = read("src/ui/runeliteStatusOrbs.ts");
@@ -43,7 +43,7 @@ for (const sourceAnchor of [
   'String getEstimatedRunTimeRemaining(boolean inSeconds)',
   'final double secondsLeft = (client.getEnergy() * 0.6) / lossRate'
 ]) {
-  assert(statusOrbsPluginSource.includes(sourceAnchor), `Kronos RuneLite StatusOrbsPlugin source missing ${sourceAnchor}`);
+  assert(statusOrbsPluginSource.includes(sourceAnchor), `Nh RuneLite StatusOrbsPlugin source missing ${sourceAnchor}`);
 }
 
 for (const sourceAnchor of [
@@ -56,7 +56,7 @@ for (const sourceAnchor of [
   'default boolean showRun()',
   'default boolean replaceOrbText()'
 ]) {
-  assert(statusOrbsConfigSource.includes(sourceAnchor), `Kronos RuneLite StatusOrbsConfig source missing ${sourceAnchor}`);
+  assert(statusOrbsConfigSource.includes(sourceAnchor), `Nh RuneLite StatusOrbsConfig source missing ${sourceAnchor}`);
 }
 
 for (const sourceAnchor of [
@@ -71,14 +71,14 @@ for (const sourceAnchor of [
   'Arc2D.Double(bounds.x + OFFSET',
   'new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER)'
 ]) {
-  assert(statusOrbsOverlaySource.includes(sourceAnchor), `Kronos RuneLite StatusOrbsOverlay source missing ${sourceAnchor}`);
+  assert(statusOrbsOverlaySource.includes(sourceAnchor), `Nh RuneLite StatusOrbsOverlay source missing ${sourceAnchor}`);
 }
 
 for (const trainerAnchor of [
   'id: "status-orbs"',
   'name: "Status Orbs"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusorbs/StatusOrbsPlugin.java"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusorbs/StatusOrbsConfig.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusorbs/StatusOrbsPlugin.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusorbs/StatusOrbsConfig.java"',
   'group: "statusorbs"',
   'statusOrbs: {',
   'notifyBeforeHpRegenSeconds',
@@ -127,7 +127,7 @@ for (const hudAnchor of [
   'valueTextOverride={runOrbTextOverride}',
   'data-value-text-source={valueTextOverride === undefined || valueTextOverride === null ? "source-widget-value" : "runelite-status-orbs"}'
 ]) {
-  assert(read("src/ui/KronosClientHud.tsx").includes(hudAnchor), `KronosClientHud missing Status Orbs text anchor ${hudAnchor}`);
+  assert(read("src/ui/NhClientHud.tsx").includes(hudAnchor), `NhClientHud missing Status Orbs text anchor ${hudAnchor}`);
 }
 
 for (const cssAnchor of [

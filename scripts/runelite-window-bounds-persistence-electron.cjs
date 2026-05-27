@@ -5,7 +5,7 @@ const { pathToFileURL } = require("node:url");
 
 const [, , projectRoot, mode, appDataRoot, targetWidthArg, targetHeightArg, expectedMinWidthArg, expectedMinHeightArg] = process.argv;
 
-const marker = "@@kronos-window-bounds@@";
+const marker = "@@nh-window-bounds@@";
 const targetWidth = Number(targetWidthArg);
 const targetHeight = Number(targetHeightArg);
 const expectedMinWidth = Number(expectedMinWidthArg);
@@ -22,7 +22,7 @@ function assert(condition, message) {
 }
 
 function boundsPath() {
-  return path.join(appDataRoot, "KronosNHTrainer", "client-window-bounds.json");
+  return path.join(appDataRoot, "NhNHTrainer", "client-window-bounds.json");
 }
 
 async function importBuiltMain() {
@@ -86,7 +86,7 @@ async function run() {
     const clampedContentBounds = window.getContentBounds();
     assert(
       clampedContentBounds.width === expectedMinWidth && clampedContentBounds.height === expectedMinHeight,
-      `Electron did not clamp to Kronos fixed minimum content size: ${JSON.stringify({
+      `Electron did not clamp to Nh fixed minimum content size: ${JSON.stringify({
         expectedMinWidth,
         expectedMinHeight,
         clampedContentBounds

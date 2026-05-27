@@ -9,8 +9,8 @@ function read(relativePath) {
   return fs.readFileSync(path.join(root, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
-  return fs.readFileSync(path.resolve(root, "..", "Kronos184-Client", relativePath), "utf8");
+function readNhClient(relativePath) {
+  return fs.readFileSync(path.resolve(root, "..", "Nh184-Client", relativePath), "utf8");
 }
 
 function check(condition, message) {
@@ -19,13 +19,13 @@ function check(condition, message) {
   }
 }
 
-const pluginSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/antidrag/AntiDragPlugin.java");
-const configSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/antidrag/AntiDragConfig.java");
-const customCursorSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/antidrag/CustomCursor.java");
-const overlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/antidrag/AntiDragOverlay.java");
+const pluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/antidrag/AntiDragPlugin.java");
+const configSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/antidrag/AntiDragConfig.java");
+const customCursorSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/antidrag/CustomCursor.java");
+const overlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/antidrag/AntiDragOverlay.java");
 const runtimeSource = read("src/ui/RuntimeSceneViewer.tsx");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
-const hudSource = read("src/ui/KronosClientHud.tsx");
+const hudSource = read("src/ui/NhClientHud.tsx");
 const cssSource = read("src/ui/styles.css");
 const packageSource = read("package.json");
 
@@ -112,7 +112,7 @@ for (const trainerAnchor of [
   "RuneliteAntiDragConfigSnapshot",
   'id: "anti-drag"',
   'group: "antiDrag"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/antidrag/AntiDragConfig.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/antidrag/AntiDragConfig.java"',
   'keyName: "alwaysOn"',
   'hideWhen: ["toggleKeyBind", "holdKeyBind"]',
   'keyName: "toggleKeyBind"',
@@ -145,12 +145,12 @@ for (const trainerAnchor of [
   "runeliteClientPanelStyle",
   "runeliteClientPanelCursorCss",
   'data-source-anti-drag-cursor="AntiDragPlugin toggleListener/holdListener call clientUI.setCursor(selectedCursor.getCursorImage(), selectedCursor.toString()); release/reset calls clientUI.resetCursor()"',
-  'data-source-anti-drag-cursor-assets="Kronos184-Client/runelite-client/src/main/resources/net/runelite/client/plugins/customcursor/cursor-*.png"',
+  'data-source-anti-drag-cursor-assets="Nh184-Client/runelite-client/src/main/resources/net/runelite/client/plugins/customcursor/cursor-*.png"',
   "config.enabled && !config.alwaysOn && config.changeCursor && config.hotkeyActive",
   'url("runelite-ui/customcursor/${asset.fileName}") 0 0, auto',
   "RUNELITE_ANTI_DRAG_DEFAULT_DELAY_CLIENT_TICKS",
   "RuneliteAntiDragOverlay",
-  "data-source-overlay-file=\"Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/antidrag/AntiDragOverlay.java\"",
+  "data-source-overlay-file=\"Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/antidrag/AntiDragOverlay.java\"",
   "data-source-overlay-position=\"OverlayPosition.TOOLTIP\"",
   "data-source-overlay-priority=\"OverlayPriority.HIGHEST\"",
   "data-source-overlay-layer=\"OverlayLayer.ALWAYS_ON_TOP\"",
@@ -204,7 +204,7 @@ for (const hudAnchor of [
   "data-inventory-drag-delay-client-ticks",
   "onDragReorder"
 ]) {
-  check(hudSource.includes(hudAnchor), `KronosClientHud missing AntiDrag inventory anchor ${hudAnchor}`);
+  check(hudSource.includes(hudAnchor), `NhClientHud missing AntiDrag inventory anchor ${hudAnchor}`);
 }
 
 for (const cssAnchor of [
@@ -236,7 +236,7 @@ console.log(
         overlayRadius: 20
       },
       trainer: {
-        inventoryDelayPath: "RuntimeSceneViewer -> KronosClientHud inventoryDragDelayClientTicks",
+        inventoryDelayPath: "RuntimeSceneViewer -> NhClientHud inventoryDragDelayClientTicks",
         configGroup: "antiDrag"
       }
     },

@@ -60,7 +60,7 @@ export function consumeExpiredAttackDelay(state: AttackTimerState, currentTick: 
     };
   }
 
-  // Kronos clears food/pot attack delay only after the combined weapon + additive window is no longer active.
+  // Nh clears food/pot attack delay only after the combined weapon + additive window is no longer active.
   return {
     ...status,
     state: {

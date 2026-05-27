@@ -16,10 +16,10 @@ import type {
   VisibleAnimationIds
 } from "../clientView";
 import {
-  KRONOS_HITSPLAT_DEFAULT_DURATION_CYCLES,
-  KRONOS_HITSPLAT_EMPTY_SECONDARY_TYPE,
-  kronosHitsplatTypeForDamage
-} from "../../render/kronosHitsplats";
+  NH_HITSPLAT_DEFAULT_DURATION_CYCLES,
+  NH_HITSPLAT_EMPTY_SECONDARY_TYPE,
+  nhHitsplatTypeForDamage
+} from "../../render/nhHitsplats";
 import { aggregateVisibleEquipmentBonuses, estimateVisibleStyleEvs, type EquipmentBonusRow } from "../equipment/equipment";
 import type { BonusTable, CombatLevels, CombatStyle, StyleEvEstimate } from "../combat/formulas";
 import { bestStyleByEv, styleAdvantage } from "../combat/formulas";
@@ -49,7 +49,7 @@ import type { PrayerId, ProtectionPrayerId } from "../prayer/prayers";
 import { activeProtectionPrayer, applyProtectionDamageReduction, compatiblePrayerSet, protectPrayerForStyle } from "../prayer/prayers";
 import type { TilePosition } from "../world/movement";
 import { canMeleeReachThisTick, chebyshevDistance, type MeleeReachResult } from "../world/movement";
-import { createKronosClientAppearancePacket } from "../clientAppearancePacket";
+import { createNhClientAppearancePacket } from "../clientAppearancePacket";
 import {
   nhLoadouts,
   type NhLoadoutId,
@@ -221,7 +221,7 @@ const baseSupplyItemIds = [
   12695
 ] as const;
 
-interface KronosProjectileProfile {
+interface NhProjectileProfile {
   readonly gfxId: number;
   readonly startHeight: number;
   readonly endHeight: number;
@@ -256,7 +256,7 @@ const projectileProfiles = {
     offset: 11,
     skipTravel: false
   }
-} satisfies Record<Exclude<NhOffenceStyle, "melee">, KronosProjectileProfile>;
+} satisfies Record<Exclude<NhOffenceStyle, "melee">, NhProjectileProfile>;
 
 const supplyItemIds = {
   manta_ray: 391,
@@ -1598,7 +1598,7 @@ function attackStartEvents(
 }
 
 function projectileDuration(
-  profile: KronosProjectileProfile,
+  profile: NhProjectileProfile,
   startTile: TilePosition,
   targetTile: TilePosition
 ): number {
@@ -1616,21 +1616,21 @@ function hitsplatEvent(
   targetActorId: ClientViewActorId,
   amount: number
 ): ClientHitsplatEvent {
-  const primaryType = kronosHitsplatTypeForDamage(amount);
+  const primaryType = nhHitsplatTypeForDamage(amount);
   return {
     id: `${id}-hitsplat`,
     kind: "hitsplat",
     observedTick: tick,
-    visibleWindow: { firstTick: tick, lastTick: tick + KRONOS_HITSPLAT_DEFAULT_DURATION_CYCLES },
+    visibleWindow: { firstTick: tick, lastTick: tick + NH_HITSPLAT_DEFAULT_DURATION_CYCLES },
     targetActorId,
     primaryType,
     primaryValue: Math.max(0, amount),
-    secondaryType: KRONOS_HITSPLAT_EMPTY_SECONDARY_TYPE,
+    secondaryType: NH_HITSPLAT_EMPTY_SECONDARY_TYPE,
     secondaryValue: 0,
     delayCycles: 0,
     slotIndex: 0,
-    definitionDurationCycles: KRONOS_HITSPLAT_DEFAULT_DURATION_CYCLES,
-    expiresOnClientCycle: tick + KRONOS_HITSPLAT_DEFAULT_DURATION_CYCLES
+    definitionDurationCycles: NH_HITSPLAT_DEFAULT_DURATION_CYCLES,
+    expiresOnClientCycle: tick + NH_HITSPLAT_DEFAULT_DURATION_CYCLES
   };
 }
 
@@ -1654,7 +1654,7 @@ function clientVisibleActor(actor: NhDuelActorState): ClientVisibleActor {
     actorId: actor.id,
     tile: actor.tile,
     equipment: visibleEquipment,
-    appearancePacket: createKronosClientAppearancePacket({
+    appearancePacket: createNhClientAppearancePacket({
       equipment: visibleEquipment,
       prayerIcon: visiblePrayer,
       skullIcon,

@@ -31,194 +31,194 @@ import {
   sampleRuntimeReplayEvents,
   sampleRuntimeReplayScene,
   type RuntimeReplay,
-  type KronosReplaySpotanimDefinition
+  type NhReplaySpotanimDefinition
 } from "../render/clientViewReplay";
 import {
-  KRONOS_CAMERA_DEFAULT_FOV_DEGREES,
-  KRONOS_CAMERA_DEFAULT_ZOOM,
-  KRONOS_CAMERA_DEFAULT_VIEWPORT_HEIGHT,
-  KRONOS_RUNTIME_CAMERA_PRESETS,
-  kronosCameraFollowHeightSceneUnits,
-  kronosClientSceneCameraOffset,
-  isKronosCameraKeyHeld,
-  isKronosCameraMoving,
-  kronosRuntimeCameraPreset,
-  kronosViewportZoomToFovDegrees,
-  smoothKronosCameraFocusAxis,
-  updateKronosCameraAngles,
-  updateKronosCameraAnglesFromMouseDrag,
-  updateKronosCameraZoomFromScrollWheel,
-  type KronosCameraAngles,
-  type KronosCameraKeyState,
-  type KronosCameraZoom,
-  type KronosMouseCameraState
-} from "../render/kronosClientCamera";
+  NH_CAMERA_DEFAULT_FOV_DEGREES,
+  NH_CAMERA_DEFAULT_ZOOM,
+  NH_CAMERA_DEFAULT_VIEWPORT_HEIGHT,
+  NH_RUNTIME_CAMERA_PRESETS,
+  nhCameraFollowHeightSceneUnits,
+  nhClientSceneCameraOffset,
+  isNhCameraKeyHeld,
+  isNhCameraMoving,
+  nhRuntimeCameraPreset,
+  nhViewportZoomToFovDegrees,
+  smoothNhCameraFocusAxis,
+  updateNhCameraAngles,
+  updateNhCameraAnglesFromMouseDrag,
+  updateNhCameraZoomFromScrollWheel,
+  type NhCameraAngles,
+  type NhCameraKeyState,
+  type NhCameraZoom,
+  type NhMouseCameraState
+} from "../render/nhClientCamera";
 import {
-  KRONOS_MOUSE_CROSS_DRAW_OFFSET,
-  createKronosClickCrossDefinitionStore,
-  kronosClickCrossDefinition,
-  kronosClickCrossExpired,
-  kronosClickCrossFrameFromElapsedMs,
-  type KronosClickCrossColor,
-  type KronosClickCrossDefinitionStore
-} from "../render/kronosClickCross";
+  NH_MOUSE_CROSS_DRAW_OFFSET,
+  createNhClickCrossDefinitionStore,
+  nhClickCrossDefinition,
+  nhClickCrossExpired,
+  nhClickCrossFrameFromElapsedMs,
+  type NhClickCrossColor,
+  type NhClickCrossDefinitionStore
+} from "../render/nhClickCross";
 import {
-  KRONOS_CONTEXT_MENU_FONT_KEY,
-  createKronosClientFontStore,
-  layoutKronosClientFontGlyphs,
-  kronosClientFontDefinition,
-  kronosClientFontStringWidth,
-  type KronosClientFontDefinition,
-  type KronosClientFontStore
-} from "../render/kronosClientFonts";
+  NH_CONTEXT_MENU_FONT_KEY,
+  createNhClientFontStore,
+  layoutNhClientFontGlyphs,
+  nhClientFontDefinition,
+  nhClientFontStringWidth,
+  type NhClientFontDefinition,
+  type NhClientFontStore
+} from "../render/nhClientFonts";
 import {
-  KRONOS_CONTEXT_MENU_OPTION_BASELINE_OFFSET,
-  KRONOS_CONTEXT_MENU_TEXT_LEFT,
-  KRONOS_CONTEXT_MENU_BODY_COLOR,
-  KRONOS_CONTEXT_MENU_BODY_BORDER_COLOR,
-  KRONOS_CONTEXT_MENU_FRAME_COLOR,
-  KRONOS_CONTEXT_MENU_HEADER_AND_PADDING_HEIGHT,
-  KRONOS_CONTEXT_MENU_HEADER_BOTTOM_COLOR,
-  KRONOS_CONTEXT_MENU_HEADER_TOP_COLOR,
-  KRONOS_CONTEXT_MENU_HOVER_FILL_ALPHA,
-  KRONOS_CONTEXT_MENU_HOVER_FILL_COLOR,
-  KRONOS_CONTEXT_MENU_HOVER_HEIGHT,
-  KRONOS_CONTEXT_MENU_HOVER_LEFT,
-  KRONOS_CONTEXT_MENU_HOVER_TOP,
-  KRONOS_CONTEXT_MENU_HOVER_WIDTH_SUBTRACT,
-  KRONOS_CONTEXT_MENU_OUTLINE_COLOR,
-  KRONOS_CONTEXT_MENU_TEXT_COLOR,
-  KRONOS_CONTEXT_MENU_TITLE,
-  KRONOS_CONTEXT_MENU_TITLE_BASELINE_OFFSET,
-  KRONOS_CANCEL_ACTION_TEXT,
-  KRONOS_CANCEL_OPCODE,
-  buildKronosPlayerContextEntries,
-  kronosPlayerCommandPacket,
-  kronosContextMenuOptionTop,
-  kronosMenuEntryText,
-  resolveKronosContextMenuRect,
-  selectKronosDefaultMenuEntry,
-  visibleKronosMenuEntries,
-  type KronosMenuEntry,
-  type KronosMenuRect,
-  type KronosPlayerContextMenuEntry
-} from "../render/kronosContextMenu";
+  NH_CONTEXT_MENU_OPTION_BASELINE_OFFSET,
+  NH_CONTEXT_MENU_TEXT_LEFT,
+  NH_CONTEXT_MENU_BODY_COLOR,
+  NH_CONTEXT_MENU_BODY_BORDER_COLOR,
+  NH_CONTEXT_MENU_FRAME_COLOR,
+  NH_CONTEXT_MENU_HEADER_AND_PADDING_HEIGHT,
+  NH_CONTEXT_MENU_HEADER_BOTTOM_COLOR,
+  NH_CONTEXT_MENU_HEADER_TOP_COLOR,
+  NH_CONTEXT_MENU_HOVER_FILL_ALPHA,
+  NH_CONTEXT_MENU_HOVER_FILL_COLOR,
+  NH_CONTEXT_MENU_HOVER_HEIGHT,
+  NH_CONTEXT_MENU_HOVER_LEFT,
+  NH_CONTEXT_MENU_HOVER_TOP,
+  NH_CONTEXT_MENU_HOVER_WIDTH_SUBTRACT,
+  NH_CONTEXT_MENU_OUTLINE_COLOR,
+  NH_CONTEXT_MENU_TEXT_COLOR,
+  NH_CONTEXT_MENU_TITLE,
+  NH_CONTEXT_MENU_TITLE_BASELINE_OFFSET,
+  NH_CANCEL_ACTION_TEXT,
+  NH_CANCEL_OPCODE,
+  buildNhPlayerContextEntries,
+  nhPlayerCommandPacket,
+  nhContextMenuOptionTop,
+  nhMenuEntryText,
+  resolveNhContextMenuRect,
+  selectNhDefaultMenuEntry,
+  visibleNhMenuEntries,
+  type NhMenuEntry,
+  type NhMenuRect,
+  type NhPlayerContextMenuEntry
+} from "../render/nhContextMenu";
 import {
-  createKronosActorSequenceDefinitionStore,
-  kronosRuntimeSequenceNameForId,
-  type KronosActorSequenceDefinitionStore
-} from "../render/kronosActorSequence";
+  createNhActorSequenceDefinitionStore,
+  nhRuntimeSequenceNameForId,
+  type NhActorSequenceDefinitionStore
+} from "../render/nhActorSequence";
 import {
-  pointInKronosRect,
-  resolveKronosFixedClientLayout,
-  scaleKronosFixedClientLayout,
-  type KronosClientWidgetDefinitions,
-  type KronosFixedClientCssLayout,
-  type KronosFixedClientLayout,
-  type KronosFixedSideTabId,
-  type KronosPrayerId,
-  type KronosSpellbookDefinitions,
-  type KronosSpellbookId
-} from "../render/kronosFixedLayout";
+  pointInNhRect,
+  resolveNhFixedClientLayout,
+  scaleNhFixedClientLayout,
+  type NhClientWidgetDefinitions,
+  type NhFixedClientCssLayout,
+  type NhFixedClientLayout,
+  type NhFixedSideTabId,
+  type NhPrayerId,
+  type NhSpellbookDefinitions,
+  type NhSpellbookId
+} from "../render/nhFixedLayout";
 import {
-  KRONOS_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS,
-  kronosActorOverlayPlacement,
-  kronosOverlaySortValue,
-  type KronosActorOverlayPlacement
-} from "../render/kronosOverlayPlacement";
+  NH_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS,
+  nhActorOverlayPlacement,
+  nhOverlaySortValue,
+  type NhActorOverlayPlacement
+} from "../render/nhOverlayPlacement";
 import {
-  kronosClientUnitsToWorldUnits,
-  kronosClientPixelScaleAtWorldPosition,
-  kronosOverlayClientViewportProjection,
-  kronosOverlayWorldPositionFromViewport,
-  kronosProjectWorldPointToViewport
-} from "../render/kronosOverlayProjection";
+  nhClientUnitsToWorldUnits,
+  nhClientPixelScaleAtWorldPosition,
+  nhOverlayClientViewportProjection,
+  nhOverlayWorldPositionFromViewport,
+  nhProjectWorldPointToViewport
+} from "../render/nhOverlayProjection";
 import {
-  createKronosHitsplatRenderState,
-  createKronosHitsplatDefinitionStore,
-  defaultKronosHitsplatDefinitions,
-  kronosHitsplatPrimarySpriteId,
-  kronosHitsplatTypeForDamage,
-  KRONOS_HITSPLAT_EMPTY_SECONDARY_TYPE,
-  layoutKronosHitsplat,
-  type KronosHitsplatDefinitionStore,
-  type KronosHitsplatLayout,
-  type KronosHitsplatSpriteMetrics
-} from "../render/kronosHitsplats";
+  createNhHitsplatRenderState,
+  createNhHitsplatDefinitionStore,
+  defaultNhHitsplatDefinitions,
+  nhHitsplatPrimarySpriteId,
+  nhHitsplatTypeForDamage,
+  NH_HITSPLAT_EMPTY_SECONDARY_TYPE,
+  layoutNhHitsplat,
+  type NhHitsplatDefinitionStore,
+  type NhHitsplatLayout,
+  type NhHitsplatSpriteMetrics
+} from "../render/nhHitsplats";
 import {
-  createKronosHealthBarRenderState,
-  createKronosHealthBarDefinitionStore,
-  defaultKronosHealthBarDefinitions,
-  kronosHealthBarDefinition,
-  kronosPlayerHealthBarDefinition,
-  KRONOS_PLAYER_HEALTH_BAR_DEFINITION_ID,
-  layoutKronosHealthBar,
-  type KronosHealthBarDefinitionStore
-} from "../render/kronosHealthBars";
+  createNhHealthBarRenderState,
+  createNhHealthBarDefinitionStore,
+  defaultNhHealthBarDefinitions,
+  nhHealthBarDefinition,
+  nhPlayerHealthBarDefinition,
+  NH_PLAYER_HEALTH_BAR_DEFINITION_ID,
+  layoutNhHealthBar,
+  type NhHealthBarDefinitionStore
+} from "../render/nhHealthBars";
 import {
-  createKronosOverheadIconDefinitionStore,
-  defaultKronosOverheadIconDefinitions,
-  kronosPrayerOverheadDefinition,
-  kronosSkullOverheadDefinition,
-  type KronosOverheadIconDefinitionStore
-} from "../render/kronosOverheadIcons";
+  createNhOverheadIconDefinitionStore,
+  defaultNhOverheadIconDefinitions,
+  nhPrayerOverheadDefinition,
+  nhSkullOverheadDefinition,
+  type NhOverheadIconDefinitionStore
+} from "../render/nhOverheadIcons";
 import {
-  kronosRenderCycleToProjectileClientCycle,
-  sampleKronosProjectileMotion,
-  type KronosProjectileDefinition,
-  type KronosProjectileDefinitionMap,
-  type KronosProjectileDefinitionStore
-} from "../render/kronosProjectileMotion";
+  nhRenderCycleToProjectileClientCycle,
+  sampleNhProjectileMotion,
+  type NhProjectileDefinition,
+  type NhProjectileDefinitionMap,
+  type NhProjectileDefinitionStore
+} from "../render/nhProjectileMotion";
 import {
-  composeKronosGroundItemModel,
-  composeKronosPlayerModel,
-  kronosEquipmentSlotsFromLoadoutItems,
-  updateKronosAnimatedTextures,
-  updateKronosPlayerModelPainterOrder,
-  type KronosPlayerModelSources
-} from "../render/kronosPlayerModel";
+  composeNhGroundItemModel,
+  composeNhPlayerModel,
+  nhEquipmentSlotsFromLoadoutItems,
+  updateNhAnimatedTextures,
+  updateNhPlayerModelPainterOrder,
+  type NhPlayerModelSources
+} from "../render/nhPlayerModel";
 import {
-  buildKronosSceneCollision,
+  buildNhSceneCollision,
   clientObjectFootprint,
-  kronosArenaTileSceneCorners,
-  type KronosArenaMetadata,
-  type KronosArenaObjectPlacement,
-  type KronosSceneOffset,
-  type KronosSceneCollision,
-  type KronosWorldTile
-} from "../render/kronosSceneCollision";
-import { kronosNhBotCombatTileAllowed } from "../render/kronosWilderness";
+  nhArenaTileSceneCorners,
+  type NhArenaMetadata,
+  type NhArenaObjectPlacement,
+  type NhSceneOffset,
+  type NhSceneCollision,
+  type NhWorldTile
+} from "../render/nhSceneCollision";
+import { nhNhBotCombatTileAllowed } from "../render/nhWilderness";
 import {
-  buildKronosSceneObjectContextEntries,
-  findKronosSceneObjectForWorldTile,
-  isKronosSceneObjectMenuable,
-  kronosSceneObjectCommandPacket,
-  type KronosSceneObjectContextMenuEntry,
-  type KronosSelectedSpell
-} from "../render/kronosSceneObjects";
-import { kronosPickSceneTileFromViewportPoint } from "../render/kronosSceneTilePicking";
+  buildNhSceneObjectContextEntries,
+  findNhSceneObjectForWorldTile,
+  isNhSceneObjectMenuable,
+  nhSceneObjectCommandPacket,
+  type NhSceneObjectContextMenuEntry,
+  type NhSelectedSpell
+} from "../render/nhSceneObjects";
+import { nhPickSceneTileFromViewportPoint } from "../render/nhSceneTilePicking";
 import {
-  buildKronosMinimapSceneSprite,
-  type KronosFloorDefinitionStore,
-  type KronosMinimapSceneSprite,
-  type KronosTextureDefinitionStore
-} from "../render/kronosMinimapScene";
+  buildNhMinimapSceneSprite,
+  type NhFloorDefinitionStore,
+  type NhMinimapSceneSprite,
+  type NhTextureDefinitionStore
+} from "../render/nhMinimapScene";
 import {
-  applyKronosActorAnimation,
-  applyKronosSequenceAnimation,
-  attachKronosAnimationMetadata,
-  kronosSequencePrecedenceAnimating,
-  kronosSequencePriority,
-  kronosRenderSequenceFromRawSequence,
-  kronosSequencePlaybackMode,
-  type KronosAnimationFixtures,
-  type KronosAnimationFrameStore,
-  type KronosLoadoutMeshMetadata,
-  type KronosRawSequenceStore,
-  type KronosRenderSequenceDefinition,
-  type KronosSequencePlaybackMode,
-  type KronosSequenceFrameCursorOverride
-} from "../render/kronosSequencePlayback";
+  applyNhActorAnimation,
+  applyNhSequenceAnimation,
+  attachNhAnimationMetadata,
+  nhSequencePrecedenceAnimating,
+  nhSequencePriority,
+  nhRenderSequenceFromRawSequence,
+  nhSequencePlaybackMode,
+  type NhAnimationFixtures,
+  type NhAnimationFrameStore,
+  type NhLoadoutMeshMetadata,
+  type NhRawSequenceStore,
+  type NhRenderSequenceDefinition,
+  type NhSequencePlaybackMode,
+  type NhSequenceFrameCursorOverride
+} from "../render/nhSequencePlayback";
 import {
   getRuntimeSceneTodoGates,
   runtimeArena,
@@ -243,35 +243,35 @@ import {
   type RuntimeTile
 } from "../render/runtimeScene";
 import {
-  findKronosTileRouteWaypoints,
-  findKronosObjectRouteWaypoints,
-  findKronosTargetRouteWaypoints,
-  kronosSceneObjectRouteReached,
-  kronosSceneProjectileRouteClear,
-  kronosSceneTargetRouteReached,
-  KRONOS_GAME_TICK_MS,
-  KRONOS_TILE_WORLD_UNITS
-} from "../render/kronosTileMovement";
+  findNhTileRouteWaypoints,
+  findNhObjectRouteWaypoints,
+  findNhTargetRouteWaypoints,
+  nhSceneObjectRouteReached,
+  nhSceneProjectileRouteClear,
+  nhSceneTargetRouteReached,
+  NH_GAME_TICK_MS,
+  NH_TILE_WORLD_UNITS
+} from "../render/nhTileMovement";
 import {
-  buildKronosInventoryContextEntries,
-  createKronosInventoryEquipmentDefinitionStore,
-  createKronosInventoryItemDefinitionStore,
-  mutateKronosInventorySlotsForAction,
-  normalizeKronosInventorySlots,
-  replaceKronosInventorySlot,
-  reorderKronosInventorySlotsForDrag,
-  type KronosInventoryActionMutation,
-  type KronosInventoryContextMenuEntry,
-  type KronosInventoryDragMutation,
-  type KronosInventoryEquipmentDefinitionStore,
-  type KronosInventoryItemDefinitionStore,
-  type KronosInventorySelectedItem
-} from "../render/kronosInventory";
+  buildNhInventoryContextEntries,
+  createNhInventoryEquipmentDefinitionStore,
+  createNhInventoryItemDefinitionStore,
+  mutateNhInventorySlotsForAction,
+  normalizeNhInventorySlots,
+  replaceNhInventorySlot,
+  reorderNhInventorySlotsForDrag,
+  type NhInventoryActionMutation,
+  type NhInventoryContextMenuEntry,
+  type NhInventoryDragMutation,
+  type NhInventoryEquipmentDefinitionStore,
+  type NhInventoryItemDefinitionStore,
+  type NhInventorySelectedItem
+} from "../render/nhInventory";
 import {
-  createKronosWeaponTypeDefinitionStore,
-  type KronosWeaponTypeDefinitionStore
-} from "../render/kronosCombat";
-import { kronosActivePrayerIds, kronosTogglePrayerState, type KronosPrayerStates } from "../render/kronosPrayer";
+  createNhWeaponTypeDefinitionStore,
+  type NhWeaponTypeDefinitionStore
+} from "../render/nhCombat";
+import { nhActivePrayerIds, nhTogglePrayerState, type NhPrayerStates } from "../render/nhPrayer";
 import {
   advanceRuntimePlayerCombat,
   assertValidClientViewTrace,
@@ -353,30 +353,30 @@ import {
 import { inferNhSelectedGearProfile } from "../sim/nh/gearProfile";
 import { nhLoadouts } from "../sim/nh/loadouts";
 import {
-  KronosClientHud,
-  type KronosChatboxButtonCommand,
-  type KronosClanChatButtonCommand,
-  type KronosClanChatSnapshot,
-  type KronosCombatAutoRetaliateCommand,
-  type KronosCombatAutocastCommand,
-  type KronosCombatSpecialCommand,
-  type KronosCombatStyleCommand,
-  type KronosEquipmentItemCommand,
-  type KronosEquipmentUtilityPanelMode,
-  type KronosEquipmentUtilityButtonCommand,
-  type KronosInventorySlotCommand,
-  type KronosInventorySlotDragCommand,
-  type KronosPrayerSlotDragCommand,
-  type KronosPrayerSlotCommand,
-  type KronosRunOrbCommand,
-  type KronosSideTabCommand,
-  type KronosSocialButtonCommand,
-  type KronosSocialListsSnapshot,
-  type KronosStatsSkillCommand,
-  type KronosSpellbookSpellDragCommand,
-  type KronosSpellbookSpellCommand,
-  type KronosXpDropOrbCommand
-} from "./KronosClientHud";
+  NhClientHud,
+  type NhChatboxButtonCommand,
+  type NhClanChatButtonCommand,
+  type NhClanChatSnapshot,
+  type NhCombatAutoRetaliateCommand,
+  type NhCombatAutocastCommand,
+  type NhCombatSpecialCommand,
+  type NhCombatStyleCommand,
+  type NhEquipmentItemCommand,
+  type NhEquipmentUtilityPanelMode,
+  type NhEquipmentUtilityButtonCommand,
+  type NhInventorySlotCommand,
+  type NhInventorySlotDragCommand,
+  type NhPrayerSlotDragCommand,
+  type NhPrayerSlotCommand,
+  type NhRunOrbCommand,
+  type NhSideTabCommand,
+  type NhSocialButtonCommand,
+  type NhSocialListsSnapshot,
+  type NhStatsSkillCommand,
+  type NhSpellbookSpellDragCommand,
+  type NhSpellbookSpellCommand,
+  type NhXpDropOrbCommand
+} from "./NhClientHud";
 import {
   RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT,
   RUNELITE_CLIENT_TICK_MS,
@@ -423,18 +423,18 @@ import {
   type RuneliteKeyRemappingConfigSnapshot
 } from "./runeliteKeyRemapping";
 import {
-  KRONOS_GAME_KEYBIND_SOURCE,
-  KRONOS_DEFAULT_GAME_KEYBINDS,
-  kronosAssignGameKeybind,
-  kronosGameKeybindSideTabForFunctionKey,
-  kronosGameKeybindsWithEscapeClose,
-  kronosNormalizeGameKeybindSnapshot,
-  kronosPreEocGameKeybinds,
-  kronosReadGameKeybindsFromStorage,
-  kronosWriteGameKeybindsToStorage,
-  type KronosGameKeybindKeySlot,
-  type KronosGameKeybindSnapshot
-} from "./kronosGameKeybinds";
+  NH_GAME_KEYBIND_SOURCE,
+  NH_DEFAULT_GAME_KEYBINDS,
+  nhAssignGameKeybind,
+  nhGameKeybindSideTabForFunctionKey,
+  nhGameKeybindsWithEscapeClose,
+  nhNormalizeGameKeybindSnapshot,
+  nhPreEocGameKeybinds,
+  nhReadGameKeybindsFromStorage,
+  nhWriteGameKeybindsToStorage,
+  type NhGameKeybindKeySlot,
+  type NhGameKeybindSnapshot
+} from "./nhGameKeybinds";
 import {
   RUNELITE_FREEZE_TIMERS_BARRAGE_DURATION_MS,
   RUNELITE_FREEZE_TIMERS_BARRAGE_SPOTANIM_ID,
@@ -615,8 +615,8 @@ interface RuntimeSceneBoundary {
   readonly actorSlots: Map<RuntimeActorId, ActorRenderSlot>;
   readonly cameraRig: RuntimeCameraRig;
   sceneTilePicker: RuntimeSceneTilePicker | null;
-  fixedClientLayout: KronosFixedClientLayout | null;
-  fixedClientCssLayout: KronosFixedClientCssLayout | null;
+  fixedClientLayout: NhFixedClientLayout | null;
+  fixedClientCssLayout: NhFixedClientCssLayout | null;
 }
 
 interface ActorRenderSlot {
@@ -634,13 +634,13 @@ type RuntimeFollowTarget = RuntimeActorId | "free";
 interface RuntimeCameraRig {
   readonly target: Vector3;
   followTarget: RuntimeFollowTarget;
-  clientAngles: KronosCameraAngles;
-  zoom: KronosCameraZoom;
+  clientAngles: NhCameraAngles;
+  zoom: NhCameraZoom;
 }
 
 interface RuntimeSceneTilePicker {
-  readonly arena: KronosArenaMetadata;
-  readonly sceneOffset: KronosSceneOffset;
+  readonly arena: NhArenaMetadata;
+  readonly sceneOffset: NhSceneOffset;
 }
 
 interface RuntimeViewportSourcePoint {
@@ -649,7 +649,7 @@ interface RuntimeViewportSourcePoint {
 }
 
 interface RuntimeSceneObjectPick {
-  readonly placement: KronosArenaObjectPlacement;
+  readonly placement: NhArenaObjectPlacement;
   readonly walkTile: RuntimeTile;
   readonly actionTile: RuntimeTile;
   readonly depthClientUnits: number;
@@ -695,9 +695,9 @@ interface ManualActorState {
 }
 
 type RuntimeEquipmentItemIdsBySlot = ReadonlyMap<number, number>;
-const runtimePlayerAppearanceKits = kitsJson as KronosPlayerModelSources["kits"];
+const runtimePlayerAppearanceKits = kitsJson as NhPlayerModelSources["kits"];
 const runtimePlayerAppearanceServerItemsById = new Map(
-  (serverItemsJson as KronosPlayerModelSources["serverItems"]).map((item) => [item.id, item])
+  (serverItemsJson as NhPlayerModelSources["serverItems"]).map((item) => [item.id, item])
 );
 
 const RUNTIME_NH_STAKE_LOADOUT_ID: RuntimeLoadoutId = "kodai-robes";
@@ -745,11 +745,11 @@ const RUNTIME_NH_STAKE_EQUIPMENT_ENTRIES = [
   [13, 21932]
 ] as const satisfies readonly (readonly [number, number])[];
 const RUNTIME_NH_STAKE_EQUIPMENT_ITEMS = new Map(RUNTIME_NH_STAKE_EQUIPMENT_ENTRIES);
-const RUNTIME_NH_STAKE_INVENTORY_SLOTS = normalizeKronosInventorySlots(
+const RUNTIME_NH_STAKE_INVENTORY_SLOTS = normalizeNhInventorySlots(
   RUNTIME_NH_STAKE_INVENTORY_ITEM_IDS.map((itemId) => ({ itemId, quantity: 1 }))
 );
 function runtimeNhStakeInventorySlots(): readonly (RuntimeInventorySlot | null)[] {
-  return normalizeKronosInventorySlots(
+  return normalizeNhInventorySlots(
     RUNTIME_NH_STAKE_INVENTORY_ITEM_IDS.map((itemId) => ({ itemId, quantity: 1 }))
   );
 }
@@ -877,18 +877,18 @@ interface RuntimeInventoryMutationResolution {
   readonly inventorySlots: readonly (RuntimeInventorySlot | null)[] | null;
   readonly equipmentItems: RuntimeEquipmentItemIdsBySlot | null;
   readonly hud: Partial<RuntimeHudState> | null;
-  readonly inventoryMutation: KronosInventoryActionMutation | null;
+  readonly inventoryMutation: NhInventoryActionMutation | null;
   readonly actorLoadoutId: RuntimeLoadoutId | null;
   readonly equipmentMutation: RuntimeInventoryEquipmentMutation | null;
   readonly blockedReason: string | null;
 }
 
 interface QueuedInventoryEquipContext {
-  readonly entry: KronosInventoryContextMenuEntry;
+  readonly entry: NhInventoryContextMenuEntry;
 }
 
 interface QueuedInventoryConsumableContext {
-  readonly entry: KronosInventoryContextMenuEntry;
+  readonly entry: NhInventoryContextMenuEntry;
   readonly item: ConsumableId;
 }
 
@@ -921,15 +921,15 @@ interface ManualActorRouteResult {
 
 interface RuntimeActorModelAsset {
   readonly scene: Object3D;
-  readonly metadata: KronosLoadoutMeshMetadata;
+  readonly metadata: NhLoadoutMeshMetadata;
 }
 
 interface RuntimeEffectAsset {
   readonly scene: Object3D;
-  readonly metadata: KronosLoadoutMeshMetadata;
+  readonly metadata: NhLoadoutMeshMetadata;
 }
 
-interface KronosSpotanimDefinition {
+interface NhSpotanimDefinition {
   readonly id: number;
   readonly animationId: number;
   readonly label?: string;
@@ -937,27 +937,27 @@ interface KronosSpotanimDefinition {
   readonly meshMetadataUrl?: string;
 }
 
-interface KronosCacheGlbManifest {
-  readonly exports: readonly KronosCacheGlbManifestEntry[];
+interface NhCacheGlbManifest {
+  readonly exports: readonly NhCacheGlbManifestEntry[];
 }
 
-interface KronosCacheGlbManifestEntry {
+interface NhCacheGlbManifestEntry {
   readonly output: string;
   readonly meshMetadata?: string;
   readonly label?: string;
   readonly spotanimId?: number;
 }
 
-interface KronosClientReferenceManifest {
+interface NhClientReferenceManifest {
   readonly schemaVersion: number;
-  readonly frames: readonly KronosClientReferenceFrame[];
+  readonly frames: readonly NhClientReferenceFrame[];
 }
 
-interface KronosClientReferenceFrame {
+interface NhClientReferenceFrame {
   readonly clientViewTraceFileName?: string;
 }
 
-interface KronosSpotanimArtifact {
+interface NhSpotanimArtifact {
   readonly label?: string;
   readonly artifactUrl: string;
   readonly meshMetadataUrl?: string;
@@ -1037,11 +1037,11 @@ interface ClientSpriteSourceData {
 type ClientSprite = Sprite & {
   userData: {
     clientSpritePixels?: ClientSpritePixelData;
-    kronosSpriteSource?: ClientSpriteSourceData;
+    nhSpriteSource?: ClientSpriteSourceData;
   };
 };
 
-interface KronosRuntimeOverlayDebugEntry {
+interface NhRuntimeOverlayDebugEntry {
   readonly id: string;
   readonly actorId: RuntimeActorId;
   readonly spriteSheetId: RuntimeSpriteSheetId;
@@ -1049,7 +1049,7 @@ interface KronosRuntimeOverlayDebugEntry {
   readonly spriteFrame: number;
   readonly sortValue: number;
   readonly renderOrder: number;
-  readonly placement: KronosActorOverlayPlacement;
+  readonly placement: NhActorOverlayPlacement;
   readonly position: { readonly x: number; readonly y: number; readonly z: number };
   readonly sprites: readonly ClientSpriteSourceData[];
   readonly hitsplat?: {
@@ -1072,15 +1072,15 @@ interface KronosRuntimeOverlayDebugEntry {
   };
 }
 
-interface KronosRuntimeDebugSnapshot {
+interface NhRuntimeDebugSnapshot {
   readonly cycle: number;
-  readonly overlays: readonly KronosRuntimeOverlayDebugEntry[];
-  readonly motion?: KronosRuntimeMotionDebugSnapshot;
-  readonly manualOpponentPolicy?: readonly KronosRuntimeManualOpponentPolicyDebugEntry[];
-  readonly manualOpponentAudit?: readonly KronosRuntimeManualOpponentTickAuditEntry[];
+  readonly overlays: readonly NhRuntimeOverlayDebugEntry[];
+  readonly motion?: NhRuntimeMotionDebugSnapshot;
+  readonly manualOpponentPolicy?: readonly NhRuntimeManualOpponentPolicyDebugEntry[];
+  readonly manualOpponentAudit?: readonly NhRuntimeManualOpponentTickAuditEntry[];
 }
 
-interface KronosRuntimeManualOpponentPolicyDebugEntry {
+interface NhRuntimeManualOpponentPolicyDebugEntry {
   readonly tick: number;
   readonly controllerId: string | null;
   readonly action: string;
@@ -1093,7 +1093,7 @@ interface KronosRuntimeManualOpponentPolicyDebugEntry {
   readonly opponentTile: RuntimeTile;
 }
 
-interface KronosRuntimeManualOpponentRouteDebugEntry {
+interface NhRuntimeManualOpponentRouteDebugEntry {
   readonly actorId: RuntimeActorId;
   readonly targetId: RuntimeActorId;
   readonly reason: string;
@@ -1101,7 +1101,7 @@ interface KronosRuntimeManualOpponentRouteDebugEntry {
   readonly targetTile: RuntimeTile;
 }
 
-interface KronosRuntimeManualOpponentTickAuditEntry {
+interface NhRuntimeManualOpponentTickAuditEntry {
   readonly tick: number;
   readonly controllerId: string | null;
   readonly action: string;
@@ -1117,19 +1117,19 @@ interface KronosRuntimeManualOpponentTickAuditEntry {
   readonly localMovementConsumed: boolean;
   readonly opponentMovementConsumed: boolean;
   readonly preAttackRouteMoved: boolean;
-  readonly routeRequests: readonly KronosRuntimeManualOpponentRouteDebugEntry[];
+  readonly routeRequests: readonly NhRuntimeManualOpponentRouteDebugEntry[];
 }
 
-interface KronosRuntimeMotionDebugSnapshot {
+interface NhRuntimeMotionDebugSnapshot {
   readonly timeMs: number;
   readonly clientCycle: number;
-  readonly actors: readonly KronosRuntimeMotionDebugActor[];
+  readonly actors: readonly NhRuntimeMotionDebugActor[];
 }
 
-interface KronosRuntimeMotionDebugActor {
+interface NhRuntimeMotionDebugActor {
   readonly actorId: RuntimeActorId;
   readonly sequenceName: RuntimeSequenceName;
-  readonly sequenceMode?: KronosSequencePlaybackMode;
+  readonly sequenceMode?: NhSequencePlaybackMode;
   readonly actionSequenceKey?: string;
   readonly animationCycle?: number;
   readonly primaryFrame?: number;
@@ -1144,12 +1144,12 @@ interface KronosRuntimeMotionDebugActor {
 
 interface RuntimeOverlayAnchorData {
   readonly actorId: RuntimeActorId;
-  readonly placement: KronosActorOverlayPlacement;
+  readonly placement: NhActorOverlayPlacement;
 }
 
 interface RuntimeOverlayObject extends Object3D {
   userData: Object3D["userData"] & {
-    kronosRuntimeOverlayAnchor?: RuntimeOverlayAnchorData;
+    nhRuntimeOverlayAnchor?: RuntimeOverlayAnchorData;
   };
 }
 
@@ -1353,7 +1353,7 @@ interface PendingGroundItemPickup {
 }
 
 interface RuneliteMouseHighlightHoverInput {
-  readonly entries: readonly KronosMenuEntry[];
+  readonly entries: readonly NhMenuEntry[];
   readonly region: RuneliteMouseHighlightTooltipRegion;
   readonly x: number;
   readonly y: number;
@@ -1361,8 +1361,8 @@ interface RuneliteMouseHighlightHoverInput {
 
 declare global {
   interface Window {
-    __kronosRuntimeDebug?: KronosRuntimeDebugSnapshot;
-    __kronosActionSequenceApplyLog?: Array<{
+    __nhRuntimeDebug?: NhRuntimeDebugSnapshot;
+    __nhActionSequenceApplyLog?: Array<{
       readonly atMs: number;
       readonly actorId: RuntimeActorId;
       readonly sequenceName: RuntimeSequenceName;
@@ -1381,20 +1381,20 @@ type RuntimeLoadState =
   | { readonly kind: "ready"; readonly message: string }
   | { readonly kind: "error"; readonly message: string };
 
-interface KronosClickCrossState {
+interface NhClickCrossState {
   readonly x: number;
   readonly y: number;
-  readonly color: KronosClickCrossColor;
+  readonly color: NhClickCrossColor;
   readonly frame: number;
   readonly startedAt?: number;
   readonly sourceState?: number;
 }
 
-type KronosSceneContextMenuEntry =
-  | KronosPlayerContextMenuEntry<RuntimeTile>
-  | KronosSceneObjectContextMenuEntry<RuntimeTile>;
+type NhSceneContextMenuEntry =
+  | NhPlayerContextMenuEntry<RuntimeTile>
+  | NhSceneObjectContextMenuEntry<RuntimeTile>;
 
-interface KronosGroundItemContextMenuEntry extends KronosMenuEntry {
+interface NhGroundItemContextMenuEntry extends NhMenuEntry {
   readonly action: "ground-item-take" | "ground-item-examine";
   readonly groundItemId: string;
   readonly itemId: number;
@@ -1403,12 +1403,12 @@ interface KronosGroundItemContextMenuEntry extends KronosMenuEntry {
   readonly targetTile: RuntimeTile;
 }
 
-interface KronosSourceContextMenuEntry extends KronosMenuEntry {
+interface NhSourceContextMenuEntry extends NhMenuEntry {
   readonly action: "source-menu-entry";
   readonly sourceIndex: number;
 }
 
-interface RuneliteOverlayConfigContextMenuEntry extends KronosMenuEntry {
+interface RuneliteOverlayConfigContextMenuEntry extends NhMenuEntry {
   readonly action: "runelite-overlay-config";
   readonly pluginId: string;
   readonly overlayTarget: string;
@@ -1416,33 +1416,33 @@ interface RuneliteOverlayConfigContextMenuEntry extends KronosMenuEntry {
   readonly sourceOverlayMenuOpcode: "RUNELITE_OVERLAY_CONFIG";
 }
 
-type KronosXpDropOrbContextMenuEntry =
-  | (KronosMenuEntry & {
+type NhXpDropOrbContextMenuEntry =
+  | (NhMenuEntry & {
       readonly action: "xp-drop-orb-action";
       readonly xpDropAction: "toggle" | "setup";
       readonly actionIndex: 1 | 2;
-      readonly command: KronosXpDropOrbCommand;
+      readonly command: NhXpDropOrbCommand;
     })
-  | (KronosMenuEntry & {
+  | (NhMenuEntry & {
       readonly action: "xp-drop-text-size";
       readonly xpDropAction: "set-text-size";
       readonly textSize: RuneliteXpDropConfigSnapshot["nativeTextSize"];
     });
 
-type KronosHudWidgetContextMenuEntry =
-  | (KronosMenuEntry & {
+type NhHudWidgetContextMenuEntry =
+  | (NhMenuEntry & {
       readonly action: "hud-widget-action";
       readonly widgetKind: "side-tab";
       readonly actionIndex: number;
-      readonly command: KronosSideTabCommand;
+      readonly command: NhSideTabCommand;
     })
-  | (KronosMenuEntry & {
+  | (NhMenuEntry & {
       readonly action: "hud-widget-action";
       readonly widgetKind: "chatbox";
       readonly actionIndex: number;
-      readonly command: KronosChatboxButtonCommand;
+      readonly command: NhChatboxButtonCommand;
     })
-  | (KronosMenuEntry & {
+  | (NhMenuEntry & {
       readonly action: "hud-widget-action";
       readonly widgetKind:
         | "prayer-filtering-placeholder"
@@ -1450,11 +1450,11 @@ type KronosHudWidgetContextMenuEntry =
         | "spellbook-filtering-placeholder"
         | "spellbook-reordering-toggle";
       readonly actionIndex: number;
-      readonly command: KronosSideTabCommand;
+      readonly command: NhSideTabCommand;
       readonly enabled: boolean;
     });
 
-type KronosEquipmentItemContextMenuEntry = KronosMenuEntry & {
+type NhEquipmentItemContextMenuEntry = NhMenuEntry & {
   readonly action: "equipment-remove" | "equipment-action" | "equipment-examine";
   readonly actionIndex: number;
   readonly childId: number;
@@ -1466,69 +1466,69 @@ type KronosEquipmentItemContextMenuEntry = KronosMenuEntry & {
   readonly widgetId: number;
 };
 
-type KronosOpponentInventoryInspectContextMenuEntry = KronosMenuEntry & {
+type NhOpponentInventoryInspectContextMenuEntry = NhMenuEntry & {
   readonly action: "opponent-inventory-inspect";
   readonly targetActorId: RuntimeActorId;
   readonly targetTile: RuntimeTile;
 };
 
-type KronosContextMenuEntry =
-  | KronosSceneContextMenuEntry
-  | KronosInventoryContextMenuEntry
-  | KronosEquipmentItemContextMenuEntry
-  | KronosGroundItemContextMenuEntry
-  | KronosOpponentInventoryInspectContextMenuEntry
-  | KronosHudWidgetContextMenuEntry
-  | KronosXpDropOrbContextMenuEntry
+type NhContextMenuEntry =
+  | NhSceneContextMenuEntry
+  | NhInventoryContextMenuEntry
+  | NhEquipmentItemContextMenuEntry
+  | NhGroundItemContextMenuEntry
+  | NhOpponentInventoryInspectContextMenuEntry
+  | NhHudWidgetContextMenuEntry
+  | NhXpDropOrbContextMenuEntry
   | RuneliteOverlayConfigContextMenuEntry
-  | KronosCancelContextMenuEntry
-  | KronosSourceContextMenuEntry;
+  | NhCancelContextMenuEntry
+  | NhSourceContextMenuEntry;
 
-interface KronosCancelContextMenuEntry extends KronosMenuEntry {
+interface NhCancelContextMenuEntry extends NhMenuEntry {
   readonly action: "cancel";
 }
 
-interface KronosContextMenuState {
+interface NhContextMenuState {
   readonly x: number;
   readonly y: number;
-  readonly sourceRect?: KronosMenuRect;
+  readonly sourceRect?: NhMenuRect;
   readonly source?: "client-view";
-  readonly entries: readonly KronosContextMenuEntry[];
+  readonly entries: readonly NhContextMenuEntry[];
 }
 
-type RuntimeCameraMode = keyof typeof KRONOS_RUNTIME_CAMERA_PRESETS | "free";
-type KronosTileCommandSource = "scene-tile" | "scene-object" | "ground-item" | "minimap" | "context-menu";
+type RuntimeCameraMode = keyof typeof NH_RUNTIME_CAMERA_PRESETS | "free";
+type NhTileCommandSource = "scene-tile" | "scene-object" | "ground-item" | "minimap" | "context-menu";
 
 interface QueuedPlayerCombatPacket {
   readonly kind: "attack" | "spell" | "special";
-  readonly entry?: KronosPlayerContextMenuEntry<RuntimeTile>;
-  readonly specialCommand?: KronosCombatSpecialCommand;
+  readonly entry?: NhPlayerContextMenuEntry<RuntimeTile>;
+  readonly specialCommand?: NhCombatSpecialCommand;
   readonly position: { readonly x: number; readonly y: number };
   readonly spellId?: RuntimePlayerCombatSpellId;
   readonly queuedAtMs: number;
   readonly readyAtMs: number;
 }
 
-interface RuntimeMouseCameraDragState extends KronosMouseCameraState {
+interface RuntimeMouseCameraDragState extends NhMouseCameraState {
   readonly pointerId: number;
   readonly x: number;
   readonly y: number;
 }
 
-const KRONOS_CANCEL_CONTEXT_MENU_ENTRY: KronosCancelContextMenuEntry = {
+const NH_CANCEL_CONTEXT_MENU_ENTRY: NhCancelContextMenuEntry = {
   action: "cancel",
-  actionText: KRONOS_CANCEL_ACTION_TEXT,
+  actionText: NH_CANCEL_ACTION_TEXT,
   targetText: "",
-  opcode: KRONOS_CANCEL_OPCODE,
+  opcode: NH_CANCEL_OPCODE,
   shiftClick: false
 };
 
-function withKronosCancelContextMenuEntry(
-  entries: readonly KronosContextMenuEntry[]
-): readonly KronosContextMenuEntry[] {
+function withNhCancelContextMenuEntry(
+  entries: readonly NhContextMenuEntry[]
+): readonly NhContextMenuEntry[] {
   // Source: KeyHandler.method505() resets every client menu to a single Cancel
   // row before widgets/scene insert more rows through AttackOption.method2104().
-  return [KRONOS_CANCEL_CONTEXT_MENU_ENTRY, ...entries];
+  return [NH_CANCEL_CONTEXT_MENU_ENTRY, ...entries];
 }
 
 interface ManualOpponentPolicyTickGate {
@@ -1536,21 +1536,21 @@ interface ManualOpponentPolicyTickGate {
   readonly combatState: RuntimePlayerCombatState;
 }
 
-const initialClientCameraAngles = kronosRuntimeCameraPreset("isometric");
+const initialClientCameraAngles = nhRuntimeCameraPreset("isometric");
 const equipmentItemNameColorTag = "<col=ff9040>";
 const equipmentItemDefaultActionOpcode = 57;
 const equipmentItemHighActionOpcode = 1007;
 const widgetHighActionOpcode = 1007;
-const KRONOS_CLIENT_CYCLE_MS = 20;
-const KRONOS_CLIENT_CYCLES_PER_GAME_TICK = KRONOS_GAME_TICK_MS / KRONOS_CLIENT_CYCLE_MS;
-// Source-backed by Kronos NanoClock.vmethod3511: the client may process up to 10 client cycles before one draw.
-const KRONOS_CLIENT_MAX_CYCLES_PER_RENDER_FRAME = 10;
+const NH_CLIENT_CYCLE_MS = 20;
+const NH_CLIENT_CYCLES_PER_GAME_TICK = NH_GAME_TICK_MS / NH_CLIENT_CYCLE_MS;
+// Source-backed by Nh NanoClock.vmethod3511: the client may process up to 10 client cycles before one draw.
+const NH_CLIENT_MAX_CYCLES_PER_RENDER_FRAME = 10;
 // Browser timers can resume late after a busy frame; catch up bounded game ticks so the trainer hitches instead of stretching time.
-const KRONOS_GAME_TICK_CATCH_UP_LIMIT = 10;
+const NH_GAME_TICK_CATCH_UP_LIMIT = 10;
 const NH_TRAINER_ATTACK_SET_STORAGE_KEY = "nhTrainer.attackSet.v1";
-const KRONOS_AUTO_RETALIATE_STORAGE_KEY = "nhTrainer.autoRetaliate.v1";
+const NH_AUTO_RETALIATE_STORAGE_KEY = "nhTrainer.autoRetaliate.v1";
 const LEGACY_AUTO_RETALIATE_STORAGE_KEYS = ["source.autoRetaliate.v1"] as const;
-const KRONOS_TEMPORARY_SAVED_SETUP_STORAGE_KEY = "nhTrainer.temporaryNhStakeSetup.v1";
+const NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY = "nhTrainer.temporaryNhStakeSetup.v1";
 const NH_TRAINER_PVP_FIGHT_HISTORY_STORAGE_KEY = "nhTrainer.pvpFightHistory.v1";
 const NH_TRAINER_BROWSER_CLIENT_WINDOW_STORAGE_KEY = "nhTrainer.browserClientWindow.v2";
 const NH_TRAINER_PRAYER_REORDER_ENABLED_STORAGE_KEY = "nhTrainer.prayerReorder.enabled.v1";
@@ -1562,7 +1562,7 @@ const NH_TRAINER_PVP_FIGHT_HISTORY_LIMIT = 50;
 const BROWSER_CLIENT_WINDOW_TITLEBAR_HEIGHT = 24;
 const BROWSER_CLIENT_WINDOW_MIN_WIDTH = 420;
 const BROWSER_CLIENT_WINDOW_MIN_HEIGHT = 300;
-const KRONOS_DEV_SOCIAL_LISTS: KronosSocialListsSnapshot = {
+const NH_DEV_SOCIAL_LISTS: NhSocialListsSnapshot = {
   loaded: true,
   friends: [
     {
@@ -1628,9 +1628,9 @@ function runtimePolicyManualCombatPair(attackerId: RuntimeActorId, defenderId: R
     (attackerId === "opponent" && defenderId === "local-player")
   );
 }
-const KRONOS_DEV_CLAN_CHAT: KronosClanChatSnapshot = {
+const NH_DEV_CLAN_CHAT: NhClanChatSnapshot = {
   active: true,
-  displayName: "Kronos",
+  displayName: "Nh",
   ownerName: "local-player",
   localRank: 7,
   minKickRank: 2,
@@ -1714,16 +1714,16 @@ const RUNELITE_XP_DROP_PANEL_TOP = 2;
 const RUNELITE_XP_DROP_TEXT_COLOR = "#ffff40";
 const RUNELITE_XP_DROP_DURATION_CLIENT_CYCLES = 120;
 const RUNELITE_XP_DROP_STACK_MIN_PANEL_HEIGHT = 100;
-const KRONOS_ACTOR_TILE_CLIENT_UNITS = 128;
-const KRONOS_ACTOR_ORIENTATION_UNITS = 2048;
-const KRONOS_ACTOR_TURN_SPEED_UNITS = 32;
-const KRONOS_ACTOR_TURN_ANIMATION_DELAY_TICKS = 25;
+const NH_ACTOR_TILE_CLIENT_UNITS = 128;
+const NH_ACTOR_ORIENTATION_UNITS = 2048;
+const NH_ACTOR_TURN_SPEED_UNITS = 32;
+const NH_ACTOR_TURN_ANIMATION_DELAY_TICKS = 25;
 const RUNELITE_OVERLAY_MENU_OPCODE = 1501;
 const RUNELITE_OVERLAY_CONFIG_MENU_OPCODE_SOURCE = "MenuOpcode.RUNELITE_OVERLAY(1501) wraps OverlayMenuEntry RUNELITE_OVERLAY_CONFIG";
 const RUNELITE_FIGHT_START_OVERLAY_NAME = "TrainerStartOverlay";
 const RUNELITE_FIGHT_START_OVERLAY_DRAG_SOURCE =
   "OverlayRenderer Alt key inOverlayDraggingMode; left drag setPreferredLocation; right click resetOverlay; mouse release saveOverlay";
-const KRONOS_CONTEXT_MENU_MOUSE_LEAVE_MARGIN = 10;
+const NH_CONTEXT_MENU_MOUSE_LEAVE_MARGIN = 10;
 
 function runeliteXpDropTextSizeSpec(textSize: RuneliteXpDropConfigSnapshot["nativeTextSize"]) {
   return RUNELITE_XP_DROP_TEXT_SIZE_SPECS[textSize] ?? RUNELITE_XP_DROP_TEXT_SIZE_SPECS.Small;
@@ -1733,15 +1733,15 @@ function runeliteXpDropFontSpec(font: RuneliteXpDropConfigSnapshot["trainerFont"
   return RUNELITE_XP_DROP_FONT_SPECS[font] ?? RUNELITE_XP_DROP_FONT_SPECS["Plain 11"];
 }
 
-function kronosDevSocialListsAfterButton(
-  current: KronosSocialListsSnapshot,
-  command: KronosSocialButtonCommand
-): KronosSocialListsSnapshot {
+function nhDevSocialListsAfterButton(
+  current: NhSocialListsSnapshot,
+  command: NhSocialButtonCommand
+): NhSocialListsSnapshot {
   if (command.action === "switch") {
     return current;
   }
 
-  const opponent = KRONOS_DEV_SOCIAL_LISTS.friends[0];
+  const opponent = NH_DEV_SOCIAL_LISTS.friends[0];
   if (!opponent) {
     return current;
   }
@@ -1750,7 +1750,7 @@ function kronosDevSocialListsAfterButton(
   const hasIgnore = current.ignores.some((member) => member.name.toLowerCase() === opponent.name.toLowerCase());
 
   if (command.list === "friends" && command.action === "add") {
-    // Kronos FriendSystem.addFriend refuses names already ignored before sending FriendsHandler opcode 80.
+    // Nh FriendSystem.addFriend refuses names already ignored before sending FriendsHandler opcode 80.
     return hasFriend || hasIgnore ? current : { ...current, friends: [...current.friends, opponent] };
   }
   if (command.list === "friends" && command.action === "delete") {
@@ -1759,7 +1759,7 @@ function kronosDevSocialListsAfterButton(
       : current;
   }
   if (command.list === "ignores" && command.action === "add") {
-    // Kronos FriendSystem.method900 refuses names on the friend list before sending FriendsHandler opcode 84.
+    // Nh FriendSystem.method900 refuses names on the friend list before sending FriendsHandler opcode 84.
     return hasIgnore || hasFriend ? current : { ...current, ignores: [...current.ignores, { ...opponent, world: 0 }] };
   }
   if (command.list === "ignores" && command.action === "delete") {
@@ -1775,10 +1775,10 @@ const initialLocalPose: RuntimeActorPose =
 const initialOpponentPose: RuntimeActorPose =
   runtimeTimeline[0].actors.find((pose) => pose.actorId === "opponent") ?? runtimeTimeline[0].actors[1] ?? initialLocalPose;
 const initialLocalOrientationUnits =
-  initialLocalPose.orientationUnits ?? kronosFacingDegreesToOrientationUnits(initialLocalPose.facingDegrees);
+  initialLocalPose.orientationUnits ?? nhFacingDegreesToOrientationUnits(initialLocalPose.facingDegrees);
 const initialLocalRotationUnits = initialLocalPose.rotationUnits ?? initialLocalOrientationUnits;
 const initialOpponentOrientationUnits =
-  initialOpponentPose.orientationUnits ?? kronosFacingDegreesToOrientationUnits(initialOpponentPose.facingDegrees);
+  initialOpponentPose.orientationUnits ?? nhFacingDegreesToOrientationUnits(initialOpponentPose.facingDegrees);
 const initialOpponentRotationUnits = initialOpponentPose.rotationUnits ?? initialOpponentOrientationUnits;
 const initialManualActor: ManualActorState = {
   tile: initialLocalPose.tile,
@@ -1787,7 +1787,7 @@ const initialManualActor: ManualActorState = {
   routeTraversalModes: [],
   serverRouteWaypoints: [],
   serverRouteTraversalModes: [],
-  clientPosition: kronosClientPositionFromRuntimeTile(initialLocalPose.renderTile ?? initialLocalPose.tile),
+  clientPosition: nhClientPositionFromRuntimeTile(initialLocalPose.renderTile ?? initialLocalPose.tile),
   lastMovementClientCycle: null,
   movementStallTicks: 0,
   sequencePathLengthAtStart: 0,
@@ -1821,7 +1821,7 @@ const initialManualOpponent: ManualActorState = {
   routeTraversalModes: [],
   serverRouteWaypoints: [],
   serverRouteTraversalModes: [],
-  clientPosition: kronosClientPositionFromRuntimeTile(initialOpponentPose.renderTile ?? initialOpponentPose.tile),
+  clientPosition: nhClientPositionFromRuntimeTile(initialOpponentPose.renderTile ?? initialOpponentPose.tile),
   lastMovementClientCycle: null,
   movementStallTicks: 0,
   sequencePathLengthAtStart: 0,
@@ -1921,7 +1921,7 @@ function createRuntimeBoundary(canvas: HTMLCanvasElement): RuntimeSceneBoundary 
   const scene = new Scene();
   scene.background = new Color(0x0e1216);
 
-  const camera = new PerspectiveCamera(KRONOS_CAMERA_DEFAULT_FOV_DEGREES, 1, 0.1, 1000);
+  const camera = new PerspectiveCamera(NH_CAMERA_DEFAULT_FOV_DEGREES, 1, 0.1, 1000);
   camera.position.set(0, 6, 8);
   camera.lookAt(0, 0, 0);
 
@@ -1941,7 +1941,7 @@ function createRuntimeBoundary(canvas: HTMLCanvasElement): RuntimeSceneBoundary 
     target: new Vector3(0, 0, 0),
     followTarget: "local-player",
     clientAngles: initialClientCameraAngles,
-    zoom: KRONOS_CAMERA_DEFAULT_ZOOM
+    zoom: NH_CAMERA_DEFAULT_ZOOM
   };
 
   for (const actor of runtimeActors) {
@@ -1992,7 +1992,7 @@ function applyRuntimeCameraMode(boundary: RuntimeSceneBoundary, mode: RuntimeCam
     return;
   }
 
-  boundary.cameraRig.clientAngles = kronosRuntimeCameraPreset(mode);
+  boundary.cameraRig.clientAngles = nhRuntimeCameraPreset(mode);
   updateRuntimeCamera(boundary);
 }
 
@@ -2000,14 +2000,14 @@ function isRuntimeCameraMode(value: unknown): value is RuntimeCameraMode {
   return value === "isometric" || value === "north" || value === "south" || value === "top" || value === "free";
 }
 
-function isKronosSpellbookId(value: unknown): value is KronosSpellbookId {
+function isNhSpellbookId(value: unknown): value is NhSpellbookId {
   return value === "standard" || value === "ancient" || value === "lunar" || value === "arceuus";
 }
 
 function updateRuntimeCamera(boundary: RuntimeSceneBoundary): void {
   const { target, clientAngles, zoom } = boundary.cameraRig;
-  const viewportHeight = boundary.fixedClientLayout?.viewport.rect.height ?? KRONOS_CAMERA_DEFAULT_VIEWPORT_HEIGHT;
-  const offset = kronosClientSceneCameraOffset(clientAngles, viewportHeight, zoom);
+  const viewportHeight = boundary.fixedClientLayout?.viewport.rect.height ?? NH_CAMERA_DEFAULT_VIEWPORT_HEIGHT;
+  const offset = nhClientSceneCameraOffset(clientAngles, viewportHeight, zoom);
   boundary.camera.position.set(
     target.x - offset.x,
     target.y + offset.y,
@@ -2016,7 +2016,7 @@ function updateRuntimeCamera(boundary: RuntimeSceneBoundary): void {
   boundary.camera.lookAt(target.x, target.y, target.z);
 }
 
-function applyKronosCameraProjection(camera: PerspectiveCamera): void {
+function applyNhCameraProjection(camera: PerspectiveCamera): void {
   camera.updateProjectionMatrix();
   camera.projectionMatrix.elements[0] *= -1;
   camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
@@ -2025,10 +2025,10 @@ function applyKronosCameraProjection(camera: PerspectiveCamera): void {
 function applyRuneliteGpuPluginConfig(boundary: RuntimeSceneBoundary, gpuConfig: RuneliteGpuPluginConfigSnapshot): void {
   const uniforms = runeliteGpuUniformSnapshot(gpuConfig);
   const drawDistance = uniforms.drawDistance;
-  const drawDistanceWorldUnits = drawDistance * KRONOS_TILE_WORLD_UNITS;
+  const drawDistanceWorldUnits = drawDistance * NH_TILE_WORLD_UNITS;
   const effectiveDrawDistanceWorldUnits =
-    (uniforms.effectiveDrawDistanceLocalUnits / RUNELITE_GPU_LOCAL_TILE_SIZE) * KRONOS_TILE_WORLD_UNITS;
-  const fogDepthWorldUnits = (uniforms.fogDepthLocalUnits / RUNELITE_GPU_LOCAL_TILE_SIZE) * KRONOS_TILE_WORLD_UNITS;
+    (uniforms.effectiveDrawDistanceLocalUnits / RUNELITE_GPU_LOCAL_TILE_SIZE) * NH_TILE_WORLD_UNITS;
+  const fogDepthWorldUnits = (uniforms.fogDepthLocalUnits / RUNELITE_GPU_LOCAL_TILE_SIZE) * NH_TILE_WORLD_UNITS;
   const fogNear = Math.max(0.1, effectiveDrawDistanceWorldUnits - fogDepthWorldUnits);
   const fogFar = Math.max(fogNear + 0.1, effectiveDrawDistanceWorldUnits);
   const canvas = boundary.renderer.domElement;
@@ -2062,7 +2062,7 @@ function applyRuneliteGpuPluginConfig(boundary: RuntimeSceneBoundary, gpuConfig:
   canvas.dataset.sourceGpuAnisotropicFiltering = "GpuPlugin.draw AnisotropicFilteringMode.getSamples";
 
   boundary.camera.far = gpuConfig.enabled ? Math.max(10, drawDistanceWorldUnits + 10) : 1000;
-  applyKronosCameraProjection(boundary.camera);
+  applyNhCameraProjection(boundary.camera);
 
   if (gpuConfig.enabled && uniforms.useFog) {
     const backgroundColor = boundary.scene.background instanceof Color ? boundary.scene.background : new Color(0x0e1216);
@@ -2137,22 +2137,22 @@ function applyRuneliteKeyRemappingConfig(
   canvas.dataset.sourceKeyRemappingChat = "KeyRemappingPlugin lockChat/unlockChat Press Enter to Chat";
 }
 
-function applyKronosGameKeybindConfig(
+function applyNhGameKeybindConfig(
   canvas: HTMLCanvasElement | null,
-  keybinds: KronosGameKeybindSnapshot
+  keybinds: NhGameKeybindSnapshot
 ): void {
   if (!canvas) {
     return;
   }
 
-  canvas.dataset.kronosGameKeybindSource = KRONOS_GAME_KEYBIND_SOURCE;
-  canvas.dataset.kronosGameKeybindEscapeCloses = String(keybinds.escapeCloses);
+  canvas.dataset.nhGameKeybindSource = NH_GAME_KEYBIND_SOURCE;
+  canvas.dataset.nhGameKeybindEscapeCloses = String(keybinds.escapeCloses);
   for (const [tabId, slot] of Object.entries(keybinds.keySlotsByTabId)) {
-    canvas.dataset[`kronosGameKeybind${kronosDatasetKey(tabId)}`] = String(slot);
+    canvas.dataset[`nhGameKeybind${nhDatasetKey(tabId)}`] = String(slot);
   }
 }
 
-function kronosDatasetKey(value: string): string {
+function nhDatasetKey(value: string): string {
   return value
     .split(/[^a-z0-9]+/i)
     .filter(Boolean)
@@ -2561,11 +2561,11 @@ function applyRuneliteTextureAnisotropy(root: Object3D, samples: number): void {
 
 function advanceRuntimeCameraAnglesClientCycle(
   boundary: RuntimeSceneBoundary,
-  keys: KronosCameraKeyState,
+  keys: NhCameraKeyState,
   mouseCamera: RuntimeMouseCameraDragState | null = null
 ): RuntimeMouseCameraDragState | null {
   if (mouseCamera) {
-    const update = updateKronosCameraAnglesFromMouseDrag(boundary.cameraRig.clientAngles, mouseCamera, mouseCamera);
+    const update = updateNhCameraAnglesFromMouseDrag(boundary.cameraRig.clientAngles, mouseCamera, mouseCamera);
     boundary.cameraRig.clientAngles = update.angles;
     return {
       ...mouseCamera,
@@ -2573,8 +2573,8 @@ function advanceRuntimeCameraAnglesClientCycle(
     };
   }
 
-  if (isKronosCameraKeyHeld(keys) || isKronosCameraMoving(boundary.cameraRig.clientAngles)) {
-    boundary.cameraRig.clientAngles = updateKronosCameraAngles(
+  if (isNhCameraKeyHeld(keys) || isNhCameraMoving(boundary.cameraRig.clientAngles)) {
+    boundary.cameraRig.clientAngles = updateNhCameraAngles(
       boundary.cameraRig.clientAngles,
       keys
     );
@@ -2592,30 +2592,30 @@ function updateRuntimeCameraFollowTarget(boundary: RuntimeSceneBoundary): void {
     return;
   }
 
-  const viewportHeight = boundary.fixedClientLayout?.viewport.rect.height ?? KRONOS_CAMERA_DEFAULT_VIEWPORT_HEIGHT;
-  const targetY = slot.group.position.y + kronosCameraFollowHeightSceneUnits(boundary.cameraRig.zoom, viewportHeight);
+  const viewportHeight = boundary.fixedClientLayout?.viewport.rect.height ?? NH_CAMERA_DEFAULT_VIEWPORT_HEIGHT;
+  const targetY = slot.group.position.y + nhCameraFollowHeightSceneUnits(boundary.cameraRig.zoom, viewportHeight);
   boundary.cameraRig.target.set(
-    smoothKronosCameraFocusAxis(boundary.cameraRig.target.x, slot.group.position.x),
+    smoothNhCameraFocusAxis(boundary.cameraRig.target.x, slot.group.position.x),
     targetY,
-    smoothKronosCameraFocusAxis(boundary.cameraRig.target.z, slot.group.position.z)
+    smoothNhCameraFocusAxis(boundary.cameraRig.target.z, slot.group.position.z)
   );
 }
 
-function resizeRuntimeBoundary(boundary: RuntimeSceneBoundary, canvas: HTMLCanvasElement): KronosFixedClientCssLayout | null {
+function resizeRuntimeBoundary(boundary: RuntimeSceneBoundary, canvas: HTMLCanvasElement): NhFixedClientCssLayout | null {
   const width = Math.max(1, canvas.clientWidth);
   const height = Math.max(1, canvas.clientHeight);
 
   boundary.renderer.setSize(width, height, false);
   const fixedLayout = boundary.fixedClientLayout;
-  boundary.fixedClientCssLayout = fixedLayout ? scaleKronosFixedClientLayout(fixedLayout, { width, height }) : null;
+  boundary.fixedClientCssLayout = fixedLayout ? scaleNhFixedClientLayout(fixedLayout, { width, height }) : null;
   if (!fixedLayout || !boundary.fixedClientCssLayout) {
     return null;
   }
 
   const cameraRect = boundary.fixedClientCssLayout.viewportRect;
   boundary.camera.aspect = cameraRect.width / cameraRect.height;
-  boundary.camera.fov = kronosViewportZoomToFovDegrees(fixedLayout.viewport.rect.height, fixedLayout.viewport.zoom);
-  applyKronosCameraProjection(boundary.camera);
+  boundary.camera.fov = nhViewportZoomToFovDegrees(fixedLayout.viewport.rect.height, fixedLayout.viewport.zoom);
+  applyNhCameraProjection(boundary.camera);
   return boundary.fixedClientCssLayout;
 }
 
@@ -2645,7 +2645,7 @@ function manualActorFromSnapshot(
   markerLabel = actorId === "local-player" ? "local control" : "opponent"
 ): ManualActorState {
   const localPose = snapshot.actors.find((pose) => pose.actorId === actorId) ?? snapshot.actors[0];
-  const orientationUnits = localPose.orientationUnits ?? kronosFacingDegreesToOrientationUnits(localPose.facingDegrees);
+  const orientationUnits = localPose.orientationUnits ?? nhFacingDegreesToOrientationUnits(localPose.facingDegrees);
   const rotationUnits = localPose.rotationUnits ?? orientationUnits;
   return {
     tile: localPose.tile,
@@ -2680,13 +2680,13 @@ function manualActorFromSnapshot(
   };
 }
 
-function snapManualActorToCollision(actor: ManualActorState, collision: KronosSceneCollision): ManualActorState {
+function snapManualActorToCollision(actor: ManualActorState, collision: NhSceneCollision): ManualActorState {
   const tile = collision.snapTile(actor.tile);
   return {
     ...actor,
     tile,
     renderTile: tile,
-    clientPosition: kronosClientPositionFromRuntimeTile(tile),
+    clientPosition: nhClientPositionFromRuntimeTile(tile),
     routeWaypoints: [],
     routeTraversalModes: [],
     serverRouteWaypoints: [],
@@ -2700,7 +2700,7 @@ function teleportManualActorToTile(actor: ManualActorState, tile: RuntimeTile): 
     ...actor,
     tile,
     renderTile: tile,
-    clientPosition: kronosClientPositionFromRuntimeTile(tile),
+    clientPosition: nhClientPositionFromRuntimeTile(tile),
     routeWaypoints: [],
     routeTraversalModes: [],
     serverRouteWaypoints: [],
@@ -2714,23 +2714,23 @@ function teleportManualActorToTile(actor: ManualActorState, tile: RuntimeTile): 
 function routeManualActor(
   actor: ManualActorState,
   destinationTile: RuntimeTile,
-  collision: KronosSceneCollision,
-  objectPlacement: KronosArenaObjectPlacement | undefined,
+  collision: NhSceneCollision,
+  objectPlacement: NhArenaObjectPlacement | undefined,
   now: number
 ): ManualActorRouteResult {
   const startTile = collision.snapTile(actor.tile);
   const destination = collision.snapTile(destinationTile);
   const routeSegment = objectPlacement
-    ? findKronosObjectRouteWaypoints(startTile, objectPlacement, collision)
-    : findKronosTileRouteWaypoints(startTile, destination, collision);
-  const routePath = expandKronosManualRoutePath(startTile, routeSegment, collision);
-  const serverRoute = setKronosManualServerRoutePath(routePath);
+    ? findNhObjectRouteWaypoints(startTile, objectPlacement, collision)
+    : findNhTileRouteWaypoints(startTile, destination, collision);
+  const routePath = expandNhManualRoutePath(startTile, routeSegment, collision);
+  const serverRoute = setNhManualServerRoutePath(routePath);
   const reached = objectPlacement
-    ? kronosSceneObjectRouteReached(startTile, objectPlacement, collision)
-    : sameKronosTile(startTile, destination);
+    ? nhSceneObjectRouteReached(startTile, objectPlacement, collision)
+    : sameNhTile(startTile, destination);
   const clientPosition = manualActorRouteClientPosition(actor, startTile);
-  const lastMovementClientCycle = Math.floor(now / KRONOS_CLIENT_CYCLE_MS);
-  const settlementWaypoints = kronosClientSettlementWaypoints(clientPosition, startTile);
+  const lastMovementClientCycle = Math.floor(now / NH_CLIENT_CYCLE_MS);
+  const settlementWaypoints = nhClientSettlementWaypoints(clientPosition, startTile);
   // Source: TargetRoute.beforeMovement() recomputes the entity route from the
   // current server tile each tick before Movement.process() consumes steps.
   // Do not carry an older visual target-route tail into the new route.
@@ -2777,18 +2777,18 @@ function routeManualActorToTarget(
   actor: ManualActorState,
   targetTile: RuntimeTile,
   attackRange: number,
-  collision: KronosSceneCollision,
+  collision: NhSceneCollision,
   now: number,
   preserveVisualSettlement = true
 ): ManualActorRouteResult {
   const startTile = collision.snapTile(actor.tile);
-  const routeSegment = findKronosTargetRouteWaypoints(startTile, targetTile, attackRange, collision);
-  const routePath = expandKronosManualRoutePath(startTile, routeSegment, collision);
-  const serverRoute = setKronosManualServerRoutePath(routePath);
-  const reached = kronosSceneTargetRouteReached(startTile, targetTile, attackRange, collision);
+  const routeSegment = findNhTargetRouteWaypoints(startTile, targetTile, attackRange, collision);
+  const routePath = expandNhManualRoutePath(startTile, routeSegment, collision);
+  const serverRoute = setNhManualServerRoutePath(routePath);
+  const reached = nhSceneTargetRouteReached(startTile, targetTile, attackRange, collision);
   const clientPosition = manualActorRouteClientPosition(actor, startTile);
-  const lastMovementClientCycle = Math.floor(now / KRONOS_CLIENT_CYCLE_MS);
-  const settlementWaypoints = kronosClientSettlementWaypoints(clientPosition, startTile);
+  const lastMovementClientCycle = Math.floor(now / NH_CLIENT_CYCLE_MS);
+  const settlementWaypoints = nhClientSettlementWaypoints(clientPosition, startTile);
   // Source: RouteFinder.route() rewrites Movement.readOffset/writeOffset from
   // the actor's current server tile on each TargetRoute.beforeMovement() pass.
   // TargetRoute-driven melee/range/mage routes consume their first server step
@@ -2834,14 +2834,14 @@ function routeManualActorToTarget(
 }
 
 function manualActorRouteClientPosition(actor: ManualActorState, startTile: RuntimeTile): RuntimeClientPosition {
-  return actor.clientPosition ?? kronosClientPositionFromRuntimeTile(actor.renderTile ?? startTile);
+  return actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile ?? startTile);
 }
 
-function kronosClientSettlementWaypoints(
+function nhClientSettlementWaypoints(
   clientPosition: RuntimeClientPosition,
   authoritativeTile: RuntimeTile
 ): readonly RuntimeTile[] {
-  const targetPosition = kronosClientPositionFromRuntimeTile(authoritativeTile);
+  const targetPosition = nhClientPositionFromRuntimeTile(authoritativeTile);
   if (clientPosition.x === targetPosition.x && clientPosition.z === targetPosition.z) {
     return [];
   }
@@ -2850,23 +2850,23 @@ function kronosClientSettlementWaypoints(
   let x = clientPosition.x;
   let z = clientPosition.z;
   while ((x !== targetPosition.x || z !== targetPosition.z) && waypoints.length < 9) {
-    x = kronosMoveClientAxis(x, targetPosition.x, KRONOS_ACTOR_TILE_CLIENT_UNITS);
-    z = kronosMoveClientAxis(z, targetPosition.z, KRONOS_ACTOR_TILE_CLIENT_UNITS);
-    waypoints.push(runtimeTileFromKronosClientPosition({ x, z }));
+    x = nhMoveClientAxis(x, targetPosition.x, NH_ACTOR_TILE_CLIENT_UNITS);
+    z = nhMoveClientAxis(z, targetPosition.z, NH_ACTOR_TILE_CLIENT_UNITS);
+    waypoints.push(runtimeTileFromNhClientPosition({ x, z }));
   }
   return waypoints;
 }
 
-function expandKronosManualRoutePath(
+function expandNhManualRoutePath(
   startTile: RuntimeTile,
   routeSegment: readonly RuntimeTile[],
-  collision: KronosSceneCollision
+  collision: NhSceneCollision
 ): readonly RuntimeTile[] {
   const path: RuntimeTile[] = [];
   let currentTile = collision.snapTile(startTile);
   for (const waypoint of routeSegment) {
-    while (!sameKronosTile(currentTile, waypoint)) {
-      const nextTile = kronosStepTowardWaypoint(currentTile, waypoint);
+    while (!sameNhTile(currentTile, waypoint)) {
+      const nextTile = nhStepTowardWaypoint(currentTile, waypoint);
       if (!collision.canStep(currentTile, nextTile)) {
         return path;
       }
@@ -2877,7 +2877,7 @@ function expandKronosManualRoutePath(
   return path;
 }
 
-function setKronosManualServerRoutePath(
+function setNhManualServerRoutePath(
   routePath: readonly RuntimeTile[]
 ): Pick<ManualActorState, "serverRouteWaypoints" | "serverRouteTraversalModes"> {
   if (routePath.length === 0) {
@@ -2946,16 +2946,16 @@ function enqueueManualActorClientTraversalModes(
   return queued;
 }
 
-function kronosStepTowardWaypoint(fromTile: RuntimeTile, waypoint: RuntimeTile): RuntimeTile {
-  const deltaX = Math.sign(Math.round((waypoint.x - fromTile.x) / KRONOS_TILE_WORLD_UNITS));
-  const deltaZ = Math.sign(Math.round((waypoint.z - fromTile.z) / KRONOS_TILE_WORLD_UNITS));
+function nhStepTowardWaypoint(fromTile: RuntimeTile, waypoint: RuntimeTile): RuntimeTile {
+  const deltaX = Math.sign(Math.round((waypoint.x - fromTile.x) / NH_TILE_WORLD_UNITS));
+  const deltaZ = Math.sign(Math.round((waypoint.z - fromTile.z) / NH_TILE_WORLD_UNITS));
   return {
-    x: fromTile.x + deltaX * KRONOS_TILE_WORLD_UNITS,
-    z: fromTile.z + deltaZ * KRONOS_TILE_WORLD_UNITS
+    x: fromTile.x + deltaX * NH_TILE_WORLD_UNITS,
+    z: fromTile.z + deltaZ * NH_TILE_WORLD_UNITS
   };
 }
 
-function sameKronosTile(left: RuntimeTile, right: RuntimeTile): boolean {
+function sameNhTile(left: RuntimeTile, right: RuntimeTile): boolean {
   return left.x === right.x && left.z === right.z;
 }
 
@@ -2987,11 +2987,11 @@ function clearManualActorMovementRoute(actor: ManualActorState): ManualActorStat
   // The client still has to settle smoothly to
   // that last accepted server tile, otherwise the next post-freeze route starts
   // from a hidden authoritative tile and visibly snaps.
-  const clientPosition = actor.clientPosition ?? kronosClientPositionFromRuntimeTile(actor.renderTile);
-  const settlementWaypoints = kronosClientSettlementWaypoints(clientPosition, actor.tile);
+  const clientPosition = actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile);
+  const settlementWaypoints = nhClientSettlementWaypoints(clientPosition, actor.tile);
   return {
     ...actor,
-    renderTile: runtimeTileFromKronosClientPosition(clientPosition),
+    renderTile: runtimeTileFromNhClientPosition(clientPosition),
     routeWaypoints: settlementWaypoints,
     routeTraversalModes: settlementWaypoints.map(() => actor.running ? 2 : 1),
     serverRouteWaypoints: [],
@@ -3016,7 +3016,7 @@ function syncManualActorServerTileToCombatActor(
   actor: ManualActorState,
   combatActor: RuntimePlayerCombatActorState
 ): ManualActorState {
-  if (sameKronosTile(actor.tile, combatActor.tile)) {
+  if (sameNhTile(actor.tile, combatActor.tile)) {
     return actor;
   }
 
@@ -3037,7 +3037,7 @@ function preAttackRouteManualActorToCombatTarget(input: {
   readonly targetActorId: RuntimeActorId;
   readonly targetActor: ManualActorState;
   readonly targetCombatActor: RuntimePlayerCombatActorState;
-  readonly collision: KronosSceneCollision;
+  readonly collision: NhSceneCollision;
   readonly tick: number;
   readonly now: number;
   readonly movedThisTick: boolean;
@@ -3056,11 +3056,11 @@ function preAttackRouteManualActorToCombatTarget(input: {
     return clearManualActorMovementRoute(input.actor);
   }
 
-  if (kronosSceneTargetRouteReached(input.actor.tile, input.targetActor.tile, profile.attackRange, input.collision)) {
+  if (nhSceneTargetRouteReached(input.actor.tile, input.targetActor.tile, profile.attackRange, input.collision)) {
     return input.actor;
   }
 
-  // Source: Kronos Player.process() runs combat.preAttack(), TargetRoute.beforeMovement(), movement.process(),
+  // Source: Nh Player.process() runs combat.preAttack(), TargetRoute.beforeMovement(), movement.process(),
   // TargetRoute.afterMovement(), then combat.attack(); target-route movement is consumed before the attack gate,
   // even when the first step has not reached attack range yet.
   const routed = routeManualActorToTarget(input.actor, input.targetActor.tile, profile.attackRange, input.collision, input.now, false);
@@ -3072,17 +3072,17 @@ function runtimeCombatProjectileLineOfSight(input: {
   readonly actor: ManualActorState;
   readonly combatActor: RuntimePlayerCombatActorState;
   readonly targetActor: ManualActorState;
-  readonly collision: KronosSceneCollision;
+  readonly collision: NhSceneCollision;
 }): boolean {
   const profile = runtimePlayerCombatTargetRouteProfile(input.actorId, input.combatActor);
-  return profile.melee || kronosSceneProjectileRouteClear(input.actor.tile, input.targetActor.tile, input.collision);
+  return profile.melee || nhSceneProjectileRouteClear(input.actor.tile, input.targetActor.tile, input.collision);
 }
 
 function runtimeManualPolicyCanAttackSignal(input: {
   readonly attacker: RuntimePlayerCombatActorState;
   readonly target: RuntimePlayerCombatActorState;
   readonly tick: number;
-  readonly collision: KronosSceneCollision | null;
+  readonly collision: NhSceneCollision | null;
 }): boolean {
   if (!canAttackThroughLock(input.attacker.locks, input.tick)) {
     return false;
@@ -3096,29 +3096,29 @@ function runtimeManualPolicyCanAttackSignal(input: {
   // Wilderness.allowAttack(); in the trainer this is the combat-tile listener
   // check, not an attack-timer/range/line-of-sight gate.
   return (
-    kronosNhBotCombatTileAllowed(input.collision.sceneToWorldTile(input.attacker.tile)) &&
-    kronosNhBotCombatTileAllowed(input.collision.sceneToWorldTile(input.target.tile))
+    nhNhBotCombatTileAllowed(input.collision.sceneToWorldTile(input.attacker.tile)) &&
+    nhNhBotCombatTileAllowed(input.collision.sceneToWorldTile(input.target.tile))
   );
 }
 
 function runtimeLoadoutWeaponTypeId(
   loadoutId: RuntimeLoadoutId,
-  equipmentDefinitions: KronosInventoryEquipmentDefinitionStore
+  equipmentDefinitions: NhInventoryEquipmentDefinitionStore
 ): string | null {
   const weaponItemId = nhLoadouts[loadoutId].equipment.weapon?.itemId;
   return weaponItemId === undefined ? null : equipmentDefinitions.get(weaponItemId)?.weaponType ?? null;
 }
 
-function kronosWeaponRenderSequenceName(
+function nhWeaponRenderSequenceName(
   loadoutId: RuntimeLoadoutId,
   renderAnimationIndex: 0 | 1 | 2 | 3 | 4 | 5 | 6,
-  equipmentDefinitions: KronosInventoryEquipmentDefinitionStore,
-  weaponTypeDefinitions: KronosWeaponTypeDefinitionStore,
-  actorSequenceDefinitions: KronosActorSequenceDefinitionStore
+  equipmentDefinitions: NhInventoryEquipmentDefinitionStore,
+  weaponTypeDefinitions: NhWeaponTypeDefinitionStore,
+  actorSequenceDefinitions: NhActorSequenceDefinitionStore
 ): RuntimeSequenceName {
   const weaponTypeId = runtimeLoadoutWeaponTypeId(loadoutId, equipmentDefinitions);
   const sequenceId = weaponTypeId ? weaponTypeDefinitions.get(weaponTypeId)?.renderAnimations[renderAnimationIndex] : undefined;
-  return kronosRuntimeSequenceNameForId(sequenceId, actorSequenceDefinitions) ?? (
+  return nhRuntimeSequenceNameForId(sequenceId, actorSequenceDefinitions) ?? (
     renderAnimationIndex === 1 ? "turn" :
       renderAnimationIndex === 2 ? "walk" :
         renderAnimationIndex === 3 ? "walk_back" :
@@ -3131,9 +3131,9 @@ function kronosWeaponRenderSequenceName(
 function manualActorBaseSequenceName(
   sequenceName: RuntimeSequenceName,
   loadoutId?: RuntimeLoadoutId,
-  equipmentDefinitions: KronosInventoryEquipmentDefinitionStore = new Map(),
-  weaponTypeDefinitions: KronosWeaponTypeDefinitionStore = new Map(),
-  actorSequenceDefinitions: KronosActorSequenceDefinitionStore = createKronosActorSequenceDefinitionStore(null)
+  equipmentDefinitions: NhInventoryEquipmentDefinitionStore = new Map(),
+  weaponTypeDefinitions: NhWeaponTypeDefinitionStore = new Map(),
+  actorSequenceDefinitions: NhActorSequenceDefinitionStore = createNhActorSequenceDefinitionStore(null)
 ): RuntimeSequenceName {
   if (
     runtimeSequenceIsWeaponReady(sequenceName) ||
@@ -3150,38 +3150,38 @@ function manualActorBaseSequenceName(
     return runtimeSequenceIsMovement(sequenceName) ? sequenceName : "idle";
   }
   if (sequenceName === "turn") {
-    return kronosWeaponRenderSequenceName(loadoutId, 1, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions);
+    return nhWeaponRenderSequenceName(loadoutId, 1, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions);
   }
   if (sequenceName === "walk") {
-    return kronosWeaponRenderSequenceName(loadoutId, 2, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions);
+    return nhWeaponRenderSequenceName(loadoutId, 2, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions);
   }
   if (sequenceName === "walk_back") {
-    return kronosWeaponRenderSequenceName(loadoutId, 3, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions);
+    return nhWeaponRenderSequenceName(loadoutId, 3, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions);
   }
   if (sequenceName === "walk_left") {
-    return kronosWeaponRenderSequenceName(loadoutId, 4, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions);
+    return nhWeaponRenderSequenceName(loadoutId, 4, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions);
   }
   if (sequenceName === "walk_right") {
-    return kronosWeaponRenderSequenceName(loadoutId, 5, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions);
+    return nhWeaponRenderSequenceName(loadoutId, 5, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions);
   }
   if (sequenceName === "run") {
-    return kronosWeaponRenderSequenceName(loadoutId, 6, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions);
+    return nhWeaponRenderSequenceName(loadoutId, 6, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions);
   }
-  return kronosWeaponRenderSequenceName(loadoutId, 0, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions);
+  return nhWeaponRenderSequenceName(loadoutId, 0, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions);
 }
 
 function manualActorVisibleSequenceName(actor: ManualActorState): RuntimeSequenceName {
-  if (actor.movementBlockedBySequence || actor.routeWaypoints.length === 0 || !kronosSequenceIsReadyMovement(actor.sequenceName)) {
+  if (actor.movementBlockedBySequence || actor.routeWaypoints.length === 0 || !nhSequenceIsReadyMovement(actor.sequenceName)) {
     return actor.sequenceName;
   }
 
-  return kronosMovementSequenceNameFromOrientation(actor);
+  return nhMovementSequenceNameFromOrientation(actor);
 }
 
-function kronosAdvanceMovementFrameCursor(
+function nhAdvanceMovementFrameCursor(
   actor: ManualActorState,
   movementSequenceName: RuntimeSequenceName,
-  animationFixtures: KronosAnimationFixtures | null
+  animationFixtures: NhAnimationFixtures | null
 ): ManualActorState {
   const sequence = animationFixtures?.sequences.get(movementSequenceName);
   if (!sequence || sequence.frames.length === 0) {
@@ -3211,7 +3211,7 @@ function kronosAdvanceMovementFrameCursor(
   };
 }
 
-function kronosMovementFrameCursor(actor: ManualActorState): KronosSequenceFrameCursorOverride {
+function nhMovementFrameCursor(actor: ManualActorState): NhSequenceFrameCursorOverride {
   return {
     frameIndex: actor.movementFrame,
     frameCycle: actor.movementFrameCycle
@@ -3225,40 +3225,40 @@ function runtimePlayerCombatActionActive(
   return combatActor.actionSequenceName !== null && combatState.tick < combatActor.actionUntilTick;
 }
 
-function kronosClientPositionFromRuntimeTile(tile: RuntimeTile): RuntimeClientPosition {
+function nhClientPositionFromRuntimeTile(tile: RuntimeTile): RuntimeClientPosition {
   return {
-    x: Math.round((tile.x / KRONOS_TILE_WORLD_UNITS) * KRONOS_ACTOR_TILE_CLIENT_UNITS),
-    z: Math.round((tile.z / KRONOS_TILE_WORLD_UNITS) * KRONOS_ACTOR_TILE_CLIENT_UNITS)
+    x: Math.round((tile.x / NH_TILE_WORLD_UNITS) * NH_ACTOR_TILE_CLIENT_UNITS),
+    z: Math.round((tile.z / NH_TILE_WORLD_UNITS) * NH_ACTOR_TILE_CLIENT_UNITS)
   };
 }
 
-function runtimeTileFromKronosClientPosition(position: RuntimeClientPosition): RuntimeTile {
+function runtimeTileFromNhClientPosition(position: RuntimeClientPosition): RuntimeTile {
   return {
-    x: Number(((position.x / KRONOS_ACTOR_TILE_CLIENT_UNITS) * KRONOS_TILE_WORLD_UNITS).toFixed(6)),
-    z: Number(((position.z / KRONOS_ACTOR_TILE_CLIENT_UNITS) * KRONOS_TILE_WORLD_UNITS).toFixed(6))
+    x: Number(((position.x / NH_ACTOR_TILE_CLIENT_UNITS) * NH_TILE_WORLD_UNITS).toFixed(6)),
+    z: Number(((position.z / NH_ACTOR_TILE_CLIENT_UNITS) * NH_TILE_WORLD_UNITS).toFixed(6))
   };
 }
 
-function normalizeKronosOrientationUnits(units: number): number {
+function normalizeNhOrientationUnits(units: number): number {
   const integerUnits = Number.isFinite(units) ? Math.trunc(units) : 0;
-  return ((integerUnits % KRONOS_ACTOR_ORIENTATION_UNITS) + KRONOS_ACTOR_ORIENTATION_UNITS) % KRONOS_ACTOR_ORIENTATION_UNITS;
+  return ((integerUnits % NH_ACTOR_ORIENTATION_UNITS) + NH_ACTOR_ORIENTATION_UNITS) % NH_ACTOR_ORIENTATION_UNITS;
 }
 
-function kronosFacingDegreesToOrientationUnits(degrees: number): number {
-  return normalizeKronosOrientationUnits((degrees * KRONOS_ACTOR_ORIENTATION_UNITS) / 360 + 1024);
+function nhFacingDegreesToOrientationUnits(degrees: number): number {
+  return normalizeNhOrientationUnits((degrees * NH_ACTOR_ORIENTATION_UNITS) / 360 + 1024);
 }
 
-function kronosActorModelRotationRadiansFromFacingDegrees(degrees: number): number {
-  const orientationUnits = kronosFacingDegreesToOrientationUnits(degrees);
-  return (orientationUnits * Math.PI * 2) / KRONOS_ACTOR_ORIENTATION_UNITS;
+function nhActorModelRotationRadiansFromFacingDegrees(degrees: number): number {
+  const orientationUnits = nhFacingDegreesToOrientationUnits(degrees);
+  return (orientationUnits * Math.PI * 2) / NH_ACTOR_ORIENTATION_UNITS;
 }
 
-function kronosOrientationUnitsToFacingDegrees(units: number): number {
-  const degrees = ((normalizeKronosOrientationUnits(units) - 1024) * 360) / KRONOS_ACTOR_ORIENTATION_UNITS;
+function nhOrientationUnitsToFacingDegrees(units: number): number {
+  const degrees = ((normalizeNhOrientationUnits(units) - 1024) * 360) / NH_ACTOR_ORIENTATION_UNITS;
   return ((degrees + 180) % 360 + 360) % 360 - 180;
 }
 
-function kronosOrientationUnitsFromClientDelta(
+function nhOrientationUnitsFromClientDelta(
   deltaX: number,
   deltaZ: number,
   fallbackUnits: number
@@ -3290,7 +3290,7 @@ function kronosOrientationUnitsFromClientDelta(
   return fallbackUnits;
 }
 
-function kronosTargetOrientationUnits(
+function nhTargetOrientationUnits(
   position: RuntimeClientPosition,
   target: RuntimeClientPosition,
   fallbackUnits: number
@@ -3300,18 +3300,18 @@ function kronosTargetOrientationUnits(
   if (deltaX === 0 && deltaZ === 0) {
     return fallbackUnits;
   }
-  return normalizeKronosOrientationUnits(Math.atan2(deltaX, deltaZ) * 325.949);
+  return normalizeNhOrientationUnits(Math.atan2(deltaX, deltaZ) * 325.949);
 }
 
-function signedKronosOrientationDelta(targetUnits: number, rotationUnits: number): number {
-  let delta = normalizeKronosOrientationUnits(targetUnits - rotationUnits);
+function signedNhOrientationDelta(targetUnits: number, rotationUnits: number): number {
+  let delta = normalizeNhOrientationUnits(targetUnits - rotationUnits);
   if (delta > 1024) {
-    delta -= KRONOS_ACTOR_ORIENTATION_UNITS;
+    delta -= NH_ACTOR_ORIENTATION_UNITS;
   }
   return delta;
 }
 
-function kronosMoveClientAxis(current: number, target: number, speed: number): number {
+function nhMoveClientAxis(current: number, target: number, speed: number): number {
   if (current < target) {
     return Math.min(current + speed, target);
   }
@@ -3321,7 +3321,7 @@ function kronosMoveClientAxis(current: number, target: number, speed: number): n
   return current;
 }
 
-function kronosManualMovementSpeed(
+function nhManualMovementSpeed(
   actor: ManualActorState,
   traversalMode: number,
   hasCombatTarget: boolean
@@ -3347,8 +3347,8 @@ function kronosManualMovementSpeed(
   return { speed, movementStallTicks };
 }
 
-function kronosMovementSequenceNameFromOrientation(actor: ManualActorState): RuntimeSequenceName {
-  const delta = signedKronosOrientationDelta(actor.orientationUnits, actor.rotationUnits);
+function nhMovementSequenceNameFromOrientation(actor: ManualActorState): RuntimeSequenceName {
+  const delta = signedNhOrientationDelta(actor.orientationUnits, actor.rotationUnits);
   if (delta >= -256 && delta <= 256) {
     return "walk";
   }
@@ -3361,68 +3361,68 @@ function kronosMovementSequenceNameFromOrientation(actor: ManualActorState): Run
   return "walk_back";
 }
 
-function kronosMovementSequenceNameForSpeed(
+function nhMovementSequenceNameForSpeed(
   speed: number,
   movementSequenceName: RuntimeSequenceName
 ): RuntimeSequenceName {
   return speed >= 8 && movementSequenceName === "walk" ? "run" : movementSequenceName;
 }
 
-function kronosSequenceIsReadyMovement(sequenceName: RuntimeSequenceName): boolean {
+function nhSequenceIsReadyMovement(sequenceName: RuntimeSequenceName): boolean {
   return sequenceName === "idle" || runtimeSequenceIsWeaponReady(sequenceName);
 }
 
-function kronosTurnSequenceForReadyMovement(
+function nhTurnSequenceForReadyMovement(
   sequenceName: RuntimeSequenceName,
   turnTicks: number,
   stillTurning: boolean
 ): RuntimeSequenceName {
-  return kronosSequenceIsReadyMovement(sequenceName) &&
-    (turnTicks > KRONOS_ACTOR_TURN_ANIMATION_DELAY_TICKS || stillTurning)
+  return nhSequenceIsReadyMovement(sequenceName) &&
+    (turnTicks > NH_ACTOR_TURN_ANIMATION_DELAY_TICKS || stillTurning)
     ? "turn"
     : sequenceName;
 }
 
-function rotateManualActorTowardKronosOrientation(
+function rotateManualActorTowardNhOrientation(
   actor: ManualActorState,
   targetActor: ManualActorState | null,
   hasCombatTarget: boolean
 ): ManualActorState {
   const targetPosition = targetActor
-    ? targetActor.clientPosition ?? kronosClientPositionFromRuntimeTile(targetActor.renderTile)
+    ? targetActor.clientPosition ?? nhClientPositionFromRuntimeTile(targetActor.renderTile)
     : null;
   const orientationUnits =
     hasCombatTarget && targetPosition
-      ? kronosTargetOrientationUnits(actor.clientPosition ?? kronosClientPositionFromRuntimeTile(actor.renderTile), targetPosition, actor.orientationUnits)
+      ? nhTargetOrientationUnits(actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile), targetPosition, actor.orientationUnits)
       : actor.orientationUnits;
-  const delta = normalizeKronosOrientationUnits(orientationUnits - actor.rotationUnits);
+  const delta = normalizeNhOrientationUnits(orientationUnits - actor.rotationUnits);
   if (delta === 0) {
     return {
       ...actor,
       orientationUnits,
       turnTicks: 0,
-      facingDegrees: kronosOrientationUnitsToFacingDegrees(actor.rotationUnits)
+      facingDegrees: nhOrientationUnitsToFacingDegrees(actor.rotationUnits)
     };
   }
 
   let rotationUnits = actor.rotationUnits;
   let stillTurning = true;
   if (delta > 1024) {
-    rotationUnits -= KRONOS_ACTOR_TURN_SPEED_UNITS;
-    if (delta < KRONOS_ACTOR_TURN_SPEED_UNITS || delta > KRONOS_ACTOR_ORIENTATION_UNITS - KRONOS_ACTOR_TURN_SPEED_UNITS) {
+    rotationUnits -= NH_ACTOR_TURN_SPEED_UNITS;
+    if (delta < NH_ACTOR_TURN_SPEED_UNITS || delta > NH_ACTOR_ORIENTATION_UNITS - NH_ACTOR_TURN_SPEED_UNITS) {
       rotationUnits = orientationUnits;
       stillTurning = false;
     }
   } else {
-    rotationUnits += KRONOS_ACTOR_TURN_SPEED_UNITS;
-    if (delta < KRONOS_ACTOR_TURN_SPEED_UNITS || delta > KRONOS_ACTOR_ORIENTATION_UNITS - KRONOS_ACTOR_TURN_SPEED_UNITS) {
+    rotationUnits += NH_ACTOR_TURN_SPEED_UNITS;
+    if (delta < NH_ACTOR_TURN_SPEED_UNITS || delta > NH_ACTOR_ORIENTATION_UNITS - NH_ACTOR_TURN_SPEED_UNITS) {
       rotationUnits = orientationUnits;
       stillTurning = false;
     }
   }
-  rotationUnits = normalizeKronosOrientationUnits(rotationUnits);
+  rotationUnits = normalizeNhOrientationUnits(rotationUnits);
   const turnTicks = actor.turnTicks + 1;
-  const sequenceName = kronosTurnSequenceForReadyMovement(actor.sequenceName, turnTicks, stillTurning);
+  const sequenceName = nhTurnSequenceForReadyMovement(actor.sequenceName, turnTicks, stillTurning);
 
   return {
     ...actor,
@@ -3430,7 +3430,7 @@ function rotateManualActorTowardKronosOrientation(
     rotationUnits,
     turnTicks,
     sequenceName,
-    facingDegrees: kronosOrientationUnitsToFacingDegrees(rotationUnits)
+    facingDegrees: nhOrientationUnitsToFacingDegrees(rotationUnits)
   };
 }
 
@@ -3444,7 +3444,7 @@ function manualActorActionSequenceKey(
   const actionStartTick =
     combatActor.actionStartedAtTick ?? combatActor.actionUntilTick - combatActor.actionDurationTicks;
   const actionStartClientCycle =
-    combatActor.actionStartedAtClientCycle ?? actionStartTick * KRONOS_CLIENT_CYCLES_PER_GAME_TICK;
+    combatActor.actionStartedAtClientCycle ?? actionStartTick * NH_CLIENT_CYCLES_PER_GAME_TICK;
   return `${combatActor.actionSequenceName}:${actionStartClientCycle}`;
 }
 
@@ -3485,7 +3485,7 @@ function syncManualActorActionSequence(
     activeSequenceKey,
     completedSequenceKey: null,
     sequencePathLengthAtStart: actor.routeWaypoints.length,
-    // Source: Kronos LoginPacket.method3722 resets sequenceFrame, sequenceFrameCycle, sequenceDelay,
+    // Source: Nh LoginPacket.method3722 resets sequenceFrame, sequenceFrameCycle, sequenceDelay,
     // and field703 only when a new primary sequence is accepted by the client.
     primaryFrame: 0,
     primaryFrameCycle: 0,
@@ -3533,18 +3533,18 @@ function manualActorWithAuthoritativeSequenceCursor(
   return incoming;
 }
 
-function kronosPrimaryFrameCursor(actor: ManualActorState): KronosSequenceFrameCursorOverride {
+function nhPrimaryFrameCursor(actor: ManualActorState): NhSequenceFrameCursorOverride {
   return {
     frameIndex: actor.primaryFrame,
     frameCycle: actor.primaryFrameCycle
   };
 }
 
-function kronosAdvancePrimarySequenceCursor(
+function nhAdvancePrimarySequenceCursor(
   actor: ManualActorState,
   combatActor: RuntimePlayerCombatActorState | null,
   combatState: RuntimePlayerCombatState | null,
-  animationFixtures: KronosAnimationFixtures | null
+  animationFixtures: NhAnimationFixtures | null
 ): ManualActorState {
   if (!combatActor || !combatState || actor.activeSequenceKey === null) {
     return actor;
@@ -3571,7 +3571,7 @@ function kronosAdvancePrimarySequenceCursor(
     ? Math.max(1, sequence.frames[primaryFrame].lengthClientCycles)
     : 1;
 
-  // Source: Kronos class329 increments sequenceFrameCycle once per 20ms client cycle and
+  // Source: Nh class329 increments sequenceFrameCycle once per 20ms client cycle and
   // advances only when sequenceFrameCycle is greater than frameLengths[sequenceFrame].
   if (primaryFrame < sequence.frames.length && primaryFrameCycle > frameLength) {
     primaryFrameCycle = 1;
@@ -3622,11 +3622,11 @@ function kronosAdvancePrimarySequenceCursor(
   };
 }
 
-function manualActorMovementBlockedByKronosSequence(
+function manualActorMovementBlockedByNhSequence(
   actor: ManualActorState,
   combatActor: RuntimePlayerCombatActorState | null,
   combatState: RuntimePlayerCombatState,
-  animationFixtures: KronosAnimationFixtures | null,
+  animationFixtures: NhAnimationFixtures | null,
 ): boolean {
   if (!combatActor || !runtimePlayerCombatActionActive(combatActor, combatState) || !combatActor.actionSequenceName) {
     return false;
@@ -3648,19 +3648,19 @@ function manualActorMovementBlockedByKronosSequence(
     return false;
   }
   return actor.sequencePathLengthAtStart > 0
-    ? kronosSequencePrecedenceAnimating(sequence) === 0
-    : kronosSequencePriority(sequence) === 0;
+    ? nhSequencePrecedenceAnimating(sequence) === 0
+    : nhSequencePriority(sequence) === 0;
 }
 
 function advanceManualActorClientCycle(
   actor: ManualActorState,
-  _collision: KronosSceneCollision,
+  _collision: NhSceneCollision,
   movementBlocked: boolean,
   targetActor: ManualActorState | null,
   hasCombatTarget: boolean,
-  animationFixtures: KronosAnimationFixtures | null
+  animationFixtures: NhAnimationFixtures | null
 ): ManualActorState {
-  const clientPosition = actor.clientPosition ?? kronosClientPositionFromRuntimeTile(actor.renderTile);
+  const clientPosition = actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile);
   let currentActor: ManualActorState = {
     ...actor,
     clientPosition,
@@ -3670,17 +3670,17 @@ function advanceManualActorClientCycle(
     currentActor = {
       ...currentActor,
       tile: actor.tile,
-      renderTile: runtimeTileFromKronosClientPosition(clientPosition),
+      renderTile: runtimeTileFromNhClientPosition(clientPosition),
       clientPosition,
       routeTraversalModes: [],
       movementStallTicks: 0
     };
-    const rotatedActor = rotateManualActorTowardKronosOrientation(
+    const rotatedActor = rotateManualActorTowardNhOrientation(
       { ...currentActor, movementBlockedBySequence: false },
       targetActor,
       hasCombatTarget
     );
-    return kronosAdvanceMovementFrameCursor(rotatedActor, rotatedActor.sequenceName, animationFixtures);
+    return nhAdvanceMovementFrameCursor(rotatedActor, rotatedActor.sequenceName, animationFixtures);
   }
 
   if (movementBlocked) {
@@ -3690,15 +3690,15 @@ function advanceManualActorClientCycle(
       movementBlockedBySequence: true,
       movementStallTicks: Math.min(actor.movementStallTicks + 1, 100)
     };
-    const rotatedActor = rotateManualActorTowardKronosOrientation(currentActor, targetActor, hasCombatTarget);
-    return kronosAdvanceMovementFrameCursor(rotatedActor, rotatedActor.sequenceName, animationFixtures);
+    const rotatedActor = rotateManualActorTowardNhOrientation(currentActor, targetActor, hasCombatTarget);
+    return nhAdvanceMovementFrameCursor(rotatedActor, rotatedActor.sequenceName, animationFixtures);
   }
 
   const targetTile = actor.routeWaypoints[0];
-  const targetPosition = kronosClientPositionFromRuntimeTile(targetTile);
+  const targetPosition = nhClientPositionFromRuntimeTile(targetTile);
   currentActor = {
     ...currentActor,
-    orientationUnits: kronosOrientationUnitsFromClientDelta(
+    orientationUnits: nhOrientationUnitsFromClientDelta(
       targetPosition.x - clientPosition.x,
       targetPosition.z - clientPosition.z,
       actor.orientationUnits
@@ -3710,7 +3710,7 @@ function advanceManualActorClientCycle(
   ) {
     const routeWaypoints = actor.routeWaypoints.slice(1);
     const routeTraversalModes = actor.routeTraversalModes.slice(1);
-    const renderTile = runtimeTileFromKronosClientPosition(targetPosition);
+    const renderTile = runtimeTileFromNhClientPosition(targetPosition);
     currentActor = {
       ...currentActor,
       tile: actor.tile,
@@ -3724,22 +3724,22 @@ function advanceManualActorClientCycle(
     };
     // Source: TargetRoute.beforeMovement() only rewrites Movement steps; PlayerCombat.faceTarget()
     // is not applied continuously during the run-in. Keep movement-facing while consuming route steps.
-    const rotatedActor = rotateManualActorTowardKronosOrientation(currentActor, targetActor, false);
-    return kronosAdvanceMovementFrameCursor(rotatedActor, rotatedActor.sequenceName, animationFixtures);
+    const rotatedActor = rotateManualActorTowardNhOrientation(currentActor, targetActor, false);
+    return nhAdvanceMovementFrameCursor(rotatedActor, rotatedActor.sequenceName, animationFixtures);
   }
 
   const traversalMode = actor.routeTraversalModes[0] ?? (actor.running ? 2 : 1);
-  const initialMovementSequenceName = kronosMovementSequenceNameFromOrientation(currentActor);
-  const { speed, movementStallTicks } = kronosManualMovementSpeed(currentActor, traversalMode, hasCombatTarget);
-  const movementSequenceName = kronosMovementSequenceNameForSpeed(speed, initialMovementSequenceName);
+  const initialMovementSequenceName = nhMovementSequenceNameFromOrientation(currentActor);
+  const { speed, movementStallTicks } = nhManualMovementSpeed(currentActor, traversalMode, hasCombatTarget);
+  const movementSequenceName = nhMovementSequenceNameForSpeed(speed, initialMovementSequenceName);
   const nextPosition = {
-    x: kronosMoveClientAxis(clientPosition.x, targetPosition.x, speed),
-    z: kronosMoveClientAxis(clientPosition.z, targetPosition.z, speed)
+    x: nhMoveClientAxis(clientPosition.x, targetPosition.x, speed),
+    z: nhMoveClientAxis(clientPosition.z, targetPosition.z, speed)
   };
   const reached = nextPosition.x === targetPosition.x && nextPosition.z === targetPosition.z;
   const routeWaypoints = reached ? actor.routeWaypoints.slice(1) : actor.routeWaypoints;
   const routeTraversalModes = reached ? actor.routeTraversalModes.slice(1) : actor.routeTraversalModes;
-  const renderTile = runtimeTileFromKronosClientPosition(nextPosition);
+  const renderTile = runtimeTileFromNhClientPosition(nextPosition);
   currentActor = {
     ...currentActor,
     tile: actor.tile,
@@ -3754,29 +3754,29 @@ function advanceManualActorClientCycle(
   };
   // Source: TargetRoute.beforeMovement() queues the route; combat facing is separate from
   // route-facing until the actor is no longer consuming movement steps.
-  const rotatedActor = rotateManualActorTowardKronosOrientation(currentActor, targetActor, false);
-  return kronosAdvanceMovementFrameCursor(rotatedActor, rotatedActor.sequenceName, animationFixtures);
+  const rotatedActor = rotateManualActorTowardNhOrientation(currentActor, targetActor, false);
+  return nhAdvanceMovementFrameCursor(rotatedActor, rotatedActor.sequenceName, animationFixtures);
 }
 
 function advanceManualActor(
   actor: ManualActorState,
   now: number,
-  collision: KronosSceneCollision,
+  collision: NhSceneCollision,
   combatActor: RuntimePlayerCombatActorState | null = null,
   combatState: RuntimePlayerCombatState | null = null,
-  animationFixtures: KronosAnimationFixtures | null = null,
+  animationFixtures: NhAnimationFixtures | null = null,
   targetActor: ManualActorState | null = null,
   maxClientCyclesToAdvance = Number.POSITIVE_INFINITY
 ): ManualActorState {
-  const animationCycle = Math.floor(now / KRONOS_CLIENT_CYCLE_MS);
-  const clientPosition = actor.clientPosition ?? kronosClientPositionFromRuntimeTile(actor.renderTile);
+  const animationCycle = Math.floor(now / NH_CLIENT_CYCLE_MS);
+  const clientPosition = actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile);
   let currentActor =
     combatActor && combatState
       ? syncManualActorActionSequence({ ...actor, clientPosition }, combatActor, combatState)
       : { ...actor, clientPosition };
   const sequenceJustAccepted =
     currentActor.activeSequenceKey !== null && currentActor.activeSequenceKey !== actor.activeSequenceKey;
-  // Source: Kronos LoginPacket.method3722 resets sequenceFrame and sequenceFrameCycle when a new
+  // Source: Nh LoginPacket.method3722 resets sequenceFrame and sequenceFrameCycle when a new
   // primary sequence is accepted. Do not spend an old movement catch-up backlog on the first
   // rendered frame of the newly accepted action sequence.
   const previousCycle = sequenceJustAccepted ? animationCycle : actor.lastMovementClientCycle ?? animationCycle;
@@ -3789,7 +3789,7 @@ function advanceManualActor(
   for (let cycle = previousCycle + 1; cycle <= targetMovementCycle; cycle += 1) {
     const movementBlocked =
       combatActor && combatState
-        ? manualActorMovementBlockedByKronosSequence(currentActor, combatActor, combatState, animationFixtures)
+        ? manualActorMovementBlockedByNhSequence(currentActor, combatActor, combatState, animationFixtures)
         : false;
     currentActor = advanceManualActorClientCycle(
       currentActor,
@@ -3799,7 +3799,7 @@ function advanceManualActor(
       combatActor?.targetId != null,
       animationFixtures
     );
-    currentActor = kronosAdvancePrimarySequenceCursor(currentActor, combatActor, combatState, animationFixtures);
+    currentActor = nhAdvancePrimarySequenceCursor(currentActor, combatActor, combatState, animationFixtures);
   }
 
   return {
@@ -3852,10 +3852,10 @@ function snapshotWithManualCombatActors(
   localActor: ManualActorState,
   opponentActor: ManualActorState,
   combatState: RuntimePlayerCombatState,
-  equipmentDefinitions: KronosInventoryEquipmentDefinitionStore,
-  weaponTypeDefinitions: KronosWeaponTypeDefinitionStore,
-  actorSequenceDefinitions: KronosActorSequenceDefinitionStore,
-  animationFixtures: KronosAnimationFixtures | null
+  equipmentDefinitions: NhInventoryEquipmentDefinitionStore,
+  weaponTypeDefinitions: NhWeaponTypeDefinitionStore,
+  actorSequenceDefinitions: NhActorSequenceDefinitionStore,
+  animationFixtures: NhAnimationFixtures | null
 ): RuntimeSceneSnapshot {
   return {
     ...snapshot,
@@ -3918,10 +3918,10 @@ function manualCombatActorPose(
   actor: ManualActorState,
   combatActor: RuntimePlayerCombatActorState,
   combatState: RuntimePlayerCombatState,
-  equipmentDefinitions: KronosInventoryEquipmentDefinitionStore,
-  weaponTypeDefinitions: KronosWeaponTypeDefinitionStore,
-  actorSequenceDefinitions: KronosActorSequenceDefinitionStore,
-  animationFixtures: KronosAnimationFixtures | null
+  equipmentDefinitions: NhInventoryEquipmentDefinitionStore,
+  weaponTypeDefinitions: NhWeaponTypeDefinitionStore,
+  actorSequenceDefinitions: NhActorSequenceDefinitionStore,
+  animationFixtures: NhAnimationFixtures | null
 ): RuntimeActorPose {
   const actionSequenceKey = manualActorActionSequenceKey(combatActor, combatState);
   const actionWindowActive = actionSequenceKey !== null && actor.activeSequenceKey === actionSequenceKey;
@@ -3930,7 +3930,7 @@ function manualCombatActorPose(
     combatActor.actionSequenceName === null ? null : animationFixtures?.sequences.get(combatActor.actionSequenceName) ?? null;
   const primaryFrameCursor =
     actionWindowActive && actionSequence && actor.primaryFrame >= 0 && actor.primaryFrame < actionSequence.frames.length
-      ? kronosPrimaryFrameCursor(actor)
+      ? nhPrimaryFrameCursor(actor)
       : null;
   const actionFrameActive =
     actionWindowActive &&
@@ -3947,7 +3947,7 @@ function manualCombatActorPose(
   );
   const movementSequenceName =
     actionFrameActive && runtimeSequenceIsMovement(baseSequenceName) ? baseSequenceName : undefined;
-  const movementFrameCursor = kronosMovementFrameCursor(actor);
+  const movementFrameCursor = nhMovementFrameCursor(actor);
   return {
     ...sourcePose,
     tile: actor.tile,
@@ -3984,17 +3984,17 @@ function runtimeAnimationSmoothingFrameSnapshot(
   localActor: ManualActorState,
   opponentActor: ManualActorState,
   combatState: RuntimePlayerCombatState,
-  equipmentDefinitions: KronosInventoryEquipmentDefinitionStore,
-  weaponTypeDefinitions: KronosWeaponTypeDefinitionStore,
-  actorSequenceDefinitions: KronosActorSequenceDefinitionStore,
-  animationFixtures: KronosAnimationFixtures | null,
+  equipmentDefinitions: NhInventoryEquipmentDefinitionStore,
+  weaponTypeDefinitions: NhWeaponTypeDefinitionStore,
+  actorSequenceDefinitions: NhActorSequenceDefinitionStore,
+  animationFixtures: NhAnimationFixtures | null,
   animationSmoothingConfig: RuneliteAnimationSmoothingConfigSnapshot
 ): RuntimeSceneSnapshot {
   if (!manualControl || !animationFixtures) {
     return snapshot;
   }
 
-  const exactClientCycle = now / KRONOS_CLIENT_CYCLE_MS;
+  const exactClientCycle = now / NH_CLIENT_CYCLE_MS;
   const clientCycle = Math.floor(exactClientCycle);
   const smoothingEnabled = runeliteAnimationSmoothingRuntimeReapplyEnabled(animationSmoothingConfig);
   const frameCycleOffset = smoothingEnabled ? Math.max(0, Math.min(0.999, exactClientCycle - clientCycle)) : 0;
@@ -4023,20 +4023,20 @@ function runtimeAnimationSmoothingFrameSnapshot(
 }
 
 function manualActorFacingTarget(actor: ManualActorState, target: ManualActorState): ManualActorState {
-  const actorPosition = actor.clientPosition ?? kronosClientPositionFromRuntimeTile(actor.renderTile ?? actor.tile);
-  const targetPosition = target.clientPosition ?? kronosClientPositionFromRuntimeTile(target.renderTile ?? target.tile);
-  const orientationUnits = kronosTargetOrientationUnits(actorPosition, targetPosition, actor.orientationUnits);
+  const actorPosition = actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile ?? actor.tile);
+  const targetPosition = target.clientPosition ?? nhClientPositionFromRuntimeTile(target.renderTile ?? target.tile);
+  const orientationUnits = nhTargetOrientationUnits(actorPosition, targetPosition, actor.orientationUnits);
   return {
     ...actor,
     orientationUnits
   };
 }
 
-const kronosPlayerAppearanceEquipmentContainerSlots = new Set<number>([0, 1, 2, 3, 4, 5, 7, 9, 10]);
+const nhPlayerAppearanceEquipmentContainerSlots = new Set<number>([0, 1, 2, 3, 4, 5, 7, 9, 10]);
 
 function localPlayerEquipmentItemIdsBySlot(
   snapshot: RuntimeSceneSnapshot,
-  equipmentDefinitions: KronosInventoryEquipmentDefinitionStore
+  equipmentDefinitions: NhInventoryEquipmentDefinitionStore
 ): RuntimeEquipmentItemIdsBySlot {
   const actor = snapshot.actors.find((candidate) => candidate.actorId === "local-player");
   if (!actor) {
@@ -4049,7 +4049,7 @@ function localPlayerEquipmentItemIdsBySlot(
     const encoded = actor.appearance?.equipmentSlots?.[slot] ?? 0;
     if (encoded >= 512 && encoded !== 65535) {
       itemIdsBySlot.set(slot, encoded - 512);
-    } else if (actor.appearance?.source === "loadout" && kronosPlayerAppearanceEquipmentContainerSlots.has(slot)) {
+    } else if (actor.appearance?.source === "loadout" && nhPlayerAppearanceEquipmentContainerSlots.has(slot)) {
       explicitlyEmptySlots.add(slot);
     }
   }
@@ -4078,7 +4078,7 @@ function localPlayerEquipmentItemIdsBySlot(
   return itemIdsBySlot;
 }
 
-const kronosEquipmentSlotByServerSlot = new Map<number, EquipmentSlot>([
+const nhEquipmentSlotByServerSlot = new Map<number, EquipmentSlot>([
   [0, "head"],
   [1, "cape"],
   [2, "amulet"],
@@ -4091,17 +4091,17 @@ const kronosEquipmentSlotByServerSlot = new Map<number, EquipmentSlot>([
   [12, "ring"],
   [13, "ammo"]
 ]);
-const kronosServerSlotByEquipmentSlot = new Map<EquipmentSlot, number>(
-  [...kronosEquipmentSlotByServerSlot.entries()].map(([serverSlot, equipmentSlot]) => [equipmentSlot, serverSlot])
+const nhServerSlotByEquipmentSlot = new Map<EquipmentSlot, number>(
+  [...nhEquipmentSlotByServerSlot.entries()].map(([serverSlot, equipmentSlot]) => [equipmentSlot, serverSlot])
 );
 
 function visibleEquipmentFromRuntimeItemIdsBySlot(
   equipmentBySlot: RuntimeEquipmentItemIdsBySlot,
-  itemDefinitions: KronosInventoryItemDefinitionStore
+  itemDefinitions: NhInventoryItemDefinitionStore
 ): VisibleEquipment {
   const equipment: Partial<Record<EquipmentSlot, { readonly itemId: number; readonly name: string }>> = {};
   for (const [serverSlot, itemId] of equipmentBySlot) {
-    const slot = kronosEquipmentSlotByServerSlot.get(serverSlot);
+    const slot = nhEquipmentSlotByServerSlot.get(serverSlot);
     if (!slot) {
       continue;
     }
@@ -4116,7 +4116,7 @@ function visibleEquipmentFromRuntimeItemIdsBySlot(
 function runtimeItemIdsBySlotFromVisibleEquipment(equipment: VisibleEquipment): RuntimeEquipmentItemIdsBySlot {
   const itemIdsBySlot = new Map<number, number>();
   for (const [slot, item] of Object.entries(equipment) as [EquipmentSlot, VisibleEquipmentItem | undefined][]) {
-    const serverSlot = kronosServerSlotByEquipmentSlot.get(slot);
+    const serverSlot = nhServerSlotByEquipmentSlot.get(slot);
     if (serverSlot !== undefined && item) {
       itemIdsBySlot.set(serverSlot, item.itemId);
     }
@@ -4126,7 +4126,7 @@ function runtimeItemIdsBySlotFromVisibleEquipment(equipment: VisibleEquipment): 
 
 function visibleEquipmentItemsFromRuntimeInventory(
   slots: readonly (RuntimeInventorySlot | null)[] | null | undefined,
-  itemDefinitions: KronosInventoryItemDefinitionStore
+  itemDefinitions: NhInventoryItemDefinitionStore
 ): readonly VisibleEquipmentItem[] {
   if (!slots) {
     return [];
@@ -4156,7 +4156,7 @@ const manualPolicyStationaryMovementView: ManualPolicyActorMovementView = {
   lastMoveDy: 0
 };
 
-function kronosClientVisibleOpponentHp(hitpoints: number): number {
+function nhClientVisibleOpponentHp(hitpoints: number): number {
   const hp = Math.max(0, Math.min(99, Math.trunc(Number.isFinite(hitpoints) ? hitpoints : 99)));
   if (hp <= 0) {
     return 0;
@@ -4164,7 +4164,7 @@ function kronosClientVisibleOpponentHp(hitpoints: number): number {
   return Math.max(1, Math.min(99, Math.trunc((hp + 2) / 5) * 5));
 }
 
-function kronosClientVisibleFreezeTicks(locks: EntityLockState, tick: number): number {
+function nhClientVisibleFreezeTicks(locks: EntityLockState, tick: number): number {
   if (locks.freezeUntilTick < tick) {
     return 0;
   }
@@ -4191,7 +4191,7 @@ function runtimePolicyVisibleStatsFromCombatActor(actor: RuntimePlayerCombatActo
     ranged: runtimePolicyVisibleStatFromLevel(actor.levels.ranged),
     magic: runtimePolicyVisibleStatFromLevel(actor.levels.magic),
     hitpoints: {
-      current: kronosClientVisibleOpponentHp(actor.hitpoints),
+      current: nhClientVisibleOpponentHp(actor.hitpoints),
       fixed: Math.max(1, Math.min(99, Math.trunc(Number.isFinite(actor.maxHitpoints) ? actor.maxHitpoints : 99)))
     },
     prayer: {
@@ -4205,7 +4205,7 @@ function runtimePolicyVisibleLocksFromCombatActor(
   actor: RuntimePlayerCombatActorState,
   tick: number
 ): EntityLockState {
-  const visibleFreezeTicks = kronosClientVisibleFreezeTicks(actor.locks, tick);
+  const visibleFreezeTicks = nhClientVisibleFreezeTicks(actor.locks, tick);
   if (visibleFreezeTicks <= 0) {
     const { freezeSourceId: _freezeSourceId, ...locks } = actor.locks;
     return {
@@ -4234,8 +4234,8 @@ function manualPolicyActorMovementViewFromTiles(
   // Source: NhStakerBot.captureObservation() stores getPosition() - getLastPosition() in tile units.
   return {
     movedThisTick: true,
-    lastMoveDx: Math.round((destinationTile.x - sourceTile.x) / KRONOS_TILE_WORLD_UNITS),
-    lastMoveDy: Math.round((destinationTile.z - sourceTile.z) / KRONOS_TILE_WORLD_UNITS)
+    lastMoveDx: Math.round((destinationTile.x - sourceTile.x) / NH_TILE_WORLD_UNITS),
+    lastMoveDy: Math.round((destinationTile.z - sourceTile.z) / NH_TILE_WORLD_UNITS)
   };
 }
 
@@ -4244,7 +4244,7 @@ function manualPolicyActorAppearanceView(
   combatActor: RuntimePlayerCombatActorState,
   tick: number,
   equipmentOverride: RuntimeEquipmentItemIdsBySlot | null,
-  itemDefinitions: KronosInventoryItemDefinitionStore,
+  itemDefinitions: NhInventoryItemDefinitionStore,
   activePrayers: readonly PrayerId[] = [],
   movement: ManualPolicyActorMovementView = manualPolicyStationaryMovementView,
   inventorySlots?: readonly (RuntimeInventorySlot | null)[] | null
@@ -4271,8 +4271,8 @@ function manualPolicyUnknownOpponentInfoAppearanceView(
   return {
     ...previous,
     tile: {
-      x: -KRONOS_TILE_WORLD_UNITS,
-      z: -KRONOS_TILE_WORLD_UNITS
+      x: -NH_TILE_WORLD_UNITS,
+      z: -NH_TILE_WORLD_UNITS
     },
     equipment: {},
     inventoryItems: [],
@@ -4301,8 +4301,8 @@ function sortedEquipmentItemIds(equipmentBySlot: RuntimeEquipmentItemIdsBySlot):
   return [...equipmentBySlot.entries()].sort((left, right) => left[0] - right[0]).map(([, itemId]) => itemId);
 }
 
-function kronosAppearanceEquipmentSlotsForRuntimeEquipment(equipmentBySlot: RuntimeEquipmentItemIdsBySlot): readonly number[] {
-  return kronosEquipmentSlotsFromLoadoutItems(
+function nhAppearanceEquipmentSlotsForRuntimeEquipment(equipmentBySlot: RuntimeEquipmentItemIdsBySlot): readonly number[] {
+  return nhEquipmentSlotsFromLoadoutItems(
     sortedEquipmentItemIds(equipmentBySlot),
     runtimePlayerAppearanceKits,
     runtimePlayerAppearanceServerItemsById
@@ -4316,7 +4316,7 @@ function runtimeAppearanceFromEquipmentItems(
   return {
     itemIds: sortedEquipmentItemIds(equipmentBySlot),
     bodyColors: sourceAppearance.bodyColors,
-    equipmentSlots: kronosAppearanceEquipmentSlotsForRuntimeEquipment(equipmentBySlot),
+    equipmentSlots: nhAppearanceEquipmentSlotsForRuntimeEquipment(equipmentBySlot),
     team: sourceAppearance.team,
     source: "loadout"
   };
@@ -4336,11 +4336,11 @@ function runtimeActorPoseWithEquipmentItems(
   };
 }
 
-function kronosTwoHandedEquipmentAddLastItemId(
+function nhTwoHandedEquipmentAddLastItemId(
   equipSlot: number,
   selectedItemTwoHanded: boolean,
   currentEquipment: RuntimeEquipmentItemIdsBySlot,
-  equipmentDefinitions: KronosInventoryEquipmentDefinitionStore
+  equipmentDefinitions: NhInventoryEquipmentDefinitionStore
 ): number | null {
   if (equipSlot === 5) {
     const weaponItemId = currentEquipment.get(3);
@@ -4353,7 +4353,7 @@ function kronosTwoHandedEquipmentAddLastItemId(
   return null;
 }
 
-function addKronosInventoryItemToFirstFreeSlot(
+function addNhInventoryItemToFirstFreeSlot(
   slots: readonly (RuntimeInventorySlot | null)[],
   itemId: number
 ): readonly (RuntimeInventorySlot | null)[] | null {
@@ -4415,12 +4415,12 @@ function pointerEventToRuntimeTile(boundary: RuntimeSceneBoundary, event: Pointe
   const sourceViewport = boundary.fixedClientLayout?.viewport;
   const sceneTilePicker = boundary.sceneTilePicker;
   const viewportRect = boundary.fixedClientCssLayout?.viewportRect;
-  if (!sourceViewport || !sceneTilePicker || !viewportRect || !pointInKronosRect(viewportRect, canvasX, canvasY)) {
+  if (!sourceViewport || !sceneTilePicker || !viewportRect || !pointInNhRect(viewportRect, canvasX, canvasY)) {
     return null;
   }
 
   boundary.camera.updateMatrixWorld(true);
-  return kronosPickSceneTileFromViewportPoint({
+  return nhPickSceneTileFromViewportPoint({
     camera: boundary.camera,
     viewport: sourceViewport,
     arena: sceneTilePicker.arena,
@@ -4501,9 +4501,9 @@ function pointerEventToRuntimeGroundItem(
 function pointerEventToRuntimeSceneObject(
   boundary: RuntimeSceneBoundary,
   event: PointerEvent | MouseEvent,
-  placements: readonly KronosArenaObjectPlacement[],
-  collisionMap: KronosSceneCollision | null,
-  cacheModels: KronosCacheModelStore | null
+  placements: readonly NhArenaObjectPlacement[],
+  collisionMap: NhSceneCollision | null,
+  cacheModels: NhCacheModelStore | null
 ): RuntimeSceneObjectPick | null {
   const point = pointerEventToSourceViewportPoint(boundary, event);
   const sceneTilePicker = boundary.sceneTilePicker;
@@ -4514,7 +4514,7 @@ function pointerEventToRuntimeSceneObject(
   boundary.camera.updateMatrixWorld(true);
   let hit: RuntimeSceneObjectPick | null = null;
   for (const placement of placements) {
-    if (!isKronosSceneObjectMenuable(placement) || placement.plane !== sceneTilePicker.arena.bounds.plane) {
+    if (!isNhSceneObjectMenuable(placement) || placement.plane !== sceneTilePicker.arena.bounds.plane) {
       continue;
     }
     const rect = sceneObjectSourceClickboxRect(boundary, placement, collisionMap, cacheModels);
@@ -4539,8 +4539,8 @@ const sourceSingleTileFacePaddingPixels = 20;
 const sourceDefaultFacePaddingPixels = 5;
 const sourceObjectFacePaddingPixels = 5;
 
-type KronosCacheModelStore = KronosPlayerModelSources["cacheModels"];
-type KronosCacheModelDefinition = KronosCacheModelStore[string];
+type NhCacheModelStore = NhPlayerModelSources["cacheModels"];
+type NhCacheModelDefinition = NhCacheModelStore[string];
 
 function pointerEventToSourceViewportPoint(
   boundary: RuntimeSceneBoundary,
@@ -4555,7 +4555,7 @@ function pointerEventToSourceViewportPoint(
   const canvasY = canvasPosition.y;
   const viewportRect = boundary.fixedClientCssLayout?.viewportRect;
   const sourceViewport = boundary.fixedClientLayout?.viewport;
-  if (!viewportRect || !sourceViewport || !pointInKronosRect(viewportRect, canvasX, canvasY)) {
+  if (!viewportRect || !sourceViewport || !pointInNhRect(viewportRect, canvasX, canvasY)) {
     return null;
   }
 
@@ -4579,7 +4579,7 @@ function actorSourceClickboxRect(
     return null;
   }
 
-  const defaultHeight = kronosClientUnitsToWorldUnits(KRONOS_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS);
+  const defaultHeight = nhClientUnitsToWorldUnits(NH_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS);
   const center = bounds.isEmpty() ? new Vector3(actor?.tile.x ?? 0, defaultHeight / 2, actor?.tile.z ?? 0) : bounds.getCenter(new Vector3());
   const size = bounds.isEmpty() ? new Vector3(0, defaultHeight, 0) : bounds.getSize(new Vector3());
   const modelHeight = Math.max(defaultHeight, size.y);
@@ -4617,9 +4617,9 @@ function runtimeActorMenuPickPriority(actor: RuntimeActorPose): number {
 
 function sceneObjectSourceClickboxRect(
   boundary: RuntimeSceneBoundary,
-  placement: KronosArenaObjectPlacement,
-  collisionMap: KronosSceneCollision,
-  cacheModels: KronosCacheModelStore | null
+  placement: NhArenaObjectPlacement,
+  collisionMap: NhSceneCollision,
+  cacheModels: NhCacheModelStore | null
 ): RuntimeSourceHitRect | null {
   const modelClickbox = sceneObjectModelSourceClickboxRect(boundary, placement, collisionMap, cacheModels);
   if (modelClickbox) {
@@ -4631,8 +4631,8 @@ function sceneObjectSourceClickboxRect(
 
 function sceneObjectFootprintSourceClickboxRect(
   boundary: RuntimeSceneBoundary,
-  placement: KronosArenaObjectPlacement,
-  collisionMap: KronosSceneCollision
+  placement: NhArenaObjectPlacement,
+  collisionMap: NhSceneCollision
 ): RuntimeSourceHitRect | null {
   const sceneTilePicker = boundary.sceneTilePicker;
   if (!sceneTilePicker) {
@@ -4642,10 +4642,10 @@ function sceneObjectFootprintSourceClickboxRect(
   const footprint = clientObjectFootprint(placement);
   const arena = sceneTilePicker.arena;
   const sceneOffset = sceneTilePicker.sceneOffset;
-  const west = (placement.x - arena.bounds.west) * KRONOS_TILE_WORLD_UNITS + sceneOffset.x;
-  const east = (placement.x + footprint.sizeX - arena.bounds.west) * KRONOS_TILE_WORLD_UNITS + sceneOffset.x;
-  const south = (placement.y - arena.bounds.south) * KRONOS_TILE_WORLD_UNITS + sceneOffset.z;
-  const north = (placement.y + footprint.sizeY - arena.bounds.south) * KRONOS_TILE_WORLD_UNITS + sceneOffset.z;
+  const west = (placement.x - arena.bounds.west) * NH_TILE_WORLD_UNITS + sceneOffset.x;
+  const east = (placement.x + footprint.sizeX - arena.bounds.west) * NH_TILE_WORLD_UNITS + sceneOffset.x;
+  const south = (placement.y - arena.bounds.south) * NH_TILE_WORLD_UNITS + sceneOffset.z;
+  const north = (placement.y + footprint.sizeY - arena.bounds.south) * NH_TILE_WORLD_UNITS + sceneOffset.z;
   const centerTile = collisionMap.worldToSceneTile({
     x: placement.x,
     y: placement.y,
@@ -4668,9 +4668,9 @@ function sceneObjectFootprintSourceClickboxRect(
 
 function sceneObjectModelSourceClickboxRect(
   boundary: RuntimeSceneBoundary,
-  placement: KronosArenaObjectPlacement,
-  collisionMap: KronosSceneCollision,
-  cacheModels: KronosCacheModelStore | null
+  placement: NhArenaObjectPlacement,
+  collisionMap: NhSceneCollision,
+  cacheModels: NhCacheModelStore | null
 ): RuntimeSourceHitRect | null {
   const sourceViewport = boundary.fixedClientLayout?.viewport;
   if (!sourceViewport || !boundary.sceneTilePicker || !cacheModels) {
@@ -4691,7 +4691,7 @@ function sceneObjectModelSourceClickboxRect(
 
   for (const modelId of modelIds) {
     const model = cacheModels[String(modelId)];
-    if (!isKronosCacheModelDefinition(model)) {
+    if (!isNhCacheModelDefinition(model)) {
       continue;
     }
 
@@ -4701,8 +4701,8 @@ function sceneObjectModelSourceClickboxRect(
       model.faceVertexIndices3.length,
       model.faceColors.length
     );
-    const projectedVertices = new Map<number, ReturnType<typeof kronosProjectWorldPointToViewport>>();
-    const projectVertex = (vertexIndex: number): ReturnType<typeof kronosProjectWorldPointToViewport> => {
+    const projectedVertices = new Map<number, ReturnType<typeof nhProjectWorldPointToViewport>>();
+    const projectVertex = (vertexIndex: number): ReturnType<typeof nhProjectWorldPointToViewport> => {
       if (projectedVertices.has(vertexIndex)) {
         return projectedVertices.get(vertexIndex) ?? null;
       }
@@ -4714,7 +4714,7 @@ function sceneObjectModelSourceClickboxRect(
         model,
         vertexIndex
       );
-      const projected = worldPoint ? kronosProjectWorldPointToViewport(boundary.camera, sourceViewport, worldPoint) : null;
+      const projected = worldPoint ? nhProjectWorldPointToViewport(boundary.camera, sourceViewport, worldPoint) : null;
       projectedVertices.set(vertexIndex, projected);
       return projected;
     };
@@ -4791,9 +4791,9 @@ function groundItemSourceClickboxRect(
 
 function sceneObjectModelVertexWorldPosition(
   boundary: RuntimeSceneBoundary,
-  placement: KronosArenaObjectPlacement,
-  collisionMap: KronosSceneCollision,
-  model: KronosCacheModelDefinition,
+  placement: NhArenaObjectPlacement,
+  collisionMap: NhSceneCollision,
+  model: NhCacheModelDefinition,
   vertexIndex: number
 ): Vector3 | null {
   const sceneTilePicker = boundary.sceneTilePicker;
@@ -4817,9 +4817,9 @@ function sceneObjectModelVertexWorldPosition(
     : sceneObjectCenterHeight(boundary, placement, collisionMap);
 
   return new Vector3(
-    (worldTileX - sceneTilePicker.arena.bounds.west) * KRONOS_TILE_WORLD_UNITS + sceneTilePicker.sceneOffset.x,
+    (worldTileX - sceneTilePicker.arena.bounds.west) * NH_TILE_WORLD_UNITS + sceneTilePicker.sceneOffset.x,
     terrainY - sourceHorizontalClientUnitsToSceneUnits(vertex.y),
-    (worldTileY - sceneTilePicker.arena.bounds.south) * KRONOS_TILE_WORLD_UNITS + sceneTilePicker.sceneOffset.z
+    (worldTileY - sceneTilePicker.arena.bounds.south) * NH_TILE_WORLD_UNITS + sceneTilePicker.sceneOffset.z
   );
 }
 
@@ -4827,7 +4827,7 @@ function clientSceneObjectVertex(
   x: number,
   y: number,
   z: number,
-  placement: KronosArenaObjectPlacement
+  placement: NhArenaObjectPlacement
 ): { readonly x: number; readonly y: number; readonly z: number } {
   let clientX = x;
   let clientZ = placementBoolean(placement, "isRotated", false) ? -z : z;
@@ -4854,8 +4854,8 @@ function clientSceneObjectVertex(
 
 function sceneObjectCenterHeight(
   boundary: RuntimeSceneBoundary,
-  placement: KronosArenaObjectPlacement,
-  collisionMap: KronosSceneCollision
+  placement: NhArenaObjectPlacement,
+  collisionMap: NhSceneCollision
 ): number {
   const footprint = clientObjectFootprint(placement);
   const centerX = placement.x + footprint.sizeX / 2;
@@ -4876,7 +4876,7 @@ function sceneObjectCenterHeight(
 
 function sampleSceneHeightForWorldTile(
   boundary: RuntimeSceneBoundary,
-  collisionMap: KronosSceneCollision,
+  collisionMap: NhSceneCollision,
   worldX: number,
   worldY: number,
   fallback = 0
@@ -4886,19 +4886,19 @@ function sampleSceneHeightForWorldTile(
     return fallback;
   }
 
-  const x = (worldX - sceneTilePicker.arena.bounds.west) * KRONOS_TILE_WORLD_UNITS + sceneTilePicker.sceneOffset.x;
-  const z = (worldY - sceneTilePicker.arena.bounds.south) * KRONOS_TILE_WORLD_UNITS + sceneTilePicker.sceneOffset.z;
+  const x = (worldX - sceneTilePicker.arena.bounds.west) * NH_TILE_WORLD_UNITS + sceneTilePicker.sceneOffset.x;
+  const z = (worldY - sceneTilePicker.arena.bounds.south) * NH_TILE_WORLD_UNITS + sceneTilePicker.sceneOffset.z;
   const sampled = collisionMap.sampleHeight({ x, z });
   return Number.isFinite(sampled) ? sampled : fallback;
 }
 
-function placementModelIds(placement: KronosArenaObjectPlacement): readonly number[] {
+function placementModelIds(placement: NhArenaObjectPlacement): readonly number[] {
   const modelIds = (placement as { readonly modelIds?: unknown }).modelIds;
   return Array.isArray(modelIds) ? modelIds.filter((modelId): modelId is number => Number.isInteger(modelId)) : [];
 }
 
 function placementNumber(
-  placement: KronosArenaObjectPlacement,
+  placement: NhArenaObjectPlacement,
   key: "modelSizeX" | "modelSizeHeight" | "modelSizeY" | "offsetX" | "offsetHeight" | "offsetY" | "contouredGround",
   fallback: number
 ): number {
@@ -4906,26 +4906,26 @@ function placementNumber(
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
-function placementBoolean(placement: KronosArenaObjectPlacement, key: "isRotated", fallback: boolean): boolean {
+function placementBoolean(placement: NhArenaObjectPlacement, key: "isRotated", fallback: boolean): boolean {
   const value = (placement as unknown as Record<string, unknown>)[key];
   return typeof value === "boolean" ? value : fallback;
 }
 
-function isSceneObjectGroundContoured(placement: KronosArenaObjectPlacement): boolean {
+function isSceneObjectGroundContoured(placement: NhArenaObjectPlacement): boolean {
   return placementNumber(placement, "contouredGround", -1) >= 0;
 }
 
-function isKronosCacheModelDefinition(value: unknown): value is KronosCacheModelDefinition {
+function isNhCacheModelDefinition(value: unknown): value is NhCacheModelDefinition {
   return (
     value !== null &&
     typeof value === "object" &&
-    Array.isArray((value as KronosCacheModelDefinition).vertexPositionsX) &&
-    Array.isArray((value as KronosCacheModelDefinition).vertexPositionsY) &&
-    Array.isArray((value as KronosCacheModelDefinition).vertexPositionsZ) &&
-    Array.isArray((value as KronosCacheModelDefinition).faceVertexIndices1) &&
-    Array.isArray((value as KronosCacheModelDefinition).faceVertexIndices2) &&
-    Array.isArray((value as KronosCacheModelDefinition).faceVertexIndices3) &&
-    Array.isArray((value as KronosCacheModelDefinition).faceColors)
+    Array.isArray((value as NhCacheModelDefinition).vertexPositionsX) &&
+    Array.isArray((value as NhCacheModelDefinition).vertexPositionsY) &&
+    Array.isArray((value as NhCacheModelDefinition).vertexPositionsZ) &&
+    Array.isArray((value as NhCacheModelDefinition).faceVertexIndices1) &&
+    Array.isArray((value as NhCacheModelDefinition).faceVertexIndices2) &&
+    Array.isArray((value as NhCacheModelDefinition).faceVertexIndices3) &&
+    Array.isArray((value as NhCacheModelDefinition).faceColors)
   );
 }
 
@@ -4972,7 +4972,7 @@ function projectWorldBoxToSourceHitRect(
   let bottom = Number.NEGATIVE_INFINITY;
   let depthClientUnits = Number.POSITIVE_INFINITY;
   for (const corner of corners) {
-    const projected = kronosProjectWorldPointToViewport(boundary.camera, sourceViewport, corner);
+    const projected = nhProjectWorldPointToViewport(boundary.camera, sourceViewport, corner);
     if (!projected) {
       continue;
     }
@@ -5007,10 +5007,10 @@ function pointInSourceFaceRect(rect: RuntimeSourceFaceRect, point: RuntimeViewpo
 }
 
 function sourceHorizontalClientUnitsToSceneUnits(clientUnits: number): number {
-  return (clientUnits / 128) * KRONOS_TILE_WORLD_UNITS;
+  return (clientUnits / 128) * NH_TILE_WORLD_UNITS;
 }
 
-function sourceModelHeightWorldUnits(placement: KronosArenaObjectPlacement): number {
+function sourceModelHeightWorldUnits(placement: NhArenaObjectPlacement): number {
   const height = (placement as { readonly modelSizeHeight?: number }).modelSizeHeight;
   return sourceHorizontalClientUnitsToSceneUnits(typeof height === "number" && Number.isFinite(height) ? height : 128);
 }
@@ -5028,7 +5028,7 @@ function isRuntimeTile(value: unknown): value is RuntimeTile {
   );
 }
 
-function isKronosWorldTile(value: unknown): value is KronosWorldTile {
+function isNhWorldTile(value: unknown): value is NhWorldTile {
   return (
     value !== null &&
     typeof value === "object" &&
@@ -5115,7 +5115,7 @@ function writeStoredAttackSetIndex(attackSetIndex: number): void {
 
 function readStoredAutoRetaliate(): boolean | null {
   try {
-    const raw = readStoredLocalProfileValue(KRONOS_AUTO_RETALIATE_STORAGE_KEY, LEGACY_AUTO_RETALIATE_STORAGE_KEYS);
+    const raw = readStoredLocalProfileValue(NH_AUTO_RETALIATE_STORAGE_KEY, LEGACY_AUTO_RETALIATE_STORAGE_KEYS);
     if (raw === "true") {
       return true;
     }
@@ -5130,7 +5130,7 @@ function readStoredAutoRetaliate(): boolean | null {
 
 function writeStoredAutoRetaliate(enabled: boolean): void {
   try {
-    window.localStorage.setItem(KRONOS_AUTO_RETALIATE_STORAGE_KEY, String(enabled));
+    window.localStorage.setItem(NH_AUTO_RETALIATE_STORAGE_KEY, String(enabled));
   } catch {
     // Non-fatal in restricted browser contexts.
   }
@@ -5188,7 +5188,7 @@ function writeStoredStringArray(key: string, values: readonly string[]): void {
   }
 }
 
-function readStoredSpellbookOrders(): Partial<Record<KronosSpellbookId, readonly string[]>> {
+function readStoredSpellbookOrders(): Partial<Record<NhSpellbookId, readonly string[]>> {
   try {
     const raw = window.localStorage.getItem(NH_TRAINER_SPELLBOOK_REORDER_ORDERS_STORAGE_KEY);
     if (!raw) {
@@ -5198,8 +5198,8 @@ function readStoredSpellbookOrders(): Partial<Record<KronosSpellbookId, readonly
     if (!parsed || typeof parsed !== "object") {
       return {};
     }
-    const snapshot = parsed as Partial<Record<KronosSpellbookId, unknown>>;
-    const orders: Partial<Record<KronosSpellbookId, readonly string[]>> = {};
+    const snapshot = parsed as Partial<Record<NhSpellbookId, unknown>>;
+    const orders: Partial<Record<NhSpellbookId, readonly string[]>> = {};
     for (const bookId of ["standard", "ancient", "lunar", "arceuus"] as const) {
       if (Array.isArray(snapshot[bookId])) {
         orders[bookId] = snapshot[bookId].filter((value): value is string => typeof value === "string");
@@ -5211,7 +5211,7 @@ function readStoredSpellbookOrders(): Partial<Record<KronosSpellbookId, readonly
   }
 }
 
-function writeStoredSpellbookOrders(orders: Partial<Record<KronosSpellbookId, readonly string[]>>): void {
+function writeStoredSpellbookOrders(orders: Partial<Record<NhSpellbookId, readonly string[]>>): void {
   try {
     window.localStorage.setItem(NH_TRAINER_SPELLBOOK_REORDER_ORDERS_STORAGE_KEY, JSON.stringify(orders));
   } catch {
@@ -5219,7 +5219,7 @@ function writeStoredSpellbookOrders(orders: Partial<Record<KronosSpellbookId, re
   }
 }
 
-function swapKronosWidgetOrder(
+function swapNhWidgetOrder(
   currentOrder: readonly string[],
   sourceId: string,
   destinationId: string,
@@ -5262,7 +5262,7 @@ function initialHudOverrideFromStorage(): Partial<RuntimeHudState> | null {
 
 function readTemporarySavedSetupSnapshot(): TemporarySavedSetupSnapshot | null {
   try {
-    const raw = window.localStorage.getItem(KRONOS_TEMPORARY_SAVED_SETUP_STORAGE_KEY);
+    const raw = window.localStorage.getItem(NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY);
     if (!raw) {
       return null;
     }
@@ -5270,7 +5270,7 @@ function readTemporarySavedSetupSnapshot(): TemporarySavedSetupSnapshot | null {
     if (isTemporarySavedSetupSnapshot(parsed)) {
       return parsed;
     }
-    window.localStorage.removeItem(KRONOS_TEMPORARY_SAVED_SETUP_STORAGE_KEY);
+    window.localStorage.removeItem(NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY);
   } catch {
     return null;
   }
@@ -5279,7 +5279,7 @@ function readTemporarySavedSetupSnapshot(): TemporarySavedSetupSnapshot | null {
 
 function writeTemporarySavedSetupSnapshot(snapshot: TemporarySavedSetupSnapshot): boolean {
   try {
-    window.localStorage.setItem(KRONOS_TEMPORARY_SAVED_SETUP_STORAGE_KEY, JSON.stringify(snapshot));
+    window.localStorage.setItem(NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY, JSON.stringify(snapshot));
     return true;
   } catch {
     return false;
@@ -5288,7 +5288,7 @@ function writeTemporarySavedSetupSnapshot(snapshot: TemporarySavedSetupSnapshot)
 
 function clearTemporarySavedSetupSnapshot(): boolean {
   try {
-    window.localStorage.removeItem(KRONOS_TEMPORARY_SAVED_SETUP_STORAGE_KEY);
+    window.localStorage.removeItem(NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY);
     return true;
   } catch {
     return false;
@@ -5660,7 +5660,7 @@ function pointerEventToSourceFixedClientPosition(
 function actorAtRuntimeTile(snapshot: RuntimeSceneSnapshot, tile: RuntimeTile): RuntimeActorPose | null {
   let localPose: RuntimeActorPose | null = null;
   for (const pose of snapshot.actors) {
-    if (!sameKronosTile(pose.tile, tile)) {
+    if (!sameNhTile(pose.tile, tile)) {
       continue;
     }
     if (pose.actorId !== "local-player") {
@@ -5679,15 +5679,15 @@ function minimapDestinationTileFromCommand(tile: RuntimeTile): RuntimeTile {
   };
 }
 
-function buildKronosContextEntries(
+function buildNhContextEntries(
   snapshot: RuntimeSceneSnapshot,
   tile: RuntimeTile,
-  selectedInventoryItem?: KronosInventorySelectedItem | null,
-  selectedSpell?: KronosSelectedSpell | null
-): readonly KronosSceneContextMenuEntry[] {
+  selectedInventoryItem?: NhInventorySelectedItem | null,
+  selectedSpell?: NhSelectedSpell | null
+): readonly NhSceneContextMenuEntry[] {
   const actor = actorAtRuntimeTile(snapshot, tile);
   if (actor && actor.actorId !== "local-player") {
-    return buildKronosActorContextEntries(actor, tile, selectedInventoryItem, selectedSpell);
+    return buildNhActorContextEntries(actor, tile, selectedInventoryItem, selectedSpell);
   }
 
   if (selectedInventoryItem || selectedSpell) {
@@ -5697,13 +5697,13 @@ function buildKronosContextEntries(
   return [{ actionText: "Walk here", targetText: "", opcode: 23, action: "walk", targetTile: tile }];
 }
 
-function buildKronosActorContextEntries(
+function buildNhActorContextEntries(
   actor: RuntimeActorPose,
   walkTile: RuntimeTile,
-  selectedInventoryItem?: KronosInventorySelectedItem | null,
-  selectedSpell?: KronosSelectedSpell | null
-): readonly KronosPlayerContextMenuEntry<RuntimeTile>[] {
-  return buildKronosPlayerContextEntries({
+  selectedInventoryItem?: NhInventorySelectedItem | null,
+  selectedSpell?: NhSelectedSpell | null
+): readonly NhPlayerContextMenuEntry<RuntimeTile>[] {
+  return buildNhPlayerContextEntries({
     name: runtimeActorMenuName(actor),
     combatLevel: 126,
     localCombatLevel: 126,
@@ -5717,10 +5717,10 @@ function buildKronosActorContextEntries(
 
 function withOpponentInventoryInspectContextEntry(
   actor: RuntimeActorPose,
-  entries: readonly KronosPlayerContextMenuEntry<RuntimeTile>[],
-  selectedInventoryItem?: KronosInventorySelectedItem | null,
-  selectedSpell?: KronosSelectedSpell | null
-): readonly KronosContextMenuEntry[] {
+  entries: readonly NhPlayerContextMenuEntry<RuntimeTile>[],
+  selectedInventoryItem?: NhInventorySelectedItem | null,
+  selectedSpell?: NhSelectedSpell | null
+): readonly NhContextMenuEntry[] {
   if (actor.actorId !== "opponent" || selectedInventoryItem || selectedSpell) {
     return entries;
   }
@@ -5744,10 +5744,10 @@ function withOpponentInventoryInspectContextEntry(
 type RunelitePvpToolsMenuRelation = "clan" | "friends" | "other";
 
 function filterRunelitePvpToolsPlayerContextEntries(
-  entries: readonly KronosPlayerContextMenuEntry<RuntimeTile>[],
+  entries: readonly NhPlayerContextMenuEntry<RuntimeTile>[],
   actor: RuntimeActorPose,
   config: RunelitePvpToolsConfigSnapshot
-): readonly KronosPlayerContextMenuEntry<RuntimeTile>[] {
+): readonly NhPlayerContextMenuEntry<RuntimeTile>[] {
   // Source: PvpToolsPlugin.setCastOptions applies client.setHideFriend/ClanAttackOptions,
   // client.setHideFriend/ClanmateCastOptions, and client.setUnhiddenCasts from hideCastIgnored.
   if (!config.enabled) {
@@ -5867,7 +5867,7 @@ function runtimeActorMenuName(actor: RuntimeActorPose): string {
   return actor.actorId === "opponent" ? "Opponent" : actor.actorId;
 }
 
-function isKronosInventoryContextMenuEntry(entry: KronosContextMenuEntry): entry is KronosInventoryContextMenuEntry {
+function isNhInventoryContextMenuEntry(entry: NhContextMenuEntry): entry is NhInventoryContextMenuEntry {
   return (
     entry.action === "inventory-action" ||
     entry.action === "inventory-use" ||
@@ -5877,37 +5877,37 @@ function isKronosInventoryContextMenuEntry(entry: KronosContextMenuEntry): entry
   );
 }
 
-function isKronosEquipmentItemContextMenuEntry(entry: KronosContextMenuEntry): entry is KronosEquipmentItemContextMenuEntry {
+function isNhEquipmentItemContextMenuEntry(entry: NhContextMenuEntry): entry is NhEquipmentItemContextMenuEntry {
   return entry.action === "equipment-remove" || entry.action === "equipment-action" || entry.action === "equipment-examine";
 }
 
-function isKronosGroundItemContextMenuEntry(entry: KronosContextMenuEntry): entry is KronosGroundItemContextMenuEntry {
+function isNhGroundItemContextMenuEntry(entry: NhContextMenuEntry): entry is NhGroundItemContextMenuEntry {
   return entry.action === "ground-item-take" || entry.action === "ground-item-examine";
 }
 
-function isKronosOpponentInventoryInspectContextMenuEntry(
-  entry: KronosContextMenuEntry
-): entry is KronosOpponentInventoryInspectContextMenuEntry {
+function isNhOpponentInventoryInspectContextMenuEntry(
+  entry: NhContextMenuEntry
+): entry is NhOpponentInventoryInspectContextMenuEntry {
   return entry.action === "opponent-inventory-inspect";
 }
 
-function isKronosSourceContextMenuEntry(entry: KronosContextMenuEntry): entry is KronosSourceContextMenuEntry {
+function isNhSourceContextMenuEntry(entry: NhContextMenuEntry): entry is NhSourceContextMenuEntry {
   return entry.action === "source-menu-entry";
 }
 
-function isKronosHudWidgetContextMenuEntry(entry: KronosContextMenuEntry): entry is KronosHudWidgetContextMenuEntry {
+function isNhHudWidgetContextMenuEntry(entry: NhContextMenuEntry): entry is NhHudWidgetContextMenuEntry {
   return entry.action === "hud-widget-action";
 }
 
-function isRuneliteOverlayConfigContextMenuEntry(entry: KronosContextMenuEntry): entry is RuneliteOverlayConfigContextMenuEntry {
+function isRuneliteOverlayConfigContextMenuEntry(entry: NhContextMenuEntry): entry is RuneliteOverlayConfigContextMenuEntry {
   return entry.action === "runelite-overlay-config";
 }
 
-function isKronosXpDropOrbContextMenuEntry(entry: KronosContextMenuEntry): entry is KronosXpDropOrbContextMenuEntry {
+function isNhXpDropOrbContextMenuEntry(entry: NhContextMenuEntry): entry is NhXpDropOrbContextMenuEntry {
   return entry.action === "xp-drop-orb-action" || entry.action === "xp-drop-text-size";
 }
 
-function isKronosCancelContextMenuEntry(entry: KronosContextMenuEntry): entry is KronosCancelContextMenuEntry {
+function isNhCancelContextMenuEntry(entry: NhContextMenuEntry): entry is NhCancelContextMenuEntry {
   return entry.action === "cancel";
 }
 
@@ -5915,9 +5915,9 @@ function equipmentItemOpcodeForActionIndex(actionIndex: number): number {
   return actionIndex >= 6 ? equipmentItemHighActionOpcode : equipmentItemDefaultActionOpcode;
 }
 
-function isKronosSceneObjectContextMenuEntry(
-  entry: KronosContextMenuEntry
-): entry is KronosSceneObjectContextMenuEntry<RuntimeTile> {
+function isNhSceneObjectContextMenuEntry(
+  entry: NhContextMenuEntry
+): entry is NhSceneObjectContextMenuEntry<RuntimeTile> {
   return (
     entry.action === "object-action" ||
     entry.action === "object-use-selected" ||
@@ -5926,7 +5926,7 @@ function isKronosSceneObjectContextMenuEntry(
   );
 }
 
-function isKronosPlayerContextMenuEntry(entry: KronosContextMenuEntry): entry is KronosPlayerContextMenuEntry<RuntimeTile> {
+function isNhPlayerContextMenuEntry(entry: NhContextMenuEntry): entry is NhPlayerContextMenuEntry<RuntimeTile> {
   if (entry.action === "walk") {
     return entry.targetText.includes("(level-");
   }
@@ -5959,7 +5959,7 @@ function runtimeWeaponLoadoutForItemId(itemId: number): RuntimeLoadoutId | null 
   return null;
 }
 
-function runtimeCombatSpellIdFromSelectedSpell(spell: KronosSelectedSpell | null | undefined): RuntimePlayerCombatSpellId | null {
+function runtimeCombatSpellIdFromSelectedSpell(spell: NhSelectedSpell | null | undefined): RuntimePlayerCombatSpellId | null {
   return spell?.spellId === "blood-blitz" ||
     spell?.spellId === "ice-blitz" ||
     spell?.spellId === "blood-barrage" ||
@@ -5968,8 +5968,8 @@ function runtimeCombatSpellIdFromSelectedSpell(spell: KronosSelectedSpell | null
     : null;
 }
 
-function runtimePrayerIdsFromKronosStates(states: KronosPrayerStates | undefined): readonly PrayerId[] {
-  return kronosActivePrayerIds(states).flatMap((id): PrayerId[] => {
+function runtimePrayerIdsFromNhStates(states: NhPrayerStates | undefined): readonly PrayerId[] {
+  return nhActivePrayerIds(states).flatMap((id): PrayerId[] => {
     const runtimeId = id.split("-").join("_");
     return isRuntimePrayerId(runtimeId) ? [runtimeId] : [];
   });
@@ -5987,7 +5987,7 @@ function runtimeCombatLevelsFromHud(hud: RuntimeHudState): CombatLevels {
 
 const runtimeStatKeys: readonly StatKey[] = ["attack", "strength", "defence", "ranged", "magic", "hitpoints", "prayer"];
 
-function runtimeInventoryActionConsumableId(entry: KronosInventoryContextMenuEntry): ConsumableId | null {
+function runtimeInventoryActionConsumableId(entry: NhInventoryContextMenuEntry): ConsumableId | null {
   if (entry.action !== "inventory-action") {
     return null;
   }
@@ -5998,7 +5998,7 @@ function runtimeInventoryActionConsumableId(entry: KronosInventoryContextMenuEnt
   return runtimeConsumableIdForItemId(entry.itemId);
 }
 
-function runtimeInventoryActionConsumableKind(entry: KronosInventoryContextMenuEntry): "eat" | "drink" | null {
+function runtimeInventoryActionConsumableKind(entry: NhInventoryContextMenuEntry): "eat" | "drink" | null {
   if (entry.action !== "inventory-action") {
     return null;
   }
@@ -6123,10 +6123,10 @@ function isRuntimePrayerId(value: string): value is PrayerId {
 }
 
 function clickCrossStyle(
-  cross: KronosClickCrossState,
+  cross: NhClickCrossState,
   spriteAtlases: ReadonlyMap<RuntimeSpriteSheetId, RuntimeSpriteAtlas>,
-  definitions: KronosClickCrossDefinitionStore,
-  layout: KronosFixedClientCssLayout | null
+  definitions: NhClickCrossDefinitionStore,
+  layout: NhFixedClientCssLayout | null
 ): CSSProperties {
   if (!layout) {
     return { display: "none" };
@@ -6134,9 +6134,9 @@ function clickCrossStyle(
 
   const scale = layout.scale;
   const atlas = spriteAtlases.get("click_cross");
-  const definition = kronosClickCrossDefinition(definitions, cross.color, cross.frame);
+  const definition = nhClickCrossDefinition(definitions, cross.color, cross.frame);
   const sprite = definition ? atlas?.sprites.get(definition.spriteId) : undefined;
-  const drawOffset = definition?.drawOffset ?? KRONOS_MOUSE_CROSS_DRAW_OFFSET;
+  const drawOffset = definition?.drawOffset ?? NH_MOUSE_CROSS_DRAW_OFFSET;
   if (!atlas || !sprite) {
     return { display: "none" };
   }
@@ -6154,12 +6154,12 @@ function clickCrossStyle(
   };
 }
 
-const KRONOS_CONTEXT_MENU_BROWSER_X_SCALE = 0.9;
+const NH_CONTEXT_MENU_BROWSER_X_SCALE = 0.9;
 
 function contextMenuStyleWithFont(
-  menu: KronosContextMenuState,
-  layout: KronosFixedClientCssLayout | null,
-  font: KronosClientFontDefinition | null,
+  menu: NhContextMenuState,
+  layout: NhFixedClientCssLayout | null,
+  font: NhClientFontDefinition | null,
   atlas: RuntimeSpriteAtlas | undefined
 ): CSSProperties {
   if (!font || !atlas || !layout) {
@@ -6172,31 +6172,31 @@ function contextMenuStyleWithFont(
   const sourceHeight = surface.height / scale;
   if (menu.sourceRect) {
     const visualLeft =
-      surface.x + (menu.sourceRect.x + menu.sourceRect.width * (1 - KRONOS_CONTEXT_MENU_BROWSER_X_SCALE) / 2) * scale;
+      surface.x + (menu.sourceRect.x + menu.sourceRect.width * (1 - NH_CONTEXT_MENU_BROWSER_X_SCALE) / 2) * scale;
     return {
       left: visualLeft,
       top: surface.y + menu.sourceRect.y * scale,
       width: menu.sourceRect.width,
       height: menu.sourceRect.height,
-      transform: `scale(${scale * KRONOS_CONTEXT_MENU_BROWSER_X_SCALE}, ${scale})`,
+      transform: `scale(${scale * NH_CONTEXT_MENU_BROWSER_X_SCALE}, ${scale})`,
       transformOrigin: "left top"
     };
   }
 
   const sourceX = (menu.x - surface.x) / scale;
   const sourceY = (menu.y - surface.y) / scale;
-  const rect = resolveKronosContextMenuRect(sourceX, sourceY, menu.entries, {
+  const rect = resolveNhContextMenuRect(sourceX, sourceY, menu.entries, {
     width: sourceWidth,
     height: sourceHeight
   }, font);
-  const visualLeft = surface.x + (rect.x + rect.width * (1 - KRONOS_CONTEXT_MENU_BROWSER_X_SCALE) / 2) * scale;
+  const visualLeft = surface.x + (rect.x + rect.width * (1 - NH_CONTEXT_MENU_BROWSER_X_SCALE) / 2) * scale;
 
   return {
     left: visualLeft,
     top: surface.y + rect.y * scale,
     width: rect.width,
     height: rect.height,
-    transform: `scale(${scale * KRONOS_CONTEXT_MENU_BROWSER_X_SCALE}, ${scale})`,
+    transform: `scale(${scale * NH_CONTEXT_MENU_BROWSER_X_SCALE}, ${scale})`,
     transformOrigin: "left top"
   };
 }
@@ -6299,7 +6299,7 @@ async function loadOptionalJson<T>(url: string): Promise<T | null> {
   }
 }
 
-async function loadAnimationFixtures(): Promise<KronosAnimationFixtures> {
+async function loadAnimationFixtures(): Promise<NhAnimationFixtures> {
   const sequenceNames: RuntimeSequenceName[] = [
     "idle",
     "walk",
@@ -6313,17 +6313,17 @@ async function loadAnimationFixtures(): Promise<KronosAnimationFixtures> {
     "barrage_cast"
   ];
   const [frameStore, rawSequences, sequenceEntries] = await Promise.all([
-    loadJson<KronosAnimationFrameStore>("assets/animations/frames.json"),
-    loadJson<KronosRawSequenceStore>("assets/animations/sequences.json"),
+    loadJson<NhAnimationFrameStore>("assets/animations/frames.json"),
+    loadJson<NhRawSequenceStore>("assets/animations/sequences.json"),
     Promise.all(
       sequenceNames.map(async (name) => {
-        const sequence = await loadJson<KronosRenderSequenceDefinition>(`render/sequences/${name}.json`);
-        return [name, sequence] as const satisfies readonly [string, KronosRenderSequenceDefinition];
+        const sequence = await loadJson<NhRenderSequenceDefinition>(`render/sequences/${name}.json`);
+        return [name, sequence] as const satisfies readonly [string, NhRenderSequenceDefinition];
       })
     )
   ]);
-  const namedSequences = new Map<string, KronosRenderSequenceDefinition>(
-    sequenceEntries.map(([name, sequence]) => [name, mergeKronosRawSequenceMetadata(sequence, rawSequences)])
+  const namedSequences = new Map<string, NhRenderSequenceDefinition>(
+    sequenceEntries.map(([name, sequence]) => [name, mergeNhRawSequenceMetadata(sequence, rawSequences)])
   );
   const sourceReadySequences: readonly (readonly [RuntimeSequenceName, string])[] = [
     ["turn", "823"],
@@ -6374,20 +6374,20 @@ async function loadAnimationFixtures(): Promise<KronosAnimationFixtures> {
     if (rawSequence) {
       namedSequences.set(name, {
         name,
-        ...kronosRenderSequenceFromRawSequence(rawSequence)
+        ...nhRenderSequenceFromRawSequence(rawSequence)
       });
     }
   }
   const rawRunSequence = rawSequences["824"];
   if (rawRunSequence) {
-    namedSequences.set("run", kronosRenderSequenceFromRawSequence(rawRunSequence));
+    namedSequences.set("run", nhRenderSequenceFromRawSequence(rawRunSequence));
   }
   const rawConsumeSequence = rawSequences["829"];
   if (rawConsumeSequence) {
-    namedSequences.set("consume", kronosRenderSequenceFromRawSequence(rawConsumeSequence));
+    namedSequences.set("consume", nhRenderSequenceFromRawSequence(rawConsumeSequence));
   }
-  const sequencesById = new Map<number, KronosRenderSequenceDefinition>(
-    Object.values(rawSequences).map((sequence) => [sequence.id, kronosRenderSequenceFromRawSequence(sequence)])
+  const sequencesById = new Map<number, NhRenderSequenceDefinition>(
+    Object.values(rawSequences).map((sequence) => [sequence.id, nhRenderSequenceFromRawSequence(sequence)])
   );
   for (const [, sequence] of namedSequences) {
     if (sequence.sequenceId !== undefined) {
@@ -6402,15 +6402,15 @@ async function loadAnimationFixtures(): Promise<KronosAnimationFixtures> {
   };
 }
 
-function mergeKronosRawSequenceMetadata(
-  sequence: KronosRenderSequenceDefinition,
-  rawSequences: KronosRawSequenceStore
-): KronosRenderSequenceDefinition {
+function mergeNhRawSequenceMetadata(
+  sequence: NhRenderSequenceDefinition,
+  rawSequences: NhRawSequenceStore
+): NhRenderSequenceDefinition {
   const rawSequence = sequence.sequenceId === undefined ? null : rawSequences[String(sequence.sequenceId)] ?? null;
   if (!rawSequence) {
     return sequence;
   }
-  const rawRenderSequence = kronosRenderSequenceFromRawSequence(rawSequence);
+  const rawRenderSequence = nhRenderSequenceFromRawSequence(rawSequence);
   return {
     ...sequence,
     stretches: rawRenderSequence.stretches,
@@ -6422,23 +6422,23 @@ function mergeKronosRawSequenceMetadata(
 }
 
 function actorSequenceDefinitionsFromAnimationFixtures(
-  fixtures: KronosAnimationFixtures
-): KronosActorSequenceDefinitionStore {
-  return createKronosActorSequenceDefinitionStore([...fixtures.sequences.values()]);
+  fixtures: NhAnimationFixtures
+): NhActorSequenceDefinitionStore {
+  return createNhActorSequenceDefinitionStore([...fixtures.sequences.values()]);
 }
 
-async function loadCacheGlbManifest(): Promise<KronosCacheGlbManifest> {
-  return loadJson<KronosCacheGlbManifest>("assets/models/cache-glb-manifest.json");
+async function loadCacheGlbManifest(): Promise<NhCacheGlbManifest> {
+  return loadJson<NhCacheGlbManifest>("assets/models/cache-glb-manifest.json");
 }
 
 function runtimeUrlFromFixturePath(fixturePath: string): string {
   return fixturePath.replace(/^fixtures\//, "");
 }
 
-function spotanimArtifactsFromManifest(manifest: KronosCacheGlbManifest): ReadonlyMap<number, KronosSpotanimArtifact> {
+function spotanimArtifactsFromManifest(manifest: NhCacheGlbManifest): ReadonlyMap<number, NhSpotanimArtifact> {
   return new Map(
     manifest.exports
-      .filter((entry): entry is KronosCacheGlbManifestEntry & { readonly spotanimId: number } =>
+      .filter((entry): entry is NhCacheGlbManifestEntry & { readonly spotanimId: number } =>
         Number.isInteger(entry.spotanimId)
       )
       .map((entry) => [
@@ -6452,9 +6452,9 @@ function spotanimArtifactsFromManifest(manifest: KronosCacheGlbManifest): Readon
   );
 }
 
-async function loadProjectileDefinitions(): Promise<KronosProjectileDefinitionMap> {
+async function loadProjectileDefinitions(): Promise<NhProjectileDefinitionMap> {
   const [store, manifest] = await Promise.all([
-    loadJson<KronosProjectileDefinitionStore>("assets/defs/projectiles.json"),
+    loadJson<NhProjectileDefinitionStore>("assets/defs/projectiles.json"),
     loadCacheGlbManifest()
   ]);
   const artifacts = spotanimArtifactsFromManifest(manifest);
@@ -6470,9 +6470,9 @@ async function loadProjectileDefinitions(): Promise<KronosProjectileDefinitionMa
   );
 }
 
-async function loadSpotanimDefinitions(): Promise<ReadonlyMap<number, KronosSpotanimDefinition>> {
+async function loadSpotanimDefinitions(): Promise<ReadonlyMap<number, NhSpotanimDefinition>> {
   const [store, manifest] = await Promise.all([
-    loadJson<Record<string, KronosSpotanimDefinition>>("assets/defs/spotanims.json"),
+    loadJson<Record<string, NhSpotanimDefinition>>("assets/defs/spotanims.json"),
     loadCacheGlbManifest()
   ]);
   const artifacts = spotanimArtifactsFromManifest(manifest);
@@ -6487,58 +6487,58 @@ async function loadSpotanimDefinitions(): Promise<ReadonlyMap<number, KronosSpot
   );
 }
 
-async function loadFixedClientLayout(): Promise<KronosFixedClientLayout> {
+async function loadFixedClientLayout(): Promise<NhFixedClientLayout> {
   const [widgets, spellbooks] = await Promise.all([
-    loadJson<KronosClientWidgetDefinitions>("assets/defs/client-widgets.json"),
-    loadJson<KronosSpellbookDefinitions>("assets/defs/spellbooks.json")
+    loadJson<NhClientWidgetDefinitions>("assets/defs/client-widgets.json"),
+    loadJson<NhSpellbookDefinitions>("assets/defs/spellbooks.json")
   ]);
-  return resolveKronosFixedClientLayout(widgets, spellbooks);
+  return resolveNhFixedClientLayout(widgets, spellbooks);
 }
 
-async function loadFloorDefinitions(): Promise<KronosFloorDefinitionStore> {
-  return loadJson<KronosFloorDefinitionStore>("assets/defs/floors.json");
+async function loadFloorDefinitions(): Promise<NhFloorDefinitionStore> {
+  return loadJson<NhFloorDefinitionStore>("assets/defs/floors.json");
 }
 
-async function loadTerrainTextureDefinitions(): Promise<KronosTextureDefinitionStore> {
-  return loadJson<KronosTextureDefinitionStore>("assets/defs/textures.json");
+async function loadTerrainTextureDefinitions(): Promise<NhTextureDefinitionStore> {
+  return loadJson<NhTextureDefinitionStore>("assets/defs/textures.json");
 }
 
-async function loadInventoryItemDefinitions(): Promise<KronosInventoryItemDefinitionStore> {
-  return createKronosInventoryItemDefinitionStore(await loadJson<unknown>("assets/defs/cache-items.json"));
+async function loadInventoryItemDefinitions(): Promise<NhInventoryItemDefinitionStore> {
+  return createNhInventoryItemDefinitionStore(await loadJson<unknown>("assets/defs/cache-items.json"));
 }
 
-async function loadInventoryEquipmentDefinitions(): Promise<KronosInventoryEquipmentDefinitionStore> {
-  return createKronosInventoryEquipmentDefinitionStore(await loadJson<unknown>("assets/defs/server-items.json"));
+async function loadInventoryEquipmentDefinitions(): Promise<NhInventoryEquipmentDefinitionStore> {
+  return createNhInventoryEquipmentDefinitionStore(await loadJson<unknown>("assets/defs/server-items.json"));
 }
 
-async function loadWeaponTypeDefinitions(): Promise<KronosWeaponTypeDefinitionStore> {
-  return createKronosWeaponTypeDefinitionStore(await loadJson<unknown>("assets/defs/weapon-types.json"));
+async function loadWeaponTypeDefinitions(): Promise<NhWeaponTypeDefinitionStore> {
+  return createNhWeaponTypeDefinitionStore(await loadJson<unknown>("assets/defs/weapon-types.json"));
 }
 
-async function loadHitsplatDefinitions(): Promise<KronosHitsplatDefinitionStore> {
-  return createKronosHitsplatDefinitionStore(await loadJson<unknown>("assets/defs/hitsplats.json"));
+async function loadHitsplatDefinitions(): Promise<NhHitsplatDefinitionStore> {
+  return createNhHitsplatDefinitionStore(await loadJson<unknown>("assets/defs/hitsplats.json"));
 }
 
-async function loadHealthBarDefinitions(): Promise<KronosHealthBarDefinitionStore> {
-  return createKronosHealthBarDefinitionStore(await loadJson<unknown>("assets/defs/healthbars.json"));
+async function loadHealthBarDefinitions(): Promise<NhHealthBarDefinitionStore> {
+  return createNhHealthBarDefinitionStore(await loadJson<unknown>("assets/defs/healthbars.json"));
 }
 
-async function loadOverheadIconDefinitions(): Promise<KronosOverheadIconDefinitionStore> {
-  return createKronosOverheadIconDefinitionStore(await loadJson<unknown>("assets/defs/overhead-icons.json"));
+async function loadOverheadIconDefinitions(): Promise<NhOverheadIconDefinitionStore> {
+  return createNhOverheadIconDefinitionStore(await loadJson<unknown>("assets/defs/overhead-icons.json"));
 }
 
-async function loadClientFonts(): Promise<KronosClientFontStore> {
-  return createKronosClientFontStore(await loadJson<unknown>("assets/defs/client-fonts.json"));
+async function loadClientFonts(): Promise<NhClientFontStore> {
+  return createNhClientFontStore(await loadJson<unknown>("assets/defs/client-fonts.json"));
 }
 
-async function loadPlayerModelSources(): Promise<KronosPlayerModelSources> {
+async function loadPlayerModelSources(): Promise<NhPlayerModelSources> {
   const [cacheItems, kits, cacheModels, serverItems, bodyColors, textures] = await Promise.all([
-    loadJson<KronosPlayerModelSources["cacheItems"]>("assets/defs/cache-items.json"),
-    loadJson<KronosPlayerModelSources["kits"]>("assets/defs/kits.json"),
-    loadJson<KronosPlayerModelSources["cacheModels"]>("assets/models/cache-models.json"),
-    loadJson<KronosPlayerModelSources["serverItems"]>("assets/defs/server-items.json"),
-    loadJson<KronosPlayerModelSources["bodyColors"]>("assets/defs/body-colors.json"),
-    loadJson<NonNullable<KronosPlayerModelSources["textures"]>>("assets/defs/textures.json")
+    loadJson<NhPlayerModelSources["cacheItems"]>("assets/defs/cache-items.json"),
+    loadJson<NhPlayerModelSources["kits"]>("assets/defs/kits.json"),
+    loadJson<NhPlayerModelSources["cacheModels"]>("assets/models/cache-models.json"),
+    loadJson<NhPlayerModelSources["serverItems"]>("assets/defs/server-items.json"),
+    loadJson<NhPlayerModelSources["bodyColors"]>("assets/defs/body-colors.json"),
+    loadJson<NonNullable<NhPlayerModelSources["textures"]>>("assets/defs/textures.json")
   ]);
   return { cacheItems, kits, cacheModels, serverItems, bodyColors, textures };
 }
@@ -6599,20 +6599,20 @@ function spriteAtlasFrameKey(spriteId: number, spriteFrame: number): string {
   return `${spriteId}:${spriteFrame}`;
 }
 
-interface KronosContextMenuTextProps {
+interface NhContextMenuTextProps {
   readonly text: string;
-  readonly font: KronosClientFontDefinition | null;
+  readonly font: NhClientFontDefinition | null;
   readonly atlas: RuntimeSpriteAtlas | undefined;
   readonly left: number;
   readonly baseline: number;
   readonly color: string;
 }
 
-function KronosContextMenuText({ text, font, atlas, left, baseline, color }: KronosContextMenuTextProps) {
+function NhContextMenuText({ text, font, atlas, left, baseline, color }: NhContextMenuTextProps) {
   if (!font || !atlas) {
     return (
-      <span className="kronosContextMenuText" data-source-glyph-missing="true">
-        <span className="kronosContextMenuAccessibleText">{text}</span>
+      <span className="nhContextMenuText" data-source-glyph-missing="true">
+        <span className="nhContextMenuAccessibleText">{text}</span>
       </span>
     );
   }
@@ -6620,14 +6620,14 @@ function KronosContextMenuText({ text, font, atlas, left, baseline, color }: Kro
   const imageUrl = `render/sprites/${atlas.metadata.image}`;
   return (
     <span
-      className="kronosContextMenuText"
+      className="nhContextMenuText"
       data-source-font-id={font.fontId}
       data-source-font-archive={font.fontArchiveName}
       data-source-glyph-atlas={atlas.id}
-      style={{ "--kronos-context-menu-text-color": color } as CSSProperties}
+      style={{ "--nh-context-menu-text-color": color } as CSSProperties}
     >
-      <span className="kronosContextMenuAccessibleText">{text}</span>
-      {layoutKronosClientFontGlyphs(font, text).map((glyph, index) => {
+      <span className="nhContextMenuAccessibleText">{text}</span>
+      {layoutNhClientFontGlyphs(font, text).map((glyph, index) => {
         const sprite = atlas.sprites.get(glyph.charCode);
         if (!sprite || glyph.charCode === 32) {
           return null;
@@ -6636,7 +6636,7 @@ function KronosContextMenuText({ text, font, atlas, left, baseline, color }: Kro
         return (
           <span
             key={`${glyph.charCode}-${index}-${glyph.x}`}
-            className="kronosContextMenuGlyph"
+            className="nhContextMenuGlyph"
             data-char-code={glyph.charCode}
             data-source-sprite-id={sprite.spriteId}
             style={{
@@ -6679,7 +6679,7 @@ interface RuntimeOpponentInventoryInspectSlot {
 }
 
 function runtimeInventoryItemName(
-  itemDefinitions: KronosInventoryItemDefinitionStore,
+  itemDefinitions: NhInventoryItemDefinitionStore,
   itemId: number
 ): string {
   return itemDefinitions.get(itemId)?.name ?? RUNTIME_NH_STAKE_ITEM_NAMES.get(itemId) ?? `Item ${itemId}`;
@@ -6687,7 +6687,7 @@ function runtimeInventoryItemName(
 
 function runtimeOpponentInventoryInspectSlots(
   actor: RuntimePlayerCombatActorState,
-  itemDefinitions: KronosInventoryItemDefinitionStore
+  itemDefinitions: NhInventoryItemDefinitionStore
 ): readonly RuntimeOpponentInventoryInspectSlot[] {
   return runtimeNhStakeInventorySlotsForSupplies(actor.supplies).map((slot, slotIndex) => {
     if (!slot) {
@@ -6760,7 +6760,7 @@ function OpponentInventoryInspectPanel({
 }: {
   readonly actor: RuntimePlayerCombatActorState;
   readonly itemAtlas: RuntimeSpriteAtlas | undefined;
-  readonly itemDefinitions: KronosInventoryItemDefinitionStore;
+  readonly itemDefinitions: NhInventoryItemDefinitionStore;
   readonly onClose: () => void;
 }): JSX.Element {
   const startSupplies = runtimeNhStakeSupplies();
@@ -6846,7 +6846,7 @@ function RuneliteXpDropGlyphText({
 }: {
   readonly atlas: RuntimeSpriteAtlas | undefined;
   readonly color: string;
-  readonly font: KronosClientFontDefinition | null;
+  readonly font: NhClientFontDefinition | null;
   readonly height: number;
   readonly text: string;
   readonly width: number;
@@ -6861,7 +6861,7 @@ function RuneliteXpDropGlyphText({
 
   const imageUrl = `render/sprites/${atlas.metadata.image}`;
   const baseline = font.maxAscent;
-  const left = width - kronosClientFontStringWidth(font, text);
+  const left = width - nhClientFontStringWidth(font, text);
   return (
     <span
       className="runeliteXpDropGlyphText"
@@ -6877,8 +6877,8 @@ function RuneliteXpDropGlyphText({
         "--runelite-xp-drop-text-color": color
       } as CSSProperties}
     >
-      <span className="kronosWidgetAccessibleText">{text}</span>
-      {layoutKronosClientFontGlyphs(font, text).map((glyph, index) => {
+      <span className="nhWidgetAccessibleText">{text}</span>
+      {layoutNhClientFontGlyphs(font, text).map((glyph, index) => {
         const sprite = atlas.sprites.get(glyph.charCode);
         if (!sprite || glyph.charCode === 32) {
           return null;
@@ -6906,7 +6906,7 @@ function RuneliteXpDropGlyphText({
           />
         );
       })}
-      {layoutKronosClientFontGlyphs(font, text).map((glyph, index) => {
+      {layoutNhClientFontGlyphs(font, text).map((glyph, index) => {
         const sprite = atlas.sprites.get(glyph.charCode);
         if (!sprite || glyph.charCode === 32) {
           return null;
@@ -7010,12 +7010,12 @@ function spriteAtlasEntry(
 }
 
 async function loadRuntimeReplays(
-  projectileDefinitions: KronosProjectileDefinitionMap,
-  spotanimDefinitions: ReadonlyMap<number, KronosReplaySpotanimDefinition>,
-  hitsplatDefinitions: KronosHitsplatDefinitionStore,
-  healthBarDefinitions: KronosHealthBarDefinitionStore,
-  overheadIconDefinitions: KronosOverheadIconDefinitionStore,
-  actorSequenceDefinitions: KronosActorSequenceDefinitionStore
+  projectileDefinitions: NhProjectileDefinitionMap,
+  spotanimDefinitions: ReadonlyMap<number, NhReplaySpotanimDefinition>,
+  hitsplatDefinitions: NhHitsplatDefinitionStore,
+  healthBarDefinitions: NhHealthBarDefinitionStore,
+  overheadIconDefinitions: NhOverheadIconDefinitionStore,
+  actorSequenceDefinitions: NhActorSequenceDefinitionStore
 ): Promise<readonly RuntimeReplay[]> {
   const traces: ClientViewTrace[] = [
     createDefaultNhDuelClientViewTrace({ ticks: 56 }),
@@ -7023,7 +7023,7 @@ async function loadRuntimeReplays(
     createMinimapSemanticClientViewTrace(),
     createDisabledMinimapClientViewTrace()
   ];
-  const bridge = window.kronosTrainer;
+  const bridge = window.nhTrainer;
   if (bridge?.listSimFixtures && bridge.readSimFixture) {
     const fixtures = await bridge.listSimFixtures();
     const selected =
@@ -7050,7 +7050,7 @@ async function loadRuntimeReplays(
 }
 
 async function loadCapturedReferenceClientViewTraces(): Promise<readonly ClientViewTrace[]> {
-  const bridge = window.kronosTrainer;
+  const bridge = window.nhTrainer;
   if (bridge?.listCapturedClientViewTraces && bridge.readCapturedClientViewTrace) {
     try {
       const traces = await bridge.listCapturedClientViewTraces();
@@ -7066,7 +7066,7 @@ async function loadCapturedReferenceClientViewTraces(): Promise<readonly ClientV
     }
   }
 
-  const manifest = await loadOptionalJson<KronosClientReferenceManifest>("reference/client-render/manifest.json");
+  const manifest = await loadOptionalJson<NhClientReferenceManifest>("reference/client-render/manifest.json");
   if (!manifest) {
     return [];
   }
@@ -7100,33 +7100,33 @@ function cloneRenderableGeometry(root: Object3D): void {
   });
 }
 
-function buildActorModel(source: Object3D, metadata?: KronosLoadoutMeshMetadata): Group {
+function buildActorModel(source: Object3D, metadata?: NhLoadoutMeshMetadata): Group {
   const instance = source.clone(true);
   const wrapper = new Group();
   cloneRenderableGeometry(instance);
   if (metadata) {
-    attachKronosAnimationMetadata(instance, metadata);
+    attachNhAnimationMetadata(instance, metadata);
   }
   wrapper.add(instance);
 
   // Source anchor: client-actor-model-origin-contract.
-  // Kronos uses Player.getModel() as a single composed model at the actor world position;
+  // Nh uses Player.getModel() as a single composed model at the actor world position;
   // per-loadout bounds.min.y floor alignment makes weapon swaps visibly change actor height.
   instance.position.set(0, 0, 0);
-  wrapper.scale.setScalar(kronosClientUnitsToWorldUnits(1));
+  wrapper.scale.setScalar(nhClientUnitsToWorldUnits(1));
 
   return wrapper;
 }
 
-function buildEffectModel(source: Object3D, metadata?: KronosLoadoutMeshMetadata): Group {
+function buildEffectModel(source: Object3D, metadata?: NhLoadoutMeshMetadata): Group {
   const instance = source.clone(true);
   const wrapper = new Group();
   cloneRenderableGeometry(instance);
   if (metadata) {
-    attachKronosAnimationMetadata(instance, metadata);
+    attachNhAnimationMetadata(instance, metadata);
   }
   wrapper.add(instance);
-  wrapper.scale.setScalar(kronosClientUnitsToWorldUnits(1));
+  wrapper.scale.setScalar(nhClientUnitsToWorldUnits(1));
   return wrapper;
 }
 
@@ -7135,7 +7135,7 @@ function buildGroundItemModel(source: Object3D): Group {
   const wrapper = new Group();
   cloneRenderableGeometry(instance);
   wrapper.add(instance);
-  wrapper.scale.setScalar(kronosClientUnitsToWorldUnits(1));
+  wrapper.scale.setScalar(nhClientUnitsToWorldUnits(1));
   return wrapper;
 }
 
@@ -7157,9 +7157,9 @@ function runtimeLoadoutAppearance(loadoutId: RuntimeLoadoutId): RuntimePlayerApp
 
 function runtimePrimarySequence(
   pose: RuntimeActorPose,
-  animationFixtures: KronosAnimationFixtures | null
-): KronosRenderSequenceDefinition | null {
-  const playbackMode = pose.sequenceMode ?? kronosSequencePlaybackMode(pose.sequenceName);
+  animationFixtures: NhAnimationFixtures | null
+): NhRenderSequenceDefinition | null {
+  const playbackMode = pose.sequenceMode ?? nhSequencePlaybackMode(pose.sequenceName);
   if (playbackMode !== "primary") {
     return null;
   }
@@ -7168,7 +7168,7 @@ function runtimePrimarySequence(
 
 function runtimeActorModelInput(
   pose: RuntimeActorPose,
-  animationFixtures: KronosAnimationFixtures | null
+  animationFixtures: NhAnimationFixtures | null
 ): Pick<RuntimePlayerAppearance, "itemIds" | "bodyColors" | "equipmentSlots"> & {
   readonly shieldOverrideId?: number;
   readonly weaponOverrideId?: number;
@@ -7202,7 +7202,7 @@ function runtimeAppearanceModelKey(
 
 function runtimeActorModelKey(
   pose: RuntimeActorPose,
-  animationFixtures: KronosAnimationFixtures | null
+  animationFixtures: NhAnimationFixtures | null
 ): string {
   const input = runtimeActorModelInput(pose, animationFixtures);
   return pose.appearance || input.shieldOverrideId !== undefined || input.weaponOverrideId !== undefined
@@ -7250,10 +7250,10 @@ function emitRuntimeActorModelSwap(
   }
   if (typeof window !== "undefined") {
     const runtimeWindow = window as typeof window & {
-      __kronosRuntimeActorModelSwaps?: unknown[];
+      __nhRuntimeActorModelSwaps?: unknown[];
     };
-    runtimeWindow.__kronosRuntimeActorModelSwaps?.push(detail);
-    runtimeWindow.dispatchEvent(new CustomEvent("kronos-runtime-actor-model-swap", { detail }));
+    runtimeWindow.__nhRuntimeActorModelSwaps?.push(detail);
+    runtimeWindow.dispatchEvent(new CustomEvent("nh-runtime-actor-model-swap", { detail }));
   }
 }
 
@@ -7280,7 +7280,7 @@ function buildCenteredSceneModels(sources: readonly Object3D[]): CenteredSceneMo
   };
 }
 
-function configureKronosSceneObjectMaterials(root: Object3D): void {
+function configureNhSceneObjectMaterials(root: Object3D): void {
   root.traverse((node) => {
     const mesh = node as Mesh;
     if (!mesh.isMesh) {
@@ -7289,12 +7289,12 @@ function configureKronosSceneObjectMaterials(root: Object3D): void {
 
     const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
     for (const material of materials) {
-      applyKronosSceneObjectMaterialLayer(material);
+      applyNhSceneObjectMaterialLayer(material);
     }
   });
 }
 
-function applyKronosSceneObjectMaterialLayer(material: Material): void {
+function applyNhSceneObjectMaterialLayer(material: Material): void {
   if (!material.name.includes("cache-floor-decoration")) {
     return;
   }
@@ -7343,16 +7343,16 @@ function eventEffectAnimationCycle(event: RuntimeRenderEvent, snapshot: RuntimeS
   if (event.kind === "projectile" && event.projectile) {
     return Math.max(
       0,
-      Math.floor(kronosRenderCycleToProjectileClientCycle(event, snapshot.cycle, event.projectile) - event.projectile.cycleStart)
+      Math.floor(nhRenderCycleToProjectileClientCycle(event, snapshot.cycle, event.projectile) - event.projectile.cycleStart)
     );
   }
   return Math.max(0, snapshot.cycle - event.startCycle);
 }
 
-function currentKronosGameRenderCycleAt(originMs: number, nowMs: number): number {
+function currentNhGameRenderCycleAt(originMs: number, nowMs: number): number {
   const elapsed = Math.max(0, nowMs - originMs);
-  const clientCycle = Math.floor(elapsed / KRONOS_CLIENT_CYCLE_MS);
-  return clientCycle / KRONOS_CLIENT_CYCLES_PER_GAME_TICK;
+  const clientCycle = Math.floor(elapsed / NH_CLIENT_CYCLE_MS);
+  return clientCycle / NH_CLIENT_CYCLES_PER_GAME_TICK;
 }
 
 function runtimeEffectFrameSnapshot(
@@ -7365,8 +7365,8 @@ function runtimeEffectFrameSnapshot(
     return snapshot;
   }
 
-  const renderCycle = currentKronosGameRenderCycleAt(originMs, nowMs);
-  if (renderCycle < snapshot.cycle - 1 || renderCycle > snapshot.cycle + KRONOS_GAME_TICK_CATCH_UP_LIMIT) {
+  const renderCycle = currentNhGameRenderCycleAt(originMs, nowMs);
+  if (renderCycle < snapshot.cycle - 1 || renderCycle > snapshot.cycle + NH_GAME_TICK_CATCH_UP_LIMIT) {
     return snapshot;
   }
 
@@ -7380,8 +7380,8 @@ function applyRuntimeEffectAnimation(
   object: Object3D,
   event: RuntimeRenderEvent,
   snapshot: RuntimeSceneSnapshot,
-  animationFixtures: KronosAnimationFixtures | null,
-  spotanimDefinitions: ReadonlyMap<number, KronosSpotanimDefinition>
+  animationFixtures: NhAnimationFixtures | null,
+  spotanimDefinitions: ReadonlyMap<number, NhSpotanimDefinition>
 ): void {
   const spotanimId = eventSpotanimId(event);
   const sequenceId = spotanimId === null ? undefined : spotanimDefinitions.get(spotanimId)?.animationId;
@@ -7390,14 +7390,14 @@ function applyRuntimeEffectAnimation(
   }
 
   const playbackMode = event.kind === "projectile" ? "loop" : "primary";
-  const frame = applyKronosSequenceAnimation(
+  const frame = applyNhSequenceAnimation(
     object,
     animationFixtures?.sequencesById.get(sequenceId),
     eventEffectAnimationCycle(event, snapshot),
     animationFixtures,
     playbackMode
   );
-  object.userData.kronosEffectAnimation = {
+  object.userData.nhEffectAnimation = {
     spotanimId,
     sequenceId,
     playbackMode,
@@ -7409,11 +7409,11 @@ function applyRuntimeEffectPlacement(
   object: Object3D,
   event: RuntimeRenderEvent,
   snapshot: RuntimeSceneSnapshot,
-  projectileDefinitions: ReadonlyMap<string, KronosProjectileDefinition>
+  projectileDefinitions: ReadonlyMap<string, NhProjectileDefinition>
 ): boolean {
   if (event.kind === "projectile" && event.fromTile && event.toTile) {
     const definition = event.projectileId ? projectileDefinitions.get(event.projectileId) : undefined;
-    const sample = definition ? sampleKronosProjectileMotion(event, snapshot.cycle, definition) : null;
+    const sample = definition ? sampleNhProjectileMotion(event, snapshot.cycle, definition) : null;
     if (sample) {
       object.position.set(sample.x, 0.35 + sample.z, sample.y);
       object.rotation.y = (sample.yaw * Math.PI * 2) / 2048;
@@ -7444,9 +7444,9 @@ function updateRuntimeEffectObjects(
   boundary: RuntimeSceneBoundary,
   snapshot: RuntimeSceneSnapshot,
   events: readonly RuntimeRenderEvent[],
-  animationFixtures: KronosAnimationFixtures | null,
-  spotanimDefinitions: ReadonlyMap<number, KronosSpotanimDefinition>,
-  projectileDefinitions: ReadonlyMap<string, KronosProjectileDefinition>
+  animationFixtures: NhAnimationFixtures | null,
+  spotanimDefinitions: ReadonlyMap<number, NhSpotanimDefinition>,
+  projectileDefinitions: ReadonlyMap<string, NhProjectileDefinition>
 ): void {
   if (boundary.eventRoot.children.length === 0) {
     return;
@@ -7454,7 +7454,7 @@ function updateRuntimeEffectObjects(
 
   const eventById = new Map(events.map((event) => [event.id, event]));
   for (const child of boundary.eventRoot.children) {
-    const eventId = child.userData.kronosRuntimeEventId;
+    const eventId = child.userData.nhRuntimeEventId;
     if (typeof eventId !== "string") {
       continue;
     }
@@ -7514,7 +7514,7 @@ function buildOverlaySprite(
     offsetX: options.anchorLeft ? -(spriteDefinition.width - spriteDefinition.width * widthRatio) / 2 : 0,
     offsetY: 0
   };
-  (sprite as ClientSprite).userData.kronosSpriteSource = {
+  (sprite as ClientSprite).userData.nhSpriteSource = {
     sheetId: atlas.id,
     spriteId: spriteDefinition.spriteId,
     spriteFrame: spriteDefinition.frame,
@@ -7536,7 +7536,7 @@ function buildHealthBarOverlay(atlas: RuntimeSpriteAtlas, event: RuntimeRenderEv
   }
 
   const frontSprite = atlas.sprites.get(healthBar.definition.frontSpriteId);
-  const layout = layoutKronosHealthBar(healthBar, cycle, frontSprite?.width);
+  const layout = layoutNhHealthBar(healthBar, cycle, frontSprite?.width);
   const background = buildOverlaySprite(atlas, layout.backSpriteId, { renderOrder });
   const foreground = buildOverlaySprite(atlas, layout.frontSpriteId, {
     anchorLeft: true,
@@ -7602,14 +7602,14 @@ function buildHitsplatLayout(
   spriteAtlases: ReadonlyMap<RuntimeSpriteSheetId, RuntimeSpriteAtlas>,
   event: RuntimeRenderEvent,
   cycle: number
-): KronosHitsplatLayout | null {
+): NhHitsplatLayout | null {
   if (!event.hitsplat) {
     return null;
   }
 
-  return layoutKronosHitsplat(
+  return layoutNhHitsplat(
     event.hitsplat,
-    (sheetId, spriteId): KronosHitsplatSpriteMetrics | undefined => {
+    (sheetId, spriteId): NhHitsplatSpriteMetrics | undefined => {
       const atlas = spriteAtlases.get(sheetId);
       if (!atlas) {
         return undefined;
@@ -7638,7 +7638,7 @@ function hitsplatPlacementSprite(
   spriteAtlases: ReadonlyMap<RuntimeSpriteSheetId, RuntimeSpriteAtlas>,
   event: RuntimeRenderEvent,
   cycle: number
-): KronosHitsplatSpriteMetrics | undefined {
+): NhHitsplatSpriteMetrics | undefined {
   const layout = buildHitsplatLayout(spriteAtlases, event, cycle);
   return layout
     ? {
@@ -7653,7 +7653,7 @@ function hitsplatPlacementSprite(
 interface RuntimeDomOverlayLayout {
   readonly width: number;
   readonly height: number;
-  readonly placementSprite: KronosHitsplatSpriteMetrics;
+  readonly placementSprite: NhHitsplatSpriteMetrics;
   readonly sprites: readonly RuntimeDomOverlaySprite[];
 }
 
@@ -7697,7 +7697,7 @@ function scaleRuntimeDomOverlaySprites(
     return sprites;
   }
 
-  // Kept for one-off verifier probes only. Runtime hitsplats stay at Kronos cache size.
+  // Kept for one-off verifier probes only. Runtime hitsplats stay at Nh cache size.
   return sprites.map((sprite) => ({
     ...sprite,
     left: sprite.left * scale,
@@ -7767,7 +7767,7 @@ function runtimeDomOverlayLayoutForEvent(
       return null;
     }
 
-    const layout = layoutKronosHealthBar(event.healthBar, cycle, frontEntry.width);
+    const layout = layoutNhHealthBar(event.healthBar, cycle, frontEntry.width);
     return {
       width: frontEntry.width,
       height: frontEntry.height,
@@ -7825,7 +7825,7 @@ function buildRuntimeDomOverlays(
     return [];
   }
 
-  const sortedEvents = [...events].sort((left, right) => kronosOverlaySortValue(left) - kronosOverlaySortValue(right));
+  const sortedEvents = [...events].sort((left, right) => nhOverlaySortValue(left) - nhOverlaySortValue(right));
   const overlayEventsByActor = new Map<RuntimeActorId, RuntimeRenderEvent[]>();
   for (const event of sortedEvents) {
     if (event.kind !== "overlay-sprite" || !event.actorId) {
@@ -7849,7 +7849,7 @@ function buildRuntimeDomOverlays(
       continue;
     }
 
-    const sortValue = kronosOverlaySortValue(event);
+    const sortValue = nhOverlaySortValue(event);
     const renderOrder = 20 + sortValue;
     const layoutCycle = event.clientCycle ?? snapshot.cycle;
     const domLayout = runtimeDomOverlayLayoutForEvent(spriteAtlases, event, renderOrder, layoutCycle, hitsplatScale);
@@ -7860,7 +7860,7 @@ function buildRuntimeDomOverlays(
     const stackKey = `${event.actorId}:${event.spriteSheetId}`;
     const stackIndex = overlayStackCounts.get(stackKey) ?? 0;
     overlayStackCounts.set(stackKey, stackIndex + 1);
-    const placement = kronosActorOverlayPlacement(
+    const placement = nhActorOverlayPlacement(
       event,
       overlayEventsByActor.get(event.actorId) ?? [],
       domLayout.placementSprite,
@@ -7872,8 +7872,8 @@ function buildRuntimeDomOverlays(
 
     // Source: Scene.copy$drawActor2d calls World.method1253, which writes Client.viewportTempX/Y
     // from the integer client camera state before Sprite.method6159 draws overheads.
-    const projection = kronosOverlayClientViewportProjection(
-      kronosRuntimeOverlayClientCameraState(boundary),
+    const projection = nhOverlayClientViewportProjection(
+      nhRuntimeOverlayClientCameraState(boundary),
       fixedLayout.viewport,
       slot.group.position,
       placement
@@ -7913,7 +7913,7 @@ function runtimeDomOverlayStructureSignature(overlays: readonly RuntimeDomOverla
     .join("|");
 }
 
-function kronosRuntimeOverlayClientCameraState(boundary: RuntimeSceneBoundary) {
+function nhRuntimeOverlayClientCameraState(boundary: RuntimeSceneBoundary) {
   return {
     target: boundary.cameraRig.target,
     angles: boundary.cameraRig.clientAngles,
@@ -7924,8 +7924,8 @@ function kronosRuntimeOverlayClientCameraState(boundary: RuntimeSceneBoundary) {
 function syncRuntimeGroundItemModels(
   boundary: RuntimeSceneBoundary,
   groundItems: readonly RuntimeGroundItem[],
-  playerSources: KronosPlayerModelSources | null,
-  collision: KronosSceneCollision | null
+  playerSources: NhPlayerModelSources | null,
+  collision: NhSceneCollision | null
 ): void {
   for (const child of [...boundary.groundItemRoot.children]) {
     boundary.groundItemRoot.remove(child);
@@ -7937,7 +7937,7 @@ function syncRuntimeGroundItemModels(
   }
 
   for (const item of groundItems) {
-    const model = composeKronosGroundItemModel(playerSources, {
+    const model = composeNhGroundItemModel(playerSources, {
       itemId: item.itemId,
       quantity: item.quantity
     });
@@ -7952,7 +7952,7 @@ function syncRuntimeGroundItemModels(
     object.userData.itemId = item.itemId;
     object.userData.itemName = item.itemName;
     object.userData.itemQuantity = item.quantity;
-    object.userData.kronosSource = model.metadata.source;
+    object.userData.nhSource = model.metadata.source;
     boundary.groundItemRoot.add(object);
   }
 }
@@ -7960,7 +7960,7 @@ function syncRuntimeGroundItemModels(
 function applyRuntimeDomOverlayElementStyle(
   element: HTMLElement,
   overlay: RuntimeDomOverlay,
-  layout: KronosFixedClientCssLayout | null
+  layout: NhFixedClientCssLayout | null
 ): void {
   const style = runtimeDomOverlayStyle(overlay, layout);
   element.style.left = `${style.left ?? 0}px`;
@@ -7974,7 +7974,7 @@ function applyRuntimeDomOverlayElementStyle(
 
 function applyRuntimeDomOverlayElementStyles(
   overlays: readonly RuntimeDomOverlay[],
-  layout: KronosFixedClientCssLayout | null,
+  layout: NhFixedClientCssLayout | null,
   elements: Map<string, HTMLElement>
 ): void {
   const activeOverlayIds = new Set(overlays.map((overlay) => overlay.id));
@@ -8101,7 +8101,7 @@ function buildRunelitePlayerIndicatorDomOverlays(
       boundary,
       fixedLayout,
       slot.group.position,
-      KRONOS_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS + RUNELITE_PLAYER_INDICATORS_ACTOR_OVERHEAD_TEXT_MARGIN
+      NH_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS + RUNELITE_PLAYER_INDICATORS_ACTOR_OVERHEAD_TEXT_MARGIN
     );
     if (!projection) {
       return [];
@@ -8155,8 +8155,8 @@ function buildRunelitePrayAgainstPlayerDomOverlays(
       return [];
     }
 
-    const projection = kronosOverlayClientViewportProjection(
-      kronosRuntimeOverlayClientCameraState(boundary),
+    const projection = nhOverlayClientViewportProjection(
+      nhRuntimeOverlayClientCameraState(boundary),
       fixedLayout.viewport,
       slot.group.position,
       {
@@ -8213,7 +8213,7 @@ function buildRuneliteTileIndicatorDomOverlays(
   config: RuneliteTileIndicatorsConfigSnapshot,
   destinationTile: RuntimeTile | null,
   hoveredTile: RuntimeTile | null,
-  collisionMap: KronosSceneCollision | null
+  collisionMap: NhSceneCollision | null
 ): readonly RuneliteTileIndicatorDomOverlay[] {
   const fixedLayout = boundary.fixedClientLayout;
   if (!config.enabled || !fixedLayout || !collisionMap) {
@@ -8261,7 +8261,7 @@ function buildRuneliteTileIndicatorDomOverlays(
 function runtimeTileCanvasPolygonPoints(
   boundary: RuntimeSceneBoundary,
   tile: RuntimeTile,
-  collisionMap: KronosSceneCollision
+  collisionMap: NhSceneCollision
 ): readonly RuntimeViewportSourcePoint[] | null {
   const fixedLayout = boundary.fixedClientLayout;
   const sceneTilePicker = boundary.sceneTilePicker;
@@ -8278,9 +8278,9 @@ function runtimeTileCanvasPolygonPoints(
   }
 
   boundary.camera.updateMatrixWorld(true);
-  const corners = kronosArenaTileSceneCorners(sceneTilePicker.arena, sceneTilePicker.sceneOffset, arenaTile);
+  const corners = nhArenaTileSceneCorners(sceneTilePicker.arena, sceneTilePicker.sceneOffset, arenaTile);
   const projected = [corners.southWest, corners.southEast, corners.northEast, corners.northWest].map((corner) =>
-    kronosProjectWorldPointToViewport(boundary.camera, fixedLayout.viewport, corner)
+    nhProjectWorldPointToViewport(boundary.camera, fixedLayout.viewport, corner)
   );
   if (projected.some((point) => !point)) {
     return null;
@@ -8321,7 +8321,7 @@ function buildRunelitePrayerBarDomOverlay(
     boundary,
     fixedLayout,
     localSlot.group.position,
-    KRONOS_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS + RUNELITE_PRAYER_BAR_LOCAL_HEIGHT_OFFSET_PX
+    NH_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS + RUNELITE_PRAYER_BAR_LOCAL_HEIGHT_OFFSET_PX
   );
   if (!projection) {
     return null;
@@ -8447,13 +8447,13 @@ function buildRuneliteXpDropDamageDomOverlay(
   const text = String(latestDamageEvent.damage);
   const width = Math.max(10, text.length * 7);
   const height = 13;
-  const placement: KronosActorOverlayPlacement = {
-    anchorClientUnits: KRONOS_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS + 50,
+  const placement: NhActorOverlayPlacement = {
+    anchorClientUnits: NH_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS + 50,
     centerOffsetXPixels: 0,
     centerOffsetYPixelsDown: 0
   };
-  const projection = kronosOverlayClientViewportProjection(
-    kronosRuntimeOverlayClientCameraState(boundary),
+  const projection = nhOverlayClientViewportProjection(
+    nhRuntimeOverlayClientCameraState(boundary),
     fixedLayout.viewport,
     slot.group.position,
     placement
@@ -8489,7 +8489,7 @@ function syncRuneliteXpDropDomOverlays(
   combatState: RuntimePlayerCombatState,
   config: RuneliteXpDropConfigSnapshot,
   counterShown: boolean,
-  clientFonts: KronosClientFontStore,
+  clientFonts: NhClientFontStore,
   clientCycle: number,
   activeDroplets: Map<string, RuneliteXpDropActiveDroplet>,
   emittedQueuedHitIds: Set<string>,
@@ -8568,8 +8568,8 @@ function syncRuneliteXpDropDomOverlays(
     }
 
     const skillIcons = config.hideSkillIcons ? [] : runeliteXpDropSkillIcons(droplet.xpDrops);
-    const font = kronosClientFontDefinition(clientFonts, fontSpec.fontKey);
-    const textWidth = font ? kronosClientFontStringWidth(font, text) : Math.max(10, text.length * 7);
+    const font = nhClientFontDefinition(clientFonts, fontSpec.fontKey);
+    const textWidth = font ? nhClientFontStringWidth(font, text) : Math.max(10, text.length * 7);
     const width = runeliteXpDropSourceWidth(textWidth, skillIcons.length, textSizeSpec.textHeight);
     const right = cssLayout.viewportRect.x + (fixedLayout.viewport.rect.width - RUNELITE_XP_DROP_PANEL_RIGHT) * cssLayout.scale;
     return [
@@ -8644,12 +8644,12 @@ function runeliteXpDropDomOverlaySignature(overlays: readonly RuneliteXpDropDomO
 
 function projectRuntimeActorClientOverlay(
   boundary: RuntimeSceneBoundary,
-  fixedLayout: KronosFixedClientLayout,
+  fixedLayout: NhFixedClientLayout,
   actorPosition: Vector3,
   anchorClientUnits: number
 ) {
-  return kronosOverlayClientViewportProjection(
-    kronosRuntimeOverlayClientCameraState(boundary),
+  return nhOverlayClientViewportProjection(
+    nhRuntimeOverlayClientCameraState(boundary),
     fixedLayout.viewport,
     actorPosition,
     {
@@ -8660,7 +8660,7 @@ function projectRuntimeActorClientOverlay(
   );
 }
 
-function runtimeSceneOverlayLayerStyle(layout: KronosFixedClientCssLayout | null): CSSProperties | undefined {
+function runtimeSceneOverlayLayerStyle(layout: NhFixedClientCssLayout | null): CSSProperties | undefined {
   if (!layout) {
     return undefined;
   }
@@ -8676,14 +8676,14 @@ function runtimeSceneOverlayLayerStyle(layout: KronosFixedClientCssLayout | null
   };
 }
 
-function runtimeDomOverlayStyle(overlay: RuntimeDomOverlay, layout: KronosFixedClientCssLayout | null): CSSProperties {
+function runtimeDomOverlayStyle(overlay: RuntimeDomOverlay, layout: NhFixedClientCssLayout | null): CSSProperties {
   const scale = layout?.scale ?? 1;
   return {
     left: 0,
     top: 0,
     width: overlay.width,
     height: overlay.height,
-    transform: `translate3d(${kronosActorOverlayCssPixel(overlay.left)}px, ${kronosActorOverlayCssPixel(overlay.top)}px, 0) scale(${scale})`,
+    transform: `translate3d(${nhActorOverlayCssPixel(overlay.left)}px, ${nhActorOverlayCssPixel(overlay.top)}px, 0) scale(${scale})`,
     transformOrigin: "left top",
     zIndex: overlay.renderOrder
   };
@@ -8702,7 +8702,7 @@ function runtimeDomOverlayStaticStyle(overlay: RuntimeDomOverlay): CSSProperties
   };
 }
 
-function kronosActorOverlayCssPixel(value: number): number {
+function nhActorOverlayCssPixel(value: number): number {
   // Source: Client.viewportTempX/Y feed Sprite.method6159(int, int) after integer projection.
   // Keep that source projection intact through fixed-client CSS scaling; layout rounding here makes overhead sprites drift during camera-key motion.
   return value;
@@ -8710,7 +8710,7 @@ function kronosActorOverlayCssPixel(value: number): number {
 
 function runeliteProjectedDomOverlayStyle(
   overlay: RuneliteProjectedDomOverlay,
-  layout: KronosFixedClientCssLayout | null
+  layout: NhFixedClientCssLayout | null
 ): CSSProperties {
   const scale = layout?.scale ?? 1;
   return {
@@ -8718,7 +8718,7 @@ function runeliteProjectedDomOverlayStyle(
     top: 0,
     width: overlay.width,
     height: overlay.height,
-    transform: `translate3d(${kronosActorOverlayCssPixel(overlay.left)}px, ${kronosActorOverlayCssPixel(overlay.top)}px, 0) scale(${scale})`,
+    transform: `translate3d(${nhActorOverlayCssPixel(overlay.left)}px, ${nhActorOverlayCssPixel(overlay.top)}px, 0) scale(${scale})`,
     transformOrigin: "left top",
     zIndex: overlay.renderOrder
   };
@@ -8727,7 +8727,7 @@ function runeliteProjectedDomOverlayStyle(
 function applyRuneliteProjectedDomOverlayElementStyle(
   element: HTMLElement,
   overlay: RuneliteProjectedDomOverlay,
-  layout: KronosFixedClientCssLayout | null
+  layout: NhFixedClientCssLayout | null
 ): void {
   const style = runeliteProjectedDomOverlayStyle(overlay, layout);
   element.style.left = `${style.left ?? 0}px`;
@@ -8741,7 +8741,7 @@ function applyRuneliteProjectedDomOverlayElementStyle(
 
 function applyRuneliteProjectedDomOverlayElementStyles(
   overlays: readonly RuneliteProjectedDomOverlay[],
-  layout: KronosFixedClientCssLayout | null,
+  layout: NhFixedClientCssLayout | null,
   elements: Map<string, HTMLElement>
 ): void {
   const activeOverlayIds = new Set(overlays.map((overlay) => overlay.id));
@@ -8761,7 +8761,7 @@ function applyRuneliteProjectedDomOverlayElementStyles(
   }
 }
 
-function runeliteFreezeTimerOverlayStyle(overlay: RuneliteFreezeTimerDomOverlay, layout: KronosFixedClientCssLayout | null): CSSProperties {
+function runeliteFreezeTimerOverlayStyle(overlay: RuneliteFreezeTimerDomOverlay, layout: NhFixedClientCssLayout | null): CSSProperties {
   return runeliteProjectedDomOverlayStyle(overlay, layout);
 }
 
@@ -8776,7 +8776,7 @@ function runeliteFreezeTimerTextStyle(overlay: RuneliteFreezeTimerDomOverlay): C
 
 function runeliteFreezeTimerInfoBoxOverlayStyle(
   overlay: RuneliteFreezeTimerInfoBoxDomOverlay,
-  layout: KronosFixedClientCssLayout | null,
+  layout: NhFixedClientCssLayout | null,
   overlayLocations: RuneliteOverlayPreferredLocations
 ): CSSProperties {
   const scale = layout?.scale ?? 1;
@@ -8803,7 +8803,7 @@ function runeliteFreezeTimerInfoBoxOverlayStyle(
   };
 }
 
-function runtimeFightCountdownOverlayStyle(layout: KronosFixedClientCssLayout | null): CSSProperties {
+function runtimeFightCountdownOverlayStyle(layout: NhFixedClientCssLayout | null): CSSProperties {
   const viewportRect = layout?.viewportRect;
   return {
     left: viewportRect?.x ?? 0,
@@ -8814,7 +8814,7 @@ function runtimeFightCountdownOverlayStyle(layout: KronosFixedClientCssLayout | 
 }
 
 function runtimeFightStartOverlayStyle(
-  layout: KronosFixedClientCssLayout | null,
+  layout: NhFixedClientCssLayout | null,
   overlayLocations: RuneliteOverlayPreferredLocations
 ): CSSProperties {
   const scale = layout?.scale ?? 1;
@@ -8861,7 +8861,7 @@ function runeliteFreezeTimerInfoBoxIconStyle(overlay: RuneliteFreezeTimerInfoBox
 
 function runelitePlayerIndicatorOverlayStyle(
   overlay: RunelitePlayerIndicatorDomOverlay,
-  layout: KronosFixedClientCssLayout | null
+  layout: NhFixedClientCssLayout | null
 ): CSSProperties {
   return {
     ...runeliteProjectedDomOverlayStyle(overlay, layout),
@@ -8871,7 +8871,7 @@ function runelitePlayerIndicatorOverlayStyle(
 
 function runelitePrayAgainstPlayerOverlayStyle(
   overlay: RunelitePrayAgainstPlayerDomOverlay,
-  layout: KronosFixedClientCssLayout | null
+  layout: NhFixedClientCssLayout | null
 ): CSSProperties {
   return runeliteProjectedDomOverlayStyle(overlay, layout);
 }
@@ -8888,7 +8888,7 @@ function runelitePrayAgainstPlayerSpriteStyle(overlay: RunelitePrayAgainstPlayer
   };
 }
 
-function runeliteTileIndicatorsSvgStyle(layout: KronosFixedClientCssLayout | null): CSSProperties {
+function runeliteTileIndicatorsSvgStyle(layout: NhFixedClientCssLayout | null): CSSProperties {
   const viewportRect = layout?.viewportRect;
   return {
     left: viewportRect?.x ?? 0,
@@ -8898,11 +8898,11 @@ function runeliteTileIndicatorsSvgStyle(layout: KronosFixedClientCssLayout | nul
   };
 }
 
-function runelitePrayerBarOverlayStyle(overlay: RunelitePrayerBarDomOverlay, layout: KronosFixedClientCssLayout | null): CSSProperties {
+function runelitePrayerBarOverlayStyle(overlay: RunelitePrayerBarDomOverlay, layout: NhFixedClientCssLayout | null): CSSProperties {
   return runeliteProjectedDomOverlayStyle(overlay, layout);
 }
 
-function runeliteXpDropDamageOverlayStyle(overlay: RuneliteXpDropDamageDomOverlay, layout: KronosFixedClientCssLayout | null): CSSProperties {
+function runeliteXpDropDamageOverlayStyle(overlay: RuneliteXpDropDamageDomOverlay, layout: NhFixedClientCssLayout | null): CSSProperties {
   return {
     ...runeliteProjectedDomOverlayStyle(overlay, layout),
     color: overlay.color
@@ -8918,7 +8918,7 @@ function runeliteXpDropOverlayProgress(overlay: RuneliteXpDropDomOverlay, client
 
 function runeliteXpDropOverlayStyle(
   overlay: RuneliteXpDropDomOverlay,
-  layout: KronosFixedClientCssLayout | null,
+  layout: NhFixedClientCssLayout | null,
   clientCycle: number
 ): CSSProperties {
   const progress = runeliteXpDropOverlayProgress(overlay, clientCycle);
@@ -8929,7 +8929,7 @@ function runeliteXpDropOverlayStyle(
     top: 0,
     width: overlay.width,
     height: overlay.height,
-    transform: `translate3d(${kronosActorOverlayCssPixel(overlay.left)}px, ${kronosActorOverlayCssPixel(
+    transform: `translate3d(${nhActorOverlayCssPixel(overlay.left)}px, ${nhActorOverlayCssPixel(
       overlay.top - progress * overlay.moveDistance * scale
     )}px, 0) scale(${scale * overlay.textScale})`,
     transformOrigin: "left top",
@@ -8943,7 +8943,7 @@ function runeliteXpDropOverlayStyle(
 function applyRuneliteXpDropOverlayElementStyle(
   element: HTMLElement,
   overlay: RuneliteXpDropDomOverlay,
-  layout: KronosFixedClientCssLayout | null,
+  layout: NhFixedClientCssLayout | null,
   clientCycle: number
 ): void {
   const style = runeliteXpDropOverlayStyle(overlay, layout, clientCycle);
@@ -8961,7 +8961,7 @@ function applyRuneliteXpDropOverlayElementStyle(
 
 function applyRuneliteXpDropOverlayElementStyles(
   overlays: readonly RuneliteXpDropDomOverlay[],
-  layout: KronosFixedClientCssLayout | null,
+  layout: NhFixedClientCssLayout | null,
   elements: Map<string, HTMLElement>,
   clientCycle: number
 ): void {
@@ -9007,7 +9007,7 @@ function runelitePrayerBarFlickStyle(overlay: RunelitePrayerBarDomOverlay): CSSP
 
 function runelitePrayerFlickOrbOverlayStyle(
   overlay: RunelitePrayerFlickOrbDomOverlay,
-  layout: KronosFixedClientCssLayout | null
+  layout: NhFixedClientCssLayout | null
 ): CSSProperties {
   const scale = layout?.scale ?? 1;
   return {
@@ -9023,7 +9023,7 @@ function runelitePrayerFlickOrbOverlayStyle(
 
 function runeliteAttackStylesOverlayStyle(
   overlay: RuneliteAttackStylesDomOverlay,
-  layout: KronosFixedClientCssLayout | null,
+  layout: NhFixedClientCssLayout | null,
   overlayLocations: RuneliteOverlayPreferredLocations
 ): CSSProperties {
   const scale = layout?.scale ?? 1;
@@ -9043,7 +9043,7 @@ function runeliteAttackStylesOverlayStyle(
 
 function runeliteBoostsOverlayStyle(
   overlay: RuneliteBoostsOverlaySnapshot,
-  layout: KronosFixedClientCssLayout | null,
+  layout: NhFixedClientCssLayout | null,
   overlayLocations: RuneliteOverlayPreferredLocations
 ): CSSProperties {
   const scale = layout?.scale ?? 1;
@@ -9063,7 +9063,7 @@ function runeliteBoostsOverlayStyle(
 
 function runeliteBoostsInfoBoxOverlayStyle(
   overlay: RuneliteBoostsInfoBoxSnapshot,
-  layout: KronosFixedClientCssLayout | null,
+  layout: NhFixedClientCssLayout | null,
   overlayLocations: RuneliteOverlayPreferredLocations
 ): CSSProperties {
   const scale = layout?.scale ?? 1;
@@ -9101,7 +9101,7 @@ function runeliteBoostsInfoBoxItemStyle(box: RuneliteBoostsInfoBoxItemSnapshot, 
   };
 }
 
-function runeliteStatusBarOverlayStyle(bar: RuneliteStatusBarSnapshot, layout: KronosFixedClientCssLayout | null): CSSProperties {
+function runeliteStatusBarOverlayStyle(bar: RuneliteStatusBarSnapshot, layout: NhFixedClientCssLayout | null): CSSProperties {
   const scale = layout?.scale ?? 1;
   return {
     left: bar.left,
@@ -9113,7 +9113,7 @@ function runeliteStatusBarOverlayStyle(bar: RuneliteStatusBarSnapshot, layout: K
   };
 }
 
-function runeliteStatusOrbOverlayStyle(orb: RuneliteStatusOrbSnapshot, layout: KronosFixedClientCssLayout | null): CSSProperties {
+function runeliteStatusOrbOverlayStyle(orb: RuneliteStatusOrbSnapshot, layout: NhFixedClientCssLayout | null): CSSProperties {
   const scale = layout?.scale ?? 1;
   return {
     left: orb.left,
@@ -9172,7 +9172,7 @@ function runeliteStatusBarCounterStyle(bar: RuneliteStatusBarSnapshot): CSSPrope
 
 function runeliteOpponentInfoOverlayStyle(
   snapshot: RuneliteOpponentInfoSnapshot,
-  layout: KronosFixedClientCssLayout | null,
+  layout: NhFixedClientCssLayout | null,
   overlayLocations: RuneliteOverlayPreferredLocations
 ): CSSProperties {
   const scale = layout?.scale ?? 1;
@@ -9189,7 +9189,7 @@ function runeliteOpponentInfoOverlayStyle(
 
 function runeliteOpponentComparisonOverlayStyle(
   snapshot: RuneliteOpponentComparisonSnapshot,
-  layout: KronosFixedClientCssLayout | null,
+  layout: NhFixedClientCssLayout | null,
   overlayLocations: RuneliteOverlayPreferredLocations
 ): CSSProperties {
   const scale = layout?.scale ?? 1;
@@ -9231,8 +9231,8 @@ const clientSpriteScaleCameraUp = new Vector3();
 const clientSpriteScaleRootWorld = new Vector3();
 const clientSpriteScaleChildWorld = new Vector3();
 
-function applyClientSpritePixelScale(root: Object3D, camera: PerspectiveCamera, viewport: KronosFixedClientLayout["viewport"]): void {
-  const unitsPerPixel = kronosClientPixelScaleAtWorldPosition(camera, viewport, root.position);
+function applyClientSpritePixelScale(root: Object3D, camera: PerspectiveCamera, viewport: NhFixedClientLayout["viewport"]): void {
+  const unitsPerPixel = nhClientPixelScaleAtWorldPosition(camera, viewport, root.position);
   root.updateMatrixWorld(true);
   clientSpriteScaleCameraRight.set(1, 0, 0).applyQuaternion(camera.quaternion).normalize();
   clientSpriteScaleCameraUp.set(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
@@ -9264,7 +9264,7 @@ function clientSpriteSourceEntries(root: Object3D): readonly ClientSpriteSourceD
   const entries: ClientSpriteSourceData[] = [];
   root.traverse((node) => {
     if (node instanceof Sprite) {
-      const source = (node as ClientSprite).userData.kronosSpriteSource;
+      const source = (node as ClientSprite).userData.nhSpriteSource;
       if (source) {
         entries.push(source);
       }
@@ -9273,8 +9273,8 @@ function clientSpriteSourceEntries(root: Object3D): readonly ClientSpriteSourceD
   return entries;
 }
 
-function writeRuntimeDebugSnapshot(cycle: number, overlays: readonly KronosRuntimeOverlayDebugEntry[]): void {
-  window.__kronosRuntimeDebug = { ...window.__kronosRuntimeDebug, cycle, overlays };
+function writeRuntimeDebugSnapshot(cycle: number, overlays: readonly NhRuntimeOverlayDebugEntry[]): void {
+  window.__nhRuntimeDebug = { ...window.__nhRuntimeDebug, cycle, overlays };
 }
 
 function writeRuntimeMotionDebugSnapshot(
@@ -9288,7 +9288,7 @@ function writeRuntimeMotionDebugSnapshot(
     const position = slot?.group.position;
     const renderTile = pose.renderTile ?? pose.tile;
     const projection = position
-      ? kronosProjectWorldPointToViewport(boundary.camera, viewport, position)
+      ? nhProjectWorldPointToViewport(boundary.camera, viewport, position)
       : null;
     return {
       actorId: pose.actorId,
@@ -9316,20 +9316,20 @@ function writeRuntimeMotionDebugSnapshot(
       movementFrameCycle: pose.movementFrameCycle
     };
   });
-  window.__kronosRuntimeDebug = {
-    ...window.__kronosRuntimeDebug,
+  window.__nhRuntimeDebug = {
+    ...window.__nhRuntimeDebug,
     cycle: snapshot.cycle,
-    overlays: window.__kronosRuntimeDebug?.overlays ?? [],
+    overlays: window.__nhRuntimeDebug?.overlays ?? [],
     motion: {
       timeMs: now,
-      clientCycle: Math.floor(now / KRONOS_CLIENT_CYCLE_MS),
+      clientCycle: Math.floor(now / NH_CLIENT_CYCLE_MS),
       actors
     }
   };
 }
 
 function writeManualOpponentPolicyDebugSnapshot(response: ManualOpponentCombatResponse): void {
-  const entry: KronosRuntimeManualOpponentPolicyDebugEntry = {
+  const entry: NhRuntimeManualOpponentPolicyDebugEntry = {
     tick: response.combatState.tick,
     controllerId: response.policyControllerId,
     action: response.policyAction ? formatManualOpponentPolicyAction(response.policyAction) : "",
@@ -9341,17 +9341,17 @@ function writeManualOpponentPolicyDebugSnapshot(response: ManualOpponentCombatRe
     observedLocalTile: response.policyObservedLocalTile,
     opponentTile: response.opponentActor.tile
   };
-  window.__kronosRuntimeDebug = {
-    ...window.__kronosRuntimeDebug,
-    cycle: window.__kronosRuntimeDebug?.cycle ?? response.combatState.tick,
-    overlays: window.__kronosRuntimeDebug?.overlays ?? [],
-    manualOpponentPolicy: [...(window.__kronosRuntimeDebug?.manualOpponentPolicy ?? []), entry].slice(-64)
+  window.__nhRuntimeDebug = {
+    ...window.__nhRuntimeDebug,
+    cycle: window.__nhRuntimeDebug?.cycle ?? response.combatState.tick,
+    overlays: window.__nhRuntimeDebug?.overlays ?? [],
+    manualOpponentPolicy: [...(window.__nhRuntimeDebug?.manualOpponentPolicy ?? []), entry].slice(-64)
   };
 }
 
 function compactManualOpponentRouteRequests(
   routeRequests: readonly RuntimePlayerCombatRouteRequest[]
-): readonly KronosRuntimeManualOpponentRouteDebugEntry[] {
+): readonly NhRuntimeManualOpponentRouteDebugEntry[] {
   return routeRequests.map((request) => ({
     actorId: request.actorId,
     targetId: request.targetId,
@@ -9383,7 +9383,7 @@ function writeManualOpponentTickAuditSnapshot(
     readonly routeRequests: readonly RuntimePlayerCombatRouteRequest[];
   }
 ): void {
-  const entry: KronosRuntimeManualOpponentTickAuditEntry = {
+  const entry: NhRuntimeManualOpponentTickAuditEntry = {
     tick: input.response.combatState.tick,
     controllerId: input.response.policyControllerId,
     action: input.response.policyAction ? formatManualOpponentPolicyAction(input.response.policyAction) : "",
@@ -9408,15 +9408,15 @@ function writeManualOpponentTickAuditSnapshot(
   viewport.dataset.lastManualOpponentAuditLocalMovementConsumed = String(input.localMovementConsumed);
   viewport.dataset.lastManualOpponentAuditOpponentMovementConsumed = String(input.opponentMovementConsumed);
   viewport.dataset.lastManualOpponentAuditPreAttackRouteMoved = String(input.preAttackRouteMoved);
-  window.__kronosRuntimeDebug = {
-    ...window.__kronosRuntimeDebug,
-    cycle: window.__kronosRuntimeDebug?.cycle ?? input.response.combatState.tick,
-    overlays: window.__kronosRuntimeDebug?.overlays ?? [],
-    manualOpponentAudit: [...(window.__kronosRuntimeDebug?.manualOpponentAudit ?? []), entry].slice(-64)
+  window.__nhRuntimeDebug = {
+    ...window.__nhRuntimeDebug,
+    cycle: window.__nhRuntimeDebug?.cycle ?? input.response.combatState.tick,
+    overlays: window.__nhRuntimeDebug?.overlays ?? [],
+    manualOpponentAudit: [...(window.__nhRuntimeDebug?.manualOpponentAudit ?? []), entry].slice(-64)
   };
 }
 
-function runtimeOverlayViewport(boundary: RuntimeSceneBoundary): KronosFixedClientLayout["viewport"] {
+function runtimeOverlayViewport(boundary: RuntimeSceneBoundary): NhFixedClientLayout["viewport"] {
   return boundary.fixedClientLayout?.viewport ?? {
     rect: {
       x: 0,
@@ -9431,7 +9431,7 @@ function runtimeOverlayViewport(boundary: RuntimeSceneBoundary): KronosFixedClie
 function reprojectRuntimeOverlaySprites(boundary: RuntimeSceneBoundary, snapshot: RuntimeSceneSnapshot): void {
   const viewport = runtimeOverlayViewport(boundary);
   for (const child of boundary.eventRoot.children) {
-    const anchor = (child as RuntimeOverlayObject).userData.kronosRuntimeOverlayAnchor;
+    const anchor = (child as RuntimeOverlayObject).userData.nhRuntimeOverlayAnchor;
     if (!anchor) {
       continue;
     }
@@ -9443,7 +9443,7 @@ function reprojectRuntimeOverlaySprites(boundary: RuntimeSceneBoundary, snapshot
       continue;
     }
 
-    const overlayPosition = kronosOverlayWorldPositionFromViewport(
+    const overlayPosition = nhOverlayWorldPositionFromViewport(
       boundary.camera,
       viewport,
       slot.group.position,
@@ -9464,8 +9464,8 @@ function applySnapshot(
   boundary: RuntimeSceneBoundary,
   snapshot: RuntimeSceneSnapshot,
   models: ReadonlyMap<string, RuntimeActorModelAsset>,
-  animationFixtures: KronosAnimationFixtures | null,
-  collisionMap: KronosSceneCollision | null,
+  animationFixtures: NhAnimationFixtures | null,
+  collisionMap: NhSceneCollision | null,
   entityHiderConfig: RuneliteEntityHiderConfigSnapshot,
   hideUnderConfig: RuneliteHideUnderConfigSnapshot,
   pvpToolsRenderSelf: boolean,
@@ -9498,7 +9498,7 @@ function applySnapshot(
       runeliteEntityHiderActorVisible(pose, entityHiderConfig) &&
       runeliteHideUnderActorVisible(pose, snapshot, combatState, hideUnderConfig);
     slot.group.position.set(renderTile.x, collisionMap?.sampleHeight(renderTile) ?? 0, renderTile.z);
-    slot.group.rotation.y = kronosActorModelRotationRadiansFromFacingDegrees(pose.facingDegrees);
+    slot.group.rotation.y = nhActorModelRotationRadiansFromFacingDegrees(pose.facingDegrees);
     const primaryFrameCursor =
       pose.primaryFrame !== undefined && pose.primaryFrameCycle !== undefined
         ? { frameIndex: pose.primaryFrame, frameCycle: pose.primaryFrameCycle }
@@ -9524,7 +9524,7 @@ function applySnapshot(
       slot.lastActionPrimaryFrame = resolvedPrimaryFrameCursor?.frameIndex ?? null;
       slot.lastActionPrimaryFrameCycle = resolvedPrimaryFrameCursor?.frameCycle ?? null;
     } else if (actionSequenceKey) {
-      // Kronos client LoginPacket.method3722 starts a sequence once, then class329 only advances
+      // Nh client LoginPacket.method3722 starts a sequence once, then class329 only advances
       // sequenceFrameCycle; React/equipment commits must not rewind an already-active attack sequence.
       if (sourceAnimationCycle < slot.lastActionAnimationCycle) {
         animationCycle = slot.lastActionAnimationCycle;
@@ -9550,8 +9550,8 @@ function applySnapshot(
       canvas.dataset.lastLocalActionSequenceKey = actionSequenceKey ?? "";
       canvas.dataset.lastLocalActionAnimationCycle = actionSequenceKey ? String(animationCycle) : "";
       canvas.dataset.lastLocalActionAnimationRewindSuppressed = String(slot.actionAnimationRewindCount);
-      if (actionSequenceKey && window.__kronosActionSequenceApplyLog) {
-        window.__kronosActionSequenceApplyLog.push({
+      if (actionSequenceKey && window.__nhActionSequenceApplyLog) {
+        window.__nhActionSequenceApplyLog.push({
           atMs: performance.now(),
           actorId: pose.actorId,
           sequenceName: pose.sequenceName,
@@ -9562,12 +9562,12 @@ function applySnapshot(
           primaryFrameCycle: resolvedPrimaryFrameCursor?.frameCycle,
           rewindSuppressed: animationCycle !== sourceAnimationCycle
         });
-        if (window.__kronosActionSequenceApplyLog.length > 400) {
-          window.__kronosActionSequenceApplyLog.splice(0, window.__kronosActionSequenceApplyLog.length - 400);
+        if (window.__nhActionSequenceApplyLog.length > 400) {
+          window.__nhActionSequenceApplyLog.splice(0, window.__nhActionSequenceApplyLog.length - 400);
         }
       }
     }
-    applyKronosActorAnimation(
+    applyNhActorAnimation(
       slot.group,
       pose.sequenceName,
       animationCycle,
@@ -9589,18 +9589,18 @@ function applyRuntimeEvents(
   snapshot: RuntimeSceneSnapshot,
   events: readonly RuntimeRenderEvent[],
   effectModels: ReadonlyMap<string, RuntimeEffectAsset>,
-  animationFixtures: KronosAnimationFixtures | null,
-  spotanimDefinitions: ReadonlyMap<number, KronosSpotanimDefinition>,
-  projectileDefinitions: ReadonlyMap<string, KronosProjectileDefinition>,
+  animationFixtures: NhAnimationFixtures | null,
+  spotanimDefinitions: ReadonlyMap<number, NhSpotanimDefinition>,
+  projectileDefinitions: ReadonlyMap<string, NhProjectileDefinition>,
   spriteAtlases: ReadonlyMap<RuntimeSpriteSheetId, RuntimeSpriteAtlas>
 ): void {
   disposeObject(boundary.eventRoot);
   boundary.eventRoot.clear();
 
-  const sortedEvents = [...events].sort((left, right) => kronosOverlaySortValue(left) - kronosOverlaySortValue(right));
+  const sortedEvents = [...events].sort((left, right) => nhOverlaySortValue(left) - nhOverlaySortValue(right));
   const overlayStackCounts = new Map<string, number>();
   const overlayEventsByActor = new Map<RuntimeActorId, RuntimeRenderEvent[]>();
-  const overlayDebugEntries: KronosRuntimeOverlayDebugEntry[] = [];
+  const overlayDebugEntries: NhRuntimeOverlayDebugEntry[] = [];
   for (const event of sortedEvents) {
     if (event.kind !== "overlay-sprite" || !event.actorId) {
       continue;
@@ -9614,7 +9614,7 @@ function applyRuntimeEvents(
   for (const event of sortedEvents) {
     if (event.kind === "overlay-sprite" && event.actorId && event.spriteSheetId && event.spriteId !== undefined) {
       const atlas = spriteAtlases.get(event.spriteSheetId);
-      const sortValue = kronosOverlaySortValue(event);
+      const sortValue = nhOverlaySortValue(event);
       const renderOrder = 20 + sortValue;
       const layoutCycle = event.clientCycle ?? snapshot.cycle;
       const overlay =
@@ -9641,7 +9641,7 @@ function applyRuntimeEvents(
               : atlas
                 ? spriteAtlasEntry(atlas, event.spriteId, event.spriteFrame)
                 : undefined;
-        const placement = kronosActorOverlayPlacement(
+        const placement = nhActorOverlayPlacement(
           event,
           overlayEventsByActor.get(event.actorId) ?? [],
           placementSprite,
@@ -9651,7 +9651,7 @@ function applyRuntimeEvents(
           disposeObject(overlay);
           continue;
         }
-        const overlayPosition = kronosOverlayWorldPositionFromViewport(
+        const overlayPosition = nhOverlayWorldPositionFromViewport(
           boundary.camera,
           viewport,
           slot.group.position,
@@ -9664,7 +9664,7 @@ function applyRuntimeEvents(
 
         overlay.position.copy(overlayPosition);
         applyClientSpritePixelScale(overlay, boundary.camera, viewport);
-        (overlay as RuntimeOverlayObject).userData.kronosRuntimeOverlayAnchor = {
+        (overlay as RuntimeOverlayObject).userData.nhRuntimeOverlayAnchor = {
           actorId: event.actorId,
           placement
         };
@@ -9725,7 +9725,7 @@ function applyRuntimeEvents(
       continue;
     }
 
-    object.userData.kronosRuntimeEventId = event.id;
+    object.userData.nhRuntimeEventId = event.id;
     boundary.eventRoot.add(object);
   }
 
@@ -9734,12 +9734,12 @@ function applyRuntimeEvents(
 
 function runtimePlayerCombatRenderEvents(
   combatState: RuntimePlayerCombatState,
-  hitsplatDefinitions: KronosHitsplatDefinitionStore,
-  healthBarDefinitions: KronosHealthBarDefinitionStore,
-  overheadIconDefinitions: KronosOverheadIconDefinitionStore
+  hitsplatDefinitions: NhHitsplatDefinitionStore,
+  healthBarDefinitions: NhHealthBarDefinitionStore,
+  overheadIconDefinitions: NhOverheadIconDefinitionStore
 ): readonly RuntimeRenderEvent[] {
   const events: RuntimeRenderEvent[] = [];
-  const clientCycle = combatState.tick * KRONOS_CLIENT_CYCLES_PER_GAME_TICK;
+  const clientCycle = combatState.tick * NH_CLIENT_CYCLES_PER_GAME_TICK;
   const activeHitsplatEvents = combatState.events.filter(
     (event): event is Extract<RuntimePlayerCombatEvent, { readonly kind: "hitsplat" }> =>
       event.kind === "hitsplat" &&
@@ -9766,10 +9766,10 @@ function runtimePlayerCombatRenderEvents(
       if (event.projectile.gfxId < 0 || event.projectile.artifactUrl.length === 0) {
         continue;
       }
-      const distance = runtimePlayerCombatDistance(event.attackerTile, event.defenderTile, KRONOS_TILE_WORLD_UNITS);
+      const distance = runtimePlayerCombatDistance(event.attackerTile, event.defenderTile, NH_TILE_WORLD_UNITS);
       const durationCycles =
         event.projectileDurationCycles ?? runtimePlayerCombatProjectileDurationCycles(event.projectile, distance);
-      // Kronos Ice Barrage uses Projectile.skipTravel(), which starts the packet on the target tile.
+      // Nh Ice Barrage uses Projectile.skipTravel(), which starts the packet on the target tile.
       // The trainer intentionally renders the visible ice effect from caster to defender for NH readability per user request.
       const sourceTile = event.projectile.id === "ice_barrage_projectile"
         ? event.attackerTile
@@ -9817,13 +9817,13 @@ function runtimePlayerCombatRenderEvents(
       });
     } else if (event.kind === "hitsplat") {
       if (activeHitsplatEventIds.has(event.id)) {
-        const hitsplat = createKronosHitsplatRenderState(
+        const hitsplat = createNhHitsplatRenderState(
           {
-            primaryType: kronosHitsplatTypeForDamage(event.damage),
+            primaryType: nhHitsplatTypeForDamage(event.damage),
             primaryValue: event.damage,
-            secondaryType: KRONOS_HITSPLAT_EMPTY_SECONDARY_TYPE,
+            secondaryType: NH_HITSPLAT_EMPTY_SECONDARY_TYPE,
             secondaryValue: 0,
-            packetCycle: event.tick * KRONOS_CLIENT_CYCLES_PER_GAME_TICK,
+            packetCycle: event.tick * NH_CLIENT_CYCLES_PER_GAME_TICK,
             delayCycles: 0,
             slotIndex: event.slotIndex
           },
@@ -9837,7 +9837,7 @@ function runtimePlayerCombatRenderEvents(
           endCycle: runtimePlayerCombatHitsplatEndTick(event.tick),
           actorId: event.targetActorId,
           spriteSheetId: "hitsplats",
-          spriteId: kronosHitsplatPrimarySpriteId(hitsplat),
+          spriteId: nhHitsplatPrimarySpriteId(hitsplat),
           clientOrder: event.tick * 100 + runtimePlayerCombatOverlayActorOffset(event.targetActorId) + 40,
           clientCycle,
           hitsplat,
@@ -9858,10 +9858,10 @@ function runtimePlayerCombatRenderEvents(
     const healthRatio = event.nextHitpoints / event.maxHitpoints;
     const previousHealthRatio = event.previousHitpoints / event.maxHitpoints;
     const healthBarDefinition =
-      kronosHealthBarDefinition(KRONOS_PLAYER_HEALTH_BAR_DEFINITION_ID, healthBarDefinitions) ??
-      kronosPlayerHealthBarDefinition;
-    const healthBar = createKronosHealthBarRenderState(
-      event.tick * KRONOS_CLIENT_CYCLES_PER_GAME_TICK,
+      nhHealthBarDefinition(NH_PLAYER_HEALTH_BAR_DEFINITION_ID, healthBarDefinitions) ??
+      nhPlayerHealthBarDefinition;
+    const healthBar = createNhHealthBarRenderState(
+      event.tick * NH_CLIENT_CYCLES_PER_GAME_TICK,
       healthRatio,
       previousHealthRatio,
       1,
@@ -9886,7 +9886,7 @@ function runtimePlayerCombatRenderEvents(
   for (const actor of Object.values(combatState.actors)) {
     const prayer = runtimePlayerCombatActiveProtectionPrayer(actor);
     if (prayer) {
-      const definition = kronosPrayerOverheadDefinition(prayer, overheadIconDefinitions);
+      const definition = nhPrayerOverheadDefinition(prayer, overheadIconDefinitions);
       if (definition) {
         events.push({
           id: `${actor.id}-prayer-${definition.spriteFrame}`,
@@ -9902,7 +9902,7 @@ function runtimePlayerCombatRenderEvents(
         });
       }
     }
-    const skull = kronosSkullOverheadDefinition("white_pk", overheadIconDefinitions);
+    const skull = nhSkullOverheadDefinition("white_pk", overheadIconDefinitions);
     if (skull) {
       events.push({
         id: `${actor.id}-skull`,
@@ -9932,22 +9932,22 @@ function formatPose(pose: RuntimeActorPose): string {
   return `${pose.actorId}: ${loadout?.label ?? pose.loadoutId}, ${pose.sequenceName} @ (${renderTile.x}, ${renderTile.z})`;
 }
 
-function isKronosInventoryEquipEntry(entry: KronosInventoryContextMenuEntry): boolean {
+function isNhInventoryEquipEntry(entry: NhInventoryContextMenuEntry): boolean {
   return entry.action === "inventory-action" && ["wear", "wield"].includes(entry.actionText.toLowerCase());
 }
 
-function nextKronosGameTickAt(originMs: number, nowMs: number): number {
+function nextNhGameTickAt(originMs: number, nowMs: number): number {
   const elapsed = Math.max(0, nowMs - originMs);
-  return originMs + (Math.floor(elapsed / KRONOS_GAME_TICK_MS) + 1) * KRONOS_GAME_TICK_MS;
+  return originMs + (Math.floor(elapsed / NH_GAME_TICK_MS) + 1) * NH_GAME_TICK_MS;
 }
 
-function currentKronosGameTickAt(originMs: number, nowMs: number): number {
+function currentNhGameTickAt(originMs: number, nowMs: number): number {
   const elapsed = Math.max(0, nowMs - originMs);
-  return Math.floor(elapsed / KRONOS_GAME_TICK_MS);
+  return Math.floor(elapsed / NH_GAME_TICK_MS);
 }
 
-function kronosGameTickDelay(originMs: number, nowMs: number): number {
-  return Math.max(0, nextKronosGameTickAt(originMs, nowMs) - nowMs);
+function nhGameTickDelay(originMs: number, nowMs: number): number {
+  return Math.max(0, nextNhGameTickAt(originMs, nowMs) - nowMs);
 }
 
 interface RunelitePvpTrackerActorAccumulator {
@@ -10658,14 +10658,14 @@ function applyManualOpponentPolicyActorResult(
     };
   }
 
-  const clientPosition = actor.clientPosition ?? kronosClientPositionFromRuntimeTile(actor.renderTile ?? actor.tile);
+  const clientPosition = actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile ?? actor.tile);
   return {
     ...actor,
     tile: result.opponentTile,
     loadoutId: result.opponentLoadoutId,
     appearance,
     clientPosition,
-    lastMovementClientCycle: Math.floor(now / KRONOS_CLIENT_CYCLE_MS),
+    lastMovementClientCycle: Math.floor(now / NH_CLIENT_CYCLE_MS),
     routeWaypoints: enqueueManualActorClientPathSteps(actor.routeWaypoints, [result.opponentTile]),
     routeTraversalModes: enqueueManualActorClientTraversalModes(actor.routeTraversalModes, 1, 1),
     serverRouteWaypoints: [],
@@ -10680,7 +10680,7 @@ function manualOpponentBestVisibleStyleEv(context: NhDuelControllerContext | nul
   return context.visibleStyleEvs.reduce((best, entry) => Math.max(best, entry.expectedDamage), 0);
 }
 
-function kronosCameraDirectionFromArrowKey(event: KeyboardEvent): RuneliteKeyRemappingCameraDirection | null {
+function nhCameraDirectionFromArrowKey(event: KeyboardEvent): RuneliteKeyRemappingCameraDirection | null {
   if (event.key === "ArrowLeft") {
     return "left";
   }
@@ -10696,11 +10696,11 @@ function kronosCameraDirectionFromArrowKey(event: KeyboardEvent): RuneliteKeyRem
   return null;
 }
 
-function kronosKeyboardEventIdentity(event: KeyboardEvent): string {
+function nhKeyboardEventIdentity(event: KeyboardEvent): string {
   return `${event.code}:${event.key}`;
 }
 
-function kronosWheelEventRotation(event: WheelEvent): number {
+function nhWheelEventRotation(event: WheelEvent): number {
   if (!Number.isFinite(event.deltaY) || event.deltaY === 0) {
     return 0;
   }
@@ -10775,7 +10775,7 @@ export function RuntimeSceneViewer({
 }: RuntimeSceneViewerProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const boundaryRef = useRef<RuntimeSceneBoundary | null>(null);
-  const cameraKeysRef = useRef<KronosCameraKeyState>({ left: false, right: false, up: false, down: false });
+  const cameraKeysRef = useRef<NhCameraKeyState>({ left: false, right: false, up: false, down: false });
   const cameraRemappedKeysRef = useRef(new Map<string, RuneliteKeyRemappingCameraDirection>());
   const mouseCameraDragRef = useRef<RuntimeMouseCameraDragState | null>(null);
   const suppressNextCanvasContextMenuRef = useRef(false);
@@ -10785,7 +10785,7 @@ export function RuntimeSceneViewer({
   const [followLive, setFollowLive] = useState(false);
   const [playIntervalMs, setPlayIntervalMs] = useState(650);
   const [cameraMode, setCameraMode] = useState<RuntimeCameraMode>("isometric");
-  const [cameraZoom, setCameraZoom] = useState<KronosCameraZoom>(KRONOS_CAMERA_DEFAULT_ZOOM);
+  const [cameraZoom, setCameraZoom] = useState<NhCameraZoom>(NH_CAMERA_DEFAULT_ZOOM);
   const [minimapCameraYaw, setMinimapCameraYaw] = useState(() => initialClientCameraAngles.yaw);
   const minimapCameraYawRef = useRef(minimapCameraYaw);
   const [followTarget, setFollowTarget] = useState<RuntimeFollowTarget>("local-player");
@@ -10793,15 +10793,15 @@ export function RuntimeSceneViewer({
     RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT
   );
   const runeliteClientConfigRef = useRef(runeliteClientConfig);
-  const [gameKeybinds, setGameKeybinds] = useState<KronosGameKeybindSnapshot>(() => kronosReadGameKeybindsFromStorage());
-  const gameKeybindsRef = useRef<KronosGameKeybindSnapshot>(gameKeybinds);
+  const [gameKeybinds, setGameKeybinds] = useState<NhGameKeybindSnapshot>(() => nhReadGameKeybindsFromStorage());
+  const gameKeybindsRef = useRef<NhGameKeybindSnapshot>(gameKeybinds);
   const [gameKeybindInterfaceOpen, setGameKeybindInterfaceOpen] = useState(false);
-  const [gameKeybindSelectedTabId, setGameKeybindSelectedTabId] = useState<KronosFixedSideTabId>("combat");
-  const [kronosSocialLists, setKronosSocialLists] = useState<KronosSocialListsSnapshot>(KRONOS_DEV_SOCIAL_LISTS);
-  const [kronosClanChat, setKronosClanChat] = useState<KronosClanChatSnapshot>(KRONOS_DEV_CLAN_CHAT);
+  const [gameKeybindSelectedTabId, setGameKeybindSelectedTabId] = useState<NhFixedSideTabId>("combat");
+  const [nhSocialLists, setNhSocialLists] = useState<NhSocialListsSnapshot>(NH_DEV_SOCIAL_LISTS);
+  const [nhClanChat, setNhClanChat] = useState<NhClanChatSnapshot>(NH_DEV_CLAN_CHAT);
   const [xpDropCounterShown, setXpDropCounterShown] = useState(true);
   const xpDropCounterShownRef = useRef(true);
-  const [equipmentUtilityPanelMode, setEquipmentUtilityPanelMode] = useState<KronosEquipmentUtilityPanelMode | null>(null);
+  const [equipmentUtilityPanelMode, setEquipmentUtilityPanelMode] = useState<NhEquipmentUtilityPanelMode | null>(null);
   const [runelitePvpToolsRenderSelf, setRunelitePvpToolsRenderSelf] = useState(true);
   const [manualControl, setManualControl] = useState(true);
   const [manualActor, setManualActor] = useState<ManualActorState>(initialManualActor);
@@ -10851,7 +10851,7 @@ export function RuntimeSceneViewer({
   const queuedPlayerCombatPacketsRef = useRef<QueuedPlayerCombatPacket[]>([]);
   const itemActionProcessingTimerRef = useRef<number | null>(null);
   const supplyDelaysRef = useRef<SupplyDelayState>(createSupplyDelayState());
-  const hudPrayersRef = useRef<KronosPrayerStates | undefined>(undefined);
+  const hudPrayersRef = useRef<NhPrayerStates | undefined>(undefined);
   const hudCombatLevelsRef = useRef<CombatLevels>(runtimePlayerCombatDefaultLevels);
   const [pendingEquipSlotIndices, setPendingEquipSlotIndices] = useState<ReadonlySet<number>>(() => new Set());
   const [pendingEquipmentRemoveSlotIds, setPendingEquipmentRemoveSlotIds] = useState<ReadonlySet<string>>(() => new Set());
@@ -10866,57 +10866,57 @@ export function RuntimeSceneViewer({
   });
   const [models, setModels] = useState<ReadonlyMap<string, RuntimeActorModelAsset>>(new Map());
   const [effectModels, setEffectModels] = useState<ReadonlyMap<string, RuntimeEffectAsset>>(new Map());
-  const [playerModelSources, setPlayerModelSources] = useState<KronosPlayerModelSources | null>(null);
-  const [animationFixtures, setAnimationFixtures] = useState<KronosAnimationFixtures | null>(null);
-  const [actorSequenceDefinitions, setActorSequenceDefinitions] = useState<KronosActorSequenceDefinitionStore>(
-    () => createKronosActorSequenceDefinitionStore(null)
+  const [playerModelSources, setPlayerModelSources] = useState<NhPlayerModelSources | null>(null);
+  const [animationFixtures, setAnimationFixtures] = useState<NhAnimationFixtures | null>(null);
+  const [actorSequenceDefinitions, setActorSequenceDefinitions] = useState<NhActorSequenceDefinitionStore>(
+    () => createNhActorSequenceDefinitionStore(null)
   );
-  const [projectileDefinitions, setProjectileDefinitions] = useState<KronosProjectileDefinitionMap>(
+  const [projectileDefinitions, setProjectileDefinitions] = useState<NhProjectileDefinitionMap>(
     new Map()
   );
-  const [spotanimDefinitions, setSpotanimDefinitions] = useState<ReadonlyMap<number, KronosSpotanimDefinition>>(
+  const [spotanimDefinitions, setSpotanimDefinitions] = useState<ReadonlyMap<number, NhSpotanimDefinition>>(
     new Map()
   );
-  const projectileDefinitionsRef = useRef<KronosProjectileDefinitionMap>(new Map());
-  const spotanimDefinitionsRef = useRef<ReadonlyMap<number, KronosSpotanimDefinition>>(new Map());
+  const projectileDefinitionsRef = useRef<NhProjectileDefinitionMap>(new Map());
+  const spotanimDefinitionsRef = useRef<ReadonlyMap<number, NhSpotanimDefinition>>(new Map());
   const [spriteAtlases, setSpriteAtlases] = useState<ReadonlyMap<RuntimeSpriteSheetId, RuntimeSpriteAtlas>>(
     new Map()
   );
-  const clientFontsRef = useRef<KronosClientFontStore>(new Map());
-  const [collisionMap, setCollisionMap] = useState<KronosSceneCollision | null>(null);
-  const collisionMapRef = useRef<KronosSceneCollision | null>(null);
-  const [fixedClientLayout, setFixedClientLayout] = useState<KronosFixedClientLayout | null>(null);
-  const [fixedClientCssLayout, setFixedClientCssLayout] = useState<KronosFixedClientCssLayout | null>(null);
-  const [activeSideTabId, setActiveSideTabId] = useState<KronosFixedSideTabId>("inventory");
-  const [activeSpellbookId, setActiveSpellbookId] = useState<KronosSpellbookId>("ancient");
-  const [minimapSceneSprite, setMinimapSceneSprite] = useState<KronosMinimapSceneSprite | null>(null);
-  const [sceneObjectPlacements, setSceneObjectPlacements] = useState<readonly KronosArenaObjectPlacement[]>([]);
-  const [inventoryItemDefinitions, setInventoryItemDefinitions] = useState<KronosInventoryItemDefinitionStore>(
+  const clientFontsRef = useRef<NhClientFontStore>(new Map());
+  const [collisionMap, setCollisionMap] = useState<NhSceneCollision | null>(null);
+  const collisionMapRef = useRef<NhSceneCollision | null>(null);
+  const [fixedClientLayout, setFixedClientLayout] = useState<NhFixedClientLayout | null>(null);
+  const [fixedClientCssLayout, setFixedClientCssLayout] = useState<NhFixedClientCssLayout | null>(null);
+  const [activeSideTabId, setActiveSideTabId] = useState<NhFixedSideTabId>("inventory");
+  const [activeSpellbookId, setActiveSpellbookId] = useState<NhSpellbookId>("ancient");
+  const [minimapSceneSprite, setMinimapSceneSprite] = useState<NhMinimapSceneSprite | null>(null);
+  const [sceneObjectPlacements, setSceneObjectPlacements] = useState<readonly NhArenaObjectPlacement[]>([]);
+  const [inventoryItemDefinitions, setInventoryItemDefinitions] = useState<NhInventoryItemDefinitionStore>(
     new Map()
   );
-  const [inventoryEquipmentDefinitions, setInventoryEquipmentDefinitions] = useState<KronosInventoryEquipmentDefinitionStore>(
+  const [inventoryEquipmentDefinitions, setInventoryEquipmentDefinitions] = useState<NhInventoryEquipmentDefinitionStore>(
     new Map()
   );
-  const [weaponTypeDefinitions, setWeaponTypeDefinitions] = useState<KronosWeaponTypeDefinitionStore>(new Map());
-  const playerModelSourcesRef = useRef<KronosPlayerModelSources | null>(playerModelSources);
+  const [weaponTypeDefinitions, setWeaponTypeDefinitions] = useState<NhWeaponTypeDefinitionStore>(new Map());
+  const playerModelSourcesRef = useRef<NhPlayerModelSources | null>(playerModelSources);
   const modelsRef = useRef<ReadonlyMap<string, RuntimeActorModelAsset>>(models);
-  const animationFixturesRef = useRef<KronosAnimationFixtures | null>(animationFixtures);
-  const actorSequenceDefinitionsRef = useRef<KronosActorSequenceDefinitionStore>(actorSequenceDefinitions);
-  const inventoryItemDefinitionsRef = useRef<KronosInventoryItemDefinitionStore>(inventoryItemDefinitions);
-  const inventoryEquipmentDefinitionsRef = useRef<KronosInventoryEquipmentDefinitionStore>(inventoryEquipmentDefinitions);
-  const weaponTypeDefinitionsRef = useRef<KronosWeaponTypeDefinitionStore>(weaponTypeDefinitions);
-  const [hitsplatDefinitions, setHitsplatDefinitions] = useState<KronosHitsplatDefinitionStore>(
-    defaultKronosHitsplatDefinitions
+  const animationFixturesRef = useRef<NhAnimationFixtures | null>(animationFixtures);
+  const actorSequenceDefinitionsRef = useRef<NhActorSequenceDefinitionStore>(actorSequenceDefinitions);
+  const inventoryItemDefinitionsRef = useRef<NhInventoryItemDefinitionStore>(inventoryItemDefinitions);
+  const inventoryEquipmentDefinitionsRef = useRef<NhInventoryEquipmentDefinitionStore>(inventoryEquipmentDefinitions);
+  const weaponTypeDefinitionsRef = useRef<NhWeaponTypeDefinitionStore>(weaponTypeDefinitions);
+  const [hitsplatDefinitions, setHitsplatDefinitions] = useState<NhHitsplatDefinitionStore>(
+    defaultNhHitsplatDefinitions
   );
-  const [healthBarDefinitions, setHealthBarDefinitions] = useState<KronosHealthBarDefinitionStore>(
-    defaultKronosHealthBarDefinitions
+  const [healthBarDefinitions, setHealthBarDefinitions] = useState<NhHealthBarDefinitionStore>(
+    defaultNhHealthBarDefinitions
   );
-  const [overheadIconDefinitions, setOverheadIconDefinitions] = useState<KronosOverheadIconDefinitionStore>(
-    defaultKronosOverheadIconDefinitions
+  const [overheadIconDefinitions, setOverheadIconDefinitions] = useState<NhOverheadIconDefinitionStore>(
+    defaultNhOverheadIconDefinitions
   );
-  const [clientFonts, setClientFonts] = useState<KronosClientFontStore>(new Map());
-  const [clickCross, setClickCross] = useState<KronosClickCrossState | null>(null);
-  const [contextMenu, setContextMenu] = useState<KronosContextMenuState | null>(null);
+  const [clientFonts, setClientFonts] = useState<NhClientFontStore>(new Map());
+  const [clickCross, setClickCross] = useState<NhClickCrossState | null>(null);
+  const [contextMenu, setContextMenu] = useState<NhContextMenuState | null>(null);
   const [opponentInventoryInspectOpen, setOpponentInventoryInspectOpen] = useState(false);
   const [runeliteOverlayLocations, setRuneliteOverlayLocations] = useState<RuneliteOverlayPreferredLocations>(() =>
     readRuneliteOverlayPreferredLocations()
@@ -10945,7 +10945,7 @@ export function RuntimeSceneViewer({
   const [spellbookReorderingEnabled, setSpellbookReorderingEnabled] = useState(() =>
     readStoredBoolean(NH_TRAINER_SPELLBOOK_REORDER_ENABLED_STORAGE_KEY)
   );
-  const [spellbookOrders, setSpellbookOrders] = useState<Partial<Record<KronosSpellbookId, readonly string[]>>>(() =>
+  const [spellbookOrders, setSpellbookOrders] = useState<Partial<Record<NhSpellbookId, readonly string[]>>>(() =>
     readStoredSpellbookOrders()
   );
   const inventoryOverrideRef = useRef<readonly (RuntimeInventorySlot | null)[] | null>(inventoryOverride);
@@ -10955,13 +10955,13 @@ export function RuntimeSceneViewer({
   const equipmentOverrideRef = useRef<RuntimeEquipmentItemIdsBySlot | null>(equipmentOverride);
   const localFreezeBypassRef = useRef(localFreezeBypass);
   const temporarySavedSetupLoadedRef = useRef(false);
-  const [selectedInventoryItem, setSelectedInventoryItem] = useState<KronosInventorySelectedItem | null>(null);
-  const [selectedSpell, setSelectedSpell] = useState<KronosSelectedSpell | null>(null);
+  const [selectedInventoryItem, setSelectedInventoryItem] = useState<NhInventorySelectedItem | null>(null);
+  const [selectedSpell, setSelectedSpell] = useState<NhSelectedSpell | null>(null);
   const clickCrossDefinitions = useMemo(
-    () => createKronosClickCrossDefinitionStore(spriteAtlases.get("click_cross")?.metadata),
+    () => createNhClickCrossDefinitionStore(spriteAtlases.get("click_cross")?.metadata),
     [spriteAtlases]
   );
-  const contextMenuFont = kronosClientFontDefinition(clientFonts, KRONOS_CONTEXT_MENU_FONT_KEY);
+  const contextMenuFont = nhClientFontDefinition(clientFonts, NH_CONTEXT_MENU_FONT_KEY);
   const contextMenuFontAtlas = spriteAtlases.get("context_menu_font");
   const liveReplay = useMemo(() => {
     if (!liveTrace || liveTrace.ticks.length === 0) {
@@ -11123,7 +11123,7 @@ export function RuntimeSceneViewer({
     [manualCombatState, runeliteClientConfig.opponentInfo]
   );
   const snapshotSelectedInventoryItem = visibleSnapshot.selectedInventoryItem;
-  const sourceClickCross = useMemo((): KronosClickCrossState | null => {
+  const sourceClickCross = useMemo((): NhClickCrossState | null => {
     if (!visibleSnapshot.clickCross || !fixedClientCssLayout) {
       return null;
     }
@@ -11135,7 +11135,7 @@ export function RuntimeSceneViewer({
       sourceState: visibleSnapshot.clickCross.state
     };
   }, [fixedClientCssLayout, visibleSnapshot.clickCross]);
-  const sourceContextMenu = useMemo((): KronosContextMenuState | null => {
+  const sourceContextMenu = useMemo((): NhContextMenuState | null => {
     if (!visibleSnapshot.contextMenu || !fixedClientCssLayout) {
       return null;
     }
@@ -11166,7 +11166,7 @@ export function RuntimeSceneViewer({
   }, [fixedClientCssLayout, visibleSnapshot.contextMenu]);
   const visibleClickCross = clickCross ?? sourceClickCross;
   const clickCrossSource = visibleClickCross
-    ? kronosClickCrossDefinition(clickCrossDefinitions, visibleClickCross.color, visibleClickCross.frame)
+    ? nhClickCrossDefinition(clickCrossDefinitions, visibleClickCross.color, visibleClickCross.frame)
     : null;
   const clickCrossSpriteSource = clickCrossSource
     ? spriteAtlases.get("click_cross")?.sprites.get(clickCrossSource.spriteId)
@@ -11225,7 +11225,7 @@ export function RuntimeSceneViewer({
       if (!nextModels) {
         nextModels = new Map(currentModels);
       }
-      nextModels.set(modelKey, composeKronosPlayerModel(playerSources, runtimeActorModelInput(pose, animations)));
+      nextModels.set(modelKey, composeNhPlayerModel(playerSources, runtimeActorModelInput(pose, animations)));
     }
 
     if (!nextModels) {
@@ -11241,9 +11241,9 @@ export function RuntimeSceneViewer({
   const actorPlayerContextEntries = (
     actor: RuntimeActorPose,
     walkTile: RuntimeTile
-  ): readonly KronosContextMenuEntry[] => {
+  ): readonly NhContextMenuEntry[] => {
     const playerEntries = filterRunelitePvpToolsPlayerContextEntries(
-      buildKronosActorContextEntries(actor, walkTile, selectedInventoryItem, selectedSpell),
+      buildNhActorContextEntries(actor, walkTile, selectedInventoryItem, selectedSpell),
       actor,
       runeliteClientConfig.pvpTools
     );
@@ -11260,11 +11260,11 @@ export function RuntimeSceneViewer({
     );
   };
 
-  const groundItemContextEntries = (tile: RuntimeTile): readonly KronosGroundItemContextMenuEntry[] => {
+  const groundItemContextEntries = (tile: RuntimeTile): readonly NhGroundItemContextMenuEntry[] => {
     if (selectedInventoryItem || selectedSpell) {
       return [];
     }
-    const items = groundItemsRef.current.filter((item) => sameKronosTile(item.tile, tile));
+    const items = groundItemsRef.current.filter((item) => sameNhTile(item.tile, tile));
     return items.flatMap((item) => [
       {
         action: "ground-item-examine" as const,
@@ -11297,7 +11297,7 @@ export function RuntimeSceneViewer({
     ]);
   };
 
-  const sceneContextEntries = (tile: RuntimeTile): readonly KronosContextMenuEntry[] => {
+  const sceneContextEntries = (tile: RuntimeTile): readonly NhContextMenuEntry[] => {
     const interactionSnapshot = runtimeInteractionSnapshotRef.current;
     const actor = actorAtRuntimeTile(interactionSnapshot, tile);
     if (actor && actor.actorId !== "local-player") {
@@ -11305,9 +11305,9 @@ export function RuntimeSceneViewer({
     }
 
     const worldTile = collisionMap?.sceneToWorldTile(tile);
-    const object = worldTile ? findKronosSceneObjectForWorldTile(sceneObjectPlacements, worldTile) : null;
+    const object = worldTile ? findNhSceneObjectForWorldTile(sceneObjectPlacements, worldTile) : null;
     if (object) {
-      return buildKronosSceneObjectContextEntries({
+      return buildNhSceneObjectContextEntries({
         placement: object,
         walkTile: tile,
         actionTile: collisionMap?.worldToSceneTile({ x: object.x, y: object.y, plane: object.plane }) ?? tile,
@@ -11317,12 +11317,12 @@ export function RuntimeSceneViewer({
     }
 
     return [
-      ...buildKronosContextEntries(interactionSnapshot, tile, selectedInventoryItem, selectedSpell),
+      ...buildNhContextEntries(interactionSnapshot, tile, selectedInventoryItem, selectedSpell),
       ...groundItemContextEntries(tile)
     ];
   };
-  const sceneObjectContextEntries = (pick: RuntimeSceneObjectPick): readonly KronosSceneContextMenuEntry[] =>
-    buildKronosSceneObjectContextEntries({
+  const sceneObjectContextEntries = (pick: RuntimeSceneObjectPick): readonly NhSceneContextMenuEntry[] =>
+    buildNhSceneObjectContextEntries({
       placement: pick.placement,
       walkTile: pick.walkTile,
       actionTile: pick.actionTile,
@@ -11332,7 +11332,7 @@ export function RuntimeSceneViewer({
   const actorContextEntries = (
     actor: RuntimeActorPose,
     walkTile: RuntimeTile = actor.tile
-  ): readonly KronosContextMenuEntry[] =>
+  ): readonly NhContextMenuEntry[] =>
     actor.actorId === "local-player"
       ? [{ actionText: "Walk here", targetText: "", opcode: 23, action: "walk", targetTile: walkTile }]
       : actorPlayerContextEntries(actor, walkTile);
@@ -11418,8 +11418,8 @@ export function RuntimeSceneViewer({
     const currentLocal = manualActorRef.current;
     const currentOpponent = manualOpponentRef.current;
     const canSnapVisibleSpawn =
-      sameKronosTile(currentLocal.tile, initialManualActor.tile) &&
-      sameKronosTile(currentOpponent.tile, initialManualOpponent.tile) &&
+      sameNhTile(currentLocal.tile, initialManualActor.tile) &&
+      sameNhTile(currentOpponent.tile, initialManualOpponent.tile) &&
       !manualActorHasPendingMovement(currentLocal) &&
       !manualActorHasPendingMovement(currentOpponent);
 
@@ -11429,7 +11429,7 @@ export function RuntimeSceneViewer({
 
     const nextLocal = snapManualActorToCollision(currentLocal, collisionMap);
     const nextOpponent = snapManualActorToCollision(currentOpponent, collisionMap);
-    if (sameKronosTile(nextLocal.tile, currentLocal.tile) && sameKronosTile(nextOpponent.tile, currentOpponent.tile)) {
+    if (sameNhTile(nextLocal.tile, currentLocal.tile) && sameNhTile(nextOpponent.tile, currentOpponent.tile)) {
       return;
     }
 
@@ -11438,7 +11438,7 @@ export function RuntimeSceneViewer({
         "local-player": nextLocal.tile,
         opponent: nextOpponent.tile
       },
-      clientCycle: Math.floor(performance.now() / KRONOS_CLIENT_CYCLE_MS)
+      clientCycle: Math.floor(performance.now() / NH_CLIENT_CYCLE_MS)
     });
     manualActorRef.current = nextLocal;
     manualOpponentRef.current = nextOpponent;
@@ -11505,8 +11505,8 @@ export function RuntimeSceneViewer({
 
   useEffect(() => {
     gameKeybindsRef.current = gameKeybinds;
-    kronosWriteGameKeybindsToStorage(gameKeybinds);
-    applyKronosGameKeybindConfig(canvasRef.current, gameKeybinds);
+    nhWriteGameKeybindsToStorage(gameKeybinds);
+    applyNhGameKeybindConfig(canvasRef.current, gameKeybinds);
   }, [gameKeybinds]);
 
   useEffect(() => {
@@ -11568,7 +11568,7 @@ export function RuntimeSceneViewer({
       runeliteXpDropOverlays,
       fixedClientCssLayout,
       runeliteXpDropOverlayElementsRef.current,
-      Math.floor(performance.now() / KRONOS_CLIENT_CYCLE_MS)
+      Math.floor(performance.now() / NH_CLIENT_CYCLE_MS)
     );
   }, [fixedClientCssLayout, runeliteXpDropOverlays]);
 
@@ -11685,8 +11685,8 @@ export function RuntimeSceneViewer({
     const onRuntimeTickOriginReset = (): void => {
       runtimeTickOriginMsRef.current = performance.now();
     };
-    window.addEventListener("kronos-runtime-reset-tick-origin", onRuntimeTickOriginReset);
-    return () => window.removeEventListener("kronos-runtime-reset-tick-origin", onRuntimeTickOriginReset);
+    window.addEventListener("nh-runtime-reset-tick-origin", onRuntimeTickOriginReset);
+    return () => window.removeEventListener("nh-runtime-reset-tick-origin", onRuntimeTickOriginReset);
   }, []);
 
   useEffect(() => {
@@ -11738,7 +11738,7 @@ export function RuntimeSceneViewer({
     applyRuneliteBoostsConfig(canvas, runeliteClientConfigRef.current.boosts);
     applyRuneliteInfoBoxConfig(canvas, runeliteClientConfigRef.current.infoBox);
     applyRuneliteXpDropConfig(canvas, runeliteClientConfigRef.current.xpDrop);
-    applyKronosGameKeybindConfig(canvas, gameKeybindsRef.current);
+    applyNhGameKeybindConfig(canvas, gameKeybindsRef.current);
 
     const resizeObserver = new ResizeObserver(() => setFixedClientCssLayout(resizeRuntimeBoundary(boundary, canvas)));
     resizeObserver.observe(canvas);
@@ -11746,14 +11746,14 @@ export function RuntimeSceneViewer({
 
     let animationFrame = 0;
     let lastCameraClientCycleMs = performance.now();
-    let lastManualActorReactSyncClientCycle = -KRONOS_CLIENT_CYCLES_PER_GAME_TICK;
+    let lastManualActorReactSyncClientCycle = -NH_CLIENT_CYCLES_PER_GAME_TICK;
     const advanceManualActorsForRenderFrame = (now: number): void => {
       const collision = collisionMapRef.current;
       if (!manualControlRef.current || !collision) {
         return;
       }
 
-      const clientCycle = Math.floor(now / KRONOS_CLIENT_CYCLE_MS);
+      const clientCycle = Math.floor(now / NH_CLIENT_CYCLE_MS);
       const localActor = manualActorRef.current;
       const opponentActor = manualOpponentRef.current;
       if (
@@ -11775,7 +11775,7 @@ export function RuntimeSceneViewer({
         combatState,
         animationFixtures,
         opponentActor,
-        KRONOS_CLIENT_MAX_CYCLES_PER_RENDER_FRAME
+        NH_CLIENT_MAX_CYCLES_PER_RENDER_FRAME
       );
       const nextOpponentActor = advanceManualActor(
         opponentActor,
@@ -11785,7 +11785,7 @@ export function RuntimeSceneViewer({
         combatState,
         animationFixtures,
         nextLocalActor,
-        KRONOS_CLIENT_MAX_CYCLES_PER_RENDER_FRAME
+        NH_CLIENT_MAX_CYCLES_PER_RENDER_FRAME
       );
 
       manualActorRef.current = nextLocalActor;
@@ -11794,7 +11794,7 @@ export function RuntimeSceneViewer({
         (localActor.routeWaypoints.length > 0 && nextLocalActor.routeWaypoints.length === 0) ||
         (opponentActor.routeWaypoints.length > 0 && nextOpponentActor.routeWaypoints.length === 0);
       const reachedGameTickSync =
-        clientCycle - lastManualActorReactSyncClientCycle >= KRONOS_CLIENT_CYCLES_PER_GAME_TICK;
+        clientCycle - lastManualActorReactSyncClientCycle >= NH_CLIENT_CYCLES_PER_GAME_TICK;
       const actorsStillMoving =
         manualActorHasPendingMovement(nextLocalActor) || manualActorHasPendingMovement(nextOpponentActor);
       if (routeJustFinished || (reachedGameTickSync && !actorsStillMoving)) {
@@ -11806,10 +11806,10 @@ export function RuntimeSceneViewer({
     const renderFrame = (now = performance.now()): void => {
       let cameraClientStepCount = 0;
       const elapsedMs = now - lastCameraClientCycleMs;
-      if (elapsedMs >= KRONOS_CLIENT_CYCLE_MS) {
+      if (elapsedMs >= NH_CLIENT_CYCLE_MS) {
         cameraClientStepCount = Math.min(
-          KRONOS_CLIENT_MAX_CYCLES_PER_RENDER_FRAME,
-          Math.floor(elapsedMs / KRONOS_CLIENT_CYCLE_MS)
+          NH_CLIENT_MAX_CYCLES_PER_RENDER_FRAME,
+          Math.floor(elapsedMs / NH_CLIENT_CYCLE_MS)
         );
         for (let step = 0; step < cameraClientStepCount; step += 1) {
           const mouseCamera = mouseCameraDragRef.current;
@@ -11836,13 +11836,13 @@ export function RuntimeSceneViewer({
               "Client.java MouseHandler_currentButton == 4 && WorldMapIcon_1.mouseCam: camAngleDX/DY from middle-drag deltas";
           }
         }
-        lastCameraClientCycleMs += cameraClientStepCount * KRONOS_CLIENT_CYCLE_MS;
-        if (now - lastCameraClientCycleMs > KRONOS_CLIENT_CYCLE_MS * KRONOS_CLIENT_MAX_CYCLES_PER_RENDER_FRAME) {
+        lastCameraClientCycleMs += cameraClientStepCount * NH_CLIENT_CYCLE_MS;
+        if (now - lastCameraClientCycleMs > NH_CLIENT_CYCLE_MS * NH_CLIENT_MAX_CYCLES_PER_RENDER_FRAME) {
           lastCameraClientCycleMs = now;
         }
       }
       advanceManualActorsForRenderFrame(now);
-      const renderClientCycle = Math.floor(now / KRONOS_CLIENT_CYCLE_MS);
+      const renderClientCycle = Math.floor(now / NH_CLIENT_CYCLE_MS);
       const frameSnapshot = runtimeAnimationSmoothingFrameSnapshot(
         visibleSnapshotRef.current,
         manualControlRef.current,
@@ -12081,8 +12081,8 @@ export function RuntimeSceneViewer({
         runeliteXpDropOverlayElementsRef.current,
         renderClientCycle
       );
-      updateKronosAnimatedTextures(boundary.scene, renderClientCycle);
-      updateKronosPlayerModelPainterOrder(boundary.scene, boundary.camera);
+      updateNhAnimatedTextures(boundary.scene, renderClientCycle);
+      updateNhPlayerModelPainterOrder(boundary.scene, boundary.camera);
       renderRuntimeBoundary(boundary);
       if (minimapCameraYawRef.current !== boundary.cameraRig.clientAngles.yaw) {
         minimapCameraYawRef.current = boundary.cameraRig.clientAngles.yaw;
@@ -12141,8 +12141,8 @@ export function RuntimeSceneViewer({
     const loadArena = Promise.all([
       loadGlb(runtimeArena.artifactUrl),
       loadGlb(runtimeArena.objectArtifactUrl),
-      loadJson<KronosArenaMetadata>(runtimeArena.metadataUrl),
-      loadJson<readonly KronosArenaObjectPlacement[]>(runtimeArena.objectMetadataUrl)
+      loadJson<NhArenaMetadata>(runtimeArena.metadataUrl),
+      loadJson<readonly NhArenaObjectPlacement[]>(runtimeArena.objectMetadataUrl)
     ]);
     const loadAnimations = loadAnimationFixtures();
     const loadProjectiles = loadProjectileDefinitions();
@@ -12229,7 +12229,7 @@ export function RuntimeSceneViewer({
             }
             entries.set(
               key,
-              composeKronosPlayerModel(playerSources, {
+              composeNhPlayerModel(playerSources, {
                 itemIds: appearance.itemIds,
                 equipmentSlots: appearance.equipmentSlots,
                 bodyColors: appearance.bodyColors,
@@ -12271,7 +12271,7 @@ export function RuntimeSceneViewer({
             effectUrls.map(async (url) => {
               const [gltf, metadata] = await Promise.all([
                 loadGlb(url),
-                loadJson<KronosLoadoutMeshMetadata>(effectMeshMetadataUrl(url))
+                loadJson<NhLoadoutMeshMetadata>(effectMeshMetadataUrl(url))
               ]);
               return [url, { scene: gltf.scene, metadata }] as const;
             })
@@ -12298,13 +12298,13 @@ export function RuntimeSceneViewer({
             boundary.fixedClientLayout = fixedLayout;
             setFixedClientLayout(fixedLayout);
             setFixedClientCssLayout(resizeRuntimeBoundary(boundary, boundary.renderer.domElement));
-            configureKronosSceneObjectMaterials(objectPart.scene);
+            configureNhSceneObjectMaterials(objectPart.scene);
             const centeredArena = buildCenteredSceneModels([terrainPart.scene, objectPart.scene]);
             boundary.arenaRoot.add(centeredArena.group);
             boundary.sceneTilePicker = { arena: arenaMetadata, sceneOffset: centeredArena.offset };
-            setCollisionMap(buildKronosSceneCollision(arenaMetadata, objectPlacements, centeredArena.offset));
+            setCollisionMap(buildNhSceneCollision(arenaMetadata, objectPlacements, centeredArena.offset));
             setSceneObjectPlacements(objectPlacements);
-            setMinimapSceneSprite(buildKronosMinimapSceneSprite(arenaMetadata, objectPlacements, floors, terrainTextures));
+            setMinimapSceneSprite(buildNhMinimapSceneSprite(arenaMetadata, objectPlacements, floors, terrainTextures));
           }
 
           setPlayerModelSources(playerSources);
@@ -12381,7 +12381,7 @@ export function RuntimeSceneViewer({
         return current;
       }
       const next = new Map(current);
-      next.set(modelKey, composeKronosPlayerModel(playerModelSources, modelInput));
+      next.set(modelKey, composeNhPlayerModel(playerModelSources, modelInput));
       return next;
     });
   }, [animationFixtures, equipmentOverride, playerModelSources, visibleSnapshot]);
@@ -12478,7 +12478,7 @@ export function RuntimeSceneViewer({
         return;
       }
 
-      const targetTick = currentKronosGameTickAt(runtimeTickOriginMsRef.current, performance.now());
+      const targetTick = currentNhGameTickAt(runtimeTickOriginMsRef.current, performance.now());
       let ticksProcessed = 0;
       do {
         processReadyItemActions();
@@ -12511,10 +12511,10 @@ export function RuntimeSceneViewer({
             }
           },
           prayers: {
-            "local-player": runtimePrayerIdsFromKronosStates(hudPrayersRef.current)
+            "local-player": runtimePrayerIdsFromNhStates(hudPrayersRef.current)
           },
-          tileScale: KRONOS_TILE_WORLD_UNITS,
-          clientCycle: Math.floor(performance.now() / KRONOS_CLIENT_CYCLE_MS)
+          tileScale: NH_TILE_WORLD_UNITS,
+          clientCycle: Math.floor(performance.now() / NH_CLIENT_CYCLE_MS)
         });
         const preMovementHitApplied = preMovementHitResult.applied;
         const combatStateBeforeMovement = localFreezeBypassRef.current
@@ -12534,8 +12534,8 @@ export function RuntimeSceneViewer({
         let local = advanceManualActorServerRouteTick(localBeforeMovement);
         let opponent = advanceManualActorServerRouteTick(opponentBeforeMovement);
         processPendingGroundItemPickup(local.tile);
-        let localMovedThisTick = !sameKronosTile(localBeforeMovement.tile, local.tile);
-        let opponentMovedThisTick = !sameKronosTile(opponentBeforeMovement.tile, opponent.tile);
+        let localMovedThisTick = !sameNhTile(localBeforeMovement.tile, local.tile);
+        let opponentMovedThisTick = !sameNhTile(opponentBeforeMovement.tile, opponent.tile);
         const opponentPolicySelfMovement = manualPolicyActorMovementViewFromTiles(
           opponentBeforeMovement.tile,
           opponent.tile,
@@ -12576,7 +12576,7 @@ export function RuntimeSceneViewer({
             now: tickNow,
             movedThisTick: localMovedThisTick
           });
-          const localPreAttackRouteMoved = !sameKronosTile(localBeforePreAttackRoute.tile, local.tile);
+          const localPreAttackRouteMoved = !sameNhTile(localBeforePreAttackRoute.tile, local.tile);
           localMovedThisTick = localMovedThisTick || localPreAttackRouteMoved;
           preAttackRouteMoved = preAttackRouteMoved || localPreAttackRouteMoved;
 
@@ -12593,7 +12593,7 @@ export function RuntimeSceneViewer({
             now: tickNow,
             movedThisTick: opponentMovedThisTick
           });
-          const opponentPreAttackRouteMoved = !sameKronosTile(opponentBeforePreAttackRoute.tile, opponent.tile);
+          const opponentPreAttackRouteMoved = !sameNhTile(opponentBeforePreAttackRoute.tile, opponent.tile);
           opponentMovedThisTick = opponentMovedThisTick || opponentPreAttackRouteMoved;
           preAttackRouteMoved = preAttackRouteMoved || opponentPreAttackRouteMoved;
           manualActorRef.current = local;
@@ -12611,7 +12611,7 @@ export function RuntimeSceneViewer({
           const preMovementTargetActor = targetActorId === "local-player" ? localBeforeMovement : opponentBeforeMovement;
           const targetAlreadyProcessed =
             processOrderForTick.indexOf(targetActorId) < processOrderForTick.indexOf(actorId);
-          // Source: Kronos processes each Player independently in CoreWorker PID order:
+          // Source: Nh processes each Player independently in CoreWorker PID order:
           // preAttack -> TargetRoute.beforeMovement -> movement.process -> combat.attack.
           // An earlier-PID attacker sees a later target's pre-movement tile, while a
           // later-PID attacker sees the target after that target has already moved.
@@ -12650,7 +12650,7 @@ export function RuntimeSceneViewer({
             }
           },
           prayers: {
-            "local-player": runtimePrayerIdsFromKronosStates(hudPrayersRef.current)
+            "local-player": runtimePrayerIdsFromNhStates(hudPrayersRef.current)
           },
           targetRouteMovementConsumed: {
             "local-player": localMovedThisTick,
@@ -12662,8 +12662,8 @@ export function RuntimeSceneViewer({
                 opponent: projectileLineOfSightForActor("opponent")
               }
             : undefined,
-          tileScale: KRONOS_TILE_WORLD_UNITS,
-          clientCycle: Math.floor(tickNow / KRONOS_CLIENT_CYCLE_MS)
+          tileScale: NH_TILE_WORLD_UNITS,
+          clientCycle: Math.floor(tickNow / NH_CLIENT_CYCLE_MS)
         });
         let nextTickCombatState = localFreezeBypassRef.current
           ? runtimePlayerCombatStateWithLocalFreezeBypass(result.state)
@@ -12757,15 +12757,15 @@ export function RuntimeSceneViewer({
         ticksProcessed += 1;
       } while (
         !cancelled &&
-        ticksProcessed < KRONOS_GAME_TICK_CATCH_UP_LIMIT &&
+        ticksProcessed < NH_GAME_TICK_CATCH_UP_LIMIT &&
         manualCombatStateRef.current.tick < targetTick
       );
       const now = performance.now();
-      timeoutId = window.setTimeout(runCombatTick, kronosGameTickDelay(runtimeTickOriginMsRef.current, now));
+      timeoutId = window.setTimeout(runCombatTick, nhGameTickDelay(runtimeTickOriginMsRef.current, now));
     };
 
     const now = performance.now();
-    timeoutId = window.setTimeout(runCombatTick, kronosGameTickDelay(runtimeTickOriginMsRef.current, now));
+    timeoutId = window.setTimeout(runCombatTick, nhGameTickDelay(runtimeTickOriginMsRef.current, now));
 
     return () => {
       cancelled = true;
@@ -12784,12 +12784,12 @@ export function RuntimeSceneViewer({
     let animationFrame = 0;
     const animate = (): void => {
       const elapsed = performance.now() - startedAt;
-      if (kronosClickCrossExpired(elapsed)) {
+      if (nhClickCrossExpired(elapsed)) {
         setClickCross(null);
         return;
       }
 
-      const frame = kronosClickCrossFrameFromElapsedMs(elapsed);
+      const frame = nhClickCrossFrameFromElapsedMs(elapsed);
       setClickCross((current) => (current && current.startedAt === startedAt ? { ...current, frame } : current));
       animationFrame = requestAnimationFrame(animate);
     };
@@ -12804,7 +12804,7 @@ export function RuntimeSceneViewer({
     };
 
     const updateArrowKeyState = (event: KeyboardEvent, pressed: boolean): boolean => {
-      const keyIdentity = kronosKeyboardEventIdentity(event);
+      const keyIdentity = nhKeyboardEventIdentity(event);
       const releasedRemap = !pressed ? cameraRemappedKeysRef.current.get(keyIdentity) ?? null : null;
       if (runeliteKeyRemappingEventTargetConsumesKeys(event.target) && !releasedRemap) {
         return false;
@@ -12812,7 +12812,7 @@ export function RuntimeSceneViewer({
 
       const direction =
         releasedRemap ??
-        kronosCameraDirectionFromArrowKey(event) ??
+        nhCameraDirectionFromArrowKey(event) ??
         (pressed
           ? runeliteKeyRemappingCameraDirectionFromKeyboardEvent(runeliteClientConfigRef.current.keyRemapping, event)
           : null);
@@ -12821,7 +12821,7 @@ export function RuntimeSceneViewer({
         return false;
       }
 
-      if (pressed && !kronosCameraDirectionFromArrowKey(event)) {
+      if (pressed && !nhCameraDirectionFromArrowKey(event)) {
         cameraRemappedKeysRef.current.set(keyIdentity, direction);
       } else if (!pressed) {
         cameraRemappedKeysRef.current.delete(keyIdentity);
@@ -12845,12 +12845,12 @@ export function RuntimeSceneViewer({
         return false;
       }
 
-      const tabId = kronosGameKeybindSideTabForFunctionKey(gameKeybindsRef.current, functionKey);
+      const tabId = nhGameKeybindSideTabForFunctionKey(gameKeybindsRef.current, functionKey);
       if (!tabId) {
         return false;
       }
 
-      const tab = fixedClientLayout?.sidePanel?.tabs.find((candidate) => candidate.id === (tabId as KronosFixedSideTabId));
+      const tab = fixedClientLayout?.sidePanel?.tabs.find((candidate) => candidate.id === (tabId as NhFixedSideTabId));
       if (!tab) {
         return false;
       }
@@ -12867,7 +12867,7 @@ export function RuntimeSceneViewer({
         viewport.dataset.lastSideTabContainerWidgetId = String(tab.container.widgetId);
         viewport.dataset.lastSideTabFKey = functionKey;
         viewport.dataset.lastSideTabFKeyMappedTab = tabId;
-        viewport.dataset.lastSideTabFKeyMappingSource = KRONOS_GAME_KEYBIND_SOURCE;
+        viewport.dataset.lastSideTabFKeyMappingSource = NH_GAME_KEYBIND_SOURCE;
         viewport.dataset.lastSideTabIconChildId = String(tab.iconChildId);
         viewport.dataset.lastSideTabIconSpriteId = String(tab.iconSpriteId);
         viewport.dataset.lastSideTabId = tab.id;
@@ -12881,7 +12881,7 @@ export function RuntimeSceneViewer({
       }
 
       window.dispatchEvent(
-        new CustomEvent("kronos-runtime-side-tab", {
+        new CustomEvent("nh-runtime-side-tab", {
           detail: {
             childId: tab.childId,
             containerChildId: tab.container.childId,
@@ -12937,11 +12937,11 @@ export function RuntimeSceneViewer({
         setCycle(Math.max(0, Math.min(maxCycle, Math.trunc(detail.cycle))));
       }
     };
-    window.addEventListener("kronos-runtime-camera", onCamera);
-    window.addEventListener("kronos-runtime-cycle", onCycle);
+    window.addEventListener("nh-runtime-camera", onCamera);
+    window.addEventListener("nh-runtime-cycle", onCycle);
     return () => {
-      window.removeEventListener("kronos-runtime-camera", onCamera);
-      window.removeEventListener("kronos-runtime-cycle", onCycle);
+      window.removeEventListener("nh-runtime-camera", onCamera);
+      window.removeEventListener("nh-runtime-cycle", onCycle);
     };
   }, [maxCycle]);
 
@@ -12949,7 +12949,7 @@ export function RuntimeSceneViewer({
     const onSpellbook = (event: Event): void => {
       const detail = (event as CustomEvent<{ readonly spellbookId?: unknown }>).detail;
       const spellbookId = detail?.spellbookId;
-      if (!isKronosSpellbookId(spellbookId) || !fixedClientLayout?.spellbookPanels[spellbookId]) {
+      if (!isNhSpellbookId(spellbookId) || !fixedClientLayout?.spellbookPanels[spellbookId]) {
         return;
       }
       setActiveSpellbookId(spellbookId);
@@ -12971,8 +12971,8 @@ export function RuntimeSceneViewer({
       setSelectedSpell(null);
     };
 
-    window.addEventListener("kronos-runtime-spellbook", onSpellbook);
-    return () => window.removeEventListener("kronos-runtime-spellbook", onSpellbook);
+    window.addEventListener("nh-runtime-spellbook", onSpellbook);
+    return () => window.removeEventListener("nh-runtime-spellbook", onSpellbook);
   }, [fixedClientLayout, selectedSpell]);
 
   useEffect(() => {
@@ -13008,7 +13008,7 @@ export function RuntimeSceneViewer({
         supplyDelaysRef.current = createSupplyDelayState();
         itemActionQueueRef.current.clear();
         queuedPlayerCombatPacketsRef.current.length = 0;
-        const inventorySlots = normalizeKronosInventorySlots(detail.inventory);
+        const inventorySlots = normalizeNhInventorySlots(detail.inventory);
         inventoryOverrideRef.current = inventorySlots;
         setInventoryOverride(inventorySlots);
         setPendingEquipSlotIndices(new Set());
@@ -13017,8 +13017,8 @@ export function RuntimeSceneViewer({
       }
     };
 
-    window.addEventListener("kronos-runtime-inventory", onInventory);
-    return () => window.removeEventListener("kronos-runtime-inventory", onInventory);
+    window.addEventListener("nh-runtime-inventory", onInventory);
+    return () => window.removeEventListener("nh-runtime-inventory", onInventory);
   }, []);
 
   useEffect(() => {
@@ -13036,7 +13036,7 @@ export function RuntimeSceneViewer({
         actorId === "local-player" || actorId === "opponent"
           ? interactionSnapshot.actors.find((pose) => pose.actorId === actorId)
           : null;
-      const worldTile = isKronosWorldTile(detail?.worldTile) ? detail.worldTile : null;
+      const worldTile = isNhWorldTile(detail?.worldTile) ? detail.worldTile : null;
       const tile = actor?.tile ?? (worldTile && collisionMap ? collisionMap.worldToSceneTile(worldTile) : detail?.tile);
       if (!isRuntimeTile(tile)) {
         return;
@@ -13050,7 +13050,7 @@ export function RuntimeSceneViewer({
       setContextMenu({
         x: typeof detail?.x === "number" && Number.isFinite(detail.x) ? detail.x : viewportRect.x + viewportRect.width / 2,
         y: typeof detail?.y === "number" && Number.isFinite(detail.y) ? detail.y : viewportRect.y + viewportRect.height / 2,
-        entries: withKronosCancelContextMenuEntry(
+        entries: withNhCancelContextMenuEntry(
           actor && actor.actorId !== "local-player"
             ? actorPlayerContextEntries(actor, tile)
             : sceneContextEntries(tile)
@@ -13058,8 +13058,8 @@ export function RuntimeSceneViewer({
       });
     };
 
-    window.addEventListener("kronos-runtime-context-menu", onContextMenu);
-    return () => window.removeEventListener("kronos-runtime-context-menu", onContextMenu);
+    window.addEventListener("nh-runtime-context-menu", onContextMenu);
+    return () => window.removeEventListener("nh-runtime-context-menu", onContextMenu);
   }, [collisionMap, fixedClientCssLayout, sceneObjectPlacements, selectedInventoryItem, selectedSpell, visibleSnapshot]);
 
   useEffect(() => {
@@ -13103,7 +13103,7 @@ export function RuntimeSceneViewer({
     setManualActor(nextActor);
   };
 
-  const showClickCross = (position: { readonly x: number; readonly y: number }, color: KronosClickCrossColor): void => {
+  const showClickCross = (position: { readonly x: number; readonly y: number }, color: NhClickCrossColor): void => {
     setClickCross({
       x: position.x,
       y: position.y,
@@ -13186,9 +13186,9 @@ export function RuntimeSceneViewer({
           }
         },
         prayers: {
-          "local-player": runtimePrayerIdsFromKronosStates(hudPrayersRef.current)
+          "local-player": runtimePrayerIdsFromNhStates(hudPrayersRef.current)
         },
-        clientCycle: Math.floor(performance.now() / KRONOS_CLIENT_CYCLE_MS)
+        clientCycle: Math.floor(performance.now() / NH_CLIENT_CYCLE_MS)
       });
       manualCombatStateRef.current = syncedCombatState;
       setManualCombatState(syncedCombatState);
@@ -13212,7 +13212,7 @@ export function RuntimeSceneViewer({
       opponentLoadoutId: opponentActor.loadoutId,
       localAttackSetIndex: visibleSnapshot.hud.attackSet ?? 0,
       localLevels: runtimeCombatLevelsFromHud(visibleSnapshot.hud),
-      localPrayers: runtimePrayerIdsFromKronosStates(visibleSnapshot.hud.prayers),
+      localPrayers: runtimePrayerIdsFromNhStates(visibleSnapshot.hud.prayers),
       localSpecialEnergy: visibleSnapshot.hud.specialEnergy,
       combatStartTick: runtimePlayerCombatFightCountdownTicks
     });
@@ -13232,7 +13232,7 @@ export function RuntimeSceneViewer({
 
   const routeRuntimeCombatActor = (
     request: RuntimePlayerCombatRouteRequest,
-    collision: KronosSceneCollision
+    collision: NhSceneCollision
   ): void => {
     const combatActor = manualCombatStateRef.current.actors[request.actorId];
     const movementStatus = movementGate(combatActor.locks, manualCombatStateRef.current.tick);
@@ -13323,7 +13323,7 @@ export function RuntimeSceneViewer({
     const savedSetup = readTemporarySavedSetupSnapshot();
     const localLoadoutId = savedSetup?.loadoutId ?? RUNTIME_NH_STAKE_LOADOUT_ID;
     const localInventorySlots = savedSetup
-      ? normalizeKronosInventorySlots(savedSetup.inventory)
+      ? normalizeNhInventorySlots(savedSetup.inventory)
       : runtimeNhStakeInventorySlots();
     const localEquipmentItems = savedSetup
       ? new Map(savedSetup.equipment)
@@ -13398,7 +13398,7 @@ export function RuntimeSceneViewer({
         "local-player": localGearProfile,
         opponent: opponentGearProfile
       },
-      clientCycle: Math.floor(performance.now() / KRONOS_CLIENT_CYCLE_MS)
+      clientCycle: Math.floor(performance.now() / NH_CLIENT_CYCLE_MS)
     });
     const nextCombatState: RuntimePlayerCombatState = {
       ...syncedFreshState,
@@ -13448,7 +13448,7 @@ export function RuntimeSceneViewer({
     queuedPlayerCombatPacketsRef.current.length = 0;
     supplyDelaysRef.current = createSupplyDelayState();
     hudCombatLevelsRef.current = runtimePlayerCombatDefaultLevels;
-    hudPrayersRef.current = {} as KronosPrayerStates;
+    hudPrayersRef.current = {} as NhPrayerStates;
     inventoryOverrideRef.current = localInventorySlots;
     groundItemsRef.current = [];
     pendingGroundItemPickupRef.current = null;
@@ -13491,7 +13491,7 @@ export function RuntimeSceneViewer({
       setHudOverride((current) => ({
         ...(current?.attackSet === undefined ? {} : { attackSet: current.attackSet }),
         ...(current?.autoRetaliate === undefined ? {} : { autoRetaliate: current.autoRetaliate }),
-        prayers: {} as KronosPrayerStates
+        prayers: {} as NhPrayerStates
       }));
       setManualFightStartPending(true);
       setManualCombatState(nextCombatState);
@@ -13524,7 +13524,7 @@ export function RuntimeSceneViewer({
 
   const resolveManualOpponentPolicyTick = (combatState: RuntimePlayerCombatState): ManualOpponentPolicyTickGate => {
     if (manualFightStartPendingRef.current || runtimePlayerCombatIsFightCountdownActive(combatState)) {
-      // Source: the trainer start gate is a local duel wrapper around the Kronos
+      // Source: the trainer start gate is a local duel wrapper around the Nh
       // combat loop. Do not let the NH policy spend supplies, switch gear, or
       // issue attackTarget() before "Go"; PlayerCombat already rejects attacks
       // during countdown, and the policy should not consume the starting setup.
@@ -13559,7 +13559,7 @@ export function RuntimeSceneViewer({
       tick: combatState.tick,
       localDead: isRuntimePlayerCombatActorDead(local, combatState.tick),
       opponentDead: isRuntimePlayerCombatActorDead(opponent, combatState.tick),
-      distance: runtimePlayerCombatDistance(opponent.tile, local.tile, KRONOS_TILE_WORLD_UNITS),
+      distance: runtimePlayerCombatDistance(opponent.tile, local.tile, NH_TILE_WORLD_UNITS),
       selfCurrentTargetSignal,
       currentTargetSignal,
       directCombatSignal,
@@ -13607,7 +13607,7 @@ export function RuntimeSceneViewer({
           distanceFromSpawn: runtimePlayerCombatDistance(
             resetOpponentActor.tile,
             opponentSpawn.tile,
-            KRONOS_TILE_WORLD_UNITS
+            NH_TILE_WORLD_UNITS
           )
         });
       nextCombatState = freshFightReset
@@ -13702,35 +13702,35 @@ export function RuntimeSceneViewer({
             // before accepting movement, preventing wilderness-edge/safe-zone leaks.
             if (
               (stepContext.movementIntent === "pressure" || stepContext.movementIntent === "stand_under") &&
-              !kronosNhBotCombatTileAllowed(policyMovementCollision.sceneToWorldTile(stepContext.targetTile))
+              !nhNhBotCombatTileAllowed(policyMovementCollision.sceneToWorldTile(stepContext.targetTile))
             ) {
               return false;
             }
-            if (!kronosNhBotCombatTileAllowed(policyMovementCollision.sceneToWorldTile(to))) {
+            if (!nhNhBotCombatTileAllowed(policyMovementCollision.sceneToWorldTile(to))) {
               return false;
             }
             if (!policyMovementCollision.canStep(from, to)) {
               return false;
             }
             const targetTile = stepContext.targetTile;
-            if (sameKronosTile(to, targetTile)) {
+            if (sameNhTile(to, targetTile)) {
               return stepContext.allowTargetTile;
             }
             // Source: NhStakerBot.tryStep() requires ProjectileRoute.allow(candidate, target)
             // before applying manual policy repositioning. This keeps tree/object LOS from
             // letting the TS bot step into tiles the Java trainer would reject.
-            return kronosSceneProjectileRouteClear(to, targetTile, policyMovementCollision);
+            return nhSceneProjectileRouteClear(to, targetTile, policyMovementCollision);
           }
         : undefined,
       targetRouteStep: policyMovementCollision
         ? (from, target, distance) => {
             // Source: NhStakerBot.routeToOpponentIfAllowed() checks the target
             // combat tile before RouteFinder.routeEntity(opponent) builds the path.
-            if (!kronosNhBotCombatTileAllowed(policyMovementCollision.sceneToWorldTile(target))) {
+            if (!nhNhBotCombatTileAllowed(policyMovementCollision.sceneToWorldTile(target))) {
               return null;
             }
-            const routeSegment = findKronosTargetRouteWaypoints(from, target, distance, policyMovementCollision);
-            const routePath = expandKronosManualRoutePath(from, routeSegment, policyMovementCollision);
+            const routeSegment = findNhTargetRouteWaypoints(from, target, distance, policyMovementCollision);
+            const routePath = expandNhManualRoutePath(from, routeSegment, policyMovementCollision);
             return routePath[0] ?? null;
           }
         : undefined,
@@ -13738,29 +13738,29 @@ export function RuntimeSceneViewer({
         ? (from, target, stepContext) => {
             // Source: NhStakerBot.attemptStandUnder() uses RouteFinder.routeAbsolute()
             // to the frozen target's exact tile after the same target combat-tile gate.
-            if (!kronosNhBotCombatTileAllowed(policyMovementCollision.sceneToWorldTile(target))) {
+            if (!nhNhBotCombatTileAllowed(policyMovementCollision.sceneToWorldTile(target))) {
               return null;
             }
-            const routeSegment = findKronosTileRouteWaypoints(from, target, policyMovementCollision);
-            const routePath = expandKronosManualRoutePath(from, routeSegment, policyMovementCollision);
+            const routeSegment = findNhTileRouteWaypoints(from, target, policyMovementCollision);
+            const routePath = expandNhManualRoutePath(from, routeSegment, policyMovementCollision);
             const next = routePath[0] ?? null;
-            if (next && sameKronosTile(next, target) && !stepContext.allowTargetTile) {
+            if (next && sameNhTile(next, target) && !stepContext.allowTargetTile) {
               return null;
             }
             return next;
           }
         : undefined,
       projectileLineOfSight: policyMovementCollision
-        ? (from, target) => kronosSceneProjectileRouteClear(from, target, policyMovementCollision)
+        ? (from, target) => nhSceneProjectileRouteClear(from, target, policyMovementCollision)
         : undefined,
       inPvpCombatArea: policyMovementCollision
-        ? kronosNhBotCombatTileAllowed(policyMovementCollision.sceneToWorldTile(opponentActor.tile))
+        ? nhNhBotCombatTileAllowed(policyMovementCollision.sceneToWorldTile(opponentActor.tile))
         : undefined,
       nextRepositionTick: manualOpponentNextPolicyRepositionTickRef.current,
       rewardEpisodeId: manualOpponentPolicyEpisodeIdRef.current,
       rewardEpisodeActive: manualOpponentFightEngagedRef.current,
       rewardEpisodeStartTick: manualOpponentPolicyEpisodeStartTickRef.current,
-      tileScale: KRONOS_TILE_WORLD_UNITS
+      tileScale: NH_TILE_WORLD_UNITS
     });
     manualOpponentNextPolicyRepositionTickRef.current =
       result.nextRepositionTick ?? manualOpponentNextPolicyRepositionTickRef.current;
@@ -13778,7 +13778,7 @@ export function RuntimeSceneViewer({
           distanceFromSpawn: runtimePlayerCombatDistance(
             nextOpponentActor.tile,
             opponentSpawn.tile,
-            KRONOS_TILE_WORLD_UNITS
+            NH_TILE_WORLD_UNITS
           )
         })
       ) {
@@ -13860,7 +13860,7 @@ export function RuntimeSceneViewer({
   };
 
   const applyPlayerAttackCommand = (
-    entry: KronosPlayerContextMenuEntry<RuntimeTile>,
+    entry: NhPlayerContextMenuEntry<RuntimeTile>,
     position: { readonly x: number; readonly y: number },
     source: "immediate" | "queued" = "immediate"
   ): void => {
@@ -13902,7 +13902,7 @@ export function RuntimeSceneViewer({
   };
 
   const queuePlayerAttackAfterPendingItemPackets = (
-    entry: KronosPlayerContextMenuEntry<RuntimeTile>,
+    entry: NhPlayerContextMenuEntry<RuntimeTile>,
     position: { readonly x: number; readonly y: number }
   ): boolean => {
     const pendingItemPackets = itemActionQueueRef.current.snapshot();
@@ -13911,7 +13911,7 @@ export function RuntimeSceneViewer({
     }
 
     const queuedAtMs = performance.now();
-    const readyAtMs = nextKronosGameTickAt(runtimeTickOriginMsRef.current, queuedAtMs);
+    const readyAtMs = nextNhGameTickAt(runtimeTickOriginMsRef.current, queuedAtMs);
     queuedPlayerCombatPacketsRef.current.push({
       kind: "attack",
       entry,
@@ -13929,7 +13929,7 @@ export function RuntimeSceneViewer({
 
     const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
     if (viewport) {
-      // Source: Kronos MessageDecoder keeps incoming packets in insertion order, and Player.checkLogout()
+      // Source: Nh MessageDecoder keeps incoming packets in insertion order, and Player.checkLogout()
       // calls decoder.process(this, 250) before Player.process() combat/movement handling. If an inventory
       // equip packet is already waiting, the following attack packet must resolve after it on that game tick.
       viewport.dataset.lastPlayerQueuedForTick = "true";
@@ -13949,7 +13949,7 @@ export function RuntimeSceneViewer({
   };
 
   const issuePlayerAttackCommand = (
-    entry: KronosPlayerContextMenuEntry<RuntimeTile>,
+    entry: NhPlayerContextMenuEntry<RuntimeTile>,
     position: { readonly x: number; readonly y: number }
   ): void => {
     if (blockPlayerCombatCommandDuringCountdown("attack", position)) {
@@ -13962,7 +13962,7 @@ export function RuntimeSceneViewer({
   };
 
   const applyPlayerSpellCommand = (
-    entry: KronosPlayerContextMenuEntry<RuntimeTile>,
+    entry: NhPlayerContextMenuEntry<RuntimeTile>,
     position: { readonly x: number; readonly y: number },
     spellId: RuntimePlayerCombatSpellId,
     source: "immediate" | "queued" = "immediate"
@@ -13994,7 +13994,7 @@ export function RuntimeSceneViewer({
       showClickCross(position, "red");
     }
     setMinimapDestinationTile(null);
-    const packet = kronosPlayerCommandPacket(entry);
+    const packet = nhPlayerCommandPacket(entry);
     const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
     if (viewport) {
       viewport.dataset.lastPlayerPacketDispatch = entry.action;
@@ -14009,7 +14009,7 @@ export function RuntimeSceneViewer({
     }
 
     window.dispatchEvent(
-      new CustomEvent("kronos-runtime-player-action", {
+      new CustomEvent("nh-runtime-player-action", {
         detail: {
           action: entry.action,
           actionText: entry.actionText,
@@ -14030,7 +14030,7 @@ export function RuntimeSceneViewer({
   };
 
   const queuePlayerSpellAfterPendingItemPackets = (
-    entry: KronosPlayerContextMenuEntry<RuntimeTile>,
+    entry: NhPlayerContextMenuEntry<RuntimeTile>,
     position: { readonly x: number; readonly y: number },
     spellId: RuntimePlayerCombatSpellId
   ): boolean => {
@@ -14040,7 +14040,7 @@ export function RuntimeSceneViewer({
     }
 
     const queuedAtMs = performance.now();
-    const readyAtMs = nextKronosGameTickAt(runtimeTickOriginMsRef.current, queuedAtMs);
+    const readyAtMs = nextNhGameTickAt(runtimeTickOriginMsRef.current, queuedAtMs);
     queuedPlayerCombatPacketsRef.current.push({
       kind: "spell",
       entry,
@@ -14060,7 +14060,7 @@ export function RuntimeSceneViewer({
     const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
     if (viewport) {
       // Source: selecting a spell is local client state (class19.method340), but clicking a player sends
-      // the spell-on-player packet with selectedSpellWidget/selectedSpellChildIndex. Kronos then decodes
+      // the spell-on-player packet with selectedSpellWidget/selectedSpellChildIndex. Nh then decodes
       // that packet after any earlier inventory equip packets during decoder.process(this, 250).
       viewport.dataset.lastPlayerQueuedForTick = "true";
       viewport.dataset.lastPlayerQueuedAfterPendingInventory = "true";
@@ -14082,7 +14082,7 @@ export function RuntimeSceneViewer({
   };
 
   const issuePlayerSpellCommand = (
-    entry: KronosPlayerContextMenuEntry<RuntimeTile>,
+    entry: NhPlayerContextMenuEntry<RuntimeTile>,
     position: { readonly x: number; readonly y: number },
     spellId: RuntimePlayerCombatSpellId
   ): void => {
@@ -14098,9 +14098,9 @@ export function RuntimeSceneViewer({
   const issueTileCommand = (
     targetTile: RuntimeTile,
     position: { readonly x: number; readonly y: number },
-    color: KronosClickCrossColor,
-    source: KronosTileCommandSource,
-    objectPlacement?: KronosArenaObjectPlacement
+    color: NhClickCrossColor,
+    source: NhTileCommandSource,
+    objectPlacement?: NhArenaObjectPlacement
   ): void => {
     clearSelectedInventoryItem("tile-command");
     clearSelectedSpell("tile-command");
@@ -14161,7 +14161,7 @@ export function RuntimeSceneViewer({
     showClickCross(position, color);
   };
 
-  const recordSceneObjectCommand = (entry: KronosSceneObjectContextMenuEntry<RuntimeTile>): void => {
+  const recordSceneObjectCommand = (entry: NhSceneObjectContextMenuEntry<RuntimeTile>): void => {
     const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
     if (!viewport) {
       return;
@@ -14169,7 +14169,7 @@ export function RuntimeSceneViewer({
     viewport.dataset.lastSceneObjectAction = entry.actionText;
     viewport.dataset.lastSceneObjectActionKind = entry.action;
     viewport.dataset.lastSceneObjectOpcode = String(entry.opcode);
-    const packet = kronosSceneObjectCommandPacket(entry);
+    const packet = nhSceneObjectCommandPacket(entry);
     viewport.dataset.lastSceneObjectServerPacketId = packet ? String(packet.serverPacketId) : "";
     viewport.dataset.lastSceneObjectServerOption = packet?.serverOption === null || packet === null ? "" : String(packet.serverOption);
     viewport.dataset.lastSceneObjectId = entry.objectId === undefined ? "" : String(entry.objectId);
@@ -14187,12 +14187,12 @@ export function RuntimeSceneViewer({
     viewport.dataset.lastSceneObjectSelectedSpellWidgetId = entry.selectedSpell?.widgetId === undefined ? "" : String(entry.selectedSpell.widgetId);
   };
 
-  const recordPlayerCommand = (entry: KronosPlayerContextMenuEntry<RuntimeTile>): void => {
+  const recordPlayerCommand = (entry: NhPlayerContextMenuEntry<RuntimeTile>): void => {
     const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
     if (!viewport) {
       return;
     }
-    const packet = kronosPlayerCommandPacket(entry);
+    const packet = nhPlayerCommandPacket(entry);
     viewport.dataset.lastPlayerAction = entry.actionText;
     viewport.dataset.lastPlayerActionKind = entry.action;
     viewport.dataset.lastPlayerOpcode = String(entry.opcode);
@@ -14220,7 +14220,7 @@ export function RuntimeSceneViewer({
   };
 
   const issuePlayerPacketCommand = (
-    entry: KronosPlayerContextMenuEntry<RuntimeTile>,
+    entry: NhPlayerContextMenuEntry<RuntimeTile>,
     position: { readonly x: number; readonly y: number }
   ): void => {
     const clearReason = entry.action === "player-use-selected" || entry.action === "player-spell-selected" ? entry.action : "player-action";
@@ -14230,7 +14230,7 @@ export function RuntimeSceneViewer({
     setFollowLive(false);
     showClickCross(position, "red");
     setMinimapDestinationTile(null);
-    const packet = kronosPlayerCommandPacket(entry);
+    const packet = nhPlayerCommandPacket(entry);
     const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
     if (viewport) {
       viewport.dataset.lastPlayerPacketDispatch = entry.action;
@@ -14240,7 +14240,7 @@ export function RuntimeSceneViewer({
     }
 
     window.dispatchEvent(
-      new CustomEvent("kronos-runtime-player-action", {
+      new CustomEvent("nh-runtime-player-action", {
         detail: {
           action: entry.action,
           actionText: entry.actionText,
@@ -14260,7 +14260,7 @@ export function RuntimeSceneViewer({
   };
 
   const dispatchPlayerContextEntry = (
-    entry: KronosPlayerContextMenuEntry<RuntimeTile>,
+    entry: NhPlayerContextMenuEntry<RuntimeTile>,
     position: { readonly x: number; readonly y: number }
   ): void => {
     recordPlayerCommand(entry);
@@ -14282,7 +14282,7 @@ export function RuntimeSceneViewer({
     issueTileCommand(entry.targetTile, position, "yellow", "context-menu");
   };
 
-  const dispatchSideTabAction = (command: KronosSideTabCommand): void => {
+  const dispatchSideTabAction = (command: NhSideTabCommand): void => {
     closeContextMenu();
     setActiveSideTabId(command.tab.id);
     const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
@@ -14307,7 +14307,7 @@ export function RuntimeSceneViewer({
     }
 
     window.dispatchEvent(
-      new CustomEvent("kronos-runtime-side-tab", {
+      new CustomEvent("nh-runtime-side-tab", {
         detail: {
           actionIndex: command.actionIndex,
           actionText: command.actionText,
@@ -14330,7 +14330,7 @@ export function RuntimeSceneViewer({
     );
   };
 
-  const dispatchChatboxAction = (command: KronosChatboxButtonCommand): void => {
+  const dispatchChatboxAction = (command: NhChatboxButtonCommand): void => {
     closeContextMenu();
     clearSelectedInventoryItem("chatbox-action");
     clearSelectedSpell("chatbox-action");
@@ -14357,7 +14357,7 @@ export function RuntimeSceneViewer({
     }
 
     window.dispatchEvent(
-      new CustomEvent("kronos-runtime-chatbox-action", {
+      new CustomEvent("nh-runtime-chatbox-action", {
         detail: {
           actionIndex: command.actionIndex,
           actionText: command.actionText,
@@ -14379,14 +14379,14 @@ export function RuntimeSceneViewer({
     );
   };
 
-  const dispatchSocialButtonAction = (command: KronosSocialButtonCommand): void => {
+  const dispatchSocialButtonAction = (command: NhSocialButtonCommand): void => {
     closeContextMenu();
     clearSelectedInventoryItem("social-action");
     clearSelectedSpell("social-action");
     if (command.action === "switch") {
       setActiveSideTabId(command.list === "friends" ? "ignores" : "friends");
     } else {
-      setKronosSocialLists((current) => kronosDevSocialListsAfterButton(current, command));
+      setNhSocialLists((current) => nhDevSocialListsAfterButton(current, command));
     }
 
     const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
@@ -14405,7 +14405,7 @@ export function RuntimeSceneViewer({
     }
 
     window.dispatchEvent(
-      new CustomEvent("kronos-runtime-social-action", {
+      new CustomEvent("nh-runtime-social-action", {
         detail: {
           action: command.action,
           actionText: command.actionText,
@@ -14423,14 +14423,14 @@ export function RuntimeSceneViewer({
     );
   };
 
-  const dispatchClanChatButtonAction = (command: KronosClanChatButtonCommand): void => {
+  const dispatchClanChatButtonAction = (command: NhClanChatButtonCommand): void => {
     closeContextMenu();
     clearSelectedInventoryItem("clan-chat-action");
     clearSelectedSpell("clan-chat-action");
     if (command.action === "leave") {
-      setKronosClanChat((current) => ({ ...current, active: false, members: [] }));
+      setNhClanChat((current) => ({ ...current, active: false, members: [] }));
     } else if (command.action === "join") {
-      setKronosClanChat(KRONOS_DEV_CLAN_CHAT);
+      setNhClanChat(NH_DEV_CLAN_CHAT);
     }
 
     const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
@@ -14447,7 +14447,7 @@ export function RuntimeSceneViewer({
     }
 
     window.dispatchEvent(
-      new CustomEvent("kronos-runtime-clan-chat-action", {
+      new CustomEvent("nh-runtime-clan-chat-action", {
         detail: {
           action: command.action,
           actionText: command.actionText,
@@ -14464,7 +14464,7 @@ export function RuntimeSceneViewer({
     );
   };
 
-  const dispatchEquipmentUtilityAction = (command: KronosEquipmentUtilityButtonCommand): void => {
+  const dispatchEquipmentUtilityAction = (command: NhEquipmentUtilityButtonCommand): void => {
     closeContextMenu();
     clearSelectedInventoryItem("equipment-utility-action");
     clearSelectedSpell("equipment-utility-action");
@@ -14509,7 +14509,7 @@ export function RuntimeSceneViewer({
     }
 
     window.dispatchEvent(
-      new CustomEvent("kronos-runtime-equipment-utility", {
+      new CustomEvent("nh-runtime-equipment-utility", {
         detail: {
           actionIndex: command.actionIndex,
           actionText: command.actionText,
@@ -14534,7 +14534,7 @@ export function RuntimeSceneViewer({
     );
   };
 
-  const dispatchStatsSkillAction = (command: KronosStatsSkillCommand): void => {
+  const dispatchStatsSkillAction = (command: NhStatsSkillCommand): void => {
     closeContextMenu();
     clearSelectedInventoryItem("stats-skill-action");
     clearSelectedSpell("stats-skill-action");
@@ -14557,7 +14557,7 @@ export function RuntimeSceneViewer({
     }
 
     window.dispatchEvent(
-      new CustomEvent("kronos-runtime-stats-skill", {
+      new CustomEvent("nh-runtime-stats-skill", {
         detail: {
           actionText: command.actionText,
           childId: command.slot.childId,
@@ -14580,10 +14580,10 @@ export function RuntimeSceneViewer({
     );
   };
 
-  const dispatchSpellDefaultAction = (command: KronosSpellbookSpellCommand): void => {
+  const dispatchSpellDefaultAction = (command: NhSpellbookSpellCommand): void => {
     closeContextMenu();
     clearSelectedInventoryItem("spell-selection");
-    const selected: KronosSelectedSpell = {
+    const selected: NhSelectedSpell = {
       actionName: command.actionName,
       spellName: command.selectedSpellName,
       flags: command.targetFlags,
@@ -14608,7 +14608,7 @@ export function RuntimeSceneViewer({
     }
 
     window.dispatchEvent(
-      new CustomEvent("kronos-runtime-spell-selection", {
+      new CustomEvent("nh-runtime-spell-selection", {
         detail: {
           actionName: selected.actionName,
           childId: selected.childId,
@@ -14624,7 +14624,7 @@ export function RuntimeSceneViewer({
     );
   };
 
-  const dispatchCombatStyleAction = (command: KronosCombatStyleCommand): void => {
+  const dispatchCombatStyleAction = (command: NhCombatStyleCommand): void => {
     closeContextMenu();
     clearSelectedInventoryItem("combat-style-action");
     clearSelectedSpell("combat-style-action");
@@ -14662,7 +14662,7 @@ export function RuntimeSceneViewer({
     }
 
     window.dispatchEvent(
-      new CustomEvent("kronos-runtime-combat-style", {
+      new CustomEvent("nh-runtime-combat-style", {
         detail: {
           actionText: command.actionText,
           actionChildId: command.slot.actionChildId,
@@ -14684,7 +14684,7 @@ export function RuntimeSceneViewer({
     );
   };
 
-  const dispatchCombatAutocastAction = (command: KronosCombatAutocastCommand): void => {
+  const dispatchCombatAutocastAction = (command: NhCombatAutocastCommand): void => {
     closeContextMenu();
     clearSelectedInventoryItem("combat-autocast-action");
     clearSelectedSpell("combat-autocast-action");
@@ -14718,7 +14718,7 @@ export function RuntimeSceneViewer({
     }
 
     window.dispatchEvent(
-      new CustomEvent("kronos-runtime-combat-autocast", {
+      new CustomEvent("nh-runtime-combat-autocast", {
         detail: {
           actionText: command.actionText,
           actionChildId: command.control.childId,
@@ -14735,7 +14735,7 @@ export function RuntimeSceneViewer({
     );
   };
 
-  const dispatchCombatAutoRetaliateAction = (command: KronosCombatAutoRetaliateCommand): void => {
+  const dispatchCombatAutoRetaliateAction = (command: NhCombatAutoRetaliateCommand): void => {
     closeContextMenu();
     clearSelectedInventoryItem("combat-auto-retaliate-action");
     clearSelectedSpell("combat-auto-retaliate-action");
@@ -14757,13 +14757,13 @@ export function RuntimeSceneViewer({
         command.enabled === undefined ? "" : String(command.enabled);
       viewport.dataset.lastCombatAutoRetaliateSourceActionCount = String(command.control.actions.length);
       viewport.dataset.lastCombatAutoRetaliateSourceHandler = "Config.AUTO_RETALIATE.toggle";
-      viewport.dataset.lastCombatAutoRetaliateStorageKey = KRONOS_AUTO_RETALIATE_STORAGE_KEY;
+      viewport.dataset.lastCombatAutoRetaliateStorageKey = NH_AUTO_RETALIATE_STORAGE_KEY;
       viewport.dataset.lastCombatAutoRetaliateVarpId = String(command.autoRetaliateVarpId);
       viewport.dataset.lastCombatControlKind = "auto-retaliate";
     }
 
     window.dispatchEvent(
-      new CustomEvent("kronos-runtime-combat-auto-retaliate", {
+      new CustomEvent("nh-runtime-combat-auto-retaliate", {
         detail: {
           actionText: command.actionText,
           actionChildId: command.control.childId,
@@ -14779,7 +14779,7 @@ export function RuntimeSceneViewer({
     );
   };
 
-  const dispatchRunOrbAction = (command: KronosRunOrbCommand): void => {
+  const dispatchRunOrbAction = (command: NhRunOrbCommand): void => {
     closeContextMenu();
     clearSelectedInventoryItem("run-toggle");
     clearSelectedSpell("run-toggle");
@@ -14811,7 +14811,7 @@ export function RuntimeSceneViewer({
     }
 
     window.dispatchEvent(
-      new CustomEvent("kronos-runtime-run-toggle", {
+      new CustomEvent("nh-runtime-run-toggle", {
         detail: {
           actionText: command.actionText,
           previousRunning: command.previousRunning,
@@ -14824,7 +14824,7 @@ export function RuntimeSceneViewer({
     );
   };
 
-  const dispatchXpDropOrbAction = (command: KronosXpDropOrbCommand): void => {
+  const dispatchXpDropOrbAction = (command: NhXpDropOrbCommand): void => {
     closeContextMenu();
     clearSelectedInventoryItem("xp-drop-orb");
     clearSelectedSpell("xp-drop-orb");
@@ -14855,7 +14855,7 @@ export function RuntimeSceneViewer({
     }
 
     window.dispatchEvent(
-      new CustomEvent("kronos-runtime-xp-drop-orb", {
+      new CustomEvent("nh-runtime-xp-drop-orb", {
         detail: {
           actionText: command.actionText,
           childId: command.childId,
@@ -14872,7 +14872,7 @@ export function RuntimeSceneViewer({
     );
   };
 
-  const xpDropOrbContextEntries = (command: KronosXpDropOrbCommand): readonly KronosXpDropOrbContextMenuEntry[] => {
+  const xpDropOrbContextEntries = (command: NhXpDropOrbCommand): readonly NhXpDropOrbContextMenuEntry[] => {
     const toggleText = command.previousShown ? "Hide" : "Show";
     return [
       {
@@ -14956,7 +14956,7 @@ export function RuntimeSceneViewer({
     window.dispatchEvent(new CustomEvent("runelite-config-value-set", { detail: { pluginId: "xp-drop", keyName: "trainerTextSize", value: textSizeSpec.textHeight } }));
   };
 
-  const dispatchXpDropOrbContextEntry = (entry: KronosXpDropOrbContextMenuEntry): void => {
+  const dispatchXpDropOrbContextEntry = (entry: NhXpDropOrbContextMenuEntry): void => {
     if (entry.action === "xp-drop-text-size") {
       applyXpDropTextSize(entry.textSize);
       return;
@@ -14982,25 +14982,25 @@ export function RuntimeSceneViewer({
     dispatchXpDropOrbAction(entry.command);
   };
 
-  const setKronosGameKeybindSnapshot = (nextSnapshot: KronosGameKeybindSnapshot): void => {
-    const normalized = kronosNormalizeGameKeybindSnapshot(nextSnapshot);
+  const setNhGameKeybindSnapshot = (nextSnapshot: NhGameKeybindSnapshot): void => {
+    const normalized = nhNormalizeGameKeybindSnapshot(nextSnapshot);
     gameKeybindsRef.current = normalized;
     setGameKeybinds(normalized);
-    applyKronosGameKeybindConfig(canvasRef.current, normalized);
+    applyNhGameKeybindConfig(canvasRef.current, normalized);
   };
 
-  const dispatchGameKeybindChange = (tabId: KronosFixedSideTabId, keySlot: KronosGameKeybindKeySlot): void => {
-    const nextSnapshot = kronosAssignGameKeybind(gameKeybindsRef.current, tabId, keySlot);
-    setKronosGameKeybindSnapshot(nextSnapshot);
+  const dispatchGameKeybindChange = (tabId: NhFixedSideTabId, keySlot: NhGameKeybindKeySlot): void => {
+    const nextSnapshot = nhAssignGameKeybind(gameKeybindsRef.current, tabId, keySlot);
+    setNhGameKeybindSnapshot(nextSnapshot);
     setGameKeybindSelectedTabId(tabId);
   };
 
   const dispatchGameKeybindEscapeClose = (escapeCloses: boolean): void => {
-    setKronosGameKeybindSnapshot(kronosGameKeybindsWithEscapeClose(gameKeybindsRef.current, escapeCloses));
+    setNhGameKeybindSnapshot(nhGameKeybindsWithEscapeClose(gameKeybindsRef.current, escapeCloses));
   };
 
   const dispatchGameKeybindRestoreDefaults = (mode: "osrs" | "pre-eoc"): void => {
-    setKronosGameKeybindSnapshot(mode === "pre-eoc" ? kronosPreEocGameKeybinds() : KRONOS_DEFAULT_GAME_KEYBINDS);
+    setNhGameKeybindSnapshot(mode === "pre-eoc" ? nhPreEocGameKeybinds() : NH_DEFAULT_GAME_KEYBINDS);
     setGameKeybindSelectedTabId("combat");
   };
 
@@ -15009,7 +15009,7 @@ export function RuntimeSceneViewer({
     source: "startup" | "button"
   ): void => {
     const equipmentItems = new Map(snapshot.equipment);
-    const inventorySlots = normalizeKronosInventorySlots(snapshot.inventory);
+    const inventorySlots = normalizeNhInventorySlots(snapshot.inventory);
     const localActor = manualActorRef.current;
     const opponentActor = manualOpponentRef.current;
     const visibleEquipment = visibleEquipmentFromRuntimeItemIdsBySlot(
@@ -15037,9 +15037,9 @@ export function RuntimeSceneViewer({
         }
       },
       prayers: {
-        "local-player": runtimePrayerIdsFromKronosStates(hudPrayersRef.current)
+        "local-player": runtimePrayerIdsFromNhStates(hudPrayersRef.current)
       },
-      clientCycle: Math.floor(performance.now() / KRONOS_CLIENT_CYCLE_MS)
+      clientCycle: Math.floor(performance.now() / NH_CLIENT_CYCLE_MS)
     });
     const nextAppearance = runtimeAppearanceFromEquipmentItems(
       equipmentItems,
@@ -15091,7 +15091,7 @@ export function RuntimeSceneViewer({
     setPlaying(false);
     setFollowLive(false);
     const loadoutId = RUNTIME_NH_STAKE_LOADOUT_ID;
-    const inventorySlots = normalizeKronosInventorySlots(
+    const inventorySlots = normalizeNhInventorySlots(
       RUNTIME_NH_STAKE_INVENTORY_ITEM_IDS.map((itemId) => ({ itemId, quantity: 1 }))
     );
     const equipmentItems = new Map(RUNTIME_NH_STAKE_EQUIPMENT_ENTRIES);
@@ -15158,7 +15158,7 @@ export function RuntimeSceneViewer({
         "local-player": [],
         opponent: []
       },
-      clientCycle: Math.floor(performance.now() / KRONOS_CLIENT_CYCLE_MS)
+      clientCycle: Math.floor(performance.now() / NH_CLIENT_CYCLE_MS)
     });
     const nextAppearance = runtimeAppearanceFromEquipmentItems(
       equipmentItems,
@@ -15221,7 +15221,7 @@ export function RuntimeSceneViewer({
       setHudOverride((current) => ({
         ...(current?.attackSet === undefined ? {} : { attackSet: current.attackSet }),
         ...(current?.autoRetaliate === undefined ? {} : { autoRetaliate: current.autoRetaliate }),
-        prayers: {} as KronosPrayerStates
+        prayers: {} as NhPrayerStates
       }));
       setManualFightStartPending(true);
       setManualCombatState(nextCombatState);
@@ -15251,7 +15251,7 @@ export function RuntimeSceneViewer({
   };
 
   const saveTemporaryCurrentSetup = (): void => {
-    const inventorySlots = normalizeKronosInventorySlots(
+    const inventorySlots = normalizeNhInventorySlots(
       inventoryOverrideRef.current ?? visibleSnapshotRef.current.inventory
     );
     const equipmentItems =
@@ -15274,7 +15274,7 @@ export function RuntimeSceneViewer({
       viewport.dataset.lastTemporarySetupLoadoutId = snapshot.loadoutId;
       viewport.dataset.lastTemporarySetupInventoryCount = String(inventorySlots.filter(Boolean).length);
       viewport.dataset.lastTemporarySetupEquipmentCount = String(equipmentItems.size);
-      viewport.dataset.temporarySetupStorageKey = KRONOS_TEMPORARY_SAVED_SETUP_STORAGE_KEY;
+      viewport.dataset.temporarySetupStorageKey = NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY;
     }
   };
 
@@ -15286,7 +15286,7 @@ export function RuntimeSceneViewer({
     if (viewport) {
       viewport.dataset.lastTemporarySetupResetDefault = "true";
       viewport.dataset.lastTemporarySetupResetClearedStorage = String(cleared);
-      viewport.dataset.lastTemporarySetupResetStorageKey = KRONOS_TEMPORARY_SAVED_SETUP_STORAGE_KEY;
+      viewport.dataset.lastTemporarySetupResetStorageKey = NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY;
     }
   };
 
@@ -15354,14 +15354,14 @@ export function RuntimeSceneViewer({
     }
   };
 
-  const queueCombatSpecialAfterPendingItemPackets = (command: KronosCombatSpecialCommand): boolean => {
+  const queueCombatSpecialAfterPendingItemPackets = (command: NhCombatSpecialCommand): boolean => {
     const pendingItemPackets = itemActionQueueRef.current.snapshot();
     if (pendingItemPackets.length === 0) {
       return false;
     }
 
     const queuedAtMs = performance.now();
-    const readyAtMs = nextKronosGameTickAt(runtimeTickOriginMsRef.current, queuedAtMs);
+    const readyAtMs = nextNhGameTickAt(runtimeTickOriginMsRef.current, queuedAtMs);
     queuedPlayerCombatPacketsRef.current.push({
       kind: "special",
       specialCommand: command,
@@ -15388,7 +15388,7 @@ export function RuntimeSceneViewer({
   };
 
   const dispatchCombatSpecialAction = (
-    command: KronosCombatSpecialCommand,
+    command: NhCombatSpecialCommand,
     source: "immediate" | "queued" = "immediate"
   ): void => {
     closeContextMenu();
@@ -15456,7 +15456,7 @@ export function RuntimeSceneViewer({
     }
 
     window.dispatchEvent(
-      new CustomEvent("kronos-runtime-combat-special", {
+      new CustomEvent("nh-runtime-combat-special", {
         detail: {
           actionText: command.actionText,
           actionChildId: specialActionChildId,
@@ -15482,7 +15482,7 @@ export function RuntimeSceneViewer({
     );
   };
 
-  const dispatchPrayerAction = (command: KronosPrayerSlotCommand): void => {
+  const dispatchPrayerAction = (command: NhPrayerSlotCommand): void => {
     closeContextMenu();
     clearSelectedInventoryItem("prayer-action");
     clearSelectedSpell("prayer-action");
@@ -15491,15 +15491,15 @@ export function RuntimeSceneViewer({
     const previousActivePrayerIds = command.activePrayerIds;
     const currentPrayers = Object.fromEntries(
       previousActivePrayerIds.map((id) => [id, true])
-    ) as KronosPrayerStates;
-    const transition = kronosTogglePrayerState(currentPrayers, command.definition);
+    ) as NhPrayerStates;
+    const transition = nhTogglePrayerState(currentPrayers, command.definition);
     const nextActive = transition.prayers[command.definition.id] === true;
-    const nextActivePrayerIds = kronosActivePrayerIds(transition.prayers);
+    const nextActivePrayerIds = nhActivePrayerIds(transition.prayers);
     hudPrayersRef.current = transition.prayers;
     const nextCombatState = setRuntimePlayerCombatPrayers(
       manualCombatStateRef.current,
       "local-player",
-      runtimePrayerIdsFromKronosStates(transition.prayers)
+      runtimePrayerIdsFromNhStates(transition.prayers)
     );
     manualCombatStateRef.current = nextCombatState;
     setManualCombatState(nextCombatState);
@@ -15541,7 +15541,7 @@ export function RuntimeSceneViewer({
     }
 
     window.dispatchEvent(
-      new CustomEvent("kronos-runtime-prayer-toggle", {
+      new CustomEvent("nh-runtime-prayer-toggle", {
         detail: {
           actionText: command.actionText,
           active: nextActive,
@@ -15575,8 +15575,8 @@ export function RuntimeSceneViewer({
     );
   };
 
-  const sideTabContextEntries = (command: KronosSideTabCommand): readonly KronosHudWidgetContextMenuEntry[] => {
-    const sourceEntries: KronosHudWidgetContextMenuEntry[] = command.sourceActions.map((action) => ({
+  const sideTabContextEntries = (command: NhSideTabCommand): readonly NhHudWidgetContextMenuEntry[] => {
+    const sourceEntries: NhHudWidgetContextMenuEntry[] = command.sourceActions.map((action) => ({
       action: "hud-widget-action",
       actionText: action.actionText,
       targetText: "",
@@ -15658,7 +15658,7 @@ export function RuntimeSceneViewer({
     return sourceEntries;
   };
 
-  const chatboxContextEntries = (command: KronosChatboxButtonCommand): readonly KronosHudWidgetContextMenuEntry[] =>
+  const chatboxContextEntries = (command: NhChatboxButtonCommand): readonly NhHudWidgetContextMenuEntry[] =>
     command.sourceActions.map((action) => ({
       action: "hud-widget-action",
       actionText: action.actionText,
@@ -15677,7 +15677,7 @@ export function RuntimeSceneViewer({
       }
     }));
 
-  const dispatchHudWidgetContextEntry = (entry: KronosHudWidgetContextMenuEntry): void => {
+  const dispatchHudWidgetContextEntry = (entry: NhHudWidgetContextMenuEntry): void => {
     if (entry.widgetKind === "side-tab") {
       dispatchSideTabAction(entry.command);
       return;
@@ -15698,15 +15698,15 @@ export function RuntimeSceneViewer({
     }
   };
 
-  const equipmentItemContextEntries = (command: KronosEquipmentItemCommand): readonly KronosEquipmentItemContextMenuEntry[] => {
+  const equipmentItemContextEntries = (command: NhEquipmentItemCommand): readonly NhEquipmentItemContextMenuEntry[] => {
     const itemDefinition = inventoryItemDefinitions.get(command.itemId);
     const targetText = `${equipmentItemNameColorTag}${command.itemName}`;
     const sourceActionText = (actionIndex: number): string => command.slot.actions[actionIndex - 1] ?? "";
     const entry = (
       actionText: string,
-      action: KronosEquipmentItemContextMenuEntry["action"],
+      action: NhEquipmentItemContextMenuEntry["action"],
       actionIndex: number
-    ): KronosEquipmentItemContextMenuEntry => ({
+    ): NhEquipmentItemContextMenuEntry => ({
       actionText,
       targetText,
       opcode: equipmentItemOpcodeForActionIndex(actionIndex),
@@ -15724,7 +15724,7 @@ export function RuntimeSceneViewer({
       widgetId: command.slot.widgetId
     });
 
-    const entries: KronosEquipmentItemContextMenuEntry[] = [
+    const entries: NhEquipmentItemContextMenuEntry[] = [
       entry("Examine", "equipment-examine", 10)
     ];
     for (let actionIndex = 6; actionIndex >= 2; actionIndex -= 1) {
@@ -15737,8 +15737,8 @@ export function RuntimeSceneViewer({
     return entries;
   };
 
-  const inventoryContextEntries = (command: KronosInventorySlotCommand): readonly KronosInventoryContextMenuEntry[] =>
-    buildKronosInventoryContextEntries({
+  const inventoryContextEntries = (command: NhInventorySlotCommand): readonly NhInventoryContextMenuEntry[] =>
+    buildNhInventoryContextEntries({
       slot: command.slot,
       slotIndex: command.slotIndex,
       widgetId: command.widgetId,
@@ -15761,9 +15761,9 @@ export function RuntimeSceneViewer({
 });
 
   const resolveEquipmentRemoveMutation = (
-    entry: KronosEquipmentItemContextMenuEntry
+    entry: NhEquipmentItemContextMenuEntry
   ): RuntimeEquipmentRemoveMutationResolution => {
-    const sourceInventorySlots = normalizeKronosInventorySlots(visibleSnapshot.inventory);
+    const sourceInventorySlots = normalizeNhInventorySlots(visibleSnapshot.inventory);
     const freeInventorySlot = sourceInventorySlots.findIndex((slot) => slot === null);
     if (entry.action !== "equipment-remove") {
       return emptyEquipmentRemoveMutationResolution("", freeInventorySlot);
@@ -15806,14 +15806,14 @@ export function RuntimeSceneViewer({
   };
 
   const queueEquipmentRemoveMutation = (
-    entry: KronosEquipmentItemContextMenuEntry,
+    entry: NhEquipmentItemContextMenuEntry,
     resolution: RuntimeEquipmentRemoveMutationResolution
   ): boolean => {
     if (entry.action !== "equipment-remove" || !resolution.equipmentSlotCleared) {
       return false;
     }
     const queuedAtMs = performance.now();
-    const readyAtMs = nextKronosGameTickAt(runtimeTickOriginMsRef.current, queuedAtMs);
+    const readyAtMs = nextNhGameTickAt(runtimeTickOriginMsRef.current, queuedAtMs);
     itemActionQueueRef.current.push({
       kind: "unequip",
       slotIndex: resolution.freeInventorySlot,
@@ -15828,7 +15828,7 @@ export function RuntimeSceneViewer({
   };
 
   const dispatchEquipmentItemAction = (
-    entry: KronosEquipmentItemContextMenuEntry,
+    entry: NhEquipmentItemContextMenuEntry,
     activationSource: "default" | "context-menu"
   ): void => {
     closeContextMenu();
@@ -15873,7 +15873,7 @@ export function RuntimeSceneViewer({
     }
 
     window.dispatchEvent(
-      new CustomEvent("kronos-runtime-equipment-item-action", {
+      new CustomEvent("nh-runtime-equipment-item-action", {
         detail: {
           activationSource,
           action: entry.action,
@@ -15921,7 +15921,7 @@ export function RuntimeSceneViewer({
         return current;
       }
       const next = new Map(current);
-      next.set(modelKey, composeKronosPlayerModel(playerModelSources, modelInput));
+      next.set(modelKey, composeNhPlayerModel(playerModelSources, modelInput));
       return next;
     });
   };
@@ -15968,13 +15968,13 @@ export function RuntimeSceneViewer({
   });
 
   const resolveInventoryMutationFromState = (
-    entry: KronosInventoryContextMenuEntry,
+    entry: NhInventoryContextMenuEntry,
     sourceSlots: readonly (RuntimeInventorySlot | null)[],
     currentEquipment: RuntimeEquipmentItemIdsBySlot,
     currentActorLoadoutId: RuntimeLoadoutId,
     validateSourceSlot = false
   ): RuntimeInventoryMutationResolution => {
-    const directMutation = mutateKronosInventorySlotsForAction(sourceSlots, entry);
+    const directMutation = mutateNhInventorySlotsForAction(sourceSlots, entry);
     if (directMutation.mutation) {
       return {
         inventorySlots: directMutation.slots,
@@ -15987,7 +15987,7 @@ export function RuntimeSceneViewer({
       };
     }
 
-    if (!isKronosInventoryEquipEntry(entry)) {
+    if (!isNhInventoryEquipEntry(entry)) {
       return emptyInventoryMutationResolution();
     }
 
@@ -16011,7 +16011,7 @@ export function RuntimeSceneViewer({
       wornItemId === null || (wornItemId === entry.itemId && selectedItemDefinition?.stackable === true)
         ? null
         : { itemId: wornItemId, quantity: 1 };
-    const swapMutation = replaceKronosInventorySlot(
+    const swapMutation = replaceNhInventorySlot(
       sourceSlots,
       entry.slotIndex,
       replacementItem,
@@ -16020,7 +16020,7 @@ export function RuntimeSceneViewer({
     );
     const nextEquipment = new Map(currentEquipment);
     let nextInventorySlots = swapMutation.slots;
-    const addLastItemId = kronosTwoHandedEquipmentAddLastItemId(
+    const addLastItemId = nhTwoHandedEquipmentAddLastItemId(
       equipSlot,
       selectedDefinition.twoHanded,
       currentEquipment,
@@ -16028,7 +16028,7 @@ export function RuntimeSceneViewer({
     );
     if (addLastItemId !== null) {
       nextEquipment.delete(equipSlot === 3 ? 5 : 3);
-      const withAddedItem = addKronosInventoryItemToFirstFreeSlot(nextInventorySlots, addLastItemId);
+      const withAddedItem = addNhInventoryItemToFirstFreeSlot(nextInventorySlots, addLastItemId);
       if (!withAddedItem) {
         return emptyInventoryMutationResolution("not-enough-free-inventory-space");
       }
@@ -16066,11 +16066,11 @@ export function RuntimeSceneViewer({
   };
 
   const resolveVisibleInventoryMutation = (
-    entry: KronosInventoryContextMenuEntry
+    entry: NhInventoryContextMenuEntry
   ): RuntimeInventoryMutationResolution =>
     resolveInventoryMutationFromState(
       entry,
-      normalizeKronosInventorySlots(visibleSnapshot.inventory),
+      normalizeNhInventorySlots(visibleSnapshot.inventory),
       equipmentOverride ?? localPlayerEquipmentItemIdsBySlot(visibleSnapshot, inventoryEquipmentDefinitionsRef.current),
       manualCombatStateRef.current.actors["local-player"].loadoutId
     );
@@ -16134,7 +16134,7 @@ export function RuntimeSceneViewer({
     }
     const nowMs = performance.now();
     const nextReadyAtMs = Math.min(
-      ...pendingActions.map((action) => action.readyAtMs ?? action.queuedAtMs + KRONOS_GAME_TICK_MS),
+      ...pendingActions.map((action) => action.readyAtMs ?? action.queuedAtMs + NH_GAME_TICK_MS),
       ...pendingPlayerPackets.map((packet) => packet.readyAtMs)
     );
     if (itemActionProcessingTimerRef.current !== null) {
@@ -16148,14 +16148,14 @@ export function RuntimeSceneViewer({
 
   const processReadyItemActions = (): void => {
     const nowMs = performance.now();
-    const queuedActions = itemActionQueueRef.current.drainReady(nowMs, KRONOS_GAME_TICK_MS);
+    const queuedActions = itemActionQueueRef.current.drainReady(nowMs, NH_GAME_TICK_MS);
     const readyPlayerPackets = drainReadyPlayerCombatPackets(nowMs);
     if (queuedActions.length === 0 && readyPlayerPackets.length === 0) {
       scheduleReadyItemActionProcessing();
       return;
     }
 
-    let nextInventorySlots = inventoryOverrideRef.current ?? normalizeKronosInventorySlots(visibleSnapshotRef.current.inventory);
+    let nextInventorySlots = inventoryOverrideRef.current ?? normalizeNhInventorySlots(visibleSnapshotRef.current.inventory);
     let nextEquipmentItems =
       equipmentOverrideRef.current ??
       localPlayerEquipmentItemIdsBySlot(visibleSnapshotRef.current, inventoryEquipmentDefinitionsRef.current);
@@ -16259,13 +16259,13 @@ export function RuntimeSceneViewer({
             : manualActorFromSnapshot(snapshot);
         // Source: Consumable.animEat() calls resetActions/animate but never rewrites the player's position.
         // Keep the combat actor's authoritative server tile if the render/manual actor is one frame behind.
-        const consumeActor = sameKronosTile(sourceActor.tile, localActor.tile)
+        const consumeActor = sameNhTile(sourceActor.tile, localActor.tile)
           ? sourceActor
           : {
             ...sourceActor,
             tile: localActor.tile,
             renderTile: localActor.tile,
-            clientPosition: kronosClientPositionFromRuntimeTile(localActor.tile)
+            clientPosition: nhClientPositionFromRuntimeTile(localActor.tile)
           };
         const actionDurationTicks = 3;
         const nextLocalActor: RuntimePlayerCombatActorState = {
@@ -16280,7 +16280,7 @@ export function RuntimeSceneViewer({
           attackTimer: result.attackTimer,
           actionSequenceName: "consume",
           actionStartedAtTick: state.tick,
-          actionStartedAtClientCycle: Math.floor(nowMs / KRONOS_CLIENT_CYCLE_MS),
+          actionStartedAtClientCycle: Math.floor(nowMs / NH_CLIENT_CYCLE_MS),
           actionDurationTicks,
           actionUntilTick: state.tick + actionDurationTicks
         };
@@ -16341,7 +16341,7 @@ export function RuntimeSceneViewer({
       ? runtimeAppearanceFromEquipmentItems(nextEquipmentItems, runtimeLoadoutAppearance(nextActorLoadoutId))
       : undefined;
 
-    // Source-backed parity: Kronos marks one Appearance update mask for the tick after Equipment.equip()
+    // Source-backed parity: Nh marks one Appearance update mask for the tick after Equipment.equip()
     // has handled the queued packets, so React and Three receive one final local-player appearance too.
     unstable_batchedUpdates(() => {
       if (equipmentChanged) {
@@ -16413,14 +16413,14 @@ export function RuntimeSceneViewer({
   };
 
   const queueInventoryEquipMutation = (
-    entry: KronosInventoryContextMenuEntry,
+    entry: NhInventoryContextMenuEntry,
     resolution: RuntimeInventoryMutationResolution
   ): boolean => {
     if (!resolution.equipmentMutation) {
       return false;
     }
     const queuedAtMs = performance.now();
-    const readyAtMs = nextKronosGameTickAt(runtimeTickOriginMsRef.current, queuedAtMs);
+    const readyAtMs = nextNhGameTickAt(runtimeTickOriginMsRef.current, queuedAtMs);
     itemActionQueueRef.current.push({
       kind: "equip",
       slotIndex: entry.slotIndex,
@@ -16443,7 +16443,7 @@ export function RuntimeSceneViewer({
   };
 
   const queueInventoryConsumableAction = (
-    entry: KronosInventoryContextMenuEntry,
+    entry: NhInventoryContextMenuEntry,
     item: ConsumableId
   ): boolean => {
     const actionKind = runtimeInventoryActionConsumableKind(entry);
@@ -16451,7 +16451,7 @@ export function RuntimeSceneViewer({
       return false;
     }
     const queuedAtMs = performance.now();
-    const readyAtMs = nextKronosGameTickAt(runtimeTickOriginMsRef.current, queuedAtMs);
+    const readyAtMs = nextNhGameTickAt(runtimeTickOriginMsRef.current, queuedAtMs);
     itemActionQueueRef.current.push({
       kind: actionKind,
       slotIndex: entry.slotIndex,
@@ -16470,7 +16470,7 @@ export function RuntimeSceneViewer({
   };
 
   const spawnGroundItemFromInventoryDrop = (
-    entry: KronosInventoryContextMenuEntry,
+    entry: NhInventoryContextMenuEntry,
     slot: RuntimeInventorySlot | null
   ): void => {
     if (!slot) {
@@ -16483,7 +16483,7 @@ export function RuntimeSceneViewer({
     const droppedAtMs = performance.now();
     setGroundItems((current) => {
       if (itemDefinition?.stackable) {
-        const existing = current.find((item) => item.itemId === entry.itemId && sameKronosTile(item.tile, tile));
+        const existing = current.find((item) => item.itemId === entry.itemId && sameNhTile(item.tile, tile));
         if (existing) {
           const next = current.map((item) =>
             item.id === existing.id
@@ -16529,7 +16529,7 @@ export function RuntimeSceneViewer({
   };
 
   const addGroundItemToInventory = (groundItem: RuntimeGroundItem): boolean => {
-    const slots = [...normalizeKronosInventorySlots(inventoryOverrideRef.current ?? visibleSnapshotRef.current.inventory)];
+    const slots = [...normalizeNhInventorySlots(inventoryOverrideRef.current ?? visibleSnapshotRef.current.inventory)];
     const itemDefinition = inventoryItemDefinitionsRef.current.get(groundItem.itemId);
     if (itemDefinition?.stackable) {
       const stackIndex = slots.findIndex((slot) => slot?.itemId === groundItem.itemId);
@@ -16597,7 +16597,7 @@ export function RuntimeSceneViewer({
 
   const processPendingGroundItemPickup = (actorTile: RuntimeTile): void => {
     const pending = pendingGroundItemPickupRef.current;
-    if (!pending || !sameKronosTile(actorTile, pending.targetTile)) {
+    if (!pending || !sameNhTile(actorTile, pending.targetTile)) {
       return;
     }
     const groundItem = groundItemsRef.current.find((item) => item.id === pending.groundItemId);
@@ -16609,7 +16609,7 @@ export function RuntimeSceneViewer({
   };
 
   const dispatchGroundItemContextEntry = (
-    entry: KronosGroundItemContextMenuEntry,
+    entry: NhGroundItemContextMenuEntry,
     position: { readonly x: number; readonly y: number },
     activationSource: "default" | "context-menu"
   ): void => {
@@ -16629,7 +16629,7 @@ export function RuntimeSceneViewer({
     }
     const targetTile = collisionMap ? collisionMap.snapTile(groundItem.tile) : groundItem.tile;
     const localTile = currentLocalServerTile();
-    if (sameKronosTile(localTile, targetTile)) {
+    if (sameNhTile(localTile, targetTile)) {
       pendingGroundItemPickupRef.current = {
         groundItemId: groundItem.id,
         targetTile,
@@ -16684,7 +16684,7 @@ export function RuntimeSceneViewer({
   };
 
   const dispatchInventoryAction = (
-    entry: KronosInventoryContextMenuEntry,
+    entry: NhInventoryContextMenuEntry,
     activationSource: "default" | "context-menu"
   ): void => {
     if (entry.action === "inventory-spell-selected") {
@@ -16717,9 +16717,9 @@ export function RuntimeSceneViewer({
 
     const consumableItem = runtimeInventoryActionConsumableId(entry);
     const queuedConsumable = consumableItem ? queueInventoryConsumableAction(entry, consumableItem) : false;
-    const sourceSlotForDrop = normalizeKronosInventorySlots(inventoryOverrideRef.current ?? visibleSnapshotRef.current.inventory)[entry.slotIndex] ?? null;
+    const sourceSlotForDrop = normalizeNhInventorySlots(inventoryOverrideRef.current ?? visibleSnapshotRef.current.inventory)[entry.slotIndex] ?? null;
     const mutation = queuedConsumable ? emptyInventoryMutationResolution() : resolveVisibleInventoryMutation(entry);
-    const queuedEquip = !queuedConsumable && isKronosInventoryEquipEntry(entry) && queueInventoryEquipMutation(entry, mutation);
+    const queuedEquip = !queuedConsumable && isNhInventoryEquipEntry(entry) && queueInventoryEquipMutation(entry, mutation);
     if (!queuedConsumable && !queuedEquip) {
       applyResolvedInventoryMutation(mutation);
       if (!mutation.blockedReason && mutation.inventoryMutation?.kind === "drop-remove") {
@@ -16786,7 +16786,7 @@ export function RuntimeSceneViewer({
     }
 
     window.dispatchEvent(
-      new CustomEvent("kronos-runtime-inventory-action", {
+      new CustomEvent("nh-runtime-inventory-action", {
         detail: {
           activationSource,
           action: entry.action,
@@ -16810,9 +16810,9 @@ export function RuntimeSceneViewer({
     );
   };
 
-  const dispatchInventoryDragReorder = (command: KronosInventorySlotDragCommand): void => {
-    const reordered = reorderKronosInventorySlotsForDrag(
-      inventoryOverrideRef.current ?? normalizeKronosInventorySlots(visibleSnapshotRef.current.inventory),
+  const dispatchInventoryDragReorder = (command: NhInventorySlotDragCommand): void => {
+    const reordered = reorderNhInventorySlotsForDrag(
+      inventoryOverrideRef.current ?? normalizeNhInventorySlots(visibleSnapshotRef.current.inventory),
       command.sourceSlotIndex,
       command.destinationSlotIndex
     );
@@ -16836,12 +16836,12 @@ export function RuntimeSceneViewer({
     }
 
     window.dispatchEvent(
-      new CustomEvent("kronos-runtime-inventory-drag", {
+      new CustomEvent("nh-runtime-inventory-drag", {
         detail: {
           widgetId: command.widgetId,
           sourceSlotIndex: command.sourceSlotIndex,
           destinationSlotIndex: command.destinationSlotIndex,
-          mutation: reordered.mutation satisfies KronosInventoryDragMutation
+          mutation: reordered.mutation satisfies NhInventoryDragMutation
         }
       })
     );
@@ -16852,17 +16852,18 @@ export function RuntimeSceneViewer({
   };
 
   const dispatchVisibleContextMenuEntry = (
-    entry: KronosContextMenuEntry,
-    menu: KronosContextMenuState
+    entry: NhContextMenuEntry,
+    menu: NhContextMenuState,
+    clickCrossPosition: { readonly x: number; readonly y: number } = { x: menu.x, y: menu.y }
   ): void => {
     closeContextMenu();
-    if (isKronosCancelContextMenuEntry(entry)) {
+    if (isNhCancelContextMenuEntry(entry)) {
       return;
     }
-    if (isKronosSourceContextMenuEntry(entry)) {
+    if (isNhSourceContextMenuEntry(entry)) {
       return;
     }
-    if (isKronosHudWidgetContextMenuEntry(entry)) {
+    if (isNhHudWidgetContextMenuEntry(entry)) {
       dispatchHudWidgetContextEntry(entry);
       return;
     }
@@ -16879,31 +16880,31 @@ export function RuntimeSceneViewer({
       );
       return;
     }
-    if (isKronosXpDropOrbContextMenuEntry(entry)) {
+    if (isNhXpDropOrbContextMenuEntry(entry)) {
       dispatchXpDropOrbContextEntry(entry);
       return;
     }
-    if (isKronosInventoryContextMenuEntry(entry)) {
+    if (isNhInventoryContextMenuEntry(entry)) {
       dispatchInventoryAction(entry, "context-menu");
       return;
     }
-    if (isKronosEquipmentItemContextMenuEntry(entry)) {
+    if (isNhEquipmentItemContextMenuEntry(entry)) {
       dispatchEquipmentItemAction(entry, "context-menu");
       return;
     }
-    if (isKronosGroundItemContextMenuEntry(entry)) {
-      dispatchGroundItemContextEntry(entry, { x: menu.x, y: menu.y }, "context-menu");
+    if (isNhGroundItemContextMenuEntry(entry)) {
+      dispatchGroundItemContextEntry(entry, clickCrossPosition, "context-menu");
       return;
     }
-    if (isKronosOpponentInventoryInspectContextMenuEntry(entry)) {
+    if (isNhOpponentInventoryInspectContextMenuEntry(entry)) {
       setOpponentInventoryInspectOpen(true);
       return;
     }
-    if (isKronosSceneObjectContextMenuEntry(entry)) {
+    if (isNhSceneObjectContextMenuEntry(entry)) {
       recordSceneObjectCommand(entry);
     }
-    if (isKronosPlayerContextMenuEntry(entry)) {
-      dispatchPlayerContextEntry(entry, { x: menu.x, y: menu.y });
+    if (isNhPlayerContextMenuEntry(entry)) {
+      dispatchPlayerContextEntry(entry, clickCrossPosition);
       return;
     }
     if (!("targetTile" in entry)) {
@@ -16911,14 +16912,14 @@ export function RuntimeSceneViewer({
     }
     issueTileCommand(
       entry.targetTile,
-      { x: menu.x, y: menu.y },
+      clickCrossPosition,
       entry.action === "walk" ? "yellow" : "red",
       "context-menu",
-      isKronosSceneObjectContextMenuEntry(entry) ? entry.objectPlacement : undefined
+      isNhSceneObjectContextMenuEntry(entry) ? entry.objectPlacement : undefined
     );
   };
 
-  const setRuntimeCameraZoom = (nextZoom: KronosCameraZoom, source: string): void => {
+  const setRuntimeCameraZoom = (nextZoom: NhCameraZoom, source: string): void => {
     const boundary = boundaryRef.current;
     if (!boundary) {
       setCameraZoom(nextZoom);
@@ -16952,9 +16953,9 @@ export function RuntimeSceneViewer({
     );
   };
 
-  const dispatchPrayerDragReorder = (command: KronosPrayerSlotDragCommand): void => {
+  const dispatchPrayerDragReorder = (command: NhPrayerSlotDragCommand): void => {
     const defaultOrder = fixedClientLayout?.prayerPanel?.slots.map((slot) => slot.id) ?? [];
-    const nextOrder = swapKronosWidgetOrder(
+    const nextOrder = swapNhWidgetOrder(
       prayerOrder,
       command.sourcePrayerId,
       command.destinationPrayerId,
@@ -16972,10 +16973,10 @@ export function RuntimeSceneViewer({
     }
   };
 
-  const dispatchSpellbookDragReorder = (command: KronosSpellbookSpellDragCommand): void => {
+  const dispatchSpellbookDragReorder = (command: NhSpellbookSpellDragCommand): void => {
     const defaultOrder = fixedClientLayout?.spellbookPanels[command.spellbookId]?.spells.map((spell) => spell.id) ?? [];
     const currentOrder = spellbookOrders[command.spellbookId] ?? [];
-    const nextOrder = swapKronosWidgetOrder(
+    const nextOrder = swapNhWidgetOrder(
       currentOrder,
       command.sourceSpellId,
       command.destinationSpellId,
@@ -17026,7 +17027,7 @@ export function RuntimeSceneViewer({
     setContextMenu({
       x: position.x,
       y: position.y,
-      entries: withKronosCancelContextMenuEntry([
+      entries: withNhCancelContextMenuEntry([
         ...overlayEntries,
         ...(targetActor
           ? actorContextEntries(targetActor, targetTile ?? targetActor.tile)
@@ -17070,7 +17071,7 @@ export function RuntimeSceneViewer({
     const current = hoveredSceneTileRef.current;
     if (
       (current === null && snappedTile === null) ||
-      (current !== null && snappedTile !== null && sameKronosTile(current, snappedTile))
+      (current !== null && snappedTile !== null && sameNhTile(current, snappedTile))
     ) {
       return;
     }
@@ -17084,13 +17085,13 @@ export function RuntimeSceneViewer({
     }
 
     const onWindowPointerMove = (event: PointerEvent): void => {
-      const menuElement = document.querySelector(".runtimeViewport .kronosContextMenu") as HTMLElement | null;
+      const menuElement = document.querySelector(".runtimeViewport .nhContextMenu") as HTMLElement | null;
       if (!menuElement) {
         return;
       }
 
       const rect = menuElement.getBoundingClientRect();
-      const margin = KRONOS_CONTEXT_MENU_MOUSE_LEAVE_MARGIN * (fixedClientCssLayout?.scale ?? 1);
+      const margin = NH_CONTEXT_MENU_MOUSE_LEAVE_MARGIN * (fixedClientCssLayout?.scale ?? 1);
       if (
         event.clientX < rect.left - margin ||
         event.clientX > rect.right + margin ||
@@ -17301,7 +17302,7 @@ export function RuntimeSceneViewer({
               const clickCrossPosition =
                 pointerEventToSourceFixedClientPosition(boundary, event.nativeEvent) ??
                 pointerEventToViewportPosition(boundary, event.nativeEvent);
-              const defaultEntry = selectKronosDefaultMenuEntry(
+              const defaultEntry = selectNhDefaultMenuEntry(
                 targetActor
                   ? actorContextEntries(targetActor, targetTile)
                   : targetGroundItem
@@ -17314,18 +17315,18 @@ export function RuntimeSceneViewer({
                 clearSelectedTargetMode("scene-selected-target-cancel");
                 return;
               }
-              if (isKronosSceneObjectContextMenuEntry(defaultEntry)) {
+              if (isNhSceneObjectContextMenuEntry(defaultEntry)) {
                 recordSceneObjectCommand(defaultEntry);
               }
-              if (isKronosPlayerContextMenuEntry(defaultEntry)) {
+              if (isNhPlayerContextMenuEntry(defaultEntry)) {
                 dispatchPlayerContextEntry(defaultEntry, clickCrossPosition);
                 return;
               }
-              if (isKronosGroundItemContextMenuEntry(defaultEntry)) {
+              if (isNhGroundItemContextMenuEntry(defaultEntry)) {
                 dispatchGroundItemContextEntry(defaultEntry, clickCrossPosition, "default");
                 return;
               }
-              if (isKronosOpponentInventoryInspectContextMenuEntry(defaultEntry)) {
+              if (isNhOpponentInventoryInspectContextMenuEntry(defaultEntry)) {
                 setOpponentInventoryInspectOpen(true);
                 return;
               }
@@ -17338,8 +17339,8 @@ export function RuntimeSceneViewer({
                 defaultEntry.targetTile,
                 clickCrossPosition,
                 defaultEntry.action === "walk" ? "yellow" : "red",
-                isKronosSceneObjectContextMenuEntry(defaultEntry) ? "scene-object" : "scene-tile",
-                isKronosSceneObjectContextMenuEntry(defaultEntry) ? defaultEntry.objectPlacement : undefined
+                isNhSceneObjectContextMenuEntry(defaultEntry) ? "scene-object" : "scene-tile",
+                isNhSceneObjectContextMenuEntry(defaultEntry) ? defaultEntry.objectPlacement : undefined
               );
             }}
             onPointerUp={(event) => {
@@ -17370,7 +17371,7 @@ export function RuntimeSceneViewer({
               if (!boundary) {
                 return;
               }
-              const wheelRotation = kronosWheelEventRotation(event.nativeEvent);
+              const wheelRotation = nhWheelEventRotation(event.nativeEvent);
               if (wheelRotation === 0) {
                 return;
               }
@@ -17379,7 +17380,7 @@ export function RuntimeSceneViewer({
               closeContextMenu();
               updateRuneliteMouseHighlightTooltip(null);
               setRuntimeCameraZoom(
-                updateKronosCameraZoomFromScrollWheel(boundary.cameraRig.zoom, wheelRotation),
+                updateNhCameraZoomFromScrollWheel(boundary.cameraRig.zoom, wheelRotation),
                 "canvas wheel"
               );
               boundary.renderer.domElement.dataset.lastCameraWheelRotation = String(wheelRotation);
@@ -17393,7 +17394,7 @@ export function RuntimeSceneViewer({
               openRuntimeSceneContextMenu(event.nativeEvent);
             }}
           />
-          <KronosClientHud
+          <NhClientHud
             spriteAtlases={spriteAtlases}
             layout={fixedClientCssLayout}
             sourceLayout={fixedClientLayout}
@@ -17403,13 +17404,13 @@ export function RuntimeSceneViewer({
             minimapSceneSprite={minimapSceneSprite}
             cameraZoom={cameraZoom}
             onCameraZoomChange={(zoom) => setRuntimeCameraZoom(zoom, "options zoom slider")}
-            onCameraZoomReset={() => setRuntimeCameraZoom(KRONOS_CAMERA_DEFAULT_ZOOM, "options zoom reset")}
+            onCameraZoomReset={() => setRuntimeCameraZoom(NH_CAMERA_DEFAULT_ZOOM, "options zoom reset")}
             onMinimapTileCommand={(command) => {
               closeContextMenu();
               issueTileCommand(command.tile, command.position, "yellow", "minimap");
             }}
             onInventoryContextMenu={(command) => {
-              // Browser fallback contextmenu can be retargeted after a right-button drag; Kronos opens from MouseHandler_lastPressedX/Y.
+              // Browser fallback contextmenu can be retargeted after a right-button drag; Nh opens from MouseHandler_lastPressedX/Y.
               suppressNextCanvasContextMenu();
               closeContextMenu();
               const entries = inventoryContextEntries(command);
@@ -17419,7 +17420,7 @@ export function RuntimeSceneViewer({
               setContextMenu({
                 x: command.position.x,
                 y: command.position.y,
-                entries: withKronosCancelContextMenuEntry(entries)
+                entries: withNhCancelContextMenuEntry(entries)
               });
             }}
             onInventoryEmptyContextMenu={(command) => {
@@ -17428,12 +17429,12 @@ export function RuntimeSceneViewer({
               setContextMenu({
                 x: command.position.x,
                 y: command.position.y,
-                entries: withKronosCancelContextMenuEntry([])
+                entries: withNhCancelContextMenuEntry([])
               });
             }}
             onInventoryDefaultAction={(command) => {
               closeContextMenu();
-              const defaultEntry = selectKronosDefaultMenuEntry(inventoryContextEntries(command));
+              const defaultEntry = selectNhDefaultMenuEntry(inventoryContextEntries(command));
               if (!defaultEntry) {
                 clearSelectedTargetMode("inventory-selected-target-cancel");
                 return;
@@ -17466,11 +17467,11 @@ export function RuntimeSceneViewer({
               setContextMenu({
                 x: command.position.x,
                 y: command.position.y,
-                entries: withKronosCancelContextMenuEntry(entries)
+                entries: withNhCancelContextMenuEntry(entries)
               });
             }}
             onEquipmentItemDefaultAction={(command) => {
-              const defaultEntry = selectKronosDefaultMenuEntry(equipmentItemContextEntries(command));
+              const defaultEntry = selectNhDefaultMenuEntry(equipmentItemContextEntries(command));
               if (!defaultEntry) {
                 return;
               }
@@ -17506,7 +17507,7 @@ export function RuntimeSceneViewer({
               setContextMenu({
                 x: command.position.x,
                 y: command.position.y,
-                entries: withKronosCancelContextMenuEntry(xpDropOrbContextEntries(command))
+                entries: withNhCancelContextMenuEntry(xpDropOrbContextEntries(command))
               });
             }}
             gameKeybinds={gameKeybinds}
@@ -17532,7 +17533,7 @@ export function RuntimeSceneViewer({
               setContextMenu({
                 x: command.position.x,
                 y: command.position.y,
-                entries: withKronosCancelContextMenuEntry(entries)
+                entries: withNhCancelContextMenuEntry(entries)
               });
             }}
             onChatboxDefaultAction={dispatchChatboxAction}
@@ -17548,9 +17549,9 @@ export function RuntimeSceneViewer({
                   : null
               );
             }}
-            socialLists={kronosSocialLists}
+            socialLists={nhSocialLists}
             onSocialButtonDefaultAction={dispatchSocialButtonAction}
-            clanChat={kronosClanChat}
+            clanChat={nhClanChat}
             onClanChatButtonDefaultAction={dispatchClanChatButtonAction}
             onEquipmentUtilityDefaultAction={dispatchEquipmentUtilityAction}
             equipmentUtilityPanelMode={equipmentUtilityPanelMode}
@@ -17567,7 +17568,7 @@ export function RuntimeSceneViewer({
               setContextMenu({
                 x: command.position.x,
                 y: command.position.y,
-                entries: withKronosCancelContextMenuEntry(entries)
+                entries: withNhCancelContextMenuEntry(entries)
               });
             }}
             onSideTabDefaultAction={dispatchSideTabAction}
@@ -17707,7 +17708,7 @@ export function RuntimeSceneViewer({
             </div>
           ) : null}
           <div
-            className="kronosSceneOverlayLayer"
+            className="nhSceneOverlayLayer"
             data-source-layer="Scene.copy$drawActor2d viewport overlay pass"
             style={runtimeSceneOverlayLayerStyle(fixedClientCssLayout)}
           >
@@ -17776,7 +17777,7 @@ export function RuntimeSceneViewer({
                   runtimeDomOverlayElementsRef.current.delete(overlay.id);
                 }
               }}
-              className="kronosActorOverlay"
+              className="nhActorOverlay"
               data-actor-id={overlay.actorId}
               data-sprite-sheet-id={overlay.spriteSheetId}
               data-trainer-hitsplat-scale={overlay.hitsplatScale ?? ""}
@@ -17786,7 +17787,7 @@ export function RuntimeSceneViewer({
               {overlay.sprites.map((sprite) => (
                 <span
                   key={sprite.key}
-                  className="kronosActorOverlaySprite"
+                  className="nhActorOverlaySprite"
                   data-sprite-sheet-id={sprite.sheetId}
                   data-sprite-id={sprite.spriteId}
                   data-sprite-frame={sprite.spriteFrame}
@@ -17958,7 +17959,7 @@ export function RuntimeSceneViewer({
             />
           ) : null}
           <div
-            className="kronosSceneOverlayLayer"
+            className="nhSceneOverlayLayer"
             data-source-layer="xpdrops_stattransmit/xpdrops_dropletmove fixed viewport pass"
             style={runtimeSceneOverlayLayerStyle(fixedClientCssLayout)}
           >
@@ -17972,7 +17973,7 @@ export function RuntimeSceneViewer({
                       element,
                       overlay,
                       fixedClientCssLayout,
-                      Math.floor(performance.now() / KRONOS_CLIENT_CYCLE_MS)
+                      Math.floor(performance.now() / NH_CLIENT_CYCLE_MS)
                     );
                   } else {
                     runeliteXpDropOverlayElementsRef.current.delete(overlay.id);
@@ -18004,7 +18005,7 @@ export function RuntimeSceneViewer({
                 style={runeliteXpDropOverlayStyle(
                   overlay,
                   fixedClientCssLayout,
-                  Math.floor(performance.now() / KRONOS_CLIENT_CYCLE_MS)
+                  Math.floor(performance.now() / NH_CLIENT_CYCLE_MS)
                 )}
               >
                 {overlay.skillIcons.map((icon, index) => (
@@ -18020,7 +18021,7 @@ export function RuntimeSceneViewer({
                 <RuneliteXpDropGlyphText
                   atlas={overlay.fontSheetId ? spriteAtlases.get(overlay.fontSheetId) : undefined}
                   color={overlay.color}
-                  font={kronosClientFontDefinition(clientFonts, overlay.fontKey)}
+                  font={nhClientFontDefinition(clientFonts, overlay.fontKey)}
                   height={overlay.height}
                   text={overlay.text}
                   width={overlay.textWidth}
@@ -18029,7 +18030,7 @@ export function RuntimeSceneViewer({
             ))}
           </div>
           <div
-            className="kronosSceneOverlayLayer"
+            className="nhSceneOverlayLayer"
             data-source-layer="XpDropPlugin above-opponent viewport overlay pass"
             style={runtimeSceneOverlayLayerStyle(fixedClientCssLayout)}
           >
@@ -18373,13 +18374,13 @@ export function RuntimeSceneViewer({
             </aside>
           ) : null}
           <div
-            className="kronosSceneOverlayLayer"
+            className="nhSceneOverlayLayer"
             data-source-layer="Client.drawMouseCross viewport overlay pass"
             style={runtimeSceneOverlayLayerStyle(fixedClientCssLayout)}
           >
             {visibleClickCross ? (
               <div
-                className="kronosClickCross"
+                className="nhClickCross"
                 data-color={visibleClickCross.color}
                 data-frame={visibleClickCross.frame}
                 data-source-state={visibleClickCross.sourceState ?? ""}
@@ -18400,38 +18401,38 @@ export function RuntimeSceneViewer({
           ) : null}
           {visibleContextMenu ? (
             <div
-              className="kronosContextMenu"
+              className="nhContextMenu"
               data-menu-source={visibleContextMenu.source ?? ""}
-              data-source-frame-color={KRONOS_CONTEXT_MENU_FRAME_COLOR}
-              data-source-outline-color={KRONOS_CONTEXT_MENU_OUTLINE_COLOR}
-              data-source-header-top-color={KRONOS_CONTEXT_MENU_HEADER_TOP_COLOR}
-              data-source-header-bottom-color={KRONOS_CONTEXT_MENU_HEADER_BOTTOM_COLOR}
-              data-source-body-border-color={KRONOS_CONTEXT_MENU_BODY_BORDER_COLOR}
-              data-source-body-color={KRONOS_CONTEXT_MENU_BODY_COLOR}
+              data-source-frame-color={NH_CONTEXT_MENU_FRAME_COLOR}
+              data-source-outline-color={NH_CONTEXT_MENU_OUTLINE_COLOR}
+              data-source-header-top-color={NH_CONTEXT_MENU_HEADER_TOP_COLOR}
+              data-source-header-bottom-color={NH_CONTEXT_MENU_HEADER_BOTTOM_COLOR}
+              data-source-body-border-color={NH_CONTEXT_MENU_BODY_BORDER_COLOR}
+              data-source-body-color={NH_CONTEXT_MENU_BODY_COLOR}
               data-source-font-id={contextMenuFont?.fontId ?? ""}
               data-source-font-archive={contextMenuFont?.fontArchiveName ?? ""}
               data-source-glyph-atlas={contextMenuFontAtlas?.id ?? ""}
               data-source-glyph-image={contextMenuFontAtlas?.metadata.image ?? ""}
-              data-source-close-margin={KRONOS_CONTEXT_MENU_MOUSE_LEAVE_MARGIN}
+              data-source-close-margin={NH_CONTEXT_MENU_MOUSE_LEAVE_MARGIN}
               data-source-runelite-overlay-menu="OverlayRenderer bounds.contains(mouse) -> createRightClickMenuEntries; menuEntryShift gates insertion"
               data-source-runelite-overlay-menu-click="ConfigPlugin.onOverlayMenuClicked RUNELITE_OVERLAY_CONFIG opens plugin configuration panel"
               data-runelite-overlay-menu-count={visibleContextMenu.entries.filter(isRuneliteOverlayConfigContextMenuEntry).length}
               style={contextMenuStyleWithFont(visibleContextMenu, fixedClientCssLayout, contextMenuFont, contextMenuFontAtlas)}
             >
-              <div className="kronosContextMenuTitle">
-                <KronosContextMenuText
-                  text={KRONOS_CONTEXT_MENU_TITLE}
+              <div className="nhContextMenuTitle">
+                <NhContextMenuText
+                  text={NH_CONTEXT_MENU_TITLE}
                   font={contextMenuFont}
                   atlas={contextMenuFontAtlas}
-                  left={KRONOS_CONTEXT_MENU_TEXT_LEFT}
-                  baseline={KRONOS_CONTEXT_MENU_TITLE_BASELINE_OFFSET}
-                  color={KRONOS_CONTEXT_MENU_TEXT_COLOR}
+                  left={NH_CONTEXT_MENU_TEXT_LEFT}
+                  baseline={NH_CONTEXT_MENU_TITLE_BASELINE_OFFSET}
+                  color={NH_CONTEXT_MENU_TEXT_COLOR}
                 />
               </div>
-              {visibleKronosMenuEntries(visibleContextMenu.entries).map((entry, index) => (
+              {visibleNhMenuEntries(visibleContextMenu.entries).map((entry, index) => (
                 <button
                   key={`${entry.action}-${entry.actionText}-${entry.targetText}-${entry.opcode}-${"sourceIndex" in entry ? entry.sourceIndex : index}`}
-                  className="kronosContextMenuOption"
+                  className="nhContextMenuOption"
                   type="button"
                   data-menu-action={entry.actionText}
                   data-menu-action-kind={entry.action}
@@ -18444,38 +18445,45 @@ export function RuntimeSceneViewer({
                   data-runelite-overlay-menu-target={isRuneliteOverlayConfigContextMenuEntry(entry) ? entry.overlayTarget : ""}
                   data-runelite-overlay-menu-opcode={isRuneliteOverlayConfigContextMenuEntry(entry) ? entry.sourceOverlayMenuOpcode : ""}
                   data-runelite-overlay-source={isRuneliteOverlayConfigContextMenuEntry(entry) ? entry.sourceOverlay : ""}
-                  data-source-hover-fill-color={KRONOS_CONTEXT_MENU_HOVER_FILL_COLOR}
-                  data-source-hover-fill-alpha={KRONOS_CONTEXT_MENU_HOVER_FILL_ALPHA}
-                  style={{ top: kronosContextMenuOptionTop(index) }}
+                  data-source-hover-fill-color={NH_CONTEXT_MENU_HOVER_FILL_COLOR}
+                  data-source-hover-fill-alpha={NH_CONTEXT_MENU_HOVER_FILL_ALPHA}
+                  style={{ top: nhContextMenuOptionTop(index) }}
                   onPointerDown={(event) => {
                     event.stopPropagation();
                     if (event.button !== 0) {
                       return;
                     }
                     event.preventDefault();
-                    dispatchVisibleContextMenuEntry(entry, visibleContextMenu);
+                    const boundary = boundaryRef.current;
+                    dispatchVisibleContextMenuEntry(
+                      entry,
+                      visibleContextMenu,
+                      boundary
+                        ? pointerEventToViewportPosition(boundary, event.nativeEvent)
+                        : { x: visibleContextMenu.x, y: visibleContextMenu.y }
+                    );
                   }}
                   onClick={(event) => event.preventDefault()}
                 >
                   <span
-                    className="kronosContextMenuHover"
+                    className="nhContextMenuHover"
                     aria-hidden="true"
                     style={{
-                      left: KRONOS_CONTEXT_MENU_HOVER_LEFT,
-                      top: KRONOS_CONTEXT_MENU_HOVER_TOP,
-                      width: `calc(100% - ${KRONOS_CONTEXT_MENU_HOVER_WIDTH_SUBTRACT}px)`,
-                      height: KRONOS_CONTEXT_MENU_HOVER_HEIGHT,
-                      backgroundColor: KRONOS_CONTEXT_MENU_HOVER_FILL_COLOR,
-                      opacity: KRONOS_CONTEXT_MENU_HOVER_FILL_ALPHA
+                      left: NH_CONTEXT_MENU_HOVER_LEFT,
+                      top: NH_CONTEXT_MENU_HOVER_TOP,
+                      width: `calc(100% - ${NH_CONTEXT_MENU_HOVER_WIDTH_SUBTRACT}px)`,
+                      height: NH_CONTEXT_MENU_HOVER_HEIGHT,
+                      backgroundColor: NH_CONTEXT_MENU_HOVER_FILL_COLOR,
+                      opacity: NH_CONTEXT_MENU_HOVER_FILL_ALPHA
                     }}
                   />
-                  <KronosContextMenuText
-                    text={kronosMenuEntryText(entry)}
+                  <NhContextMenuText
+                    text={nhMenuEntryText(entry)}
                     font={contextMenuFont}
                     atlas={contextMenuFontAtlas}
-                    left={KRONOS_CONTEXT_MENU_TEXT_LEFT}
-                    baseline={KRONOS_CONTEXT_MENU_OPTION_BASELINE_OFFSET - KRONOS_CONTEXT_MENU_HEADER_AND_PADDING_HEIGHT}
-                    color={KRONOS_CONTEXT_MENU_TEXT_COLOR}
+                    left={NH_CONTEXT_MENU_TEXT_LEFT}
+                    baseline={NH_CONTEXT_MENU_OPTION_BASELINE_OFFSET - NH_CONTEXT_MENU_HEADER_AND_PADDING_HEIGHT}
+                    color={NH_CONTEXT_MENU_TEXT_COLOR}
                   />
                 </button>
               ))}

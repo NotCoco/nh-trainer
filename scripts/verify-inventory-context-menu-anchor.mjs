@@ -9,20 +9,20 @@ import { screenshotDir, uniqueScreenshotPath } from "./screenshot-paths.mjs";
 const require = createRequire(import.meta.url);
 const electronPath = require("electron");
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const screenshotPath = uniqueScreenshotPath("kronos-nh-trainer-inventory-context-menu-anchor");
+const screenshotPath = uniqueScreenshotPath("nh-nh-trainer-inventory-context-menu-anchor");
 const scriptPath = path.join(projectRoot, "scripts", "inventory-context-menu-anchor-electron.cjs");
 
 await mkdir(screenshotDir, { recursive: true });
 
-const hudSource = await readFile(path.join(projectRoot, "src", "ui", "KronosClientHud.tsx"), "utf8");
+const hudSource = await readFile(path.join(projectRoot, "src", "ui", "NhClientHud.tsx"), "utf8");
 for (const snippet of [
-  "kronosInventorySuppressNextContextMenuEvent",
+  "nhInventorySuppressNextContextMenuEvent",
   "data-source-context-menu-press-anchor",
   "MouseHandler.copy$mousePressed stores MouseHandler_lastPressedX/Y",
   "Client.method1661 opens from those pressed coordinates"
 ]) {
   if (!hudSource.includes(snippet)) {
-    throw new Error(`KronosClientHud inventory context-menu anchor fix missing source-backed snippet: ${snippet}`);
+    throw new Error(`NhClientHud inventory context-menu anchor fix missing source-backed snippet: ${snippet}`);
   }
 }
 
@@ -40,7 +40,7 @@ const clientSource = await readFile(
   path.resolve(
     projectRoot,
     "..",
-    "Kronos184-Client",
+    "Nh184-Client",
     "runelite-client",
     "src",
     "main",
@@ -53,14 +53,14 @@ const clientSource = await readFile(
   "utf8"
 );
 if (!clientSource.includes("this.method1661(MouseHandler.MouseHandler_lastPressedX, MouseHandler.MouseHandler_lastPressedY);")) {
-  throw new Error("Kronos client source must open right-click menus from MouseHandler last-pressed coordinates.");
+  throw new Error("Nh client source must open right-click menus from MouseHandler last-pressed coordinates.");
 }
 
 const mouseHandlerSource = await readFile(
   path.resolve(
     projectRoot,
     "..",
-    "Kronos184-Client",
+    "Nh184-Client",
     "runelite-client",
     "src",
     "main",

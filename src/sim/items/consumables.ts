@@ -185,7 +185,7 @@ export function createSupplyDelayState(): SupplyDelayState {
   };
 }
 
-function isKronosTickDelayActive(delayUntilTick: number, currentTick: number): boolean {
+function isNhTickDelayActive(delayUntilTick: number, currentTick: number): boolean {
   return delayUntilTick > currentTick;
 }
 
@@ -204,28 +204,28 @@ export function canConsume(input: Pick<ConsumeInput, "currentTick" | "delays" | 
   }
 
   if (definition.kind === "karambwan") {
-    return isKronosTickDelayActive(input.delays.karambwanDelayUntilTick, input.currentTick)
+    return isNhTickDelayActive(input.delays.karambwanDelayUntilTick, input.currentTick)
       ? { ok: false, reason: "karambwan-delay" }
       : { ok: true };
   }
 
   if (definition.kind === "food") {
-    if (isKronosTickDelayActive(input.delays.eatDelayUntilTick, input.currentTick)) {
+    if (isNhTickDelayActive(input.delays.eatDelayUntilTick, input.currentTick)) {
       return { ok: false, reason: "eat-delay" };
     }
-    if (isKronosTickDelayActive(input.delays.karambwanDelayUntilTick, input.currentTick)) {
+    if (isNhTickDelayActive(input.delays.karambwanDelayUntilTick, input.currentTick)) {
       return { ok: false, reason: "karambwan-delay" };
     }
-    if (isKronosTickDelayActive(input.delays.potionDelayUntilTick, input.currentTick)) {
+    if (isNhTickDelayActive(input.delays.potionDelayUntilTick, input.currentTick)) {
       return { ok: false, reason: "potion-delay" };
     }
     return { ok: true };
   }
 
-  if (isKronosTickDelayActive(input.delays.potionDelayUntilTick, input.currentTick)) {
+  if (isNhTickDelayActive(input.delays.potionDelayUntilTick, input.currentTick)) {
     return { ok: false, reason: "potion-delay" };
   }
-  if (isKronosTickDelayActive(input.delays.karambwanDelayUntilTick, input.currentTick)) {
+  if (isNhTickDelayActive(input.delays.karambwanDelayUntilTick, input.currentTick)) {
     return { ok: false, reason: "karambwan-delay" };
   }
   return { ok: true };
@@ -269,7 +269,7 @@ export function applyConsumable(input: ConsumeInput): ConsumeResult {
     };
     attackTimer = applyKarambwanAttackDelay(
       attackTimer,
-      isKronosTickDelayActive(input.delays.eatDelayUntilTick, input.currentTick)
+      isNhTickDelayActive(input.delays.eatDelayUntilTick, input.currentTick)
     );
   } else {
     const result = applyPotionEffect(input.item, stats);

@@ -8,8 +8,8 @@ function read(relativePath) {
   return fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
+function readNhClient(relativePath) {
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
 }
 
 function assert(condition, message) {
@@ -18,18 +18,18 @@ function assert(condition, message) {
   }
 }
 
-const overlayRendererSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/OverlayRenderer.java");
-const overlayManagerSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/OverlayManager.java");
-const overlayMenuEntrySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/OverlayMenuEntry.java");
-const configPluginSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/config/ConfigPlugin.java");
-const runeliteConfigSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/config/RuneLiteConfig.java");
-const menuOpcodeSource = readKronosClient("runelite-api/src/main/java/net/runelite/api/MenuOpcode.java");
-const attackStylesOverlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStylesOverlay.java");
-const boostsOverlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/boosts/BoostsOverlay.java");
-const combatIconsOverlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/boosts/CombatIconsOverlay.java");
-const opponentInfoOverlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/OpponentInfoOverlay.java");
-const playerComparisonOverlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/PlayerComparisonOverlay.java");
-const pvpPerformanceOverlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/pvpperformancetracker/PvpPerformanceTrackerOverlay.java");
+const overlayRendererSource = readNhClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/OverlayRenderer.java");
+const overlayManagerSource = readNhClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/OverlayManager.java");
+const overlayMenuEntrySource = readNhClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/OverlayMenuEntry.java");
+const configPluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/config/ConfigPlugin.java");
+const runeliteConfigSource = readNhClient("runelite-client/src/main/java/net/runelite/client/config/RuneLiteConfig.java");
+const menuOpcodeSource = readNhClient("runelite-api/src/main/java/net/runelite/api/MenuOpcode.java");
+const attackStylesOverlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStylesOverlay.java");
+const boostsOverlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/boosts/BoostsOverlay.java");
+const combatIconsOverlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/boosts/CombatIconsOverlay.java");
+const opponentInfoOverlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/OpponentInfoOverlay.java");
+const playerComparisonOverlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/PlayerComparisonOverlay.java");
+const pvpPerformanceOverlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/pvpperformancetracker/PvpPerformanceTrackerOverlay.java");
 
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
 const runtimeSource = read("src/ui/RuntimeSceneViewer.tsx");

@@ -78,15 +78,15 @@ function readProject(relativePath) {
   return readFileSync(path.join(projectRoot, ...relativePath.split("/")), "utf8");
 }
 
-function readKronosServerSource(relativePath) {
+function readNhServerSource(relativePath) {
   return readFileSync(
     path.resolve(
       projectRoot,
       "..",
-      "kronos-osrs-184-master",
-      "kronos-osrs-184-master",
-      "Kronos-master",
-      "kronos-server",
+      "nh-osrs-184-master",
+      "nh-osrs-184-master",
+      "Nh-master",
+      "nh-server",
       "src",
       "main",
       "java",
@@ -166,7 +166,7 @@ const loadouts = loadTsModule("src/sim/nh/loadouts.ts");
 const gearProfile = loadTsModule("src/sim/nh/gearProfile.ts");
 const clientOffenceEv = loadTsModule("src/sim/nh/clientOffenceEv.ts");
 const entityLocks = loadTsModule("src/sim/entity/locks.ts");
-const sceneCollision = loadTsModule("src/render/kronosSceneCollision.ts");
+const sceneCollision = loadTsModule("src/render/nhSceneCollision.ts");
 const coverage = runtimePolicy.assertRuntimePolicyOpponentActionCoverage();
 assert(coverage.actionCount === 4950, `expected 4950 policy actions, got ${coverage.actionCount}`);
 assert(coverage.offenceStyles === bridge.nhOffenceStyles.length, "offence style coverage count mismatch");
@@ -211,7 +211,7 @@ for (const value of bridge.nhSpecIntents) {
   assert(seen.specIntents.has(value), `decoded action space never emits spec intent ${value}`);
 }
 
-const serverBridgeSource = readKronosServerSource("model/entity/player/ai/NhStakerSelfPlayManager.java");
+const serverBridgeSource = readNhServerSource("model/entity/player/ai/NhStakerSelfPlayManager.java");
 const javaOffenceStyles = extractJavaArrayValues(serverBridgeSource, "OFFENCE_STYLES");
 const javaDefencePrayers = extractJavaArrayValues(serverBridgeSource, "DEFENCE_PRAYERS");
 const javaMovementIntents = extractJavaArrayValues(serverBridgeSource, "MOVEMENT_INTENTS");
@@ -415,7 +415,7 @@ for (const value of bridge.nhSpecIntents) {
   assert(serverBridgeSource.includes(`SpecIntent.${serverEnumName(value)}`), `server bridge missing spec ${value}`);
 }
 
-const serverLoadoutSource = readKronosServerSource("model/entity/player/ai/NhStakerLoadout.java");
+const serverLoadoutSource = readNhServerSource("model/entity/player/ai/NhStakerLoadout.java");
 for (const snippet of [
   "private static final int[] MAGIC_WEAPON_CANDIDATES = {STAFF_OF_THE_DEAD, KODAI_WAND, ANCIENT_STAFF};",
   "private static final int[] RANGED_WEAPON_CANDIDATES = {DRAGON_CROSSBOW, ARMADYL_CROSSBOW, RUNE_CROSSBOW, MAGIC_SHORTBOW};",
@@ -433,8 +433,8 @@ for (const snippet of [
   assert(serverLoadoutSource.includes(snippet), `server loadout source missing selected-gear anchor ${snippet}`);
 }
 
-const serverBotSource = readKronosServerSource("model/entity/player/ai/scripts/NhStakerBot.java");
-const serverPlayerCombatSource = readKronosServerSource("model/entity/player/PlayerCombat.java");
+const serverBotSource = readNhServerSource("model/entity/player/ai/scripts/NhStakerBot.java");
+const serverPlayerCombatSource = readNhServerSource("model/entity/player/PlayerCombat.java");
 for (const snippet of [
   "private static final int POLICY_HISTORY_TICKS = 16;",
   "appendObservation(observation);",
@@ -2042,7 +2042,7 @@ for (const snippet of [
   "inventoryItems: observedLocalAppearance.inventoryItems",
   "visibleEquipmentItemsFromRuntimeInventory",
   "inventoryOverrideRef.current ?? visibleSnapshotRef.current.inventory",
-  "runtimePrayerIdsFromKronosStates",
+  "runtimePrayerIdsFromNhStates",
   'value === "mystic_will"',
   'value === "mystic_lore"',
   'value === "sharp_eye"',
@@ -2055,26 +2055,26 @@ for (const snippet of [
 for (const snippet of [
   "applyManualOpponentPolicyActorResult",
   "policyMovementCollision.canStep",
-  "kronosSceneProjectileRouteClear(to, targetTile, policyMovementCollision)",
+  "nhSceneProjectileRouteClear(to, targetTile, policyMovementCollision)",
   "projectileLineOfSight: policyMovementCollision",
-  "kronosSceneProjectileRouteClear(from, target, policyMovementCollision)",
+  "nhSceneProjectileRouteClear(from, target, policyMovementCollision)",
   "targetRouteStep: policyMovementCollision",
-  "findKronosTargetRouteWaypoints(from, target, distance, policyMovementCollision)",
+  "findNhTargetRouteWaypoints(from, target, distance, policyMovementCollision)",
   "tileRouteStep: policyMovementCollision",
-  "findKronosTileRouteWaypoints(from, target, policyMovementCollision)",
-  "expandKronosManualRoutePath(from, routeSegment, policyMovementCollision)",
+  "findNhTileRouteWaypoints(from, target, policyMovementCollision)",
+  "expandNhManualRoutePath(from, routeSegment, policyMovementCollision)",
   "inPvpCombatArea: policyMovementCollision",
-  "kronosNhBotCombatTileAllowed(policyMovementCollision.sceneToWorldTile(opponentActor.tile))",
+  "nhNhBotCombatTileAllowed(policyMovementCollision.sceneToWorldTile(opponentActor.tile))",
   'stepContext.movementIntent === "pressure" || stepContext.movementIntent === "stand_under"',
-  "kronosNhBotCombatTileAllowed(policyMovementCollision.sceneToWorldTile(stepContext.targetTile))",
+  "nhNhBotCombatTileAllowed(policyMovementCollision.sceneToWorldTile(stepContext.targetTile))",
   "manualOpponentNextPolicyRepositionTickRef",
   "writeManualOpponentPolicyDebugSnapshot",
   "manualOpponentPolicy:",
-  "const clientPosition = actor.clientPosition ?? kronosClientPositionFromRuntimeTile(actor.renderTile ?? actor.tile)",
+  "const clientPosition = actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile ?? actor.tile)",
   "policyEffectiveAction",
   "opponentMovedThisTick = opponentMovedThisTick || policyResponse.policyMovedThisTick",
-  "lastMoveDx: Math.round((destinationTile.x - sourceTile.x) / KRONOS_TILE_WORLD_UNITS)",
-  "lastMoveDy: Math.round((destinationTile.z - sourceTile.z) / KRONOS_TILE_WORLD_UNITS)",
+  "lastMoveDx: Math.round((destinationTile.x - sourceTile.x) / NH_TILE_WORLD_UNITS)",
+  "lastMoveDy: Math.round((destinationTile.z - sourceTile.z) / NH_TILE_WORLD_UNITS)",
   "const opponentPolicySelfMovement = manualPolicyActorMovementViewFromTiles(",
   "queueManualOpponentCombatResponse(combatStateForTick, local, opponent, opponentPolicySelfMovement)",
   "movedThisTick: observedOpponentSelfMovement.movedThisTick",
@@ -2107,9 +2107,9 @@ assert(
   objectPlacements.some((object) => object.name === "Wilderness Ditch" && object.actions?.includes("Cross")),
   "arena object metadata should include the source-exported Wilderness Ditch object action"
 );
-const collision = sceneCollision.buildKronosSceneCollision(arenaMetadata, objectPlacements, { x: 0, y: 0, z: 0 });
-const northOfDitch = sceneCollision.kronosArenaWorldTileCenterToScene(arenaMetadata, { x: 0, y: 0, z: 0 }, 3100, 3523);
-const ditchTile = sceneCollision.kronosArenaWorldTileCenterToScene(arenaMetadata, { x: 0, y: 0, z: 0 }, 3100, 3522);
+const collision = sceneCollision.buildNhSceneCollision(arenaMetadata, objectPlacements, { x: 0, y: 0, z: 0 });
+const northOfDitch = sceneCollision.nhArenaWorldTileCenterToScene(arenaMetadata, { x: 0, y: 0, z: 0 }, 3100, 3523);
+const ditchTile = sceneCollision.nhArenaWorldTileCenterToScene(arenaMetadata, { x: 0, y: 0, z: 0 }, 3100, 3522);
 assert(!collision.canStand(ditchTile), "ordinary combat movement should not stand on the Wilderness Ditch object tile");
 assert(!collision.canStep(northOfDitch, ditchTile), "ordinary combat movement should not step into the Wilderness Ditch");
 
@@ -2124,7 +2124,7 @@ const forcedDitchStepController = {
     extendedSupplyAction: false
   })
 };
-const localTile = sceneCollision.kronosArenaWorldTileCenterToScene(arenaMetadata, { x: 0, y: 0, z: 0 }, 3100, 3524);
+const localTile = sceneCollision.nhArenaWorldTileCenterToScene(arenaMetadata, { x: 0, y: 0, z: 0 }, 3100, 3524);
 const ditchState = runtimeCombat.createRuntimePlayerCombatState({
   localTile,
   opponentTile: northOfDitch,

@@ -1,4 +1,4 @@
-export type KronosLockType =
+export type NhLockType =
   | "none"
   | "movement"
   | "full"
@@ -9,7 +9,7 @@ export type KronosLockType =
   | "full_cant_attack";
 
 export interface EntityLockState {
-  readonly lockType: KronosLockType;
+  readonly lockType: NhLockType;
   readonly teleporting: boolean;
   readonly freezeUntilTick: number;
   readonly freezeSourceId?: string;
@@ -94,7 +94,7 @@ export function canAttackThroughLock(state: EntityLockState, tick: number): bool
   return state.lockType !== "full" && state.lockType !== "full_cant_attack";
 }
 
-export function setLock(state: EntityLockState, lockType: KronosLockType, teleporting = state.teleporting): EntityLockState {
+export function setLock(state: EntityLockState, lockType: NhLockType, teleporting = state.teleporting): EntityLockState {
   return {
     ...state,
     lockType,

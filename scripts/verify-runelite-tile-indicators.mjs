@@ -8,8 +8,8 @@ function read(relativePath) {
   return fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
+function readNhClient(relativePath) {
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
 }
 
 function assert(condition, message) {
@@ -18,10 +18,10 @@ function assert(condition, message) {
   }
 }
 
-const pluginSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/tileindicators/TileIndicatorsPlugin.java");
-const configSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/tileindicators/TileIndicatorsConfig.java");
-const overlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/tileindicators/TileIndicatorsOverlay.java");
-const overlayUtilSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/OverlayUtil.java");
+const pluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/tileindicators/TileIndicatorsPlugin.java");
+const configSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/tileindicators/TileIndicatorsConfig.java");
+const overlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/tileindicators/TileIndicatorsOverlay.java");
+const overlayUtilSource = readNhClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/OverlayUtil.java");
 const tileSource = read("src/ui/runeliteTileIndicators.ts");
 const runtimeSource = read("src/ui/RuntimeSceneViewer.tsx");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
@@ -102,8 +102,8 @@ for (const runtimeAnchor of [
   "sourceTileIndicatorsProjection",
   "buildRuneliteTileIndicatorDomOverlays",
   "runtimeTileCanvasPolygonPoints",
-  "kronosArenaTileSceneCorners",
-  "kronosProjectWorldPointToViewport(boundary.camera, fixedLayout.viewport, corner)",
+  "nhArenaTileSceneCorners",
+  "nhProjectWorldPointToViewport(boundary.camera, fixedLayout.viewport, corner)",
   "hoveredSceneTileRef",
   "minimapDestinationTileRef",
   "client.getSelectedSceneTile()",
@@ -119,7 +119,7 @@ for (const shellAnchor of [
   "RuneliteTileIndicatorsConfigSnapshot",
   'id: "tile-indicators"',
   'group: "tileindicators"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/tileindicators/TileIndicatorsConfig.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/tileindicators/TileIndicatorsConfig.java"',
   'keyName: "highlightDestinationColor"',
   'keyName: "highlightDestinationTile"',
   'keyName: "thinDestinationTile"',

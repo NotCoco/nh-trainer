@@ -4,17 +4,17 @@ export interface ToolDescriptor {
   readonly command: string;
   readonly status: "implemented" | "planned";
   readonly output: string;
-  readonly writesToKronos: false;
+  readonly writesToNh: false;
 }
 
 export const toolRegistry: readonly ToolDescriptor[] = [
   {
     id: "verify-source-anchors",
-    purpose: "Fail fast if any claimed Kronos source snippet disappears or drifts.",
+    purpose: "Fail fast if any claimed Nh source snippet disappears or drifts.",
     command: "npm run verify:sources",
     status: "implemented",
     output: "Console report of checked source anchors and missing snippets.",
-    writesToKronos: false
+    writesToNh: false
   },
   {
     id: "report-render-fixtures",
@@ -22,7 +22,7 @@ export const toolRegistry: readonly ToolDescriptor[] = [
     command: "npm run report:fixtures",
     status: "implemented",
     output: "Console readiness report for asset and render fixture paths.",
-    writesToKronos: false
+    writesToNh: false
   },
   {
     id: "report-animation-fixtures",
@@ -30,55 +30,55 @@ export const toolRegistry: readonly ToolDescriptor[] = [
     command: "npm run report:animations",
     status: "implemented",
     output: "Console readiness report for animation frame and sequence fixture integrity.",
-    writesToKronos: false
+    writesToNh: false
   },
   {
     id: "verify-render-smoke",
     purpose: "Launch Electron hidden, load a cache GLB in the Three.js viewport, and check that WebGL draws nonblank pixels.",
     command: "npm run verify:render-smoke",
     status: "implemented",
-    output: "Console render-smoke JSON plus a unique C:\\codeximg\\kronos-nh-trainer-render-smoke-*.png.",
-    writesToKronos: false
+    output: "Console render-smoke JSON plus a unique C:\\codeximg\\nh-nh-trainer-render-smoke-*.png.",
+    writesToNh: false
   },
   {
     id: "export-server-defs",
-    purpose: "Export NH-relevant item bonuses and weapon timing from Kronos server data into trainer fixtures.",
+    purpose: "Export NH-relevant item bonuses and weapon timing from Nh server data into trainer fixtures.",
     command: "npm run export:server-defs",
     status: "implemented",
     output: "fixtures/assets/defs/server-items.json, equipment-bonuses.json, weapon-types.json, and nh-loadout-items.json.",
-    writesToKronos: false
+    writesToNh: false
   },
   {
     id: "export-cache-assets",
-    purpose: "Export Kronos cache models, definitions, sprites, sequences, spot animations, and map data into trainer fixtures.",
-    command: "gradle ':cache:exportKronosNhTrainerAssets' '-x' ':http-api:processResources' '-Dkotlin.compiler.execution.strategy=in-process'",
+    purpose: "Export Nh cache models, definitions, sprites, sequences, spot animations, and map data into trainer fixtures.",
+    command: "gradle ':cache:exportNhNhTrainerAssets' '-x' ':http-api:processResources' '-Dkotlin.compiler.execution.strategy=in-process'",
     status: "implemented",
     output: "fixtures/assets/defs/cache-items.json, kits.json, cache model geometry JSON, and sequence JSON.",
-    writesToKronos: false
+    writesToNh: false
   },
   {
     id: "export-cache-glbs",
-    purpose: "Convert selected Kronos cache ModelDefinition meshes into GLB artifacts for the Three.js renderer.",
+    purpose: "Convert selected Nh cache ModelDefinition meshes into GLB artifacts for the Three.js renderer.",
     command: "npm run export:cache-glbs",
     status: "implemented",
     output: "Selected NH gear GLBs and cache-glb-manifest.json under fixtures/assets/models/.",
-    writesToKronos: false
+    writesToNh: false
   },
   {
     id: "capture-client-reference",
-    purpose: "Capture Kronos client reference frames for player loadouts, projectiles, overheads, and map camera comparison.",
-    command: "npm run capture:client -- --source C:\\codeximg\\kronos-client-reference",
+    purpose: "Capture Nh client reference frames for player loadouts, projectiles, overheads, and map camera comparison.",
+    command: "npm run capture:client -- --source C:\\codeximg\\nh-client-reference",
     status: "implemented",
-    output: "Viewport-cropped Kronos client PNGs, optional *.client-view.json traces, and fixtures/reference/client-render/manifest.json.",
-    writesToKronos: false
+    output: "Viewport-cropped Nh client PNGs, optional *.client-view.json traces, and fixtures/reference/client-render/manifest.json.",
+    writesToNh: false
   },
   {
     id: "run-parity-check",
-    purpose: "Compare trainer render output against captured Kronos client frames for the accepted parity gates.",
+    purpose: "Compare trainer render output against captured Nh client frames for the accepted parity gates.",
     command: "npm run verify:render",
     status: "implemented",
-    output: "Pixel-diff JSON plus C:\\codeximg\\kronos-render-parity-*-actual.png and *-diff.png.",
-    writesToKronos: false
+    output: "Pixel-diff JSON plus C:\\codeximg\\nh-render-parity-*-actual.png and *-diff.png.",
+    writesToNh: false
   },
   {
     id: "verify-player-composition",
@@ -86,6 +86,6 @@ export const toolRegistry: readonly ToolDescriptor[] = [
     command: "npm run verify:player-composition",
     status: "implemented",
     output: "Console JSON comparing source-composed player models against exported cache GLB metadata.",
-    writesToKronos: false
+    writesToNh: false
   }
 ];

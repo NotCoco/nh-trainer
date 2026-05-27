@@ -98,7 +98,7 @@ app.whenReady().then(async () => {
     const result = await window.webContents.executeJavaScript(`
       (() => {
         return {
-          bridgeType: typeof window.kronosTrainer,
+          bridgeType: typeof window.nhTrainer,
           defaultPolicyLoaded: document.querySelector("main.clientOnlyShell")?.dataset.defaultPolicyLoaded ?? "",
           botDifficulty: document.querySelector("main.clientOnlyShell")?.dataset.botDifficulty ?? "",
           botPolicyStatus: document.querySelector("main.clientOnlyShell")?.dataset.botPolicyStatus ?? "",

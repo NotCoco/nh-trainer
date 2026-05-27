@@ -13,12 +13,12 @@ function read(relativePath) {
   return readFileSync(path.join(projectRoot, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
+function readNhClient(relativePath) {
   return readFileSync(
     path.resolve(
       projectRoot,
       "..",
-      "Kronos184-Client",
+      "Nh184-Client",
       "runelite-client",
       "src",
       "main",
@@ -104,11 +104,11 @@ function resolveModulePath(candidatePath) {
   throw new Error(`Cannot resolve module ${candidatePath}`);
 }
 
-const pluginSource = readKronosClient("PrayAgainstPlayerPlugin.java");
-const configSource = readKronosClient("PrayAgainstPlayerConfig.java");
-const overlaySource = readKronosClient("PrayAgainstPlayerOverlay.java");
-const prayerTabOverlaySource = readKronosClient("PrayAgainstPlayerOverlayPrayerTab.java");
-const weaponTypeSource = readKronosClient("WeaponType.java");
+const pluginSource = readNhClient("PrayAgainstPlayerPlugin.java");
+const configSource = readNhClient("PrayAgainstPlayerConfig.java");
+const overlaySource = readNhClient("PrayAgainstPlayerOverlay.java");
+const prayerTabOverlaySource = readNhClient("PrayAgainstPlayerOverlayPrayerTab.java");
+const weaponTypeSource = readNhClient("WeaponType.java");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
 const runtimeSource = read("src/ui/RuntimeSceneViewer.tsx");
 const cssSource = read("src/ui/styles.css");
@@ -182,7 +182,7 @@ for (const trainerAnchor of [
   'group: RUNELITE_PRAY_AGAINST_PLAYER_CONFIG_GROUP',
   'RunelitePrayAgainstPlayerConfigSnapshot',
   'drawTargetPrayAgainstPrayerTab',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/prayagainstplayer/PrayAgainstPlayerPlugin.java"'
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/prayagainstplayer/PrayAgainstPlayerPlugin.java"'
 ]) {
   assert(shellSource.includes(trainerAnchor), `RuneliteClientShell missing Pray Against Player anchor ${trainerAnchor}`);
 }
@@ -197,7 +197,7 @@ for (const trainerAnchor of [
   'runeliteEntityHiderActorId2dVisible(overlay.actorId',
   'runelitePrayAgainstPlayerOverlayElementsRef',
   'applyRuneliteProjectedDomOverlayElementStyles',
-  'translate3d(${kronosActorOverlayCssPixel(overlay.left)}px, ${kronosActorOverlayCssPixel(overlay.top)}px, 0) scale(${scale})'
+  'translate3d(${nhActorOverlayCssPixel(overlay.left)}px, ${nhActorOverlayCssPixel(overlay.top)}px, 0) scale(${scale})'
 ]) {
   assert(runtimeSource.includes(trainerAnchor), `RuntimeSceneViewer missing Pray Against Player runtime anchor ${trainerAnchor}`);
 }

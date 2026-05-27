@@ -19,7 +19,7 @@ async function waitForLeftEdge(window) {
   while (Date.now() < deadline) {
     const state = await window.webContents.executeJavaScript(`
       (() => {
-        const edge = document.querySelector('.kronosWidgetSprite[data-sprite-id="4"][data-child-id="0"]');
+        const edge = document.querySelector('.nhWidgetSprite[data-sprite-id="4"][data-child-id="0"]');
         const viewport = document.querySelector('.runtimeViewport canvas');
         return {
           ready: Boolean(edge && viewport),

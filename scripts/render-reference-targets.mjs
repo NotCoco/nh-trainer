@@ -1,6 +1,6 @@
 export const referenceManifestFileName = "manifest.json";
 
-export const kronosClientCameraPresets = {
+export const nhClientCameraPresets = {
   isometric: {
     yaw: 256,
     pitch: 128,
@@ -32,7 +32,7 @@ export const renderReferenceTargets = [
     id: "runtime-isometric-cycle-8",
     label: "Isometric Gmaul and melee switch frame",
     camera: "isometric",
-    cameraPreset: kronosClientCameraPresets.isometric,
+    cameraPreset: nhClientCameraPresets.isometric,
     cycle: 8,
     fileName: "runtime-isometric-cycle-8.png",
     traceExpectations: {
@@ -49,7 +49,7 @@ export const renderReferenceTargets = [
     id: "runtime-north-cycle-18",
     label: "North camera projectile and overhead frame",
     camera: "north",
-    cameraPreset: kronosClientCameraPresets.north,
+    cameraPreset: nhClientCameraPresets.north,
     cycle: 18,
     fileName: "runtime-north-cycle-18.png",
     traceExpectations: {
@@ -68,7 +68,7 @@ export const renderReferenceTargets = [
     id: "runtime-south-cycle-30",
     label: "South camera actor and overlay frame",
     camera: "south",
-    cameraPreset: kronosClientCameraPresets.south,
+    cameraPreset: nhClientCameraPresets.south,
     cycle: 30,
     fileName: "runtime-south-cycle-30.png",
     traceExpectations: {
@@ -85,7 +85,7 @@ export const renderReferenceTargets = [
     id: "runtime-top-cycle-42",
     label: "Top camera tile and marker frame",
     camera: "top",
-    cameraPreset: kronosClientCameraPresets.top,
+    cameraPreset: nhClientCameraPresets.top,
     cycle: 42,
     fileName: "runtime-top-cycle-42.png",
     traceExpectations: {
@@ -100,6 +100,6 @@ export const renderReferenceTargets = [
   }
 ];
 
-export const kronosClientCapturePlan = renderReferenceTargets
+export const nhClientCapturePlan = renderReferenceTargets
   .map((target) => `${target.fileName}:${target.cycle}:${target.camera}`)
   .join(",");

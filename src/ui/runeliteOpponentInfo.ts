@@ -1,5 +1,5 @@
 import type { RuntimeActorId } from "../render/runtimeScene";
-import { kronosMenuBaseOpcode, type KronosPlayerContextMenuEntry } from "../render/kronosContextMenu";
+import { nhMenuBaseOpcode, type NhPlayerContextMenuEntry } from "../render/nhContextMenu";
 import type { RuntimePlayerCombatActorState, RuntimePlayerCombatState } from "../sim/runtimePlayerCombat";
 import type { RuneliteOpponentInfoConfigSnapshot, RuneliteOpponentHitpointsDisplayStyle } from "./RuneliteClientShell";
 
@@ -58,7 +58,7 @@ export interface RuneliteOpponentInfoSnapshot {
 }
 
 export interface RuneliteOpponentInfoMenuInput<TTile> {
-  readonly entries: readonly KronosPlayerContextMenuEntry<TTile>[];
+  readonly entries: readonly NhPlayerContextMenuEntry<TTile>[];
   readonly targetActorId: RuntimeActorId;
   readonly combatState: RuntimePlayerCombatState;
   readonly config: RuneliteOpponentInfoConfigSnapshot;
@@ -146,7 +146,7 @@ export function applyRuneliteOpponentInfoMenuEntries<TTile>({
   targetActorId,
   combatState,
   config
-}: RuneliteOpponentInfoMenuInput<TTile>): readonly KronosPlayerContextMenuEntry<TTile>[] {
+}: RuneliteOpponentInfoMenuInput<TTile>): readonly NhPlayerContextMenuEntry<TTile>[] {
   if (
     !config.enabled ||
     (!config.showAttackersMenu && !config.showAttackingMenu && !config.showHitpointsMenu)
@@ -161,14 +161,14 @@ export function applyRuneliteOpponentInfoMenuEntries<TTile>({
   }
 
   return entries.map((entry) => {
-    if (entry.actionText !== "Attack" || kronosMenuBaseOpcode(entry.opcode) !== 44) {
+    if (entry.actionText !== "Attack" || nhMenuBaseOpcode(entry.opcode) !== 44) {
       return entry;
     }
 
     let targetText = entry.targetText;
 
     if (config.showAttackingMenu && local.targetId === targetActorId) {
-      targetText = `${runeliteOpponentInfoColorTag(config.attackingColor)}${stripLeadingKronosColorTag(targetText)}`;
+      targetText = `${runeliteOpponentInfoColorTag(config.attackingColor)}${stripLeadingNhColorTag(targetText)}`;
     }
 
     if (config.showAttackersMenu && target.targetId === "local-player") {
@@ -305,6 +305,6 @@ function runeliteOpponentInfoColorTag(color: string): string {
   return `<col=${match ? match[1].toLowerCase() : "00ff00"}>`;
 }
 
-function stripLeadingKronosColorTag(text: string): string {
+function stripLeadingNhColorTag(text: string): string {
   return text.replace(/^<col=[0-9a-fA-F]{6}>/, "");
 }

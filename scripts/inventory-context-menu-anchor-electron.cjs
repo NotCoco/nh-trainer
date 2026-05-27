@@ -46,7 +46,7 @@ async function verifyInventoryContextMenuPressAnchor(window) {
       const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       const inventory = ${JSON.stringify(inventory)};
 
-      const inventoryTab = document.querySelector('.kronosSideTabButton[data-tab-id="inventory"]');
+      const inventoryTab = document.querySelector('.nhSideTabButton[data-tab-id="inventory"]');
       if (inventoryTab) {
         const tabRect = inventoryTab.getBoundingClientRect();
         inventoryTab.dispatchEvent(new MouseEvent("pointerdown", {
@@ -60,16 +60,16 @@ async function verifyInventoryContextMenuPressAnchor(window) {
         }));
       }
 
-      window.dispatchEvent(new CustomEvent("kronos-runtime-inventory", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-inventory", {
         detail: { inventory }
       }));
       const inventoryDeadline = Date.now() + 2000;
-      while (!document.querySelector('.kronosInventorySlot[data-slot-index="0"]') && Date.now() < inventoryDeadline) {
+      while (!document.querySelector('.nhInventorySlot[data-slot-index="0"]') && Date.now() < inventoryDeadline) {
         await nextFrame();
       }
 
-      const sourceSlot = document.querySelector('.kronosInventorySlot[data-slot-index="0"]');
-      const movedSlot = document.querySelector('.kronosInventorySlot[data-slot-index="20"]');
+      const sourceSlot = document.querySelector('.nhInventorySlot[data-slot-index="0"]');
+      const movedSlot = document.querySelector('.nhInventorySlot[data-slot-index="20"]');
       if (!sourceSlot || !movedSlot) {
         return { ok: false, error: "missing inventory slots" };
       }
@@ -92,7 +92,7 @@ async function verifyInventoryContextMenuPressAnchor(window) {
       }));
       await nextFrame();
 
-      let menu = document.querySelector(".kronosContextMenu");
+      let menu = document.querySelector(".nhContextMenu");
       if (!menu) {
         return { ok: false, error: "inventory context menu did not open from right-button press" };
       }
@@ -109,7 +109,7 @@ async function verifyInventoryContextMenuPressAnchor(window) {
       }));
       await nextFrame();
 
-      menu = document.querySelector(".kronosContextMenu");
+      menu = document.querySelector(".nhContextMenu");
       if (!menu) {
         return { ok: false, error: "inventory context menu disappeared after moved contextmenu fallback" };
       }
@@ -134,7 +134,7 @@ async function verifyInventoryContextMenuPressAnchor(window) {
       }));
       await nextFrame();
 
-      menu = document.querySelector(".kronosContextMenu");
+      menu = document.querySelector(".nhContextMenu");
       if (!menu) {
         return { ok: false, error: "inventory context menu disappeared after canvas contextmenu fallback" };
       }
@@ -177,7 +177,7 @@ async function verifyInventoryContextMenuPressAnchor(window) {
           height: canvasHeightDelta
         },
         sourceAnchor: sourceSlot.getAttribute("data-source-context-menu-press-anchor") ?? "",
-        options: Array.from(menu.querySelectorAll(".kronosContextMenuOption")).map((option) => option.textContent ?? "")
+        options: Array.from(menu.querySelectorAll(".nhContextMenuOption")).map((option) => option.textContent ?? "")
       };
     })()
   `);
@@ -193,7 +193,7 @@ async function verifySceneToInventoryContextMenuRetarget(window) {
     (async () => {
       const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       const canvas = document.querySelector('canvas[aria-label="Two actor runtime arena scene"]');
-      const movedSlot = document.querySelector('.kronosInventorySlot[data-slot-index="20"]');
+      const movedSlot = document.querySelector('.nhInventorySlot[data-slot-index="20"]');
       if (!canvas || !movedSlot) {
         return { ok: false, error: "missing canvas or inventory target" };
       }
@@ -211,12 +211,12 @@ async function verifySceneToInventoryContextMenuRetarget(window) {
       }));
       await nextFrame();
 
-      let menu = document.querySelector(".kronosContextMenu");
+      let menu = document.querySelector(".nhContextMenu");
       if (!menu) {
         return { ok: false, error: "scene context menu did not open from right-button press" };
       }
       const beforeRect = menu.getBoundingClientRect();
-      const beforeOptions = Array.from(menu.querySelectorAll(".kronosContextMenuOption")).map((option) => option.textContent ?? "");
+      const beforeOptions = Array.from(menu.querySelectorAll(".nhContextMenuOption")).map((option) => option.textContent ?? "");
 
       movedSlot.dispatchEvent(new MouseEvent("contextmenu", {
         bubbles: true,
@@ -229,12 +229,12 @@ async function verifySceneToInventoryContextMenuRetarget(window) {
       }));
       await nextFrame();
 
-      menu = document.querySelector(".kronosContextMenu");
+      menu = document.querySelector(".nhContextMenu");
       if (!menu) {
         return { ok: false, error: "scene context menu disappeared after inventory-retargeted fallback" };
       }
       const afterRect = menu.getBoundingClientRect();
-      const afterOptions = Array.from(menu.querySelectorAll(".kronosContextMenuOption")).map((option) => option.textContent ?? "");
+      const afterOptions = Array.from(menu.querySelectorAll(".nhContextMenuOption")).map((option) => option.textContent ?? "");
       const anchored =
         Math.abs(afterRect.left - beforeRect.left) <= 0.5 &&
         Math.abs(afterRect.top - beforeRect.top) <= 0.5 &&
@@ -263,9 +263,9 @@ async function verifyEmptyInventoryContextMenu(window) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
       const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      const grid = document.querySelector(".kronosInventoryGrid");
-      const slot0 = document.querySelector('.kronosInventorySlot[data-slot-index="0"]');
-      const slot1 = document.querySelector('.kronosInventorySlot[data-slot-index="1"]');
+      const grid = document.querySelector(".nhInventoryGrid");
+      const slot0 = document.querySelector('.nhInventorySlot[data-slot-index="0"]');
+      const slot1 = document.querySelector('.nhInventorySlot[data-slot-index="1"]');
       if (!grid || !slot0 || !slot1) {
         return { ok: false, error: "missing inventory grid or adjacent slots" };
       }
@@ -285,11 +285,11 @@ async function verifyEmptyInventoryContextMenu(window) {
       }));
       await nextFrame();
 
-      const menu = document.querySelector(".kronosContextMenu");
+      const menu = document.querySelector(".nhContextMenu");
       if (!menu) {
         return { ok: false, error: "empty inventory context menu did not open" };
       }
-      const options = Array.from(menu.querySelectorAll(".kronosContextMenuOption")).map((option) => option.textContent ?? "");
+      const options = Array.from(menu.querySelectorAll(".nhContextMenuOption")).map((option) => option.textContent ?? "");
       return {
         ok: options.length === 1 && options[0] === "Cancel",
         error: options.length === 1 && options[0] === "Cancel" ? "" : "empty inventory menu should contain only Cancel",

@@ -8,8 +8,8 @@ function read(relativePath) {
   return fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
+function readNhClient(relativePath) {
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
 }
 
 function assert(condition, message) {
@@ -18,16 +18,16 @@ function assert(condition, message) {
   }
 }
 
-const pluginSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/stretchedmode/StretchedModePlugin.java");
-const configSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/stretchedmode/StretchedModeConfig.java");
-const clientSource = readKronosClient("runelite-client/src/main/java/net/runelite/standalone/Client.java");
-const canvasSource = readKronosClient("runelite-client/src/main/java/net/runelite/standalone/Canvas.java");
-const hooksSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/callback/Hooks.java");
-const mouseSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/stretchedmode/TranslateMouseListener.java");
-const wheelSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/stretchedmode/TranslateMouseWheelListener.java");
+const pluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/stretchedmode/StretchedModePlugin.java");
+const configSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/stretchedmode/StretchedModeConfig.java");
+const clientSource = readNhClient("runelite-client/src/main/java/net/runelite/standalone/Client.java");
+const canvasSource = readNhClient("runelite-client/src/main/java/net/runelite/standalone/Canvas.java");
+const hooksSource = readNhClient("runelite-client/src/main/java/net/runelite/client/callback/Hooks.java");
+const mouseSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/stretchedmode/TranslateMouseListener.java");
+const wheelSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/stretchedmode/TranslateMouseWheelListener.java");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
 const runtimeSource = read("src/ui/RuntimeSceneViewer.tsx");
-const hudSource = read("src/ui/KronosClientHud.tsx");
+const hudSource = read("src/ui/NhClientHud.tsx");
 const cssSource = read("src/ui/styles.css");
 
 for (const sourceAnchor of [
@@ -67,7 +67,7 @@ for (const sourceAnchor of [
   "var2 -= var2 % var4.width",
   "var3 -= var3 % var4.height"
 ]) {
-  assert(clientSource.includes(sourceAnchor), `Kronos client stretched dimension source missing ${sourceAnchor}`);
+  assert(clientSource.includes(sourceAnchor), `Nh client stretched dimension source missing ${sourceAnchor}`);
 }
 
 for (const sourceAnchor of [
@@ -75,7 +75,7 @@ for (const sourceAnchor of [
   "super.setSize(ViewportMouse.client.getStretchedDimensions().width, ViewportMouse.client.getStretchedDimensions().height)",
   "super.setLocation((this.getParent().getWidth() - ViewportMouse.client.getStretchedDimensions().width) / 2, 0)"
 ]) {
-  assert(canvasSource.includes(sourceAnchor), `Kronos Canvas stretched source missing ${sourceAnchor}`);
+  assert(canvasSource.includes(sourceAnchor), `Nh Canvas stretched source missing ${sourceAnchor}`);
 }
 
 for (const sourceAnchor of [
@@ -157,7 +157,7 @@ for (const hudAnchor of [
   "y: (state.currentY - state.startY) / scale.y",
   "data-source-inventory-drag-stretched-mouse"
 ]) {
-  assert(hudSource.includes(hudAnchor), `KronosClientHud stretched HUD input translation missing ${hudAnchor}`);
+  assert(hudSource.includes(hudAnchor), `NhClientHud stretched HUD input translation missing ${hudAnchor}`);
 }
 
 for (const cssAnchor of [
@@ -181,7 +181,7 @@ for (const cssAnchor of [
 
 assert(
   !cssSource.includes("@media (max-width: 820px) {\n  .shell {\n    width: min(100vw - 28px, 680px);"),
-  "mobile workbench shell media query should not clip the client-only RuneLite shell at Kronos fixed minimum size"
+  "mobile workbench shell media query should not clip the client-only RuneLite shell at Nh fixed minimum size"
 );
 
 assert(

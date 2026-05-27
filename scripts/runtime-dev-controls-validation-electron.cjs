@@ -110,18 +110,18 @@ async function readState(window) {
         .map((candidate) => candidate.textContent?.trim() ?? "");
       const freezeButton = Array.from(document.querySelectorAll(".runtimeTemporaryDevControls button"))
         .find((candidate) => candidate.textContent?.trim() === "Freeze off" || candidate.textContent?.trim() === "Freeze immune");
-      const inventoryItemIds = Array.from(document.querySelectorAll(".kronosInventorySlot"))
+      const inventoryItemIds = Array.from(document.querySelectorAll(".nhInventorySlot"))
         .sort((left, right) => Number(left.getAttribute("data-inventory-slot-index") ?? 0) - Number(right.getAttribute("data-inventory-slot-index") ?? 0))
         .map((slot) => slot.getAttribute("data-inventory-item-id") ?? "")
         .filter(Boolean)
         .join(",");
-      const equipmentItemIds = Array.from(document.querySelectorAll(".kronosEquipmentItemSprite"))
+      const equipmentItemIds = Array.from(document.querySelectorAll(".nhEquipmentItemSprite"))
         .sort((left, right) => Number(left.getAttribute("data-server-slot") ?? 0) - Number(right.getAttribute("data-server-slot") ?? 0))
         .map((slot) => slot.getAttribute("data-item-id") ?? "")
         .filter(Boolean)
         .join(",");
-      const autoRetaliate = document.querySelector(".kronosCombatAutoRetaliateSource");
-      const selectedAttackStyle = document.querySelector('.kronosCombatStyleSlot[data-selected="true"]');
+      const autoRetaliate = document.querySelector(".nhCombatAutoRetaliateSource");
+      const selectedAttackStyle = document.querySelector('.nhCombatStyleSlot[data-selected="true"]');
       const savedSetupRaw = window.localStorage.getItem("nhTrainer.temporaryNhStakeSetup.v1");
       const savedSetup = savedSetupRaw ? JSON.parse(savedSetupRaw) : null;
       return {
@@ -178,14 +178,14 @@ app.whenReady().then(async () => {
   try {
     const runtimeReadyMessage = await window.loadFile(path.join(projectRoot, "dist", "index.html")).then(() => waitForReady(window));
     const defaultInventoryState = await readState(window);
-    await pointerDownSelector(window, '.kronosSideTabButton[data-tab-id="equipment"]');
+    await pointerDownSelector(window, '.nhSideTabButton[data-tab-id="equipment"]');
     const defaultEquipmentState = await readState(window);
     await clickTemporaryButton(window, "Spec 100");
     await clickTemporaryButton(window, "Freeze immune");
     await clickTemporaryButton(window, "Save setup");
-    await pointerDownSelector(window, '.kronosSideTabButton[data-tab-id="combat"]');
-    await pointerDownSelector(window, '.kronosCombatStyleSlot[data-slot-index="1"]');
-    await pointerDownSelector(window, ".kronosCombatAutoRetaliateSource");
+    await pointerDownSelector(window, '.nhSideTabButton[data-tab-id="combat"]');
+    await pointerDownSelector(window, '.nhCombatStyleSlot[data-slot-index="1"]');
+    await pointerDownSelector(window, ".nhCombatAutoRetaliateSource");
     const beforeReload = await readState(window);
 
     assert(beforeReload.controlsVisible, "temporary dev controls should render in the runtime viewport");
@@ -215,7 +215,7 @@ app.whenReady().then(async () => {
 
     await window.webContents.reload();
     await waitForReady(window);
-    await pointerDownSelector(window, '.kronosSideTabButton[data-tab-id="combat"]');
+    await pointerDownSelector(window, '.nhSideTabButton[data-tab-id="combat"]');
     const afterReload = await readState(window);
     assert(afterReload.attackSetStorage === "1", `attack style storage did not survive reload: ${JSON.stringify(afterReload)}`);
     assert(afterReload.selectedAttackSetSlot === "1", `attack style did not reload as Rapid after reload: ${JSON.stringify(afterReload)}`);

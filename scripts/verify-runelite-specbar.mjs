@@ -15,16 +15,16 @@ function assert(condition, message) {
 }
 
 const sourceSpecBarPlugin = fs.readFileSync(
-  "C:\\Kronos\\Kronos184-Client\\runelite-client\\src\\main\\java\\net\\runelite\\client\\plugins\\specbar\\SpecBarPlugin.java",
+  "C:\\Nh\\Nh184-Client\\runelite-client\\src\\main\\java\\net\\runelite\\client\\plugins\\specbar\\SpecBarPlugin.java",
   "utf8"
 );
 const sourceSpecOrbDrawButton = fs.readFileSync(
-  "C:\\Kronos\\kronos-osrs-184-master\\kronos-osrs-184-master\\Kronos-master\\scripts\\[proc,orbs_spec_draw_button].cs2",
+  "C:\\Nh\\nh-osrs-184-master\\nh-osrs-184-master\\Nh-master\\scripts\\[proc,orbs_spec_draw_button].cs2",
   "utf8"
 );
 const shellSource = readText("src/ui/RuneliteClientShell.tsx");
 const runtimeSource = readText("src/ui/RuntimeSceneViewer.tsx");
-const hudSource = readText("src/ui/KronosClientHud.tsx");
+const hudSource = readText("src/ui/NhClientHud.tsx");
 const runtimeCombatSource = readText("src/sim/runtimePlayerCombat.ts");
 
 assert(sourceSpecBarPlugin.includes('name = "Spec Bar"'), "RuneLite source plugin descriptor should be the Spec Bar plugin.");
@@ -39,11 +39,11 @@ assert(
   sourceSpecOrbDrawButton.includes('if_sethide(true, $component5)') &&
     sourceSpecOrbDrawButton.includes('if_setgraphic("orb_filler,5", $component3)') &&
     sourceSpecOrbDrawButton.includes('if_setonop("orbs_toggle_spec_op'),
-  "Kronos orbs_spec_draw_button should keep the special orb graphics dimmed but disable the op when no special is available."
+  "Nh orbs_spec_draw_button should keep the special orb graphics dimmed but disable the op when no special is available."
 );
 
 assert(shellSource.includes('id: "spec-bar"'), "RuneLite shell plugin list should include Spec Bar.");
-assert(shellSource.includes('sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/specbar/SpecBarPlugin.java"'), "Spec Bar plugin item should carry the source path.");
+assert(shellSource.includes('sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/specbar/SpecBarPlugin.java"'), "Spec Bar plugin item should carry the source path.");
 assert(shellSource.includes('configurable: false'), "Spec Bar has no config descriptor and should not expose a fake config panel.");
 assert(shellSource.includes("readonly specBar: RuneliteSpecBarConfigSnapshot"), "Config snapshot should include Spec Bar state.");
 assert(shellSource.includes("drawSpecbarAnyway: enabledPluginIds.has(\"spec-bar\")"), "Spec Bar snapshot should be driven by plugin enabled state.");

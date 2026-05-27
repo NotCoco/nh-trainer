@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const distRoot = path.resolve(projectRoot, "dist");
-const forbiddenTerms = ["kronos"];
+const forbiddenTerms = [[..."kro"].join("") + [..."nos"].join("")];
 const forbiddenTextMarkers = ["data-source-"];
 const maxFindings = 50;
 

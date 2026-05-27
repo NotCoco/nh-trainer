@@ -8,8 +8,8 @@ function read(relativePath) {
   return fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
+function readNhClient(relativePath) {
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
 }
 
 function assert(condition, message) {
@@ -18,13 +18,13 @@ function assert(condition, message) {
   }
 }
 
-const pluginSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicatorsPlugin.java");
-const configSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicatorsConfig.java");
-const overlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicatorsOverlay.java");
-const minimapOverlaySource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicatorsMinimapOverlay.java");
-const serviceSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicatorsService.java");
-const locationSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicationLocation.java");
-const relationSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerRelation.java");
+const pluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicatorsPlugin.java");
+const configSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicatorsConfig.java");
+const overlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicatorsOverlay.java");
+const minimapOverlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicatorsMinimapOverlay.java");
+const serviceSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicatorsService.java");
+const locationSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicationLocation.java");
+const relationSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerRelation.java");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
 const runtimeSource = read("src/ui/RuntimeSceneViewer.tsx");
 const indicatorsSource = read("src/ui/runelitePlayerIndicators.ts");
@@ -99,8 +99,8 @@ for (const sourceAnchor of ['SELF', 'TARGET', 'OTHER']) {
 for (const trainerAnchor of [
   'id: "player-indicators"',
   'name: "Player Indicators"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicatorsPlugin.java"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicatorsConfig.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicatorsPlugin.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicatorsConfig.java"',
   'group: "playerindicators"',
   'drawTargetsNames',
   'targetColor: "#136ef7"',
@@ -127,7 +127,7 @@ for (const trainerAnchor of [
   'PlayerIndicatorsService forEachPlayer',
   'buildRunelitePlayerIndicatorDomOverlays',
   'projectRuntimeActorClientOverlay(',
-  'KRONOS_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS + RUNELITE_PLAYER_INDICATORS_ACTOR_OVERHEAD_TEXT_MARGIN',
+  'NH_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS + RUNELITE_PLAYER_INDICATORS_ACTOR_OVERHEAD_TEXT_MARGIN',
   'className="runelitePlayerIndicatorOverlay"'
 ]) {
   assert(runtimeSource.includes(trainerAnchor), `RuntimeSceneViewer missing Player Indicators runtime anchor ${trainerAnchor}`);

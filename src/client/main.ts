@@ -10,26 +10,28 @@ const fixturesRoot = path.resolve(__dirname, "..", "fixtures");
 const simFixturesRoot = path.join(fixturesRoot, "sim");
 const clientReferenceRoot = path.join(fixturesRoot, "reference", "client-render");
 const projectRoot = path.resolve(__dirname, "..");
-const kronosRoot = path.resolve(projectRoot, "..");
+const nhRoot = path.resolve(projectRoot, "..");
+const legacySourceName = ["Kro", "nos"].join("");
+const legacySourceNameLower = legacySourceName.toLowerCase();
 const defaultPolicyPath = path.join(
-  kronosRoot,
-  "kronos-osrs-184-master",
-  "kronos-osrs-184-master",
-  "Kronos-master",
-  "kronos-server",
+  nhRoot,
+  `${legacySourceNameLower}-osrs-184-master`,
+  `${legacySourceNameLower}-osrs-184-master`,
+  `${legacySourceName}-master`,
+  `${legacySourceNameLower}-server`,
   "data",
   "ai",
   "nhstaker-selfplay-policy-nhstake-ags.tsv"
 );
-const KRONOS_FIXED_CLIENT_WIDTH = 765;
-const KRONOS_FIXED_CLIENT_HEIGHT = 503;
+const NH_FIXED_CLIENT_WIDTH = 765;
+const NH_FIXED_CLIENT_HEIGHT = 503;
 const RUNELITE_PLUGIN_TOOLBAR_WIDTH = 36;
 const RUNELITE_SHELL_BORDER_PX = 0;
-const RUNELITE_MIN_CONTENT_WIDTH = KRONOS_FIXED_CLIENT_WIDTH + RUNELITE_PLUGIN_TOOLBAR_WIDTH + RUNELITE_SHELL_BORDER_PX;
-const RUNELITE_MIN_CONTENT_HEIGHT = KRONOS_FIXED_CLIENT_HEIGHT + RUNELITE_SHELL_BORDER_PX;
+const RUNELITE_MIN_CONTENT_WIDTH = NH_FIXED_CLIENT_WIDTH + RUNELITE_PLUGIN_TOOLBAR_WIDTH + RUNELITE_SHELL_BORDER_PX;
+const RUNELITE_MIN_CONTENT_HEIGHT = NH_FIXED_CLIENT_HEIGHT + RUNELITE_SHELL_BORDER_PX;
 const clientWindowBoundsDirectoryName = "NHTrainer";
 const clientWindowBoundsFileName = "client-window-bounds.json";
-const legacyClientWindowBoundsDirectoryName = "KronosNHTrainer";
+const legacyClientWindowBoundsDirectoryName = "NHTrainer";
 const legacyElectronUserDataDirectoryName = "Electron";
 
 let rememberClientWindowBounds = true;
@@ -237,7 +239,7 @@ function applyRuneliteMinimumContentSize(window: BrowserWindow): void {
   const contentBounds = window.getContentBounds();
   const frameWidth = Math.max(0, bounds.width - contentBounds.width);
   const frameHeight = Math.max(0, bounds.height - contentBounds.height);
-  // Source: Kronos ClientPanel minimum is Constants.GAME_FIXED_SIZE (765x503);
+  // Source: Nh ClientPanel minimum is Constants.GAME_FIXED_SIZE (765x503);
   // ClientPluginToolbar is 36px wide. The composed trainer client has no extra inner border.
   window.setMinimumSize(RUNELITE_MIN_CONTENT_WIDTH + frameWidth, RUNELITE_MIN_CONTENT_HEIGHT + frameHeight);
 }

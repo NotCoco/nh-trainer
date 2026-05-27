@@ -9,8 +9,8 @@ function read(relativePath) {
   return fs.readFileSync(path.join(root, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
-  return fs.readFileSync(path.resolve(root, "..", "Kronos184-Client", relativePath), "utf8");
+function readNhClient(relativePath) {
+  return fs.readFileSync(path.resolve(root, "..", "Nh184-Client", relativePath), "utf8");
 }
 
 function check(condition, message) {
@@ -19,8 +19,8 @@ function check(condition, message) {
   }
 }
 
-const openOsrsConfigSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/config/OpenOSRSConfig.java");
-const clientUiSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/ui/ClientUI.java");
+const openOsrsConfigSource = readNhClient("runelite-client/src/main/java/net/runelite/client/config/OpenOSRSConfig.java");
+const clientUiSource = readNhClient("runelite-client/src/main/java/net/runelite/client/ui/ClientUI.java");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
 const packageSource = read("package.json");
 

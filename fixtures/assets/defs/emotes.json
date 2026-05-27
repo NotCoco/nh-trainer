@@ -1,5 +1,5 @@
 {
-  "source": "Kronos clientscript emote_init/emote_update using cache enums 1000, 1001, and 1002",
+  "source": "Nh clientscript emote_init/emote_update using cache enums 1000, 1001, and 1002",
   "nameEnumId": 1000,
   "unlockedSpriteEnumId": 1001,
   "lockedSpriteEnumId": 1002,

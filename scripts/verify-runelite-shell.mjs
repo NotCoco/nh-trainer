@@ -10,7 +10,7 @@ function readText(relativePath) {
 
 const shellSource = readText("src/ui/RuneliteClientShell.tsx");
 const runtimeSource = readText("src/ui/RuntimeSceneViewer.tsx");
-const hudSource = readText("src/ui/KronosClientHud.tsx");
+const hudSource = readText("src/ui/NhClientHud.tsx");
 const gpuSource = readText("src/ui/runeliteGpu.ts");
 const entityHiderSource = readText("src/ui/runeliteEntityHider.ts");
 const tileIndicatorsSource = readText("src/ui/runeliteTileIndicators.ts");
@@ -478,7 +478,7 @@ for (const hudLiteral of [
   "inventoryClientTickMs = 20",
   "Client.setInventoryDragDelay / AntiDragPlugin.DEFAULT_DELAY"
 ]) {
-  check(hudSource.includes(hudLiteral), `KronosClientHud is missing RuneLite Anti Drag inventory behavior ${hudLiteral}.`);
+  check(hudSource.includes(hudLiteral), `NhClientHud is missing RuneLite Anti Drag inventory behavior ${hudLiteral}.`);
 }
 
 for (const hudLiteral of [
@@ -489,7 +489,7 @@ for (const hudLiteral of [
   "data-source-script-callback",
   "drawSpecbarAnyway={false}"
 ]) {
-  check(hudSource.includes(hudLiteral), `KronosClientHud is missing RuneLite Spec Bar behavior ${hudLiteral}.`);
+  check(hudSource.includes(hudLiteral), `NhClientHud is missing RuneLite Spec Bar behavior ${hudLiteral}.`);
 }
 
 for (const asset of [

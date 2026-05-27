@@ -9,7 +9,7 @@ const require = createRequire(import.meta.url);
 const electronPath = require("electron");
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const keyRemappingMainPath = path.join(projectRoot, "scripts", "runelite-keyremapping-electron.cjs");
-const screenshotPath = uniqueScreenshotPath("kronos-nh-trainer-keybinding-visual");
+const screenshotPath = uniqueScreenshotPath("nh-nh-trainer-keybinding-visual");
 
 await mkdir(screenshotDir, { recursive: true });
 

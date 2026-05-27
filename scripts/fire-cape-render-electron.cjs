@@ -54,7 +54,7 @@ async function setRuntimeCamera(window, camera) {
         input.value = ${JSON.stringify(camera)};
         input.dispatchEvent(new Event("change", { bubbles: true }));
       }
-      window.dispatchEvent(new CustomEvent("kronos-runtime-camera", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-camera", {
         detail: { camera: ${JSON.stringify(camera)} }
       }));
     })()
@@ -70,7 +70,7 @@ async function setRuntimeCycle(window, cycle) {
         input.dispatchEvent(new Event("input", { bubbles: true }));
         input.dispatchEvent(new Event("change", { bubbles: true }));
       }
-      window.dispatchEvent(new CustomEvent("kronos-runtime-cycle", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-cycle", {
         detail: { cycle: ${JSON.stringify(cycle)} }
       }));
     })()

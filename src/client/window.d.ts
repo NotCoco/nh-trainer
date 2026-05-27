@@ -1,8 +1,8 @@
-import type { KronosTrainerBridge } from "./bridge";
+import type { NhTrainerBridge } from "./bridge";
 
 declare global {
   interface Window {
-    readonly kronosTrainer?: KronosTrainerBridge;
+    readonly nhTrainer?: NhTrainerBridge;
   }
 }
 

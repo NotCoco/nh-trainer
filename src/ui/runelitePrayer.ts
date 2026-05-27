@@ -1,4 +1,4 @@
-import { kronosActivePrayerIds } from "../render/kronosPrayer";
+import { nhActivePrayerIds } from "../render/nhPrayer";
 import type { RuntimeHudState } from "../render/runtimeScene";
 import type { RunelitePrayerConfigSnapshot, RunelitePrayerFlickLocation } from "./RuneliteClientShell";
 
@@ -35,7 +35,7 @@ export interface RunelitePrayerFlickOrbSnapshot {
 }
 
 export function runelitePrayerAnyActive(hud: RuntimeHudState): boolean {
-  return kronosActivePrayerIds(hud.prayers).length > 0;
+  return nhActivePrayerIds(hud.prayers).length > 0;
 }
 
 export function runelitePrayerTickProgressRadians(timeMs: number): number {

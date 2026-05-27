@@ -99,12 +99,12 @@ async function verifyKeyRemapping(window) {
 
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "F10", code: "F10", bubbles: true, cancelable: true }));
       await nextFrame();
-      const sourceKeybindingButton = document.querySelector(".kronosOptionsKeybindingButton");
-      const sourceKeybindingIcon = document.querySelector(".kronosOptionsKeybindingGeneratedIcon");
+      const sourceKeybindingButton = document.querySelector(".nhOptionsKeybindingButton");
+      const sourceKeybindingIcon = document.querySelector(".nhOptionsKeybindingGeneratedIcon");
       await click(sourceKeybindingButton);
-      const keybindInterface = document.querySelector(".kronosGameKeybindingInterface");
-      await click(keybindInterface?.querySelector('.kronosGameKeybindingRow[data-tab-id="inventory"] .kronosGameKeybindingKeyButton'));
-      await click(keybindInterface?.querySelector('.kronosGameKeybindingDropdownOption[data-key-slot="1"]'));
+      const keybindInterface = document.querySelector(".nhGameKeybindingInterface");
+      await click(keybindInterface?.querySelector('.nhGameKeybindingRow[data-tab-id="inventory"] .nhGameKeybindingKeyButton'));
+      await click(keybindInterface?.querySelector('.nhGameKeybindingDropdownOption[data-key-slot="1"]'));
       await nextFrame();
       const gameKeybindStorage = JSON.parse(window.localStorage.getItem("nhTrainer.gameKeybinds.v1") || "{}");
 
@@ -132,12 +132,12 @@ async function verifyKeyRemapping(window) {
           runtimeCanvas?.getAttribute("data-runelite-key-remapping-fkey-remap") === "true" &&
           runtimeCanvas?.getAttribute("data-runelite-key-remapping-f1") === "Z" &&
           runtimeCanvas?.getAttribute("data-runelite-key-remapping-camera-up") === "I" &&
-          runtimeCanvas?.getAttribute("data-kronos-game-keybind-inventory") === "1" &&
-          runtimeCanvas?.getAttribute("data-kronos-game-keybind-combat") === "0" &&
+          runtimeCanvas?.getAttribute("data-nh-game-keybind-inventory") === "1" &&
+          runtimeCanvas?.getAttribute("data-nh-game-keybind-combat") === "0" &&
           sourceKeybindingButton?.getAttribute("data-action-child-id") === "83" &&
           sourceKeybindingButton?.getAttribute("data-source-placement-child-id") === "100" &&
           sourceKeybindingIcon?.getAttribute("data-generated-with") === "imagegen" &&
-          sourceKeybindingIcon?.getAttribute("data-icon-path") === "render/sprites/kronos_fkey_icon.png" &&
+          sourceKeybindingIcon?.getAttribute("data-icon-path") === "render/sprites/nh_fkey_icon.png" &&
           directF4Tab === "equipment" &&
           remappedZDefaultTab === "combat" &&
           remappedZChangedTab === "inventory" &&
@@ -151,8 +151,8 @@ async function verifyKeyRemapping(window) {
             enabled: runtimeCanvas?.getAttribute("data-runelite-key-remapping-enabled") ?? "",
             fkeyRemap: runtimeCanvas?.getAttribute("data-runelite-key-remapping-fkey-remap") ?? "",
             f1: runtimeCanvas?.getAttribute("data-runelite-key-remapping-f1") ?? "",
-            gameInventorySlot: runtimeCanvas?.getAttribute("data-kronos-game-keybind-inventory") ?? "",
-            gameCombatSlot: runtimeCanvas?.getAttribute("data-kronos-game-keybind-combat") ?? "",
+            gameInventorySlot: runtimeCanvas?.getAttribute("data-nh-game-keybind-inventory") ?? "",
+            gameCombatSlot: runtimeCanvas?.getAttribute("data-nh-game-keybind-combat") ?? "",
             up: runtimeCanvas?.getAttribute("data-runelite-key-remapping-camera-up") ?? ""
           },
           sideTabs: {
@@ -194,9 +194,9 @@ async function openKeybindingVisualState(window) {
 
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "F10", code: "F10", bubbles: true, cancelable: true }));
       await nextFrame();
-      const sourceKeybindingButton = document.querySelector(".kronosOptionsKeybindingButton");
-      const sourceKeybindingFrame = document.querySelector(".kronosOptionsKeybindingSourceFrame");
-      const sourceKeybindingIcon = document.querySelector(".kronosOptionsKeybindingGeneratedIcon");
+      const sourceKeybindingButton = document.querySelector(".nhOptionsKeybindingButton");
+      const sourceKeybindingFrame = document.querySelector(".nhOptionsKeybindingSourceFrame");
+      const sourceKeybindingIcon = document.querySelector(".nhOptionsKeybindingGeneratedIcon");
       const sourceKeybindingButtonRect = sourceKeybindingButton?.getBoundingClientRect();
       const sourceKeybindingIconRect = sourceKeybindingIcon?.getBoundingClientRect();
       const sourceKeybindingIconStyle = sourceKeybindingIcon ? getComputedStyle(sourceKeybindingIcon) : null;
@@ -227,7 +227,7 @@ async function openKeybindingVisualState(window) {
         "60",
         "61"
       ]);
-      const keybindingSliderOverlapCount = Array.from(document.querySelectorAll(".kronosWidgetSprite"))
+      const keybindingSliderOverlapCount = Array.from(document.querySelectorAll(".nhWidgetSprite"))
         .filter((element) => sliderChildIds.has(element.getAttribute("data-child-id") ?? ""))
         .filter((element) => rectsOverlap(sourceKeybindingButtonRect, element.getBoundingClientRect())).length;
       await click(sourceKeybindingButton);
@@ -237,13 +237,13 @@ async function openKeybindingVisualState(window) {
       const navContainer = document.querySelector(".runeliteNavContainer");
       const pluginPanel = document.querySelector(".runelitePluginPanel");
       const pluginToolbar = document.querySelector(".runelitePluginToolbar");
-      const optionsButton = document.querySelector('.kronosSideTabButton[data-tab-id="options"]');
-      const keybindInterface = document.querySelector(".kronosGameKeybindingInterface");
-      const keybindingRows = Array.from(keybindInterface?.querySelectorAll(".kronosGameKeybindingRow") ?? []);
-      const keybindingIconButtons = Array.from(keybindInterface?.querySelectorAll(".kronosGameKeybindingIconButton") ?? []);
-      const keybindingIconSprites = Array.from(keybindInterface?.querySelectorAll(".kronosGameKeybindingIconSprite") ?? []);
-      const keybindingRestoreButtons = Array.from(keybindInterface?.querySelectorAll(".kronosGameKeybindingRestoreButton") ?? []);
-      const inventoryKeyButton = keybindInterface?.querySelector('.kronosGameKeybindingRow[data-tab-id="inventory"] .kronosGameKeybindingKeyButton');
+      const optionsButton = document.querySelector('.nhSideTabButton[data-tab-id="options"]');
+      const keybindInterface = document.querySelector(".nhGameKeybindingInterface");
+      const keybindingRows = Array.from(keybindInterface?.querySelectorAll(".nhGameKeybindingRow") ?? []);
+      const keybindingIconButtons = Array.from(keybindInterface?.querySelectorAll(".nhGameKeybindingIconButton") ?? []);
+      const keybindingIconSprites = Array.from(keybindInterface?.querySelectorAll(".nhGameKeybindingIconSprite") ?? []);
+      const keybindingRestoreButtons = Array.from(keybindInterface?.querySelectorAll(".nhGameKeybindingRestoreButton") ?? []);
+      const inventoryKeyButton = keybindInterface?.querySelector('.nhGameKeybindingRow[data-tab-id="inventory"] .nhGameKeybindingKeyButton');
       const canvas = document.querySelector(".runtimeViewport canvas");
       const viewport = document.querySelector(".runtimeViewport");
       const navRect = navContainer?.getBoundingClientRect();
@@ -266,13 +266,13 @@ async function openKeybindingVisualState(window) {
         pluginToolbarRect && shellRect ? resolvedBackgroundAt(pluginToolbarRect.left + 18, shellRect.bottom - 12) : "";
       return {
         activeSideTab: viewport?.getAttribute("data-active-side-tab-id") ?? "",
-        combatSlot: canvas?.getAttribute("data-kronos-game-keybind-combat") ?? "",
-        inventorySlot: canvas?.getAttribute("data-kronos-game-keybind-inventory") ?? "",
+        combatSlot: canvas?.getAttribute("data-nh-game-keybind-combat") ?? "",
+        inventorySlot: canvas?.getAttribute("data-nh-game-keybind-inventory") ?? "",
         keybindingVisible: Boolean(keybindInterface),
         keybindingIconButtonCount: keybindingIconButtons.length,
         keybindingIconSpriteCount: keybindingIconSprites.length,
         keybindingInterfaceId: keybindInterface?.getAttribute("data-interface-id") ?? "",
-        keybindingOldEscapeCheckboxVisible: Boolean(keybindInterface?.querySelector(".kronosGameKeybindingEscape")),
+        keybindingOldEscapeCheckboxVisible: Boolean(keybindInterface?.querySelector(".nhGameKeybindingEscape")),
         keybindingRestoreButtonCount: keybindingRestoreButtons.length,
         keybindingRowCount: keybindingRows.length,
         keybindingSourceActionChildId: sourceKeybindingButton?.getAttribute("data-action-child-id") ?? "",
@@ -338,7 +338,7 @@ app.whenReady().then(async () => {
       if (
         !visualState.keybindingVisible ||
         visualState.keybindingInterfaceId !== "121" ||
-        visualState.keybindingSourceLayout !== "Kronos Interface.KEYBINDING 121 side-stone keybind grid" ||
+        visualState.keybindingSourceLayout !== "Nh Interface.KEYBINDING 121 side-stone keybind grid" ||
         visualState.keybindingRowCount !== 14 ||
         visualState.keybindingIconButtonCount !== 14 ||
         visualState.keybindingIconSpriteCount !== 14 ||
@@ -350,8 +350,8 @@ app.whenReady().then(async () => {
         visualState.keybindingSourceActionChildId !== "83" ||
         visualState.keybindingSourceFrameSpriteId !== "761" ||
         visualState.keybindingSourceGeneratedWith !== "imagegen" ||
-        !visualState.keybindingSourceIconBackground.includes("kronos_fkey_icon.png") ||
-        visualState.keybindingSourceIconPath !== "render/sprites/kronos_fkey_icon.png" ||
+        !visualState.keybindingSourceIconBackground.includes("nh_fkey_icon.png") ||
+        visualState.keybindingSourceIconPath !== "render/sprites/nh_fkey_icon.png" ||
         visualState.keybindingSourceIconZIndex !== "2" ||
         visualState.keybindingSourcePlacementChildId !== "100" ||
         visualState.keybindingSliderOverlapCount !== 0 ||

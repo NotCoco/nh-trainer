@@ -19,8 +19,8 @@ async function waitForReady(window) {
       (() => Boolean(
         document.querySelector(".runeliteClientShell") &&
         document.querySelector(".glbStatus-ready") &&
-        document.querySelector('.kronosSideTabButton[data-tab-id="combat"]') &&
-        document.querySelector('.kronosSideTabButton[data-tab-id="inventory"]')
+        document.querySelector('.nhSideTabButton[data-tab-id="combat"]') &&
+        document.querySelector('.nhSideTabButton[data-tab-id="inventory"]')
       ))()
     `);
     if (ready) {
@@ -55,7 +55,7 @@ async function clickSideTab(window, tabId) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
       const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
-      const tab = document.querySelector(${JSON.stringify(`.kronosSideTabButton[data-tab-id="${tabId}"]`)});
+      const tab = document.querySelector(${JSON.stringify(`.nhSideTabButton[data-tab-id="${tabId}"]`)});
       if (!tab) {
         return { ok: false, error: "missing side tab", tabId: ${JSON.stringify(tabId)} };
       }
@@ -97,7 +97,7 @@ async function leftClickInventorySlot(window, slotIndex) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
       const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
-      const slot = document.querySelector(${JSON.stringify(`.kronosInventorySlot[data-slot-index="${slotIndex}"]`)});
+      const slot = document.querySelector(${JSON.stringify(`.nhInventorySlot[data-slot-index="${slotIndex}"]`)});
       if (!slot) {
         return { ok: false, error: "missing inventory slot", slotIndex: ${JSON.stringify(slotIndex)} };
       }
@@ -105,7 +105,7 @@ async function leftClickInventorySlot(window, slotIndex) {
       const clientX = rect.left + rect.width / 2;
       const clientY = rect.top + rect.height / 2;
       const target = document.elementFromPoint(clientX, clientY);
-      if (!target || target.closest(${JSON.stringify(`.kronosInventorySlot[data-slot-index="${slotIndex}"]`)}) !== slot) {
+      if (!target || target.closest(${JSON.stringify(`.nhInventorySlot[data-slot-index="${slotIndex}"]`)}) !== slot) {
         return { ok: false, error: "inventory slot is not target", slotIndex: ${JSON.stringify(slotIndex)} };
       }
       target.dispatchEvent(new PointerEvent("pointerdown", {
@@ -152,7 +152,7 @@ async function leftClickInventorySlot(window, slotIndex) {
 async function setRuntimeInventory(window, inventory) {
   await window.webContents.executeJavaScript(`
     (() => {
-      window.dispatchEvent(new CustomEvent("kronos-runtime-inventory", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-inventory", {
         detail: { inventory: ${JSON.stringify(inventory)} }
       }));
     })()
@@ -192,12 +192,12 @@ async function readCombatState(window) {
       };
       const shell = document.querySelector(".runeliteClientShell");
       const shellRect = shell?.getBoundingClientRect();
-      const panel = document.querySelector(".kronosCombatPanelLayer");
-      const styles = Array.from(document.querySelectorAll(".kronosCombatStyleSlot")).map((slot) => {
+      const panel = document.querySelector(".nhCombatPanelLayer");
+      const styles = Array.from(document.querySelectorAll(".nhCombatStyleSlot")).map((slot) => {
         const slotIndex = slot.getAttribute("data-slot-index") ?? "";
-        const icon = document.querySelector('.kronosCombatStyleIconSprite[data-slot-index="' + slotIndex + '"]');
-        const iconFrame = icon?.querySelector(".kronosCombatSourceSpriteFrame") ?? null;
-        const text = document.querySelector('.kronosCombatStyleText[data-slot-index="' + slotIndex + '"]');
+        const icon = document.querySelector('.nhCombatStyleIconSprite[data-slot-index="' + slotIndex + '"]');
+        const iconFrame = icon?.querySelector(".nhCombatSourceSpriteFrame") ?? null;
+        const text = document.querySelector('.nhCombatStyleText[data-slot-index="' + slotIndex + '"]');
         const iconStyle = iconFrame ? getComputedStyle(iconFrame) : null;
         return {
           slotIndex: Number(slotIndex),
@@ -222,7 +222,7 @@ async function readCombatState(window) {
           textRect: styleRect(text)
         };
       });
-      const autocast = Array.from(document.querySelectorAll(".kronosCombatAutocastSource")).map((control) => ({
+      const autocast = Array.from(document.querySelectorAll(".nhCombatAutocastSource")).map((control) => ({
         childId: Number(control.getAttribute("data-action-child-id")),
         weaponType: control.getAttribute("data-weapon-type") ?? "",
         weaponTypeConfig: control.getAttribute("data-weapon-type-config") ?? "",
@@ -230,9 +230,9 @@ async function readCombatState(window) {
         selected: control.getAttribute("data-selected") ?? "",
         rect: styleRect(control)
       }));
-      const specialBars = Array.from(document.querySelectorAll(".kronosCombatSpecialBar")).map((bar) => ({
-        backgroundRect: styleRect(bar.querySelector(".kronosCombatSpecialBarBackground")),
-        fillRect: styleRect(bar.querySelector(".kronosCombatSpecialBarFill")),
+      const specialBars = Array.from(document.querySelectorAll(".nhCombatSpecialBar")).map((bar) => ({
+        backgroundRect: styleRect(bar.querySelector(".nhCombatSpecialBarBackground")),
+        fillRect: styleRect(bar.querySelector(".nhCombatSpecialBarFill")),
         weaponItemId: bar.getAttribute("data-weapon-item-id") ?? "",
         weaponName: bar.getAttribute("data-weapon-name") ?? "",
         drainPercent: Number(bar.getAttribute("data-special-drain-percent")),
@@ -240,7 +240,7 @@ async function readCombatState(window) {
         specialAvailable: bar.getAttribute("data-special-available") ?? "",
         rect: styleRect(bar)
       }));
-      const specOrb = document.querySelector(".kronosFixedOrb-spec");
+      const specOrb = document.querySelector(".nhFixedOrb-spec");
       return {
         activeSideTab: document.querySelector(".runtimeViewport")?.getAttribute("data-active-side-tab-id") ?? "",
         panel: panel ? {
@@ -267,15 +267,15 @@ async function readCombatState(window) {
           activeFillerSpriteId: Number(specOrb.getAttribute("data-active-filler-sprite-id")),
           sourceFillerTransparency: Number(specOrb.getAttribute("data-source-filler-transparency")),
           sourceDrawState: specOrb.getAttribute("data-source-draw-state") ?? "",
-          hitboxCount: specOrb.querySelectorAll(".kronosFixedOrbHitbox").length
+          hitboxCount: specOrb.querySelectorAll(".nhFixedOrbHitbox").length
         } : null,
-        autoRetaliateRect: styleRect(document.querySelector(".kronosCombatAutoRetaliateSource")),
+        autoRetaliateRect: styleRect(document.querySelector(".nhCombatAutoRetaliateSource")),
         staleCombatWidgetCount: document.querySelectorAll(
-          '.kronosMountedWidgetLayer[data-group-id="593"] .kronosWidgetRectangle[data-child-id], ' +
-          '.kronosMountedWidgetLayer[data-group-id="593"] .kronosWidgetSprite[data-child-id], ' +
-          '.kronosMountedWidgetLayer[data-group-id="593"] .kronosWidgetText[data-child-id]'
+          '.nhMountedWidgetLayer[data-group-id="593"] .nhWidgetRectangle[data-child-id], ' +
+          '.nhMountedWidgetLayer[data-group-id="593"] .nhWidgetSprite[data-child-id], ' +
+          '.nhMountedWidgetLayer[data-group-id="593"] .nhWidgetText[data-child-id]'
         ).length,
-        specOrbCount: document.querySelectorAll(".kronosFixedOrb-spec").length,
+        specOrbCount: document.querySelectorAll(".nhFixedOrb-spec").length,
         screenshotClip: shellRect
           ? {
               x: Math.max(0, Math.floor(shellRect.left)),
@@ -351,7 +351,7 @@ function assertCombatState(label, state, expected, spriteByAlias) {
       style.iconSpriteMaxWidth !== expectedSprite.maxWidth ||
       style.iconSpriteMaxHeight !== expectedSprite.maxHeight
     ) {
-      throw new Error(`${label} style icon did not match exported Kronos sprite alias: ${JSON.stringify({ style, expectedSprite }, null, 2)}`);
+      throw new Error(`${label} style icon did not match exported Nh sprite alias: ${JSON.stringify({ style, expectedSprite }, null, 2)}`);
     }
   }
 
@@ -437,7 +437,7 @@ const expectedCases = {
     specOrbSourceDrawState: "orbs_spec_draw_button:toggle",
     specOrbHitboxCount: 1,
     specialDrainPercent: 50,
-    specialDrainSource: "kronos-server:combat.special.melee.AbyssalTentacle",
+    specialDrainSource: "nh-server:combat.special.melee.AbyssalTentacle",
     styles: [
       {
         slotIndex: 0,
@@ -485,7 +485,7 @@ const expectedCases = {
     specOrbSourceDrawState: "orbs_spec_draw_button:toggle",
     specOrbHitboxCount: 1,
     specialDrainPercent: 50,
-    specialDrainSource: "kronos-server:combat.special.melee.GraniteMaul",
+    specialDrainSource: "nh-server:combat.special.melee.GraniteMaul",
     styles: [
       {
         slotIndex: 0,
@@ -533,7 +533,7 @@ const expectedCases = {
     specOrbSourceDrawState: "orbs_spec_draw_button:toggle",
     specOrbHitboxCount: 1,
     specialDrainPercent: 40,
-    specialDrainSource: "kronos-server:combat.special.ranged.ArmadylCrossbow",
+    specialDrainSource: "nh-server:combat.special.ranged.ArmadylCrossbow",
     styles: [
       {
         slotIndex: 0,
@@ -627,7 +627,7 @@ const expectedCases = {
     specOrbSourceDrawState: "orbs_spec_draw_button:toggle",
     specOrbHitboxCount: 1,
     specialDrainPercent: 100,
-    specialDrainSource: "kronos-server:combat.special.magic.StaffOfTheDead",
+    specialDrainSource: "nh-server:combat.special.magic.StaffOfTheDead",
     styles: [
       {
         slotIndex: 0,

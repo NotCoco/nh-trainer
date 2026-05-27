@@ -75,7 +75,7 @@ async function verifyInventoryClickSurvivesFKey(window) {
         { itemId: 22461, quantity: 1 }
       ];
 
-      const inventoryTab = document.querySelector('.kronosSideTabButton[data-tab-id="inventory"]');
+      const inventoryTab = document.querySelector('.nhSideTabButton[data-tab-id="inventory"]');
       if (inventoryTab) {
         const tabRect = inventoryTab.getBoundingClientRect();
         inventoryTab.dispatchEvent(new PointerEvent("pointerdown", {
@@ -93,14 +93,14 @@ async function verifyInventoryClickSurvivesFKey(window) {
         await nextFrame();
       }
 
-      window.dispatchEvent(new CustomEvent("kronos-runtime-inventory", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-inventory", {
         detail: { inventory }
       }));
-      window.dispatchEvent(new CustomEvent("kronos-runtime-reset-tick-origin"));
+      window.dispatchEvent(new CustomEvent("nh-runtime-reset-tick-origin"));
       await nextFrame();
       await new Promise((resolve) => setTimeout(resolve, 150));
 
-      const slot = document.querySelector('.kronosInventorySlot[data-slot-index="0"]');
+      const slot = document.querySelector('.nhInventorySlot[data-slot-index="0"]');
       if (!slot) {
         return { ok: false, error: "missing inventory slot 0" };
       }
@@ -112,7 +112,7 @@ async function verifyInventoryClickSurvivesFKey(window) {
       const clientX = slotRect.left + slotRect.width / 2;
       const clientY = slotRect.top + slotRect.height / 2;
       const target = document.elementFromPoint(clientX, clientY);
-      if (!target || target.closest('.kronosInventorySlot[data-slot-index="0"]') !== slot) {
+      if (!target || target.closest('.nhInventorySlot[data-slot-index="0"]') !== slot) {
         return { ok: false, error: "slot 0 is not the real pointer target" };
       }
 
@@ -191,7 +191,7 @@ async function verifyInventoryClickSurvivesFKey(window) {
 async function clickSideTab(window, tabId) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const tab = document.querySelector(${JSON.stringify(`.kronosSideTabButton[data-tab-id="${tabId}"]`)});
+      const tab = document.querySelector(${JSON.stringify(`.nhSideTabButton[data-tab-id="${tabId}"]`)});
       if (!tab) {
         return { ok: false, error: "missing side tab", tabId: ${JSON.stringify(tabId)} };
       }
@@ -221,7 +221,7 @@ async function clickSideTab(window, tabId) {
 async function readRuntimeEquipment(window) {
   return window.webContents.executeJavaScript(`
     (() => ({
-      items: Array.from(document.querySelectorAll(".kronosEquipmentItemSprite")).map((item) => ({
+      items: Array.from(document.querySelectorAll(".nhEquipmentItemSprite")).map((item) => ({
         slotId: item.getAttribute("data-slot-id") ?? "",
         itemId: Number(item.getAttribute("data-item-id")),
         itemName: item.getAttribute("data-item-name") ?? ""

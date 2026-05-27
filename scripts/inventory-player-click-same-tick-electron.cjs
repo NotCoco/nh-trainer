@@ -15,7 +15,7 @@ async function waitForReady(window) {
         document.querySelector(".runeliteClientShell") &&
         document.querySelector(".glbStatus-ready") &&
         document.querySelector(".runtimeViewport canvas") &&
-        document.querySelector('.kronosInventorySlot[data-slot-index="0"]')
+        document.querySelector('.nhInventorySlot[data-slot-index="0"]')
       ))()
     `);
     if (ready) {
@@ -40,7 +40,7 @@ async function clickSideTab(window, tabId) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
       const settle = () => new Promise((resolve) => setTimeout(resolve, 25));
-      const tab = document.querySelector(${JSON.stringify(`.kronosSideTabButton[data-tab-id="${tabId}"]`)});
+      const tab = document.querySelector(${JSON.stringify(`.nhSideTabButton[data-tab-id="${tabId}"]`)});
       if (!tab) {
         return { ok: false, error: "missing side tab", tabId: ${JSON.stringify(tabId)} };
       }
@@ -121,7 +121,7 @@ async function locateOpponentClick(window) {
           clientY
         }));
         await settle();
-        let menu = document.querySelector(".kronosContextMenu");
+        let menu = document.querySelector(".nhContextMenu");
         if (!menu) {
           canvas.dispatchEvent(new MouseEvent("contextmenu", {
             bubbles: true,
@@ -133,10 +133,10 @@ async function locateOpponentClick(window) {
             clientY
           }));
           await settle();
-          menu = document.querySelector(".kronosContextMenu");
+          menu = document.querySelector(".nhContextMenu");
         }
         const options = menu
-          ? Array.from(menu.querySelectorAll(".kronosContextMenuOption")).map((option) => ({
+          ? Array.from(menu.querySelectorAll(".nhContextMenuOption")).map((option) => ({
               text: option.textContent ?? "",
               actionKind: option.getAttribute("data-menu-action-kind") ?? "",
               opcode: Number(option.getAttribute("data-menu-opcode"))
@@ -167,7 +167,7 @@ async function equipWeaponAndClickOpponentBeforeTick(window, opponent) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
       const settle = () => new Promise((resolve) => setTimeout(resolve, 25));
-      const slot = Array.from(document.querySelectorAll(".kronosInventorySlot")).find(
+      const slot = Array.from(document.querySelectorAll(".nhInventorySlot")).find(
         (candidate) => candidate.getAttribute("data-inventory-item-id") === "21006"
       );
       const canvas = document.querySelector(".runtimeViewport canvas");
@@ -184,7 +184,7 @@ async function equipWeaponAndClickOpponentBeforeTick(window, opponent) {
       const slotX = slotRect.left + slotRect.width / 2;
       const slotY = slotRect.top + slotRect.height / 2;
       const slotTarget = document.elementFromPoint(slotX, slotY);
-      if (!slotTarget || slotTarget.closest(".kronosInventorySlot") !== slot) {
+      if (!slotTarget || slotTarget.closest(".nhInventorySlot") !== slot) {
         return { ok: false, error: "Kodai wand slot is not the pointer target", slotIndex };
       }
 
@@ -275,7 +275,7 @@ async function readRuntimeState(window) {
           loadoutId: pose?.getAttribute("data-loadout-id") ?? ""
         };
       })(),
-      equipmentItems: Array.from(document.querySelectorAll(".kronosEquipmentItemSprite")).map((item) => ({
+      equipmentItems: Array.from(document.querySelectorAll(".nhEquipmentItemSprite")).map((item) => ({
         slotId: item.getAttribute("data-slot-id") ?? "",
         itemId: Number(item.getAttribute("data-item-id")),
         itemName: item.getAttribute("data-item-name") ?? ""
@@ -306,12 +306,12 @@ app.whenReady().then(async () => {
   try {
     await window.loadFile(path.join(projectRoot, "dist", "index.html"));
     await waitForReady(window);
-    await dispatchEvent(window, "kronos-runtime-camera", { camera: "isometric" });
-    await dispatchEvent(window, "kronos-runtime-cycle", { cycle: 200 });
+    await dispatchEvent(window, "nh-runtime-camera", { camera: "isometric" });
+    await dispatchEvent(window, "nh-runtime-cycle", { cycle: 200 });
     await delay(200);
     await clickSideTab(window, "inventory");
     const opponent = await locateOpponentClick(window);
-    await dispatchEvent(window, "kronos-runtime-reset-tick-origin", {});
+    await dispatchEvent(window, "nh-runtime-reset-tick-origin", {});
     await delay(80);
 
     const dispatch = await equipWeaponAndClickOpponentBeforeTick(window, opponent);

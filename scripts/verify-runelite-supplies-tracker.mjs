@@ -8,8 +8,8 @@ function read(relativePath) {
   return fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
+function readNhClient(relativePath) {
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
 }
 
 function assert(condition, message) {
@@ -18,11 +18,11 @@ function assert(condition, message) {
   }
 }
 
-const pluginSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/SuppliesTrackerPlugin.java");
-const panelSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/SuppliesTrackerPanel.java");
-const boxSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/SuppliesBox.java");
-const itemTypeSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/ItemType.java");
-const configSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/SuppliesTrackerConfig.java");
+const pluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/SuppliesTrackerPlugin.java");
+const panelSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/SuppliesTrackerPanel.java");
+const boxSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/SuppliesBox.java");
+const itemTypeSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/ItemType.java");
+const configSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/SuppliesTrackerConfig.java");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
 const runtimeSource = read("src/ui/RuntimeSceneViewer.tsx");
 const runtimeCombatSource = read("src/sim/runtimePlayerCombat.ts");

@@ -1,7 +1,7 @@
 import equipmentRowsJson from "../generated/equipment-bonuses.json";
 import type { RuntimeActorId, RuntimeLoadoutId, RuntimeSequenceName, RuntimeTile } from "../render/runtimeScene";
-import { kronosPlayerHealthBarDefinition } from "../render/kronosHealthBars";
-import { KRONOS_HITSPLAT_DEFAULT_DURATION_CYCLES } from "../render/kronosHitsplats";
+import { nhPlayerHealthBarDefinition } from "../render/nhHealthBars";
+import { NH_HITSPLAT_DEFAULT_DURATION_CYCLES } from "../render/nhHitsplats";
 import type { CombatLevels, CombatStyle, StyleEvEstimate } from "./combat/formulas";
 import { dispatchPlayerAttack, nhWeaponProfiles, playerAttackGate, type WeaponTimingProfile } from "./combat/player-combat";
 import {
@@ -31,8 +31,8 @@ import {
   type SupplyDelayState
 } from "./items/consumables";
 import {
-  kronosMagicSpellCurrentLevelCanCast,
-  kronosMagicSpellLevelRequirementById
+  nhMagicSpellCurrentLevelCanCast,
+  nhMagicSpellLevelRequirementById
 } from "./magic/spellRequirements";
 import type { PrayerId, ProtectionPrayerId } from "./prayer/prayers";
 import {
@@ -477,9 +477,9 @@ const maxRetainedEventAgeTicks = 550;
 const runtimePlayerCombatProcessOrderShuffleMinTicks = 40;
 const runtimePlayerCombatProcessOrderShuffleMaxTicks = 60;
 const deathResetDelayTicks = 5;
-const kronosServerTickMs = 600;
-const kronosDefaultProjectileCycleRate = 16;
-const kronosMagicProjectileCycleRate = 19;
+const nhServerTickMs = 600;
+const nhDefaultProjectileCycleRate = 16;
+const nhMagicProjectileCycleRate = 19;
 const runtimePlayerCombatHitpointXpRatio = 1.33;
 export const runtimePlayerCombatIceBarrageFreezeTicks = 32;
 export const runtimePlayerCombatIceBlitzFreezeTicks = 25;
@@ -503,7 +503,7 @@ const projectileProfiles = {
     delayCycles: 51,
     durationStartCycles: 56,
     durationIncrementCycles: 10,
-    clientCycleRate: kronosMagicProjectileCycleRate,
+    clientCycleRate: nhMagicProjectileCycleRate,
     curve: 16,
     offset: 64,
     skipTravel: true
@@ -517,7 +517,7 @@ const projectileProfiles = {
     delayCycles: 51,
     durationStartCycles: 56,
     durationIncrementCycles: 10,
-    clientCycleRate: kronosMagicProjectileCycleRate,
+    clientCycleRate: nhMagicProjectileCycleRate,
     curve: 0,
     offset: 0,
     skipTravel: false
@@ -531,7 +531,7 @@ const projectileProfiles = {
     delayCycles: 0,
     durationStartCycles: 56,
     durationIncrementCycles: 10,
-    clientCycleRate: kronosMagicProjectileCycleRate,
+    clientCycleRate: nhMagicProjectileCycleRate,
     curve: 0,
     offset: 0,
     skipTravel: false
@@ -545,7 +545,7 @@ const projectileProfiles = {
     delayCycles: 51,
     durationStartCycles: 56,
     durationIncrementCycles: 10,
-    clientCycleRate: kronosMagicProjectileCycleRate,
+    clientCycleRate: nhMagicProjectileCycleRate,
     curve: 16,
     offset: 64,
     skipTravel: false
@@ -559,7 +559,7 @@ const projectileProfiles = {
     delayCycles: 41,
     durationStartCycles: 51,
     durationIncrementCycles: 5,
-    clientCycleRate: kronosDefaultProjectileCycleRate,
+    clientCycleRate: nhDefaultProjectileCycleRate,
     curve: 5,
     offset: 11,
     skipTravel: false
@@ -573,7 +573,7 @@ const projectileProfiles = {
     delayCycles: 41,
     durationStartCycles: 51,
     durationIncrementCycles: 5,
-    clientCycleRate: kronosDefaultProjectileCycleRate,
+    clientCycleRate: nhDefaultProjectileCycleRate,
     curve: 5,
     offset: 11,
     skipTravel: false
@@ -596,7 +596,7 @@ export const runtimePlayerCombatSpellDefinitions: Readonly<Record<RuntimePlayerC
     label: "Blood Blitz",
     autocastSlot: runtimePlayerCombatBloodBlitzAutocastSlot,
     style: "magic",
-    requiredMagicLevel: kronosMagicSpellLevelRequirementById["blood-blitz"],
+    requiredMagicLevel: nhMagicSpellLevelRequirementById["blood-blitz"],
     // Source: BloodBlitz.java setBaseXp(45.0); CombatUtils.addMagicXp(baseXp, damage, multiplier).
     baseXp: 45,
     maxDamage: 25,
@@ -614,7 +614,7 @@ export const runtimePlayerCombatSpellDefinitions: Readonly<Record<RuntimePlayerC
     label: "Ice Blitz",
     autocastSlot: runtimePlayerCombatIceBlitzAutocastSlot,
     style: "magic",
-    requiredMagicLevel: kronosMagicSpellLevelRequirementById["ice-blitz"],
+    requiredMagicLevel: nhMagicSpellLevelRequirementById["ice-blitz"],
     // Source: IceBlitz.java setBaseXp(46.0); CombatUtils.addMagicXp(baseXp, damage, multiplier).
     baseXp: 46,
     maxDamage: 26,
@@ -634,7 +634,7 @@ export const runtimePlayerCombatSpellDefinitions: Readonly<Record<RuntimePlayerC
     label: "Blood Barrage",
     autocastSlot: runtimePlayerCombatBloodBarrageAutocastSlot,
     style: "magic",
-    requiredMagicLevel: kronosMagicSpellLevelRequirementById["blood-barrage"],
+    requiredMagicLevel: nhMagicSpellLevelRequirementById["blood-barrage"],
     // Source: BloodBarrage.java setBaseXp(51.0); CombatUtils.addMagicXp(baseXp, damage, multiplier).
     baseXp: 51,
     maxDamage: 29,
@@ -652,7 +652,7 @@ export const runtimePlayerCombatSpellDefinitions: Readonly<Record<RuntimePlayerC
     label: "Ice Barrage",
     autocastSlot: runtimePlayerCombatIceBarrageAutocastSlot,
     style: "magic",
-    requiredMagicLevel: kronosMagicSpellLevelRequirementById["ice-barrage"],
+    requiredMagicLevel: nhMagicSpellLevelRequirementById["ice-barrage"],
     // Source: IceBarrage.java setBaseXp(52.0); CombatUtils.addMagicXp(baseXp, damage, multiplier).
     baseXp: 52,
     maxDamage: 30,
@@ -1163,7 +1163,7 @@ function applyGmaulTripleClickAutoTarget(
   if (!target || isRuntimePlayerCombatActorDead(target, state.tick)) {
     return state;
   }
-  // Trainer QoL extension: Kronos queues the third maul click, then normally needs a player-click packet.
+  // Trainer QoL extension: Nh queues the third maul click, then normally needs a player-click packet.
   // This promotes the existing target/last-target into that same source-backed TargetRoute path.
   return requestRuntimePlayerCombatAttack(state, actorId, targetId);
 }
@@ -1461,7 +1461,7 @@ function mergeRuntimePlayerCombatAttemptActorsAfterPidMovement(
   const freezeAppliedBeforeDefenderMovement =
     !isFrozen(defenderBeforeAttempt.locks, tick) && isFrozen(defenderAfterAttempt.locks, tick);
   if (freezeAppliedBeforeDefenderMovement) {
-    // Source: Entity.freeze() calls Movement.reset() immediately. With Kronos'
+    // Source: Entity.freeze() calls Movement.reset() immediately. With Nh'
     // CoreWorker PID order, a freeze from an earlier-processed player cancels the
     // later player's queued movement before that later Player.process() can consume it.
     return attemptedActors;
@@ -2035,7 +2035,7 @@ function tryRuntimePlayerAttack(
 
   if (!gate.canAttack) {
     // Source: TargetRoute.beforeMovement() only routes while Movement.isAtDestination().
-    // If a policy/manual step already consumed movement this tick, Kronos leaves the target
+    // If a policy/manual step already consumed movement this tick, Nh leaves the target
     // route pending instead of immediately counter-routing the actor back out.
     const routeRequest = gate.requiresMovement && !targetRouteMovementConsumed
       ? {
@@ -2058,7 +2058,7 @@ function tryRuntimePlayerAttack(
   if (gate.requiresMovement) {
     // Source: Player.process() runs TargetRoute.beforeMovement(), movement.process(), then combat.attack().
     // A diagonal/step-in melee opportunity only becomes a same-tick hit after that route step has
-    // already put the player in true reach; otherwise Kronos keeps the target route pending.
+    // already put the player in true reach; otherwise Nh keeps the target route pending.
     return {
       actors,
       queuedHits: [],
@@ -2074,7 +2074,7 @@ function tryRuntimePlayerAttack(
     };
   }
 
-  if (spell && !kronosMagicSpellCurrentLevelCanCast(spell.id, attacker.levels.magic)) {
+  if (spell && !nhMagicSpellCurrentLevelCanCast(spell.id, attacker.levels.magic)) {
     return resetRuntimePlayerCombatFailedSpellCast(actors, attackerId, defenderId, seed);
   }
 
@@ -2823,7 +2823,7 @@ function runtimePlayerCombatAttackTypeForWeapon(
   attackSetIndex: number
 ): RuntimePlayerCombatAttackType {
   const index = normalizeRuntimeAttackSetIndex(attackSetIndex);
-  // Source: exported Kronos WeaponType attackSets for WAND/STAFF_OF_DEAD, ARMADYL_CROSSBOW, WHIP, and GRANITE_MAUL.
+  // Source: exported Nh WeaponType attackSets for WAND/STAFF_OF_DEAD, ARMADYL_CROSSBOW, WHIP, and GRANITE_MAUL.
   if (
     weaponId === "armadyl_crossbow" ||
     weaponId === "rune_crossbow" ||
@@ -2866,7 +2866,7 @@ function runtimePlayerCombatAttackSetIndexesForWeapon(_weaponId: NhWeaponId): re
   if (_weaponId === "armadyl_godsword") {
     return [0, 1, 2, 3];
   }
-  // Source: exported Kronos WeaponType attackSets for WAND/STAFF_OF_DEAD, ARMADYL_CROSSBOW, WHIP, and GRANITE_MAUL
+  // Source: exported Nh WeaponType attackSets for WAND/STAFF_OF_DEAD, ARMADYL_CROSSBOW, WHIP, and GRANITE_MAUL
   // occupy children 3, 7, and 15, leaving child 11 / attack-set index 2 empty.
   return [0, 1, 3];
 }
@@ -3057,7 +3057,7 @@ export function runtimePlayerCombatProjectileClientDelayCycles(
 }
 
 export function runtimePlayerCombatClientDelayTicks(delayCycles: number, cycleRate: number): number {
-  return Math.max(1, Math.trunc((delayCycles * cycleRate) / kronosServerTickMs));
+  return Math.max(1, Math.trunc((delayCycles * cycleRate) / nhServerTickMs));
 }
 
 export function runtimePlayerCombatHitDelayTicks(
@@ -3076,11 +3076,11 @@ export function runtimePlayerCombatHitDelayTicks(
 }
 
 export function runtimePlayerCombatHealthBarEndTick(eventTick: number): number {
-  return eventTick + runtimePlayerCombatClientCyclesToTicks(kronosPlayerHealthBarDefinition.lifetimeCycles);
+  return eventTick + runtimePlayerCombatClientCyclesToTicks(nhPlayerHealthBarDefinition.lifetimeCycles);
 }
 
 export function runtimePlayerCombatHitsplatEndTick(eventTick: number): number {
-  return eventTick + runtimePlayerCombatClientCyclesToTicks(KRONOS_HITSPLAT_DEFAULT_DURATION_CYCLES);
+  return eventTick + runtimePlayerCombatClientCyclesToTicks(NH_HITSPLAT_DEFAULT_DURATION_CYCLES);
 }
 
 export function runtimePlayerCombatDistance(left: RuntimeTile, right: RuntimeTile, tileScale?: number): number {

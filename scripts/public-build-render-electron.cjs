@@ -25,7 +25,7 @@ async function waitForApp(window) {
           hasPanelFrame: Boolean(panelFrame),
           hasViewport: Boolean(viewport),
           hasCanvas: Boolean(canvas),
-          oldNameInDom: /kronos/i.test(html) || /kronos/i.test(bodyText),
+          oldNameInDom: /nh/i.test(html) || /nh/i.test(bodyText),
           sourceDebugAttrCount: document.querySelectorAll("[data-source-plugin], [data-source-layer], [data-source-overlay]").length,
           refAttrCount: document.querySelectorAll("[data-ref-plugin], [data-ref-layer], [data-ref-overlay]").length
         };

@@ -1,6 +1,6 @@
 {
   "id": "hitsplat_digits",
-  "source": "Kronos client fontPlain11 fallback (p11_full) used when a hit splat definition has no custom font",
+  "source": "Nh client fontPlain11 fallback (p11_full) used when a hit splat definition has no custom font",
   "image": "hitsplat_digits.png",
   "width": 64,
   "height": 9,

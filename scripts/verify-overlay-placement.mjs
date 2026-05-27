@@ -42,11 +42,11 @@ function loadTsModule(relativePath) {
 }
 
 const {
-  KRONOS_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS,
-  kronosActorOverlayPlacement,
-  kronosOverlaySortValue
-} = loadTsModule("src/render/kronosOverlayPlacement.ts");
-const overlayPlacementSource = readFileSync(path.join(projectRoot, "src/render/kronosOverlayPlacement.ts"), "utf8");
+  NH_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS,
+  nhActorOverlayPlacement,
+  nhOverlaySortValue
+} = loadTsModule("src/render/nhOverlayPlacement.ts");
+const overlayPlacementSource = readFileSync(path.join(projectRoot, "src/render/nhOverlayPlacement.ts"), "utf8");
 const runtimeViewerSource = readFileSync(path.join(projectRoot, "src/ui/RuntimeSceneViewer.tsx"), "utf8");
 const runtimeSceneSource = readFileSync(path.join(projectRoot, "src/render/runtimeScene.ts"), "utf8");
 const clientViewReplaySource = readFileSync(path.join(projectRoot, "src/render/clientViewReplay.ts"), "utf8");
@@ -92,12 +92,12 @@ function assertNoPlacement(name, actual) {
   assert(actual === null, `${name} should suppress placement when cache sprite metrics are missing`);
 }
 
-assert(KRONOS_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS === 200, "player default overlay height should match client defaultHeight");
+assert(NH_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS === 200, "player default overlay height should match client defaultHeight");
 assert(!overlayPlacementSource.includes("fallbackWidth"), "overlay placement must not keep handmade fallback sprite widths");
 assert(!overlayPlacementSource.includes("fallbackHeight"), "overlay placement must not keep handmade fallback sprite heights");
 assert(!runtimeViewerSource.includes("const targetHeight = 1.35"), "runtime actor model height should not use the old handmade 1.35 world-unit scale");
 assert(
-  runtimeViewerSource.includes("kronosClientUnitsToWorldUnits(KRONOS_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS)"),
+  runtimeViewerSource.includes("nhClientUnitsToWorldUnits(NH_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS)"),
   "runtime actor model height should derive from Actor.defaultHeight client units"
 );
 assert(!runtimeSceneSource.includes("spriteUrl"), "runtime scene overlay events should resolve sprite sheets through source atlas ids, not stale hardcoded URLs");
@@ -105,15 +105,15 @@ assert(!clientViewReplaySource.includes("spriteUrl"), "client-view replay overla
 const sourceAnchorIds = new Set(sourceAnchors.map((anchor) => anchor.id));
 assert(sourceAnchorIds.has("client-actor-default-height-contract"), "missing Actor.defaultHeight source anchor");
 assert(sourceAnchorIds.has("client-player-model-height-contract"), "missing Player model-height source anchor");
-assert(kronosOverlaySortValue(event("health_bars")) === 10, "health bars should draw below head icons");
-assert(kronosOverlaySortValue(event("pk_skull")) === 20, "pk skull sort value mismatch");
-assert(kronosOverlaySortValue(event("prayer_overheads")) === 30, "prayer overhead sort value mismatch");
-assert(kronosOverlaySortValue(event("hitsplats")) === 40, "hitsplat sort value mismatch");
-assert(kronosOverlaySortValue(event("hitsplats", { clientOrder: 1234 })) === 1234, "clientOrder should override default order");
+assert(nhOverlaySortValue(event("health_bars")) === 10, "health bars should draw below head icons");
+assert(nhOverlaySortValue(event("pk_skull")) === 20, "pk skull sort value mismatch");
+assert(nhOverlaySortValue(event("prayer_overheads")) === 30, "prayer overhead sort value mismatch");
+assert(nhOverlaySortValue(event("hitsplats")) === 40, "hitsplat sort value mismatch");
+assert(nhOverlaySortValue(event("hitsplats", { clientOrder: 1234 })) === 1234, "clientOrder should override default order");
 
 assertPlacement(
   "pk skull",
-  kronosActorOverlayPlacement(event("pk_skull"), [event("pk_skull")], baseSprite, 0),
+  nhActorOverlayPlacement(event("pk_skull"), [event("pk_skull")], baseSprite, 0),
   {
     anchorClientUnits: 215,
     centerOffsetXPixels: 0.5,
@@ -123,7 +123,7 @@ assertPlacement(
 
 assertPlacement(
   "prayer without pk skull",
-  kronosActorOverlayPlacement(event("prayer_overheads"), [event("prayer_overheads")], baseSprite, 0),
+  nhActorOverlayPlacement(event("prayer_overheads"), [event("prayer_overheads")], baseSprite, 0),
   {
     anchorClientUnits: 215,
     centerOffsetXPixels: 0.5,
@@ -133,7 +133,7 @@ assertPlacement(
 
 assertPlacement(
   "prayer above pk skull",
-  kronosActorOverlayPlacement(event("prayer_overheads"), [event("pk_skull"), event("prayer_overheads")], baseSprite, 0),
+  nhActorOverlayPlacement(event("prayer_overheads"), [event("pk_skull"), event("prayer_overheads")], baseSprite, 0),
   {
     anchorClientUnits: 215,
     centerOffsetXPixels: 0.5,
@@ -143,7 +143,7 @@ assertPlacement(
 
 assertPlacement(
   "sprite draw offset",
-  kronosActorOverlayPlacement(
+  nhActorOverlayPlacement(
     event("pk_skull"),
     [event("pk_skull")],
     { width: 20, height: 20, offsetX: 2, offsetY: 3 },
@@ -158,7 +158,7 @@ assertPlacement(
 
 assertPlacement(
   "health bar first stack",
-  kronosActorOverlayPlacement(event("health_bars"), [event("health_bars")], { ...baseSprite, height: 5 }, 0),
+  nhActorOverlayPlacement(event("health_bars"), [event("health_bars")], { ...baseSprite, height: 5 }, 0),
   {
     anchorClientUnits: 215,
     centerOffsetXPixels: 0,
@@ -168,7 +168,7 @@ assertPlacement(
 
 assertPlacement(
   "health bar second stack",
-  kronosActorOverlayPlacement(event("health_bars"), [event("health_bars")], { ...baseSprite, height: 5 }, 1),
+  nhActorOverlayPlacement(event("health_bars"), [event("health_bars")], { ...baseSprite, height: 5 }, 1),
   {
     anchorClientUnits: 215,
     centerOffsetXPixels: 0,
@@ -189,7 +189,7 @@ const expectedHitsplatSlots = [
 for (let index = 0; index < expectedHitsplatSlots.length; index += 1) {
   assertPlacement(
     `hitsplat slot ${index}`,
-    kronosActorOverlayPlacement(hitsplatEvent, [hitsplatEvent], { width: 23, height: 23, offsetX: 0, offsetY: 0 }, index),
+    nhActorOverlayPlacement(hitsplatEvent, [hitsplatEvent], { width: 23, height: 23, offsetX: 0, offsetY: 0 }, index),
     {
       anchorClientUnits: 100,
       ...expectedHitsplatSlots[index]
@@ -199,7 +199,7 @@ for (let index = 0; index < expectedHitsplatSlots.length; index += 1) {
 
 assertPlacement(
   "hitsplat source slot override",
-  kronosActorOverlayPlacement(hitsplatSlotEvent, [hitsplatSlotEvent], { width: 23, height: 23, offsetX: 0, offsetY: 0 }, 0),
+  nhActorOverlayPlacement(hitsplatSlotEvent, [hitsplatSlotEvent], { width: 23, height: 23, offsetX: 0, offsetY: 0 }, 0),
   {
     anchorClientUnits: 100,
     centerOffsetXPixels: 15,
@@ -207,27 +207,27 @@ assertPlacement(
   }
 );
 
-assertNoPlacement("pk skull without source sprite", kronosActorOverlayPlacement(event("pk_skull"), [event("pk_skull")], undefined, 0));
+assertNoPlacement("pk skull without source sprite", nhActorOverlayPlacement(event("pk_skull"), [event("pk_skull")], undefined, 0));
 assertNoPlacement(
   "prayer without source sprite",
-  kronosActorOverlayPlacement(event("prayer_overheads"), [event("prayer_overheads")], undefined, 0)
+  nhActorOverlayPlacement(event("prayer_overheads"), [event("prayer_overheads")], undefined, 0)
 );
 assertNoPlacement(
   "health bar without source sprite",
-  kronosActorOverlayPlacement(event("health_bars"), [event("health_bars")], undefined, 0)
+  nhActorOverlayPlacement(event("health_bars"), [event("health_bars")], undefined, 0)
 );
-assertNoPlacement("hitsplat without source sprite", kronosActorOverlayPlacement(hitsplatEvent, [hitsplatEvent], undefined, 0));
+assertNoPlacement("hitsplat without source sprite", nhActorOverlayPlacement(hitsplatEvent, [hitsplatEvent], undefined, 0));
 
 console.log(
   JSON.stringify(
     {
       ok: true,
-      playerHeight: KRONOS_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS,
+      playerHeight: NH_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS,
       sortValues: {
-        health: kronosOverlaySortValue(event("health_bars")),
-        pkSkull: kronosOverlaySortValue(event("pk_skull")),
-        prayer: kronosOverlaySortValue(event("prayer_overheads")),
-        hitsplat: kronosOverlaySortValue(event("hitsplats"))
+        health: nhOverlaySortValue(event("health_bars")),
+        pkSkull: nhOverlaySortValue(event("pk_skull")),
+        prayer: nhOverlaySortValue(event("prayer_overheads")),
+        hitsplat: nhOverlaySortValue(event("hitsplats"))
       },
       hitsplatSlots: expectedHitsplatSlots.length
     },

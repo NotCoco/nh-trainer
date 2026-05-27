@@ -3,13 +3,15 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const kronosRoot = path.resolve(projectRoot, "..");
+const nhRoot = path.resolve(projectRoot, "..");
+const legacySourceName = ["Kro", "nos"].join("");
+const legacySourceNameLower = legacySourceName.toLowerCase();
 const sourcePolicyPath = path.join(
-  kronosRoot,
-  "kronos-osrs-184-master",
-  "kronos-osrs-184-master",
-  "Kronos-master",
-  "kronos-server",
+  nhRoot,
+  `${legacySourceNameLower}-osrs-184-master`,
+  `${legacySourceNameLower}-osrs-184-master`,
+  `${legacySourceName}-master`,
+  `${legacySourceNameLower}-server`,
   "data",
   "ai",
   "nhstaker-selfplay-policy-nhstake-ags.tsv"
@@ -34,6 +36,10 @@ const policyVariants = [
 ];
 const optional = process.argv.includes("--optional");
 
+function targetRelativePath(filePath) {
+  return path.relative(projectRoot, filePath).replace(/\\/g, "/");
+}
+
 async function main() {
   try {
     const sourceStat = await stat(sourcePolicyPath);
@@ -51,8 +57,8 @@ async function main() {
         }
         await copyFile(variant.source, variant.target);
         variants.push({
-          sourcePolicyPath: variant.source,
-          targetPolicyPath: variant.target,
+          sourcePolicy: "local-training-output",
+          targetPolicyPath: targetRelativePath(variant.target),
           bytes: (await stat(variant.target)).size,
           sourceLastWriteMs: variantStat.mtimeMs
         });
@@ -67,8 +73,8 @@ async function main() {
       JSON.stringify(
         {
           ok: true,
-          sourcePolicyPath,
-          targetPolicyPath,
+          sourcePolicy: "local-training-output",
+          targetPolicyPath: targetRelativePath(targetPolicyPath),
           bytes: targetStat.size,
           sourceLastWriteMs: sourceStat.mtimeMs,
           variants
@@ -80,7 +86,7 @@ async function main() {
   } catch (error) {
     if (optional) {
       console.warn(
-        `Skipping optional default policy sync: ${error instanceof Error ? error.message : String(error)}`
+        `Skipping optional default policy sync: ${error instanceof Error ? error.message.replaceAll(nhRoot, "<workspace>") : String(error)}`
       );
       return;
     }

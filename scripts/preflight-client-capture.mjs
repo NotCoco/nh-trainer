@@ -2,21 +2,21 @@ import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  kronosClientCapturePlan,
+  nhClientCapturePlan,
   referenceManifestFileName,
   renderReferenceTargets
 } from "./render-reference-targets.mjs";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const kronosRoot = path.resolve(projectRoot, "..");
-const defaultClientRoot = path.join(kronosRoot, "Kronos184-Client");
-const defaultSourceRoot = "C:\\codeximg\\kronos-client-reference";
+const nhRoot = path.resolve(projectRoot, "..");
+const defaultClientRoot = path.join(nhRoot, "Nh184-Client");
+const defaultSourceRoot = "C:\\codeximg\\nh-client-reference";
 const defaultOutputRoot = path.join(projectRoot, "fixtures", "reference", "client-render");
 
 function parseArgs(argv) {
   const options = {
-    clientRoot: process.env.KRONOS_CLIENT_ROOT ?? defaultClientRoot,
-    sourceRoot: process.env.KRONOS_CLIENT_REFERENCE_DIR ?? defaultSourceRoot,
+    clientRoot: process.env.NH_CLIENT_ROOT ?? defaultClientRoot,
+    sourceRoot: process.env.NH_CLIENT_REFERENCE_DIR ?? defaultSourceRoot,
     outputRoot: defaultOutputRoot,
     requireCaptures: false,
     json: false,
@@ -57,7 +57,7 @@ function usage() {
   return [
     "Usage: npm run capture:client:preflight -- [--source <dir>] [--client <dir>] [--require-captures] [--json]",
     "",
-    "Validates the real Kronos client capture bridge and reports whether the expected",
+    "Validates the real Nh client capture bridge and reports whether the expected",
     "viewport-cropped reference PNGs and .client-view.json traces are present.",
     "",
     `Default client: ${defaultClientRoot}`,
@@ -151,8 +151,8 @@ async function validateClientBridge(clientRoot) {
     "runelite",
     "client",
     "plugins",
-    "kronosnhcapture",
-    "KronosNhCapturePlugin.java"
+    "nhnhcapture",
+    "NhNhCapturePlugin.java"
   );
   const cameraBridgeFile = path.join(
     clientRoot,
@@ -163,7 +163,7 @@ async function validateClientBridge(clientRoot) {
     "net",
     "runelite",
     "standalone",
-    "KronosNhCaptureSceneBridge.java"
+    "NhNhCaptureSceneBridge.java"
   );
   const clientViewBridgeFile = path.join(
     clientRoot,
@@ -174,7 +174,7 @@ async function validateClientBridge(clientRoot) {
     "net",
     "runelite",
     "standalone",
-    "KronosNhClientViewBridge.java"
+    "NhNhClientViewBridge.java"
   );
   const actorFile = path.join(
     clientRoot,
@@ -240,15 +240,15 @@ async function validateClientBridge(clientRoot) {
   assertIncludes(failures, "root Gradle run task", buildSource, 'named<JavaExec>("run")');
   assertIncludes(failures, "capture plugin", captureSource, 'enabledByDefault = true');
   assertIncludes(failures, "capture plugin", captureSource, 'hidden = true');
-  assertIncludes(failures, "capture plugin", captureSource, 'CAPTURE_DIR_ENV = "KRONOS_NH_CAPTURE_DIR"');
-  assertIncludes(failures, "capture plugin", captureSource, 'CAPTURE_PLAN_ENV = "KRONOS_NH_CAPTURE_PLAN"');
+  assertIncludes(failures, "capture plugin", captureSource, 'CAPTURE_DIR_ENV = "NH_NH_CAPTURE_DIR"');
+  assertIncludes(failures, "capture plugin", captureSource, 'CAPTURE_PLAN_ENV = "NH_NH_CAPTURE_PLAN"');
   assertIncludes(failures, "capture plugin", captureSource, "drawManager.requestNextFrameListener(imageCallback);");
   assertIncludes(failures, "capture plugin", captureSource, "BufferedImage frame = cropViewport(source, viewport);");
   assertIncludes(
     failures,
     "capture plugin",
     captureSource,
-    "KronosNhClientViewBridge.snapshotClientViewTrace(clientCycle, target.fileName)"
+    "NhNhClientViewBridge.snapshotClientViewTrace(clientCycle, target.fileName)"
   );
   assertIncludes(failures, "camera bridge", cameraBridgeSource, "return sourceClientPreset(256, 128);");
   assertIncludes(failures, "camera bridge", cameraBridgeSource, "return sourceClientPreset(0, 128);");
@@ -270,12 +270,12 @@ async function validateClientBridge(clientRoot) {
   assertIncludes(failures, "client-view bridge", clientViewBridgeSource, "client-projectile-motion-contract");
   assertIncludes(failures, "client-view bridge", clientViewBridgeSource, "client-hitsplat-packet-contract");
   assertIncludes(failures, "client-view bridge", clientViewBridgeSource, "client-spotanim-sequence-contract");
-  assertIncludes(failures, "actor hitsplat recorder", actorSource, "KronosNhClientViewBridge.recordActorHitsplat(this, var1, var2, var3, var4, var5, var6, var9, var11);");
+  assertIncludes(failures, "actor hitsplat recorder", actorSource, "NhNhClientViewBridge.recordActorHitsplat(this, var1, var2, var3, var4, var5, var6, var9, var11);");
   assertIncludes(
     failures,
     "projectile packet recorder",
     projectilePacketSource,
-    "KronosNhClientViewBridge.recordProjectile(var34, Client.cycle, var14 / 4, var12, var8);"
+    "NhNhClientViewBridge.recordProjectile(var34, Client.cycle, var14 / 4, var12, var8);"
   );
 
   for (const target of renderReferenceTargets) {
@@ -454,18 +454,18 @@ async function inspectImportedReferences(outputRoot) {
 function buildLaunchCommands(options) {
   return [
     `cd ${options.clientRoot}`,
-    `$env:KRONOS_NH_CAPTURE_DIR='${options.sourceRoot}'`,
-    `$env:KRONOS_NH_CAPTURE_PLAN='${kronosClientCapturePlan}'`,
+    `$env:NH_NH_CAPTURE_DIR='${options.sourceRoot}'`,
+    `$env:NH_NH_CAPTURE_PLAN='${nhClientCapturePlan}'`,
     ".\\gradlew.bat run --args='--rs=RSPS'"
   ];
 }
 
 function printHuman(report) {
-  console.log("Kronos client capture preflight");
+  console.log("Nh client capture preflight");
   console.log(`clientRoot: ${report.options.clientRoot}`);
   console.log(`sourceRoot: ${report.options.sourceRoot}`);
   console.log(`outputRoot: ${report.options.outputRoot}`);
-  console.log(`capturePlan: ${kronosClientCapturePlan}`);
+  console.log(`capturePlan: ${nhClientCapturePlan}`);
   console.log("");
   console.log(`clientBridge: ${report.clientBridge.ok ? "ok" : "blocked"}`);
   for (const failure of report.clientBridge.failures) {
@@ -526,7 +526,7 @@ async function main() {
 
   const report = {
     options,
-    capturePlan: kronosClientCapturePlan,
+    capturePlan: nhClientCapturePlan,
     clientBridge,
     source,
     imported,

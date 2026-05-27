@@ -9,12 +9,12 @@ import { screenshotDir, uniqueScreenshotPath } from "./screenshot-paths.mjs";
 const require = createRequire(import.meta.url);
 const electronPath = require("electron");
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const screenshotPath = uniqueScreenshotPath("kronos-nh-trainer-inventory-fkey-click-preserve");
+const screenshotPath = uniqueScreenshotPath("nh-nh-trainer-inventory-fkey-click-preserve");
 const scriptPath = path.join(projectRoot, "scripts", "inventory-fkey-click-preserve-electron.cjs");
 
 await mkdir(screenshotDir, { recursive: true });
 
-const hudSource = await readFile(path.join(projectRoot, "src", "ui", "KronosClientHud.tsx"), "utf8");
+const hudSource = await readFile(path.join(projectRoot, "src", "ui", "NhClientHud.tsx"), "utf8");
 for (const snippet of [
   "flushPendingPressOnUnmount",
   "Frames.dragInventoryWidget/dragItemSlotSource",
@@ -22,14 +22,14 @@ for (const snippet of [
   "suppressNextRetargetedInventoryRelease"
 ]) {
   if (!hudSource.includes(snippet)) {
-    throw new Error(`KronosClientHud missing inventory F-key click preservation snippet: ${snippet}`);
+    throw new Error(`NhClientHud missing inventory F-key click preservation snippet: ${snippet}`);
   }
 }
 
 const runtimeSource = await readFile(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
 for (const snippet of [
   "runeliteKeyRemappingFunctionKeyFromKeyboardEvent",
-  "kronosGameKeybindSideTabForFunctionKey",
+  "nhGameKeybindSideTabForFunctionKey",
   "setActiveSideTabId(tab.id)"
 ]) {
   if (!runtimeSource.includes(snippet)) {
@@ -41,7 +41,7 @@ const clientSource = await readFile(
   path.resolve(
     projectRoot,
     "..",
-    "Kronos184-Client",
+    "Nh184-Client",
     "runelite-client",
     "src",
     "main",
@@ -64,7 +64,7 @@ for (const snippet of [
   "class11.method137(field953, field954);"
 ]) {
   if (!clientSource.includes(snippet)) {
-    throw new Error(`Kronos client source evidence missing ${snippet}`);
+    throw new Error(`Nh client source evidence missing ${snippet}`);
   }
 }
 

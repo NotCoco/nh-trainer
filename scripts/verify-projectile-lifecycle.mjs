@@ -100,9 +100,9 @@ const { assertValidClientViewTrace } = loadTsModule("src/sim/clientView.ts");
 const { createDefaultNhDuelClientViewTrace } = loadTsModule("src/sim/nh/duel.ts");
 const { clientViewTraceToRuntimeReplay } = loadTsModule("src/render/clientViewReplay.ts");
 const {
-  kronosRenderCycleToProjectileClientCycle,
-  sampleKronosProjectileMotion
-} = loadTsModule("src/render/kronosProjectileMotion.ts");
+  nhRenderCycleToProjectileClientCycle,
+  sampleNhProjectileMotion
+} = loadTsModule("src/render/nhProjectileMotion.ts");
 const fixtureTrace = JSON.parse(readFileSync(path.join(projectRoot, "fixtures", "sim", "client-view-two-actor-duel.json"), "utf8"));
 const projectileDefs = JSON.parse(readFileSync(path.join(projectRoot, "fixtures", "assets", "defs", "projectiles.json"), "utf8"));
 const spotanimDefs = JSON.parse(readFileSync(path.join(projectRoot, "fixtures", "assets", "defs", "spotanims.json"), "utf8"));
@@ -140,7 +140,7 @@ const spotanimDefinitions = new Map(
 );
 const definitionByGfx = new Map([...projectileDefinitions.values()].map((projectile) => [projectile.projectileGfxId, projectile]));
 const dragonBoltDef = definitionByGfx.get(1468);
-assert(dragonBoltDef, "exported projectile definitions should include Kronos Projectile.DRAGON_BOLT gfx 1468");
+assert(dragonBoltDef, "exported projectile definitions should include Nh Projectile.DRAGON_BOLT gfx 1468");
 assert(dragonBoltDef.id === "dragon_bolt", "dragon bolt projectile definition should use the dragon_bolt runtime id");
 assert(
   dragonBoltDef.artifactUrl === "render/spotanims/dragon_bolt_projectile.glb",
@@ -173,9 +173,9 @@ assert(generatedProjectiles.length > 0, "generated duel should emit projectile p
 const magicPacket = fixtureTrace.events.find((event) => event.kind === "projectile" && event.projectileId === 368);
 assert(magicPacket, "source-backed projectile fixture should include an ice barrage projectile");
 assert(magicPacket.targetIndex === -2 || magicPacket.targetIndex === -1, "magic projectile should target a player index");
-assert(magicPacket.delayCycles === 51, "ice barrage delay must match Kronos server projectile");
-assert(magicPacket.curve === 16, "ice barrage curve must match Kronos server projectile");
-assert(magicPacket.offset === 64, "ice barrage offset/idk must match Kronos server projectile");
+assert(magicPacket.delayCycles === 51, "ice barrage delay must match Nh server projectile");
+assert(magicPacket.curve === 16, "ice barrage curve must match Nh server projectile");
+assert(magicPacket.offset === 64, "ice barrage offset/idk must match Nh server projectile");
 assert(magicPacket.skipTravel === true, "ice barrage should preserve skipTravel");
 assert(
   magicPacket.startTile.x === magicPacket.targetTile.x && magicPacket.startTile.y === magicPacket.targetTile.y,
@@ -196,9 +196,9 @@ assert(barrageEvent.projectile.cycleEnd === barrageEvent.projectile.packetCycle 
 assert(barrageEvent.projectile.startDistanceOffset === 64, "runtime lifecycle should preserve client Projectile startHeight/offset");
 
 const barrageDef = definitionByGfx.get(368);
-const startClientCycle = kronosRenderCycleToProjectileClientCycle(barrageEvent, barrageEvent.startCycle, barrageEvent.projectile);
+const startClientCycle = nhRenderCycleToProjectileClientCycle(barrageEvent, barrageEvent.startCycle, barrageEvent.projectile);
 assertAlmost("mapped barrage start cycle", startClientCycle, barrageEvent.projectile.cycleStart);
-const startSample = sampleKronosProjectileMotion(barrageEvent, barrageEvent.startCycle, barrageDef);
+const startSample = sampleNhProjectileMotion(barrageEvent, barrageEvent.startCycle, barrageDef);
 assertAlmost("barrage source x", startSample.x, barrageEvent.projectile.destinationTile.x);
 assertAlmost("barrage source y", startSample.y, barrageEvent.projectile.destinationTile.z);
 assertAlmost("barrage source z", startSample.z, (43 * 4) / 256);
@@ -210,8 +210,8 @@ assert(boltEvent.artifactUrl === "render/spotanims/bolt_projectile.glb", "bolt a
 assert(boltEvent.projectile.cycleStart === boltEvent.projectile.packetCycle + 41, "bolt cycleStart should preserve packet delay");
 assert(boltEvent.projectile.cycleEnd === boltEvent.projectile.packetCycle + 61, "bolt cycleEnd should preserve packet duration");
 const boltDef = definitionByGfx.get(27);
-const boltStart = sampleKronosProjectileMotion(boltEvent, boltEvent.startCycle, boltDef);
-const boltEnd = sampleKronosProjectileMotion(boltEvent, boltEvent.endCycle, boltDef);
+const boltStart = sampleNhProjectileMotion(boltEvent, boltEvent.startCycle, boltDef);
+const boltEnd = sampleNhProjectileMotion(boltEvent, boltEvent.endCycle, boltDef);
 assert(boltStart.x < boltEnd.x, "bolt projectile should move toward its target over the render window");
 assertAlmost("bolt start height", boltStart.z, (38 * 4) / 256);
 

@@ -68,7 +68,7 @@ async function setRuntimeCamera(window, camera) {
         input.value = ${JSON.stringify(camera)};
         input.dispatchEvent(new Event("change", { bubbles: true }));
       }
-      window.dispatchEvent(new CustomEvent("kronos-runtime-camera", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-camera", {
         detail: { camera: ${JSON.stringify(camera)} }
       }));
     })()
@@ -88,7 +88,7 @@ async function setRuntimeCycle(window, cycle) {
         input.dispatchEvent(new Event("input", { bubbles: true }));
         input.dispatchEvent(new Event("change", { bubbles: true }));
       }
-      window.dispatchEvent(new CustomEvent("kronos-runtime-cycle", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-cycle", {
         detail: { cycle: ${JSON.stringify(cycle)} }
       }));
     })()
@@ -259,7 +259,7 @@ app.whenReady().then(async () => {
         throw new Error(`Runtime canvas failed for ${check.camera}: ${JSON.stringify(pixelStats)}`);
       }
       const screenshotSuffix = check.replayId ? `${check.camera}-${check.replayId}` : check.camera;
-      const screenshotPath = path.join(screenshotDir, `kronos-nh-trainer-${screenshotSuffix}-${screenshotRunId}.png`);
+      const screenshotPath = path.join(screenshotDir, `nh-nh-trainer-${screenshotSuffix}-${screenshotRunId}.png`);
       const screenshot = await window.capturePage();
       await fs.writeFile(screenshotPath, screenshot.toPNG());
       results.push({

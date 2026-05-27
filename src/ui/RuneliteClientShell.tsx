@@ -1141,7 +1141,7 @@ const runeliteNavigationButtons: readonly RuneliteNavigationButtonModel[] = [
     iconPath: "runelite-ui/config_icon.png",
     priority: 0,
     tab: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/config/ConfigPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/config/ConfigPlugin.java"
   },
   {
     id: "pvp-fight-history",
@@ -1149,7 +1149,7 @@ const runeliteNavigationButtons: readonly RuneliteNavigationButtonModel[] = [
     iconPath: "runelite-ui/skull_red.png",
     priority: 6,
     tab: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/pvpperformancetracker/PvpPerformanceTrackerPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/pvpperformancetracker/PvpPerformanceTrackerPlugin.java"
   },
   {
     id: "pvp-tools",
@@ -1157,7 +1157,7 @@ const runeliteNavigationButtons: readonly RuneliteNavigationButtonModel[] = [
     iconPath: "runelite-plugins/pvptools/skull.png",
     priority: 5,
     tab: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/pvptools/PvpToolsPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/pvptools/PvpToolsPlugin.java"
   },
   {
     id: "supplies-tracker",
@@ -1165,7 +1165,7 @@ const runeliteNavigationButtons: readonly RuneliteNavigationButtonModel[] = [
     iconPath: "runelite-plugins/suppliestracker/panel_icon.png",
     priority: 5,
     tab: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/SuppliesTrackerPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/SuppliesTrackerPlugin.java"
   },
   {
     id: "info",
@@ -1173,7 +1173,7 @@ const runeliteNavigationButtons: readonly RuneliteNavigationButtonModel[] = [
     iconPath: "runelite-ui/info_icon.png",
     priority: 9,
     tab: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/info/InfoPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/info/InfoPlugin.java"
   }
 ];
 
@@ -1278,7 +1278,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: false,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/config/ConfigPanel.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/config/ConfigPanel.java"
   },
   {
     id: "runelite",
@@ -1290,7 +1290,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: false,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/config/ConfigPanel.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/config/ConfigPanel.java"
   },
   {
     id: "gpu",
@@ -1302,7 +1302,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: true,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/gpu/GpuPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/gpu/GpuPlugin.java"
   },
   {
     id: RUNELITE_STRETCHED_MODE_PLUGIN_ID,
@@ -1315,7 +1315,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: true,
     pluginBacked: true,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/stretchedmode/StretchedModePlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/stretchedmode/StretchedModePlugin.java"
   },
   {
     id: "animation-smoothing",
@@ -1327,7 +1327,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: true,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/animsmoothing/AnimationSmoothingPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/animsmoothing/AnimationSmoothingPlugin.java"
   },
   {
     id: "anti-drag",
@@ -1339,7 +1339,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: true,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/antidrag/AntiDragPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/antidrag/AntiDragPlugin.java"
   },
   {
     id: "custom-cursor",
@@ -1351,7 +1351,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: true,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/customcursor/CustomCursorPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/customcursor/CustomCursorPlugin.java"
   },
   {
     id: RUNELITE_KEY_REMAPPING_PLUGIN_ID,
@@ -1363,7 +1363,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: true,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/keyremapping/KeyRemappingPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/keyremapping/KeyRemappingPlugin.java"
   },
   {
     id: RUNELITE_MOUSE_HIGHLIGHT_PLUGIN_ID,
@@ -1375,7 +1375,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: true,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/mousehighlight/MouseHighlightPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/mousehighlight/MouseHighlightPlugin.java"
   },
   {
     id: "entity-hider",
@@ -1387,7 +1387,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: true,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/entityhider/EntityHiderPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/entityhider/EntityHiderPlugin.java"
   },
   {
     id: RUNELITE_HIDE_UNDER_PLUGIN_ID,
@@ -1399,7 +1399,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: true,
     configurable: false,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/hideunder/HideUnder.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/hideunder/HideUnder.java"
   },
   {
     id: RUNELITE_PRAY_AGAINST_PLAYER_PLUGIN_ID,
@@ -1411,7 +1411,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: true,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/prayagainstplayer/PrayAgainstPlayerPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/prayagainstplayer/PrayAgainstPlayerPlugin.java"
   },
   {
     id: "timers",
@@ -1423,7 +1423,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: true,
     pluginBacked: true,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/timers/TimersPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/timers/TimersPlugin.java"
   },
   {
     id: "freeze-timers",
@@ -1435,7 +1435,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: true,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/freezetimers/FreezeTimersPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/freezetimers/FreezeTimersPlugin.java"
   },
   {
     id: "spec-bar",
@@ -1447,7 +1447,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: true,
     configurable: false,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/specbar/SpecBarPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/specbar/SpecBarPlugin.java"
   },
   {
     id: "attack-styles",
@@ -1459,7 +1459,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: true,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStylesPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStylesPlugin.java"
   },
   {
     id: "status-bars",
@@ -1471,7 +1471,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: true,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusbars/StatusBarsPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusbars/StatusBarsPlugin.java"
   },
   {
     id: "status-orbs",
@@ -1483,7 +1483,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: true,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusorbs/StatusOrbsPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusorbs/StatusOrbsPlugin.java"
   },
   {
     id: "supplies-tracker",
@@ -1495,7 +1495,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: true,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/SuppliesTrackerPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/SuppliesTrackerPlugin.java"
   },
   {
     id: "pvp-tools",
@@ -1507,7 +1507,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: true,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/pvptools/PvpToolsPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/pvptools/PvpToolsPlugin.java"
   },
   {
     id: "xp-drop",
@@ -1520,7 +1520,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: true,
     pluginBacked: true,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/experiencedrop/XpDropPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/experiencedrop/XpDropPlugin.java"
   },
   {
     id: "boosts-information",
@@ -1532,7 +1532,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: true,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/boosts/BoostsPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/boosts/BoostsPlugin.java"
   },
   {
     id: "prayer",
@@ -1544,7 +1544,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: true,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerPlugin.java"
   },
   {
     id: "opponent-info",
@@ -1556,7 +1556,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: true,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/OpponentInfoPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/OpponentInfoPlugin.java"
   },
   {
     id: "player-indicators",
@@ -1568,7 +1568,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: true,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicatorsPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicatorsPlugin.java"
   },
   {
     id: "tile-indicators",
@@ -1580,7 +1580,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: true,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/tileindicators/TileIndicatorsPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/tileindicators/TileIndicatorsPlugin.java"
   },
   {
     id: "pvp-performance-tracker",
@@ -1593,7 +1593,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     pluginBacked: true,
     configurable: true,
     sourcePath:
-      "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/pvpperformancetracker/PvpPerformanceTrackerPlugin.java"
+      "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/pvpperformancetracker/PvpPerformanceTrackerPlugin.java"
   },
   {
     id: "info-panel",
@@ -1605,7 +1605,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: true,
     pluginBacked: true,
     configurable: false,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/info/InfoPlugin.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/info/InfoPlugin.java"
   },
   {
     id: "chat-color",
@@ -1617,7 +1617,7 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     enabledByDefault: false,
     pluginBacked: false,
     configurable: true,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/config/ChatColorConfig.java"
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/config/ChatColorConfig.java"
   }
 ];
 
@@ -2060,7 +2060,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: "openosrs",
     group: "openosrs",
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/config/OpenOSRSConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/config/OpenOSRSConfig.java",
     titleSections: [
       { keyName: "pluginSortingTitle", name: "Sorting", description: "", position: 65 },
       { keyName: "hidePluginsTitle", name: "Hide By Type", description: "", position: 89 },
@@ -2229,7 +2229,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: "runelite",
     group: "runelite",
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/config/RuneLiteConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/config/RuneLiteConfig.java",
     titleSections: [
       { keyName: "uiTitle", name: "User interface", description: "", position: 35 },
       { keyName: "miscTitle", name: "Miscellaneous", description: "", position: 120 },
@@ -2388,7 +2388,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: RUNELITE_STRETCHED_MODE_PLUGIN_ID,
     group: "stretchedmode",
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/stretchedmode/StretchedModeConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/stretchedmode/StretchedModeConfig.java",
     titleSections: [],
     sections: [],
     items: [
@@ -2431,7 +2431,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: "chat-color",
     group: "textrecolor",
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/config/ChatColorConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/config/ChatColorConfig.java",
     titleSections: [],
     sections: [],
     items: runeliteChatColorConfigItems
@@ -2439,7 +2439,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: "entity-hider",
     group: "entityhider",
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/entityhider/EntityHiderConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/entityhider/EntityHiderConfig.java",
     titleSections: [
       { keyName: "playersTitle", name: "Other players", description: "", position: 1 },
       { keyName: "localPlayerTitle", name: "Local player", description: "", position: 6 },
@@ -2580,7 +2580,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: "gpu",
     group: "gpu",
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/gpu/GpuPluginConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/gpu/GpuPluginConfig.java",
     titleSections: [
       { keyName: "drawingTitle", name: "Drawing", description: "", position: 1 },
       { keyName: "ppTitle", name: "Post processing", description: "", position: 4 },
@@ -2666,7 +2666,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: "animation-smoothing",
     group: "animationSmoothing",
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/animsmoothing/AnimationSmoothingConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/animsmoothing/AnimationSmoothingConfig.java",
     titleSections: [],
     sections: [],
     items: [
@@ -2708,7 +2708,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
     id: "pvp-performance-tracker",
     group: "pvpperformancetracker",
     sourcePath:
-      "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/pvpperformancetracker/PvpPerformanceTrackerConfig.java",
+      "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/pvpperformancetracker/PvpPerformanceTrackerConfig.java",
     titleSections: [],
     sections: [
       {
@@ -2976,7 +2976,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: "anti-drag",
     group: "antiDrag",
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/antidrag/AntiDragConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/antidrag/AntiDragConfig.java",
     titleSections: [],
     sections: [],
     items: [
@@ -3083,7 +3083,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: "custom-cursor",
     group: "customcursor",
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/customcursor/CustomCursorConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/customcursor/CustomCursorConfig.java",
     titleSections: [],
     sections: [],
     items: [
@@ -3101,7 +3101,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: RUNELITE_KEY_REMAPPING_PLUGIN_ID,
     group: RUNELITE_KEY_REMAPPING_CONFIG_GROUP,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/keyremapping/KeyRemappingConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/keyremapping/KeyRemappingConfig.java",
     titleSections: [],
     sections: [],
     items: [
@@ -3270,7 +3270,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: RUNELITE_MOUSE_HIGHLIGHT_PLUGIN_ID,
     group: RUNELITE_MOUSE_HIGHLIGHT_CONFIG_GROUP,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/mousehighlight/MouseHighlightConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/mousehighlight/MouseHighlightConfig.java",
     titleSections: [],
     sections: [],
     items: [
@@ -3327,7 +3327,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: "timers",
     group: "timers",
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/timers/TimersConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/timers/TimersConfig.java",
     titleSections: [],
     sections: [],
     items: [
@@ -3344,7 +3344,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: "freeze-timers",
     group: "freezetimers",
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/freezetimers/FreezeTimersConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/freezetimers/FreezeTimersConfig.java",
     titleSections: [
       { keyName: "timersTitle", name: "Timers", description: "", position: 1 },
       { keyName: "overlayTitle", name: "Overlay", description: "", position: 7 }
@@ -3442,7 +3442,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: "attack-styles",
     group: "attackIndicator",
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStylesConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStylesConfig.java",
     titleSections: [],
     sections: [],
     items: [
@@ -3515,7 +3515,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: "status-bars",
     group: "statusbars",
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusbars/StatusBarsConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusbars/StatusBarsConfig.java",
     titleSections: [],
     sections: [],
     items: [
@@ -3584,7 +3584,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: "status-orbs",
     group: "statusorbs",
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusorbs/StatusOrbsConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusorbs/StatusOrbsConfig.java",
     titleSections: [
       { keyName: "hp", name: "Hitpoints", description: "", position: 0 },
       { keyName: "spec", name: "Special attack", description: "", position: 5 },
@@ -3662,7 +3662,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: "supplies-tracker",
     group: "suppliestracker",
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/SuppliesTrackerConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/SuppliesTrackerConfig.java",
     titleSections: [
       {
         keyName: "blowpipeTitle",
@@ -3688,7 +3688,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: "pvp-tools",
     group: "pvptools",
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/pvptools/PvpToolsConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/pvptools/PvpToolsConfig.java",
     titleSections: [],
     sections: [],
     items: [
@@ -3793,7 +3793,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: RUNELITE_PRAY_AGAINST_PLAYER_PLUGIN_ID,
     group: RUNELITE_PRAY_AGAINST_PLAYER_CONFIG_GROUP,
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/prayagainstplayer/PrayAgainstPlayerConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/prayagainstplayer/PrayAgainstPlayerConfig.java",
     titleSections: [],
     sections: [],
     items: [
@@ -3952,7 +3952,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: "xp-drop",
     group: "xpdrop",
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/experiencedrop/XpDropConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/experiencedrop/XpDropConfig.java",
     titleSections: [],
     sections: [],
     items: [
@@ -4067,7 +4067,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: "boosts-information",
     group: "boosts",
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/boosts/BoostsConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/boosts/BoostsConfig.java",
     titleSections: [],
     sections: [],
     items: [
@@ -4153,7 +4153,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: "prayer",
     group: "prayer",
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerConfig.java",
     titleSections: [],
     sections: [],
     items: [
@@ -4235,7 +4235,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: "opponent-info",
     group: "opponentinfo",
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/OpponentInfoConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/OpponentInfoConfig.java",
     titleSections: [],
     sections: [],
     items: [
@@ -4301,7 +4301,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: "player-indicators",
     group: "playerindicators",
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicatorsConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicatorsConfig.java",
     titleSections: [],
     sections: [
       { keyName: "yourselfSection", name: "Yourself", description: "", position: 0 },
@@ -4386,7 +4386,7 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
     id: "tile-indicators",
     group: "tileindicators",
-    sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/tileindicators/TileIndicatorsConfig.java",
+    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/tileindicators/TileIndicatorsConfig.java",
     titleSections: [],
     sections: [],
     items: [
@@ -4586,7 +4586,7 @@ export function RuneliteClientShell({
   useEffect(() => {
     document.title = clientFrameConfig.title;
 
-    const bridge = window.kronosTrainer;
+    const bridge = window.nhTrainer;
     if (!bridge?.applyClientShellFrameConfig) {
       return;
     }
@@ -4834,7 +4834,7 @@ export function RuneliteClientShell({
         data-source-width={RUNELITE_FIXED_CLIENT_WIDTH}
         data-source-height={RUNELITE_FIXED_CLIENT_HEIGHT}
         data-source-anti-drag-cursor="AntiDragPlugin toggleListener/holdListener call clientUI.setCursor(selectedCursor.getCursorImage(), selectedCursor.toString()); release/reset calls clientUI.resetCursor()"
-        data-source-anti-drag-cursor-assets="Kronos184-Client/runelite-client/src/main/resources/net/runelite/client/plugins/customcursor/cursor-*.png"
+        data-source-anti-drag-cursor-assets="Nh184-Client/runelite-client/src/main/resources/net/runelite/client/plugins/customcursor/cursor-*.png"
         data-source-custom-cursor="CustomCursorPlugin startUp/updateCursor and ConfigChanged customcursor.cursorStyle call clientUI.setCursor(selectedCursor.getCursorImage(), selectedCursor.toString()); shutDown calls clientUI.resetCursor()"
         data-anti-drag-cursor-active={String(runeliteAntiDragCursorActive(configSnapshot.antiDrag))}
         data-anti-drag-cursor-style={configSnapshot.antiDrag.cursorStyle}
@@ -5166,7 +5166,7 @@ function RuneliteInfoPanel(): JSX.Element {
       className="runeliteInfoPanel"
       data-source-panel="InfoPanel extends PluginPanel"
       data-source-layout="BorderLayout"
-      data-navigation-source="Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/info/InfoPanel.java"
+      data-navigation-source="Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/info/InfoPanel.java"
     >
       <section className="runeliteInfoVersionPanel" data-source-border="new EmptyBorder(10, 10, 10, 10)">
         <RuneliteInfoVersionLine label="RuneLite version:" value="@project.version@" />
@@ -5210,8 +5210,8 @@ function RunelitePvpToolsPanel({
       data-source-layout="BorderLayout"
       data-source-plugin="PvpToolsPlugin"
       data-source-nav-button="NavigationButton tooltip PvP Tools priority 5 panel(panel)"
-      data-source-panel-file="Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/pvptools/PvpToolsPanel.java"
-      data-source-plugin-file="Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/pvptools/PvpToolsPlugin.java"
+      data-source-panel-file="Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/pvptools/PvpToolsPanel.java"
+      data-source-plugin-file="Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/pvptools/PvpToolsPlugin.java"
     >
       <section className="runelitePvpToolsInfoPanel" data-source-layout="GridLayout(0, 1)">
         <RunelitePvpToolsHtmlLabel
@@ -5365,9 +5365,9 @@ function RuneliteSuppliesTrackerPanel({
       data-source-layout="BorderLayout"
       data-source-plugin="SuppliesTrackerPlugin"
       data-source-nav-button="NavigationButton tooltip Supplies Tracker priority 5 panel(panel)"
-      data-source-panel-file="Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/SuppliesTrackerPanel.java"
-      data-source-box-file="Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/SuppliesBox.java"
-      data-source-item-type-file="Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/ItemType.java"
+      data-source-panel-file="Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/SuppliesTrackerPanel.java"
+      data-source-box-file="Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/SuppliesBox.java"
+      data-source-item-type-file="Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/ItemType.java"
     >
       {hasSupplies && snapshot ? (
         <>
@@ -5573,7 +5573,7 @@ function RuneliteAntiDragOverlay({
       className="runeliteAntiDragOverlay"
       aria-hidden="true"
       data-source-overlay="AntiDragOverlay"
-      data-source-overlay-file="Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/antidrag/AntiDragOverlay.java"
+      data-source-overlay-file="Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/antidrag/AntiDragOverlay.java"
       data-source-overlay-position="OverlayPosition.TOOLTIP"
       data-source-overlay-priority="OverlayPriority.HIGHEST"
       data-source-overlay-layer="OverlayLayer.ALWAYS_ON_TOP"
@@ -5631,7 +5631,7 @@ function runeliteClientPanelStyle(
   }
 
   if (stretchedLayout.enabled) {
-    // Intentional trainer optimization: keep the WebGL render target at Kronos fixed-client dimensions and stretch
+    // Intentional trainer optimization: keep the WebGL render target at Nh fixed-client dimensions and stretch
     // the already-composited client panel. Input handlers translate stretched coordinates back to source pixels.
     style.left = stretchedLayout.offsetX;
     style.top = stretchedLayout.offsetY;
@@ -5686,7 +5686,7 @@ function RunelitePvpPerformanceTrackerPanel({
       className="runelitePvpTrackerPanel"
       data-source-panel="PvpPerformanceTrackerPanel extends PluginPanel"
       data-source-layout="BoxLayout.Y_AXIS"
-      data-navigation-source="Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/pvpperformancetracker/PvpPerformanceTrackerPanel.java"
+      data-navigation-source="Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/pvpperformancetracker/PvpPerformanceTrackerPanel.java"
       data-source-nav-button={RUNELITE_PVP_TRACKER_NAV_BUTTON_SOURCE}
       data-show-fight-history-panel={String(config.showFightHistoryPanel)}
       data-restrict-to-lms={String(config.restrictToLms)}

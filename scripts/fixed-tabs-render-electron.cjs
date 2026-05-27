@@ -10,14 +10,14 @@ function delay(ms) {
 
 function screenshotPath(tabId) {
   const timestamp = new Date().toISOString().replace(/[^0-9]/g, "");
-  return path.join(screenshotDir, `kronos-nh-trainer-fixed-tabs-${tabId}-${timestamp}-${process.pid}.png`);
+  return path.join(screenshotDir, `nh-nh-trainer-fixed-tabs-${tabId}-${timestamp}-${process.pid}.png`);
 }
 
 async function waitForHud(window) {
   const deadline = Date.now() + 20000;
   while (Date.now() < deadline) {
     const ready = await window.webContents.executeJavaScript(`
-      Boolean(document.querySelector(".kronosFixedClient") && document.querySelector(".kronosSideTabButton"))
+      Boolean(document.querySelector(".nhFixedClient") && document.querySelector(".nhSideTabButton"))
     `);
     if (ready) {
       return;
@@ -28,20 +28,20 @@ async function waitForHud(window) {
 }
 
 const tabVisualWaitSelectors = {
-  combat: { present: ".kronosMountedWidgetLayer[data-group-id='593']" },
-  stats: { present: ".kronosStatsPanelLayer[data-group-id='320']", absent: ".kronosEquipmentItemLayer" },
-  quests: { present: ".kronosNoticeboardLayer[data-group-id='720']" },
-  inventory: { present: ".kronosInventorySlot" },
-  equipment: { present: ".kronosEquipmentItemLayer[data-group-id='387']", absent: ".kronosStatsPanelLayer" },
-  prayer: { present: ".kronosMountedWidgetLayer[data-group-id='541']" },
-  magic: { present: ".kronosMountedWidgetLayer[data-group-id='218']" },
-  "clan-chat": { present: ".kronosClanChatPanelLayer[data-group-id='7']" },
-  ignores: { present: ".kronosSocialPanelLayer[data-group-id='432']" },
-  friends: { present: ".kronosSocialPanelLayer[data-group-id='429']" },
-  logout: { present: ".kronosMountedWidgetLayer[data-group-id='182']" },
-  options: { present: ".kronosMountedWidgetLayer[data-group-id='261']" },
-  emotes: { present: ".kronosEmotePanelLayer[data-group-id='216']" },
-  music: { present: ".kronosMountedWidgetLayer[data-group-id='239']" }
+  combat: { present: ".nhMountedWidgetLayer[data-group-id='593']" },
+  stats: { present: ".nhStatsPanelLayer[data-group-id='320']", absent: ".nhEquipmentItemLayer" },
+  quests: { present: ".nhNoticeboardLayer[data-group-id='720']" },
+  inventory: { present: ".nhInventorySlot" },
+  equipment: { present: ".nhEquipmentItemLayer[data-group-id='387']", absent: ".nhStatsPanelLayer" },
+  prayer: { present: ".nhMountedWidgetLayer[data-group-id='541']" },
+  magic: { present: ".nhMountedWidgetLayer[data-group-id='218']" },
+  "clan-chat": { present: ".nhClanChatPanelLayer[data-group-id='7']" },
+  ignores: { present: ".nhSocialPanelLayer[data-group-id='432']" },
+  friends: { present: ".nhSocialPanelLayer[data-group-id='429']" },
+  logout: { present: ".nhMountedWidgetLayer[data-group-id='182']" },
+  options: { present: ".nhMountedWidgetLayer[data-group-id='261']" },
+  emotes: { present: ".nhEmotePanelLayer[data-group-id='216']" },
+  music: { present: ".nhMountedWidgetLayer[data-group-id='239']" }
 };
 
 async function clickTab(window, tabId) {
@@ -50,7 +50,7 @@ async function clickTab(window, tabId) {
     (async () => {
       const presentSelector = ${JSON.stringify(waitSelectors.present ?? "")};
       const absentSelector = ${JSON.stringify(waitSelectors.absent ?? "")};
-      const button = document.querySelector(${JSON.stringify(`.kronosSideTabButton[data-tab-id="${tabId}"]`)});
+      const button = document.querySelector(${JSON.stringify(`.nhSideTabButton[data-tab-id="${tabId}"]`)});
       if (!button) {
         throw new Error("missing tab ${tabId}");
       }
@@ -67,7 +67,7 @@ async function clickTab(window, tabId) {
         clientY: rect.top + rect.height / 2
       }));
       const renderReady = () => {
-        const active = document.querySelector(".kronosSideTabButton[data-active='true']")?.getAttribute("data-tab-id") ?? "";
+        const active = document.querySelector(".nhSideTabButton[data-active='true']")?.getAttribute("data-tab-id") ?? "";
         if (active !== ${JSON.stringify(tabId)}) {
           return false;
         }
@@ -88,28 +88,28 @@ async function clickTab(window, tabId) {
       }
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       return {
-        active: document.querySelector(".kronosSideTabButton[data-active='true']")?.getAttribute("data-tab-id") ?? "",
-        mountedGroups: [...document.querySelectorAll(".kronosMountedWidgetLayer")].map((layer) => ({
+        active: document.querySelector(".nhSideTabButton[data-active='true']")?.getAttribute("data-tab-id") ?? "",
+        mountedGroups: [...document.querySelectorAll(".nhMountedWidgetLayer")].map((layer) => ({
           groupId: Number(layer.getAttribute("data-group-id")),
-          textCount: layer.querySelectorAll(".kronosWidgetText").length,
-          spriteCount: layer.querySelectorAll(".kronosWidgetSprite").length,
-          rectangleCount: layer.querySelectorAll(".kronosWidgetRectangle").length
+          textCount: layer.querySelectorAll(".nhWidgetText").length,
+          spriteCount: layer.querySelectorAll(".nhWidgetSprite").length,
+          rectangleCount: layer.querySelectorAll(".nhWidgetRectangle").length
         })),
-        noticeboard: [...document.querySelectorAll(".kronosNoticeboardLayer")].map((layer) => ({
+        noticeboard: [...document.querySelectorAll(".nhNoticeboardLayer")].map((layer) => ({
           groupId: Number(layer.getAttribute("data-group-id")),
-          textCount: layer.querySelectorAll(".kronosWidgetText").length,
+          textCount: layer.querySelectorAll(".nhWidgetText").length,
           text: layer.textContent ?? ""
         })),
-        emotes: [...document.querySelectorAll(".kronosEmotePanelLayer")].map((layer) => ({
+        emotes: [...document.querySelectorAll(".nhEmotePanelLayer")].map((layer) => ({
           groupId: Number(layer.getAttribute("data-group-id")),
           sourceClientScript: layer.getAttribute("data-source-client-script") ?? "",
-          buttonCount: layer.querySelectorAll(".kronosEmoteButton").length,
-          firstSlot: layer.querySelector(".kronosEmoteButton")?.getAttribute("data-slot") ?? "",
-          firstStep: layer.querySelector(".kronosEmoteButton")?.getAttribute("data-source-client-step") ?? "",
-          firstUnlockedSpriteId: Number(layer.querySelector(".kronosEmoteButton")?.getAttribute("data-unlocked-sprite-id") ?? Number.NaN),
-          firstRenderedSpriteId: Number(layer.querySelector(".kronosEmoteIconSprite")?.getAttribute("data-sprite-id") ?? Number.NaN),
+          buttonCount: layer.querySelectorAll(".nhEmoteButton").length,
+          firstSlot: layer.querySelector(".nhEmoteButton")?.getAttribute("data-slot") ?? "",
+          firstStep: layer.querySelector(".nhEmoteButton")?.getAttribute("data-source-client-step") ?? "",
+          firstUnlockedSpriteId: Number(layer.querySelector(".nhEmoteButton")?.getAttribute("data-unlocked-sprite-id") ?? Number.NaN),
+          firstRenderedSpriteId: Number(layer.querySelector(".nhEmoteIconSprite")?.getAttribute("data-sprite-id") ?? Number.NaN),
           firstIconRect: (() => {
-            const icon = layer.querySelector(".kronosEmoteIconSprite");
+            const icon = layer.querySelector(".nhEmoteIconSprite");
             if (!icon) {
               return null;
             }
@@ -117,32 +117,32 @@ async function clickTab(window, tabId) {
             return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
           })(),
           usesEmoteAtlas: (() => {
-            const image = layer.querySelector(".kronosEmoteIconImage");
+            const image = layer.querySelector(".nhEmoteIconImage");
             return image ? String(image.getAttribute("src") ?? "").includes("emote_icons.png") : false;
           })(),
-          visibleLabelCount: [...layer.querySelectorAll(".kronosEmoteLabel")].filter((label) => label.textContent?.trim()).length
+          visibleLabelCount: [...layer.querySelectorAll(".nhEmoteLabel")].filter((label) => label.textContent?.trim()).length
         })),
-        stats: [...document.querySelectorAll(".kronosStatsPanelLayer")].map((layer) => ({
+        stats: [...document.querySelectorAll(".nhStatsPanelLayer")].map((layer) => ({
           groupId: Number(layer.getAttribute("data-group-id")),
-          slotCount: layer.querySelectorAll(".kronosStatsSkillSlot").length,
-          tileSpriteCount: layer.querySelectorAll(".kronosStatsTileSprite").length,
-          iconSpriteCount: layer.querySelectorAll(".kronosStatsSkillIconSprite").length,
-          levelTextCount: layer.querySelectorAll(".kronosStatsSkillLevelText").length,
-          levelGlyphCount: layer.querySelectorAll(".kronosStatsSkillLevelText .kronosWidgetGlyph").length,
-          totalLevelText: layer.querySelector(".kronosStatsTotalLevelText")?.getAttribute("data-total-level") ?? ""
+          slotCount: layer.querySelectorAll(".nhStatsSkillSlot").length,
+          tileSpriteCount: layer.querySelectorAll(".nhStatsTileSprite").length,
+          iconSpriteCount: layer.querySelectorAll(".nhStatsSkillIconSprite").length,
+          levelTextCount: layer.querySelectorAll(".nhStatsSkillLevelText").length,
+          levelGlyphCount: layer.querySelectorAll(".nhStatsSkillLevelText .nhWidgetGlyph").length,
+          totalLevelText: layer.querySelector(".nhStatsTotalLevelText")?.getAttribute("data-total-level") ?? ""
         })),
-        equipment: [...document.querySelectorAll(".kronosEquipmentItemLayer")].map((layer) => ({
+        equipment: [...document.querySelectorAll(".nhEquipmentItemLayer")].map((layer) => ({
           groupId: Number(layer.getAttribute("data-group-id")),
-          slotTileCount: layer.querySelectorAll(".kronosEquipmentSlotTileSprite[data-sprite-id='170']").length,
-          itemSpriteCount: layer.querySelectorAll(".kronosEquipmentItemSprite").length,
-          itemButtonCount: layer.querySelectorAll(".kronosEquipmentItemButton").length
+          slotTileCount: layer.querySelectorAll(".nhEquipmentSlotTileSprite[data-sprite-id='170']").length,
+          itemSpriteCount: layer.querySelectorAll(".nhEquipmentItemSprite").length,
+          itemButtonCount: layer.querySelectorAll(".nhEquipmentItemButton").length
         })),
-        equipmentUtilityButtonCount: document.querySelectorAll(".kronosEquipmentUtilityButton").length,
-        equipmentSourceSpriteIds: [...document.querySelectorAll(".kronosMountedWidgetLayer[data-group-id='387'] .kronosWidgetSprite")].map((sprite) =>
+        equipmentUtilityButtonCount: document.querySelectorAll(".nhEquipmentUtilityButton").length,
+        equipmentSourceSpriteIds: [...document.querySelectorAll(".nhMountedWidgetLayer[data-group-id='387'] .nhWidgetSprite")].map((sprite) =>
           Number(sprite.getAttribute("data-sprite-id"))
         ),
-        inventorySlotCount: document.querySelectorAll(".kronosInventorySlot").length,
-        social: [...document.querySelectorAll(".kronosSocialPanelLayer")].map((layer) => ({
+        inventorySlotCount: document.querySelectorAll(".nhInventorySlot").length,
+        social: [...document.querySelectorAll(".nhSocialPanelLayer")].map((layer) => ({
           groupId: Number(layer.getAttribute("data-group-id")),
           listKind: layer.getAttribute("data-list-kind") ?? "",
           loaded: layer.getAttribute("data-loaded") ?? "",
@@ -151,15 +151,15 @@ async function clickTab(window, tabId) {
           sourceClientOpcodes: layer.getAttribute("data-source-client-opcodes") ?? "",
           sourceServerHandler: layer.getAttribute("data-source-server-handler") ?? "",
           sourceToggleHandler: layer.getAttribute("data-source-toggle-handler") ?? "",
-          rowNames: [...layer.querySelectorAll(".kronosSocialRow")].map((row) => row.getAttribute("data-name") ?? ""),
-          rowWorlds: [...layer.querySelectorAll(".kronosSocialRow")].map((row) => Number(row.getAttribute("data-world") ?? Number.NaN)),
-          buttonActions: [...layer.querySelectorAll(".kronosSocialSourceButton")].map((button) => ({
+          rowNames: [...layer.querySelectorAll(".nhSocialRow")].map((row) => row.getAttribute("data-name") ?? ""),
+          rowWorlds: [...layer.querySelectorAll(".nhSocialRow")].map((row) => Number(row.getAttribute("data-world") ?? Number.NaN)),
+          buttonActions: [...layer.querySelectorAll(".nhSocialSourceButton")].map((button) => ({
             action: button.getAttribute("data-action") ?? "",
             text: button.getAttribute("data-action-text") ?? "",
             packetId: button.getAttribute("data-source-packet-id") ?? ""
           }))
         })),
-        clanChat: [...document.querySelectorAll(".kronosClanChatPanelLayer")].map((layer) => ({
+        clanChat: [...document.querySelectorAll(".nhClanChatPanelLayer")].map((layer) => ({
           groupId: Number(layer.getAttribute("data-group-id")),
           active: layer.getAttribute("data-active") ?? "",
           displayName: layer.getAttribute("data-display-name") ?? "",
@@ -169,21 +169,21 @@ async function clickTab(window, tabId) {
           sourceClientOpcodes: layer.getAttribute("data-source-client-opcodes") ?? "",
           sourceClientScript: layer.getAttribute("data-source-client-script") ?? "",
           sourceServerHandler: layer.getAttribute("data-source-server-handler") ?? "",
-          rowNames: [...layer.querySelectorAll(".kronosClanChatRow")].map((row) => row.getAttribute("data-name") ?? ""),
-          rowWorlds: [...layer.querySelectorAll(".kronosClanChatRow")].map((row) => Number(row.getAttribute("data-world") ?? Number.NaN)),
-          rowRanks: [...layer.querySelectorAll(".kronosClanChatRow")].map((row) => Number(row.getAttribute("data-rank") ?? Number.NaN)),
-          buttonActions: [...layer.querySelectorAll(".kronosClanChatSourceButton")].map((button) => ({
+          rowNames: [...layer.querySelectorAll(".nhClanChatRow")].map((row) => row.getAttribute("data-name") ?? ""),
+          rowWorlds: [...layer.querySelectorAll(".nhClanChatRow")].map((row) => Number(row.getAttribute("data-world") ?? Number.NaN)),
+          rowRanks: [...layer.querySelectorAll(".nhClanChatRow")].map((row) => Number(row.getAttribute("data-rank") ?? Number.NaN)),
+          buttonActions: [...layer.querySelectorAll(".nhClanChatSourceButton")].map((button) => ({
             action: button.getAttribute("data-action") ?? "",
             text: button.getAttribute("data-action-text") ?? "",
             packetId: button.getAttribute("data-source-packet-id") ?? "",
             sourceHandler: button.getAttribute("data-source-server-handler") ?? ""
           }))
         })),
-        ignoreText: document.querySelector(".kronosMountedWidgetLayer[data-group-id='432']")?.textContent ?? "",
-        ignoreSprites: [...document.querySelectorAll(".kronosMountedWidgetLayer[data-group-id='432'] .kronosWidgetSprite")].map((sprite) =>
+        ignoreText: document.querySelector(".nhMountedWidgetLayer[data-group-id='432']")?.textContent ?? "",
+        ignoreSprites: [...document.querySelectorAll(".nhMountedWidgetLayer[data-group-id='432'] .nhWidgetSprite")].map((sprite) =>
           Number(sprite.getAttribute("data-sprite-id"))
         ),
-        friendText: document.querySelector(".kronosMountedWidgetLayer[data-group-id='429']")?.textContent ?? "",
+        friendText: document.querySelector(".nhMountedWidgetLayer[data-group-id='429']")?.textContent ?? "",
         consoleErrors: []
       };
     })()
@@ -217,22 +217,22 @@ async function openAndExerciseKeybinding(window) {
         }
       };
       const readInterface = () => {
-        const root = document.querySelector(".kronosGameKeybindingInterface");
+        const root = document.querySelector(".nhGameKeybindingInterface");
         return {
           open: Boolean(root),
-          title: root?.querySelector(".kronosGameKeybindingTitle")?.textContent ?? "",
-          restoreText: root?.querySelector(".kronosGameKeybindingRestoreButton")?.textContent ?? "",
-          rowCount: root?.querySelectorAll(".kronosGameKeybindingRow").length ?? 0,
-          rows: [...(root?.querySelectorAll(".kronosGameKeybindingRow") ?? [])].map((row) => ({
+          title: root?.querySelector(".nhGameKeybindingTitle")?.textContent ?? "",
+          restoreText: root?.querySelector(".nhGameKeybindingRestoreButton")?.textContent ?? "",
+          rowCount: root?.querySelectorAll(".nhGameKeybindingRow").length ?? 0,
+          rows: [...(root?.querySelectorAll(".nhGameKeybindingRow") ?? [])].map((row) => ({
             tabId: row.getAttribute("data-tab-id") ?? "",
             varbit: row.getAttribute("data-source-varbit") ?? "",
             serverVarbit: row.getAttribute("data-source-server-varbit") ?? "",
-            keySlot: row.querySelector(".kronosGameKeybindingKeyButton")?.getAttribute("data-key-slot") ?? "",
-            enum1159: row.querySelector(".kronosGameKeybindingKeyButton")?.getAttribute("data-source-enum-1159") ?? "",
-            enum1160: row.querySelector(".kronosGameKeybindingKeyButton")?.getAttribute("data-source-enum-1160") ?? ""
+            keySlot: row.querySelector(".nhGameKeybindingKeyButton")?.getAttribute("data-key-slot") ?? "",
+            enum1159: row.querySelector(".nhGameKeybindingKeyButton")?.getAttribute("data-source-enum-1159") ?? "",
+            enum1160: row.querySelector(".nhGameKeybindingKeyButton")?.getAttribute("data-source-enum-1160") ?? ""
           })),
-          dropdownOpen: Boolean(root?.querySelector(".kronosGameKeybindingDropdown")),
-          dropdownOptionCount: root?.querySelectorAll(".kronosGameKeybindingDropdownOption").length ?? 0,
+          dropdownOpen: Boolean(root?.querySelector(".nhGameKeybindingDropdown")),
+          dropdownOptionCount: root?.querySelectorAll(".nhGameKeybindingDropdownOption").length ?? 0,
           interfaceId: root?.getAttribute("data-interface-id") ?? "",
           source: root?.getAttribute("data-source") ?? "",
           sourceLayout: root?.getAttribute("data-source-layout") ?? "",
@@ -240,30 +240,30 @@ async function openAndExerciseKeybinding(window) {
         };
       };
 
-      const button = document.querySelector(".kronosOptionsKeybindingButton");
+      const button = document.querySelector(".nhOptionsKeybindingButton");
       if (!button) {
         throw new Error("missing settings keybinding button");
       }
       dispatchPointerDown(button);
-      await waitFor(() => Boolean(document.querySelector(".kronosGameKeybindingInterface")), "timed out waiting for keybinding interface");
+      await waitFor(() => Boolean(document.querySelector(".nhGameKeybindingInterface")), "timed out waiting for keybinding interface");
 
-      const inventoryKeyButton = document.querySelector('.kronosGameKeybindingRow[data-tab-id="inventory"] .kronosGameKeybindingKeyButton');
+      const inventoryKeyButton = document.querySelector('.nhGameKeybindingRow[data-tab-id="inventory"] .nhGameKeybindingKeyButton');
       if (!inventoryKeyButton) {
         throw new Error("missing inventory keybinding button");
       }
       dispatchPointerDown(inventoryKeyButton);
-      await waitFor(() => Boolean(document.querySelector(".kronosGameKeybindingDropdown")), "timed out waiting for keybinding dropdown");
+      await waitFor(() => Boolean(document.querySelector(".nhGameKeybindingDropdown")), "timed out waiting for keybinding dropdown");
       const dropdownBeforeSelection = readInterface();
 
-      const f1Option = document.querySelector('.kronosGameKeybindingDropdownOption[data-key-slot="1"]');
+      const f1Option = document.querySelector('.nhGameKeybindingDropdownOption[data-key-slot="1"]');
       if (!f1Option) {
         throw new Error("missing F1 dropdown option");
       }
       dispatchPointerDown(f1Option);
       await waitFor(
         () =>
-          document.querySelector('.kronosGameKeybindingRow[data-tab-id="inventory"] .kronosGameKeybindingKeyButton')?.getAttribute("data-key-slot") === "1" &&
-          document.querySelector('.kronosGameKeybindingRow[data-tab-id="combat"] .kronosGameKeybindingKeyButton')?.getAttribute("data-key-slot") === "0",
+          document.querySelector('.nhGameKeybindingRow[data-tab-id="inventory"] .nhGameKeybindingKeyButton')?.getAttribute("data-key-slot") === "1" &&
+          document.querySelector('.nhGameKeybindingRow[data-tab-id="combat"] .nhGameKeybindingKeyButton')?.getAttribute("data-key-slot") === "0",
         "timed out waiting for keybinding reassignment"
       );
       const afterSelection = readInterface();
@@ -320,7 +320,7 @@ app.whenReady().then(async () => {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      partition: `kronos-nh-fixed-tabs-${process.pid}`
+      partition: `nh-nh-fixed-tabs-${process.pid}`
     }
   });
   const errors = [];
@@ -403,7 +403,7 @@ app.whenReady().then(async () => {
         (panel) =>
           panel.groupId === 7 &&
           panel.active === "true" &&
-          panel.displayName === "Kronos" &&
+          panel.displayName === "Nh" &&
           panel.ownerName === "local-player" &&
           panel.memberCount === 2 &&
           panel.rowNames.includes("local-player") &&
@@ -472,8 +472,8 @@ app.whenReady().then(async () => {
     const keybinding = await openAndExerciseKeybinding(window);
     const keybindingScreenshot = await capture(window, "keybinding");
     const keybindingRows = keybinding.afterSelection.rows;
-    assert(keybinding.button.actionChildId === "83", "settings keybinding launcher did not use Kronos options child 83");
-    assert(keybinding.button.sourceHandler.includes("Keybinding::open"), "settings keybinding launcher did not expose Kronos open handler");
+    assert(keybinding.button.actionChildId === "83", "settings keybinding launcher did not use Nh options child 83");
+    assert(keybinding.button.sourceHandler.includes("Keybinding::open"), "settings keybinding launcher did not expose Nh open handler");
     assert(keybinding.afterSelection.open === true, "keybinding interface did not remain open after key reassignment");
     assert(keybinding.afterSelection.interfaceId === "121", "keybinding interface did not expose Interface.KEYBINDING 121");
     assert(keybinding.afterSelection.source.includes("Config.KEYBINDS"), "keybinding interface did not expose Config.KEYBINDS source");
@@ -504,7 +504,7 @@ app.whenReady().then(async () => {
           panel.usesEmoteAtlas &&
           panel.visibleLabelCount === 0
       ),
-      "emote CS2 grid did not render from exported Kronos emote sprites"
+      "emote CS2 grid did not render from exported Nh emote sprites"
     );
     assert(errors.length === 0, `console errors while rendering fixed tabs: ${JSON.stringify(errors)}`);
 

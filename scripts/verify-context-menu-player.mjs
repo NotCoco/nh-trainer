@@ -9,7 +9,7 @@ import { screenshotDir, uniqueScreenshotPath } from "./screenshot-paths.mjs";
 const require = createRequire(import.meta.url);
 const electronPath = require("electron");
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const screenshotPath = uniqueScreenshotPath("kronos-nh-trainer-player-context-menu-v2");
+const screenshotPath = uniqueScreenshotPath("nh-nh-trainer-player-context-menu-v2");
 const scriptPath = path.join(projectRoot, "scripts", "context-menu-player-validation-electron.cjs");
 
 await mkdir(screenshotDir, { recursive: true });
@@ -22,16 +22,16 @@ if (
   !viewerSource.includes("runtimeActorMenuPickPriority") ||
   !viewerSource.includes("return actor.actorId === \"local-player\" ? 1 : 0") ||
   !viewerSource.includes("if (pose.actorId !== \"local-player\")") ||
-  !viewerSource.includes("sameKronosTile(pose.tile, tile)") ||
+  !viewerSource.includes("sameNhTile(pose.tile, tile)") ||
   !viewerSource.includes("sourceSingleTileModelMinimumClientUnits") ||
   !viewerSource.includes("sourceSingleTileFacePaddingPixels") ||
-  !viewerSource.includes("kronosProjectWorldPointToViewport") ||
+  !viewerSource.includes("nhProjectWorldPointToViewport") ||
   !viewerSource.includes("pointerEventToRuntimeSceneObject") ||
   !viewerSource.includes("sceneObjectContextEntries(targetObject)") ||
   !viewerSource.includes("dispatchPlayerContextEntry(defaultEntry, clickCrossPosition)") ||
   !viewerSource.includes("issuePlayerPacketCommand") ||
-  !viewerSource.includes("kronos-runtime-player-action") ||
-  !viewerSource.includes("KRONOS_CONTEXT_MENU_MOUSE_LEAVE_MARGIN = 10") ||
+  !viewerSource.includes("nh-runtime-player-action") ||
+  !viewerSource.includes("NH_CONTEXT_MENU_MOUSE_LEAVE_MARGIN = 10") ||
   !viewerSource.includes("openRuntimeSceneContextMenu(event.nativeEvent)") ||
   !viewerSource.includes("data-source-close-margin") ||
   viewerSource.includes("raycaster.intersectObject(slot.group, true)")
@@ -39,13 +39,13 @@ if (
   throw new Error("RuntimeSceneViewer must use source-style projected actor clickboxes before falling back to object/tile context menus.");
 }
 
-const hudSource = await readFile(path.join(projectRoot, "src", "ui", "KronosClientHud.tsx"), "utf8");
+const hudSource = await readFile(path.join(projectRoot, "src", "ui", "NhClientHud.tsx"), "utf8");
 if (
   !hudSource.includes("event.button === 2") ||
   !hudSource.includes("onContextMenu={openContextMenu}") ||
   !hudSource.includes("onContextMenu(menuCommand)")
 ) {
-  throw new Error("KronosClientHud should open inventory/equipment context menus from right-button pointerdown as well as browser contextmenu fallback.");
+  throw new Error("NhClientHud should open inventory/equipment context menus from right-button pointerdown as well as browser contextmenu fallback.");
 }
 
 const child = spawn(electronPath, [scriptPath, projectRoot, screenshotPath], {

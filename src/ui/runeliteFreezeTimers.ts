@@ -1,4 +1,4 @@
-import { KRONOS_GAME_TICK_MS } from "../render/kronosTileMovement";
+import { NH_GAME_TICK_MS } from "../render/nhTileMovement";
 import type { RuntimeActorId } from "../render/runtimeScene";
 import type { RuntimePlayerCombatState } from "../sim";
 import type { RuneliteFreezeTimersConfigSnapshot, RuneliteInfoBoxConfigSnapshot, RuneliteTimersConfigSnapshot } from "./RuneliteClientShell";
@@ -72,7 +72,7 @@ export function runeliteLocalFreezeTimerInfoBoxSnapshot(
   return {
     id: "runelite-timers-local-freeze-infobox",
     state: "freeze",
-    text: runeliteFreezeTimerText(remainingTicks * KRONOS_GAME_TICK_MS),
+    text: runeliteFreezeTimerText(remainingTicks * NH_GAME_TICK_MS),
     freezeEndTick: local.locks.freezeUntilTick,
     remainingTicks,
     spriteId: RUNELITE_TIMERS_ICE_BARRAGE_SPRITE_ID,
@@ -130,7 +130,7 @@ export function runeliteFreezeTimerOverlayForActor(
     actorId,
     state,
     imagePath: frozen ? RUNELITE_FREEZE_TIMERS_FREEZE_IMAGE_PATH : RUNELITE_FREEZE_TIMERS_FREEZE_IMMUNE_IMAGE_PATH,
-    text: runeliteFreezeTimerText(remainingTicks * KRONOS_GAME_TICK_MS),
+    text: runeliteFreezeTimerText(remainingTicks * NH_GAME_TICK_MS),
     textColor: frozen || !config.noImage ? "white" : "yellow",
     freezeEndTick: freezeUntilTick,
     reapplyEndTick,

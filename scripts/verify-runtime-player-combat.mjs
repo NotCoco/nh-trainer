@@ -90,47 +90,47 @@ const nhPolicyFeatures = loadTsModule("src/sim/nh/policy-features.ts");
 const nhPolicyBridge = loadTsModule("src/sim/nh/policy-bridge.ts");
 const botPolicy = loadTsModule("src/bot/policy.ts");
 const prayers = loadTsModule("src/sim/prayer/prayers.ts");
-const kronosCombat = loadTsModule("src/render/kronosCombat.ts");
-const playerCombatSource = readKronosServerSource("model/entity/player/PlayerCombat.java");
-const configSource = readKronosServerSource("model/inter/utils/Config.java");
-const combatSource = readKronosServerSource("model/combat/Combat.java");
-const hitSource = readKronosServerSource("model/combat/Hit.java");
-const combatUtilsSource = readKronosServerSource("model/combat/CombatUtils.java");
-const projectileSource = readKronosServerSource("model/map/Projectile.java");
-const graniteMaulSource = readKronosServerSource("model/combat/special/melee/GraniteMaul.java");
-const armadylCrossbowSource = readKronosServerSource("model/combat/special/ranged/ArmadylCrossbow.java");
-const rangedAmmoSource = readKronosServerSource("model/combat/RangedAmmo.java");
-const targetSpellSource = readKronosServerSource("model/skills/magic/spells/TargetSpell.java");
-const iceBlitzSource = readKronosServerSource("model/skills/magic/spells/ancient/IceBlitz.java");
-const bloodBlitzSource = readKronosServerSource("model/skills/magic/spells/ancient/BloodBlitz.java");
-const iceBarrageSource = readKronosServerSource("model/skills/magic/spells/ancient/IceBarrage.java");
-const bloodBarrageSource = readKronosServerSource("model/skills/magic/spells/ancient/BloodBarrage.java");
-const bloodSpellSource = readKronosServerSource("model/skills/magic/spells/ancient/BloodSpell.java");
-const spellbookCastableScriptSource = readKronosScriptSource("script2614.cs2");
-const spellbookLevelFilterScriptSource = readKronosScriptSource("script2619.cs2");
-const nhStakerBotSource = readKronosServerSource("model/entity/player/ai/scripts/NhStakerBot.java");
-const nhStakerLoadoutSource = readKronosServerSource("model/entity/player/ai/NhStakerLoadout.java");
-const walkHandlerSource = readKronosServerSource("network/incoming/handlers/WalkHandler.java");
-const playerSource = readKronosServerSource("model/entity/player/Player.java");
-const coreWorkerSource = readKronosServerSource("process/CoreWorker.java");
-const entitySource = readKronosServerSource("model/entity/Entity.java");
-const positionSource = readKronosServerSource("model/map/Position.java");
-const targetRouteSource = readKronosServerSource("model/map/route/routes/TargetRoute.java");
-const tabInventorySource = readKronosServerSource("model/inter/handlers/TabInventory.java");
-const equipmentSource = readKronosServerSource("model/item/containers/Equipment.java");
-const consumableSource = readKronosServerSource("model/item/actions/impl/Consumable.java");
-const tickDelaySource = readKronosServerSource("utility/TickDelay.java");
-const tabCombatSource = readKronosServerSource("model/inter/handlers/TabCombat.java");
-const weaponTypeLoaderSource = readKronosServerSource("data/impl/items/weapon_types.java");
-const clientActorMovementSource = readKronosClientSource("class329.java");
-const clientActorSource = readKronosClientSource("Actor.java");
-const clientPlayerSource = readKronosClientSource("Player.java");
-const specbarRedrawSource = readKronosClientScriptSource("SpecbarRedraw.rs2asm");
-const combatInterfaceSpecialSource = readKronosClientScriptSource("CombatInterfaceSP.rs2asm");
+const nhCombat = loadTsModule("src/render/nhCombat.ts");
+const playerCombatSource = readNhServerSource("model/entity/player/PlayerCombat.java");
+const configSource = readNhServerSource("model/inter/utils/Config.java");
+const combatSource = readNhServerSource("model/combat/Combat.java");
+const hitSource = readNhServerSource("model/combat/Hit.java");
+const combatUtilsSource = readNhServerSource("model/combat/CombatUtils.java");
+const projectileSource = readNhServerSource("model/map/Projectile.java");
+const graniteMaulSource = readNhServerSource("model/combat/special/melee/GraniteMaul.java");
+const armadylCrossbowSource = readNhServerSource("model/combat/special/ranged/ArmadylCrossbow.java");
+const rangedAmmoSource = readNhServerSource("model/combat/RangedAmmo.java");
+const targetSpellSource = readNhServerSource("model/skills/magic/spells/TargetSpell.java");
+const iceBlitzSource = readNhServerSource("model/skills/magic/spells/ancient/IceBlitz.java");
+const bloodBlitzSource = readNhServerSource("model/skills/magic/spells/ancient/BloodBlitz.java");
+const iceBarrageSource = readNhServerSource("model/skills/magic/spells/ancient/IceBarrage.java");
+const bloodBarrageSource = readNhServerSource("model/skills/magic/spells/ancient/BloodBarrage.java");
+const bloodSpellSource = readNhServerSource("model/skills/magic/spells/ancient/BloodSpell.java");
+const spellbookCastableScriptSource = readNhScriptSource("script2614.cs2");
+const spellbookLevelFilterScriptSource = readNhScriptSource("script2619.cs2");
+const nhStakerBotSource = readNhServerSource("model/entity/player/ai/scripts/NhStakerBot.java");
+const nhStakerLoadoutSource = readNhServerSource("model/entity/player/ai/NhStakerLoadout.java");
+const walkHandlerSource = readNhServerSource("network/incoming/handlers/WalkHandler.java");
+const playerSource = readNhServerSource("model/entity/player/Player.java");
+const coreWorkerSource = readNhServerSource("process/CoreWorker.java");
+const entitySource = readNhServerSource("model/entity/Entity.java");
+const positionSource = readNhServerSource("model/map/Position.java");
+const targetRouteSource = readNhServerSource("model/map/route/routes/TargetRoute.java");
+const tabInventorySource = readNhServerSource("model/inter/handlers/TabInventory.java");
+const equipmentSource = readNhServerSource("model/item/containers/Equipment.java");
+const consumableSource = readNhServerSource("model/item/actions/impl/Consumable.java");
+const tickDelaySource = readNhServerSource("utility/TickDelay.java");
+const tabCombatSource = readNhServerSource("model/inter/handlers/TabCombat.java");
+const weaponTypeLoaderSource = readNhServerSource("data/impl/items/weapon_types.java");
+const clientActorMovementSource = readNhClientSource("class329.java");
+const clientActorSource = readNhClientSource("Actor.java");
+const clientPlayerSource = readNhClientSource("Player.java");
+const specbarRedrawSource = readNhClientScriptSource("SpecbarRedraw.rs2asm");
+const combatInterfaceSpecialSource = readNhClientScriptSource("CombatInterfaceSP.rs2asm");
 const weaponTypes = JSON.parse(readFileSync(path.join(projectRoot, "fixtures", "assets", "defs", "weapon-types.json"), "utf8"));
 const appSource = readFileSync(path.join(projectRoot, "src", "ui", "App.tsx"), "utf8");
 const viewerSource = readFileSync(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
-const hudSource = readFileSync(path.join(projectRoot, "src", "ui", "KronosClientHud.tsx"), "utf8");
+const hudSource = readFileSync(path.join(projectRoot, "src", "ui", "NhClientHud.tsx"), "utf8");
 const runtimeCombatSource = readFileSync(path.join(projectRoot, "src", "sim", "runtimePlayerCombat.ts"), "utf8");
 const consumablesSource = readFileSync(path.join(projectRoot, "src", "sim", "items", "consumables.ts"), "utf8");
 const magicRequirementsSource = readFileSync(path.join(projectRoot, "src", "sim", "magic", "spellRequirements.ts"), "utf8");
@@ -138,15 +138,15 @@ const runtimePolicyOpponentSource = readFileSync(path.join(projectRoot, "src", "
 const nhPolicyFeaturesSource = readFileSync(path.join(projectRoot, "src", "sim", "nh", "policy-features.ts"), "utf8");
 const nhDuelSource = readFileSync(path.join(projectRoot, "src", "sim", "nh", "duel.ts"), "utf8");
 
-function readKronosServerSource(relativePath) {
+function readNhServerSource(relativePath) {
   return readFileSync(
     path.resolve(
       projectRoot,
       "..",
-      "kronos-osrs-184-master",
-      "kronos-osrs-184-master",
-      "Kronos-master",
-      "kronos-server",
+      "nh-osrs-184-master",
+      "nh-osrs-184-master",
+      "Nh-master",
+      "nh-server",
       "src",
       "main",
       "java",
@@ -158,12 +158,12 @@ function readKronosServerSource(relativePath) {
   );
 }
 
-function readKronosClientSource(relativePath) {
+function readNhClientSource(relativePath) {
   return readFileSync(
     path.resolve(
       projectRoot,
       "..",
-      "Kronos184-Client",
+      "Nh184-Client",
       "runelite-client",
       "src",
       "main",
@@ -177,21 +177,21 @@ function readKronosClientSource(relativePath) {
   );
 }
 
-function readKronosClientScriptSource(relativePath) {
+function readNhClientScriptSource(relativePath) {
   return readFileSync(
-    path.resolve(projectRoot, "..", "Kronos184-Client", "runelite-client", "src", "main", "scripts", relativePath),
+    path.resolve(projectRoot, "..", "Nh184-Client", "runelite-client", "src", "main", "scripts", relativePath),
     "utf8"
   );
 }
 
-function readKronosScriptSource(relativePath) {
+function readNhScriptSource(relativePath) {
   return readFileSync(
     path.resolve(
       projectRoot,
       "..",
-      "kronos-osrs-184-master",
-      "kronos-osrs-184-master",
-      "Kronos-master",
+      "nh-osrs-184-master",
+      "nh-osrs-184-master",
+      "Nh-master",
       "scripts",
       relativePath
     ),
@@ -308,29 +308,29 @@ function assertAttackAnimationWindow(result, actorId, label) {
   }
 }
 
-assert(playerCombatSource.includes("TargetRoute.set(player, target"), "Kronos PlayerCombat should route to attack targets before attacking");
-assert(playerCombatSource.includes("updateLastAttack(weaponType.attackTicks)"), "Kronos PlayerCombat melee attacks should update weapon cooldown ticks");
-assert(playerCombatSource.includes("attackTicks = type == AttackType.RAPID_RANGED ? weaponType.attackTicks - 1 : weaponType.attackTicks"), "Kronos ranged attacks should reduce weapon ticks for rapid ranged attack type");
-assert(playerCombatSource.includes("target.hit(new Hit(player, style, type)"), "Kronos PlayerCombat should apply melee hits through target.hit");
+assert(playerCombatSource.includes("TargetRoute.set(player, target"), "Nh PlayerCombat should route to attack targets before attacking");
+assert(playerCombatSource.includes("updateLastAttack(weaponType.attackTicks)"), "Nh PlayerCombat melee attacks should update weapon cooldown ticks");
+assert(playerCombatSource.includes("attackTicks = type == AttackType.RAPID_RANGED ? weaponType.attackTicks - 1 : weaponType.attackTicks"), "Nh ranged attacks should reduce weapon ticks for rapid ranged attack type");
+assert(playerCombatSource.includes("target.hit(new Hit(player, style, type)"), "Nh PlayerCombat should apply melee hits through target.hit");
 assert(
   playerCombatSource.includes("public void toggleSpecial()") &&
     playerCombatSource.includes("queueGraniteMaulSpecial()") &&
     playerCombatSource.includes("specialActive = wepDef.special") &&
     playerCombatSource.includes("Config.SPECIAL_ACTIVE.set(player, 1)"),
-  "Kronos PlayerCombat.toggleSpecial should activate regular specials and queue Granite maul clicks"
+  "Nh PlayerCombat.toggleSpecial should activate regular specials and queue Granite maul clicks"
 );
 assert(
   playerCombatSource.includes("if(amount > energy / 10)") &&
     playerCombatSource.includes("Config.SPECIAL_ENERGY.set(player, energy - (amount * 10))") &&
     playerCombatSource.includes("specialActive = null"),
-  "Kronos PlayerCombat.handleSpecial should clear active state and drain varp-300 special energy"
+  "Nh PlayerCombat.handleSpecial should clear active state and drain varp-300 special energy"
 );
 assert(
   playerCombatSource.includes("graniteMaulTimeoutTicks = 5") &&
     playerCombatSource.includes("graniteMaulTimeoutTicks == 4") &&
     playerCombatSource.includes("graniteMaulSpecials = Math.min(graniteMaulSpecials, energy / 500)") &&
     playerCombatSource.includes("Config.SPECIAL_ENERGY.set(player, energy)"),
-  "Kronos Granite maul queue should auto-attack after one tick, timeout after five ticks, and drain 50 percent per consumed spec"
+  "Nh Granite maul queue should auto-attack after one tick, timeout after five ticks, and drain 50 percent per consumed spec"
 );
 assert(
   configSource.includes("ATTACK_SET = varp(43") &&
@@ -339,43 +339,43 @@ assert(
     configSource.includes("SPECIAL_ENERGY = varp(300, true).defaultValue(1000)") &&
     configSource.includes("SPECIAL_ACTIVE = varp(301") &&
     configSource.includes("SPECIAL_ORB_STATE = varpbit(8121"),
-  "Kronos combat tab config ids should still match the trainer HUD varp/varpbit mapping"
+  "Nh combat tab config ids should still match the trainer HUD varp/varpbit mapping"
 );
-assert(combatSource.includes("lastAttackTickDelay + attackDelayTicks"), "Kronos Combat attack delay should combine weapon and additive delays");
-assert(hitSource.includes("PVP_MAGIC_ACCURACY_MODIFIER = 1.22"), "Kronos Hit should apply the PvP magic accuracy modifier");
-assert(hitSource.includes("PVP_MELEE_ACCURACY_MODIFIER = 1.12"), "Kronos Hit should apply the PvP melee accuracy modifier");
-assert(hitSource.includes("return clientDelay(delay, 16)"), "Kronos Hit default clientDelay should use the 16ms cycle-rate bridge");
+assert(combatSource.includes("lastAttackTickDelay + attackDelayTicks"), "Nh Combat attack delay should combine weapon and additive delays");
+assert(hitSource.includes("PVP_MAGIC_ACCURACY_MODIFIER = 1.22"), "Nh Hit should apply the PvP magic accuracy modifier");
+assert(hitSource.includes("PVP_MELEE_ACCURACY_MODIFIER = 1.12"), "Nh Hit should apply the PvP melee accuracy modifier");
+assert(hitSource.includes("return clientDelay(delay, 16)"), "Nh Hit default clientDelay should use the 16ms cycle-rate bridge");
 assert(
   playerCombatSource.includes("private void postDefend(Hit hit)") &&
     playerCombatSource.includes("hit.damage *= 0.60") &&
     hitSource.includes("target.hitListener.postDefend.accept(this)") &&
     combatUtilsSource.includes("addXp(Player player, Entity victim, AttackStyle attackStyle, AttackType attackType, int damageDealt)"),
-  "Kronos should finalize protection-reduced PvP Hit.damage before XP is awarded and before the queued hit later finishes"
+  "Nh should finalize protection-reduced PvP Hit.damage before XP is awarded and before the queued hit later finishes"
 );
-assert(combatUtilsSource.includes("MAGIC_CALC_SLOTS") && combatUtilsSource.includes("interferenceCount * 0.45"), "Kronos magic accuracy should apply chest/legs interference");
-assert(projectileSource.includes("return delay + duration"), "Kronos Projectile.send should return delay plus duration for hit timing");
+assert(combatUtilsSource.includes("MAGIC_CALC_SLOTS") && combatUtilsSource.includes("interferenceCount * 0.45"), "Nh magic accuracy should apply chest/legs interference");
+assert(projectileSource.includes("return delay + duration"), "Nh Projectile.send should return delay plus duration for hit timing");
 assert(
   projectileSource.includes("BOLT = new Projectile(27, 38, 36, 41, 51, 5, 5, 11)") &&
     projectileSource.includes("DRAGON_BOLT = new Projectile(1468, 38, 36, 41, 51, 5, 5, 11)"),
-  "Kronos projectile source should distinguish standard and dragon bolt projectile payloads"
+  "Nh projectile source should distinguish standard and dragon bolt projectile payloads"
 );
 assert(
   rangedAmmoSource.includes("DRAGON_DRAGONSTONE_BOLTS(new RangedData(Projectile.DRAGON_BOLT)") &&
     rangedAmmoSource.includes("DRAGON_BOLTS(new RangedData(Projectile.DRAGON_BOLT)"),
-  "Kronos dragon-bolt ammo should use Projectile.DRAGON_BOLT instead of the standard bolt gfx"
+  "Nh dragon-bolt ammo should use Projectile.DRAGON_BOLT instead of the standard bolt gfx"
 );
 assert(
   armadylCrossbowSource.includes("new Projectile(301, 38, 36, 41, 51, 5, 5, 11)") &&
     armadylCrossbowSource.includes(".boostAttack(1.0)") &&
     armadylCrossbowSource.includes("return 40"),
-  "Kronos Armadyl crossbow special should use projectile 301, double accuracy, and 40 percent drain"
+  "Nh Armadyl crossbow special should use projectile 301, double accuracy, and 40 percent drain"
 );
 assert(
   graniteMaulSource.includes("player.animate(1667)") &&
     graniteMaulSource.includes("player.graphics(340, 96, 0)") &&
     graniteMaulSource.includes("target.hit(new Hit(player, attackStyle, attackType).randDamage(maxDamage))") &&
     graniteMaulSource.includes("return 50"),
-  "Kronos Granite maul special should use animation 1667, graphics 340, immediate hit, and 50 percent drain"
+  "Nh Granite maul special should use animation 1667, graphics 340, immediate hit, and 50 percent drain"
 );
 assert(
   specbarRedrawSource.includes("get_varp               301") &&
@@ -385,7 +385,7 @@ assert(
     specbarRedrawSource.includes("iconst                 12907") &&
     combatInterfaceSpecialSource.includes("iconst                 301") &&
     combatInterfaceSpecialSource.includes("iconst                 300"),
-  "Kronos client special bar script should still be varp-301 active color plus varp-300 energy text/fill"
+  "Nh client special bar script should still be varp-301 active color plus varp-300 energy text/fill"
 );
 assert(
   weaponTypes.ARMADYL_CROSSBOW?.config === 5 &&
@@ -394,15 +394,15 @@ assert(
     weaponTypes.GRANITE_MAUL?.config === 2 &&
     weaponTypes.GRANITE_MAUL?.attackTicks === 7 &&
     weaponTypes.GRANITE_MAUL?.attackAnimation === 1665,
-  "exported Kronos WeaponType definitions should keep ACB and Granite maul config/tick/animation data"
+  "exported Nh WeaponType definitions should keep ACB and Granite maul config/tick/animation data"
 );
 assert(
   weaponTypeLoaderSource.includes("orderedSets[set.child / 4] = set") &&
-    readFileSync(path.join(projectRoot, "src", "render", "kronosCombat.ts"), "utf8").includes("const index = Math.trunc(child / 4)") &&
-    readFileSync(path.join(projectRoot, "src", "render", "kronosCombat.ts"), "utf8").includes("orderedSets[index] = { child, type: record.type, style: record.style }"),
-  "trainer WeaponType store should mirror Kronos weapon_types loader and place attack sets by child / 4."
+    readFileSync(path.join(projectRoot, "src", "render", "nhCombat.ts"), "utf8").includes("const index = Math.trunc(child / 4)") &&
+    readFileSync(path.join(projectRoot, "src", "render", "nhCombat.ts"), "utf8").includes("orderedSets[index] = { child, type: record.type, style: record.style }"),
+  "trainer WeaponType store should mirror Nh weapon_types loader and place attack sets by child / 4."
 );
-const weaponTypeStore = kronosCombat.createKronosWeaponTypeDefinitionStore(weaponTypes);
+const weaponTypeStore = nhCombat.createNhWeaponTypeDefinitionStore(weaponTypes);
 const wandType = weaponTypeStore.get("WAND");
 assert(
   wandType?.config === 18 &&
@@ -410,64 +410,64 @@ assert(
     wandType.attackSets[1]?.child === 7 &&
     wandType.attackSets[2] === null &&
     wandType.attackSets[3]?.child === 15,
-  "Kodai/WAND attack sets should be sparse like Kronos config 18: Bash, Pound, no child 12, Focus."
+  "Kodai/WAND attack sets should be sparse like Nh config 18: Bash, Pound, no child 12, Focus."
 );
 assert(
   clientActorSource.includes("this.hitSplatCycles[var9] = var5 + var11 + var6") &&
     clientActorSource.includes("if(var13.definition.field3296 == var8.field3296)") &&
     clientActorSource.includes("var13.method2246(var2 + var4, var5, var6, var3);"),
-  "Kronos client Actor should keep per-instance hitsplat cycles and one updated health bar per matching definition"
+  "Nh client Actor should keep per-instance hitsplat cycles and one updated health bar per matching definition"
 );
-assert(targetSpellSource.includes(".clientDelay(projectileDuration, 19)"), "Kronos target spells should use the magic projectile cycle-rate bridge");
-assert(targetSpellSource.includes('getStats().check(StatType.Magic, lvlReq, "cast this spell")'), "Kronos TargetSpell.cast should gate primary casts on current Magic level");
+assert(targetSpellSource.includes(".clientDelay(projectileDuration, 19)"), "Nh target spells should use the magic projectile cycle-rate bridge");
+assert(targetSpellSource.includes('getStats().check(StatType.Magic, lvlReq, "cast this spell")'), "Nh TargetSpell.cast should gate primary casts on current Magic level");
 assert(
   playerCombatSource.includes("if(!spell.cast(player, target))") &&
     playerCombatSource.includes("reset();") &&
     playerCombatSource.includes("updateLastAttack(5)"),
-  "Kronos PlayerCombat.attackWithMagic should reset failed spell casts before applying the five-tick spell cooldown"
+  "Nh PlayerCombat.attackWithMagic should reset failed spell casts before applying the five-tick spell cooldown"
 );
-assert(bloodBarrageSource.includes("setLvlReq(92)"), "Kronos Blood Barrage source should require Magic level 92");
-assert(iceBarrageSource.includes("setLvlReq(94)"), "Kronos Ice Barrage source should require Magic level 94");
-assert(bloodBlitzSource.includes("setLvlReq(80)"), "Kronos Blood Blitz source should require Magic level 80");
-assert(iceBlitzSource.includes("setLvlReq(82)"), "Kronos Ice Blitz source should require Magic level 82");
+assert(bloodBarrageSource.includes("setLvlReq(92)"), "Nh Blood Barrage source should require Magic level 92");
+assert(iceBarrageSource.includes("setLvlReq(94)"), "Nh Ice Barrage source should require Magic level 94");
+assert(bloodBlitzSource.includes("setLvlReq(80)"), "Nh Blood Blitz source should require Magic level 80");
+assert(iceBlitzSource.includes("setLvlReq(82)"), "Nh Ice Blitz source should require Magic level 82");
 assert(
   spellbookCastableScriptSource.includes("stat(magic) < oc_param($obj0, spell_levelreq)") &&
     spellbookCastableScriptSource.includes("if_settrans(0, $component1)") &&
     spellbookLevelFilterScriptSource.includes("stat_base(magic) < $int1") &&
     spellbookLevelFilterScriptSource.includes("stat(magic) < $int1"),
-  "Kronos spellbook scripts should use current Magic for icon disabled state and base+current Magic for lack-level filtering"
+  "Nh spellbook scripts should use current Magic for icon disabled state and base+current Magic for lack-level filtering"
 );
 assert(
-  spellRequirements.kronosMagicSpellLevelRequirement("blood-blitz") === 80 &&
-    spellRequirements.kronosMagicSpellLevelRequirement("ice-blitz") === 82 &&
-    spellRequirements.kronosMagicSpellLevelRequirement("blood-barrage") === 92 &&
-    spellRequirements.kronosMagicSpellLevelRequirement("ice-barrage") === 94 &&
-    spellRequirements.kronosMagicSpellCurrentLevelCanCast("ice-barrage", 93) === false &&
-    spellRequirements.kronosMagicSpellLevelFilterAllows("ice-barrage", 93, 99) === true,
-  "trainer spell requirement helper should preserve Kronos current-level cast gating and script2619 filtering distinction"
+  spellRequirements.nhMagicSpellLevelRequirement("blood-blitz") === 80 &&
+    spellRequirements.nhMagicSpellLevelRequirement("ice-blitz") === 82 &&
+    spellRequirements.nhMagicSpellLevelRequirement("blood-barrage") === 92 &&
+    spellRequirements.nhMagicSpellLevelRequirement("ice-barrage") === 94 &&
+    spellRequirements.nhMagicSpellCurrentLevelCanCast("ice-barrage", 93) === false &&
+    spellRequirements.nhMagicSpellLevelFilterAllows("ice-barrage", 93, 99) === true,
+  "trainer spell requirement helper should preserve Nh current-level cast gating and script2619 filtering distinction"
 );
 assert(
-  hudSource.includes("kronosMagicSpellCurrentLevelCanCast") &&
+  hudSource.includes("nhMagicSpellCurrentLevelCanCast") &&
     hudSource.includes("data-current-magic-level") &&
     hudSource.includes("data-magic-level-can-cast") &&
     hudSource.includes("data-source-castable-state"),
-  "trainer spellbook icon layer should expose Kronos current Magic disabled-sprite state for verifier-visible UI parity"
+  "trainer spellbook icon layer should expose Nh current Magic disabled-sprite state for verifier-visible UI parity"
 );
 assert(
-  runtimeCombatSource.includes("requiredMagicLevel: kronosMagicSpellLevelRequirementById[\"blood-blitz\"]") &&
-    runtimeCombatSource.includes("requiredMagicLevel: kronosMagicSpellLevelRequirementById[\"ice-blitz\"]") &&
-    runtimeCombatSource.includes("requiredMagicLevel: kronosMagicSpellLevelRequirementById[\"blood-barrage\"]") &&
-    runtimeCombatSource.includes("requiredMagicLevel: kronosMagicSpellLevelRequirementById[\"ice-barrage\"]") &&
+  runtimeCombatSource.includes("requiredMagicLevel: nhMagicSpellLevelRequirementById[\"blood-blitz\"]") &&
+    runtimeCombatSource.includes("requiredMagicLevel: nhMagicSpellLevelRequirementById[\"ice-blitz\"]") &&
+    runtimeCombatSource.includes("requiredMagicLevel: nhMagicSpellLevelRequirementById[\"blood-barrage\"]") &&
+    runtimeCombatSource.includes("requiredMagicLevel: nhMagicSpellLevelRequirementById[\"ice-barrage\"]") &&
     magicRequirementsSource.includes("TargetSpell.cast") &&
     magicRequirementsSource.includes("script2619") &&
     magicRequirementsSource.includes("You need Magic level of") &&
     runtimeCombatSource.includes("resetRuntimePlayerCombatFailedSpellCast") &&
     !runtimeCombatSource.includes('readonly kind: "message"'),
-  "trainer spell combat definitions should carry Kronos magic level requirements without adding chat/message events to the render combat stream"
+  "trainer spell combat definitions should carry Nh magic level requirements without adding chat/message events to the render combat stream"
 );
-assert(iceBarrageSource.includes("setMaxDamage(30)"), "Kronos Ice Barrage source should keep base max damage at 30");
-assert(bloodBlitzSource.includes("setMaxDamage(25)"), "Kronos Blood Blitz source should keep base max damage at 25");
-assert(iceBlitzSource.includes("setMaxDamage(26)"), "Kronos Ice Blitz source should keep base max damage at 26");
+assert(iceBarrageSource.includes("setMaxDamage(30)"), "Nh Ice Barrage source should keep base max damage at 30");
+assert(bloodBlitzSource.includes("setMaxDamage(25)"), "Nh Blood Blitz source should keep base max damage at 25");
+assert(iceBlitzSource.includes("setMaxDamage(26)"), "Nh Ice Blitz source should keep base max damage at 26");
 assert(
   bloodBlitzSource.includes("setAnimationId(1978)") &&
     bloodBlitzSource.includes("setProjectile(new Projectile(374, 43, 0, 51, 56, 10, 16, 64))") &&
@@ -475,25 +475,25 @@ assert(
     iceBlitzSource.includes("setCastGfx(366, 124, 0)") &&
     iceBlitzSource.includes("setProjectile(new Projectile(56, 10))") &&
     iceBlitzSource.includes("hold(hit, target, 15, true)"),
-  "Kronos Blitz sources should preserve animation 1978, Blood Blitz projectile 374, Ice Blitz cast gfx 366, and 15-second freeze"
+  "Nh Blitz sources should preserve animation 1978, Blood Blitz projectile 374, Ice Blitz cast gfx 366, and 15-second freeze"
 );
 assert(
   bloodSpellSource.includes("int healAmount = hit.damage / 4") &&
     bloodSpellSource.includes("hasId(22647)") &&
     bloodSpellSource.includes("hit.attacker.incrementHp(healAmount)"),
-  "Kronos BloodSpell should heal on afterHit using integer damage / 4 and the Zuriel's staff multiplier"
+  "Nh BloodSpell should heal on afterHit using integer damage / 4 and the Zuriel's staff multiplier"
 );
 assert(
   playerSource.includes("if(++specialRestoreTicks >= 50)") &&
     playerSource.includes("combat.restoreSpecial(10)") &&
     playerCombatSource.includes("int newEnergy = Math.min(1000, energy + (percent * 10))"),
-  "Kronos Player.tick should restore 10 percent special energy every 50 ticks after combat.attack"
+  "Nh Player.tick should restore 10 percent special energy every 50 ticks after combat.attack"
 );
 assert(
   runtimeCombatSource.includes("tickRuntimePlayerCombatSpecialRestore") &&
     runtimeCombatSource.includes("runtimePlayerCombatSpecialRestorePeriodTicks = 50") &&
     runtimeCombatSource.includes("Player.tick() increments specialRestoreTicks after combat.attack()"),
-  "trainer runtime should port Kronos post-attack special regeneration timing"
+  "trainer runtime should port Nh post-attack special regeneration timing"
 );
 assert(
   playerCombatSource.includes("public TargetSpell queuedSpell, autocastSpell") &&
@@ -502,7 +502,7 @@ assert(
     playerCombatSource.includes("spell = queuedSpell") &&
     playerCombatSource.includes("if(!autocast)") &&
     playerCombatSource.includes("reset();"),
-  "Kronos PlayerCombat should keep selected spells one-shot and autocast spells persistent"
+  "Nh PlayerCombat should keep selected spells one-shot and autocast spells persistent"
 );
 assert(
   runtimeCombatSource.includes("runtimeBotDefaultAutocastSpell") &&
@@ -517,11 +517,11 @@ assert(
     viewerSource.includes("opponent: manualOpponentRef.current.loadoutId"),
   "manual combat commands should sync combat-state loadouts from the visible actors before queuing player/opponent attacks"
 );
-assert(walkHandlerSource.includes("player.resetActions(true, true, true)"), "Kronos WalkHandler should reset movement and combat before routing walk packets");
+assert(walkHandlerSource.includes("player.resetActions(true, true, true)"), "Nh WalkHandler should reset movement and combat before routing walk packets");
 assert(
   playerSource.includes("if(resetCombat && combat.getTarget() != null)") &&
     playerSource.includes("combat.reset()"),
-  "Kronos Player.resetActions should clear combat target when resetCombat is true"
+  "Nh Player.resetActions should clear combat target when resetCombat is true"
 );
 assert(
     tabInventorySource.includes("player.getEquipment().equip(item)") &&
@@ -529,7 +529,7 @@ assert(
     viewerSource.includes("inventoryEquipResetActions") &&
     viewerSource.includes('resetRuntimePlayerCombatActorTarget(nextCombatState, "local-player")') &&
     viewerSource.includes("TabInventory.click -> Equipment.equip(item); player.resetActions(false, following != null, true)"),
-  "trainer inventory equip should port Kronos TabInventory resetActions(..., resetCombat=true) so gear switches stop the current attack target."
+  "trainer inventory equip should port Nh TabInventory resetActions(..., resetCombat=true) so gear switches stop the current attack target."
 );
 assert(
   equipmentSource.includes("if(updatedSlots[SLOT_WEAPON])") &&
@@ -545,16 +545,16 @@ assert(
     runtimeCombatSource.includes("autocastSpellId: respawning || loadoutChanged || weaponSlotChanged ? null : actor.autocastSpellId") &&
     runtimeCombatSource.includes("defensiveCast: respawning || loadoutChanged || weaponSlotChanged ? false : actor.defensiveCast") &&
     runtimeCombatSource.includes("const actionStillActive = !respawning && actor.actionSequenceName !== null && tick < actor.actionUntilTick"),
-  "trainer weapon-slot sync should port Kronos Equipment.sendUpdates -> updateWeapon(false), persistent Config.ATTACK_SET resolution, and autocast clearing without resetting the active attack animation."
+  "trainer weapon-slot sync should port Nh Equipment.sendUpdates -> updateWeapon(false), persistent Config.ATTACK_SET resolution, and autocast clearing without resetting the active attack animation."
 );
 assert(
   playerCombatSource.includes("player.faceNone(!isDead())") &&
     playerCombatSource.includes("TargetRoute.reset(player)"),
-  "Kronos PlayerCombat.reset should clear target-facing and target routes"
+  "Nh PlayerCombat.reset should clear target-facing and target routes"
 );
 assert(
   targetRouteSource.includes("entity.getCombat().reset()"),
-  "Kronos TargetRoute should reset combat when target routing fails"
+  "Nh TargetRoute should reset combat when target routing fails"
 );
 assert(
   viewerSource.includes("resetRuntimePlayerCombatActorTarget(manualCombatStateRef.current, request.actorId)") &&
@@ -573,7 +573,7 @@ assert(
     viewerSource.includes("TargetRoute.beforeMovement(), movement.process()") &&
     viewerSource.includes("advanceManualActorServerRouteTick(routed.actor)") &&
     viewerSource.includes("targetRouteMovementConsumed: {"),
-  "manual melee target routing should port Kronos preAttack/TargetRoute/movement ordering before the attack gate"
+  "manual melee target routing should port Nh preAttack/TargetRoute/movement ordering before the attack gate"
 );
 assert(
   coreWorkerSource.includes("players.scramble()") &&
@@ -584,17 +584,17 @@ assert(
     runtimeCombatSource.includes("for (const actorId of processOrderState.processOrder)") &&
     runtimeCombatSource.includes("preMovementTiles") &&
     runtimeCombatSource.includes("mergeRuntimePlayerCombatAttemptActorsAfterPidMovement"),
-  "runtime combat should model Kronos CoreWorker/EntityList player process order, including pre-movement target tiles for earlier-PID attacks"
+  "runtime combat should model Nh CoreWorker/EntityList player process order, including pre-movement target tiles for earlier-PID attacks"
 );
 assert(
   playerCombatSource.includes("TargetRoute.set(player, target, useSpell() ? 10") &&
     playerCombatSource.includes("getAttackType() == AttackType.LONG_RANGED ? 2 : 0"),
-  "Kronos PlayerCombat.preAttack should give selected/autocast spells a 10-tile TargetRoute and long-ranged weapon attacks +2 tiles"
+  "Nh PlayerCombat.preAttack should give selected/autocast spells a 10-tile TargetRoute and long-ranged weapon attacks +2 tiles"
 );
 assert(
   targetSpellSource.includes("double percentageBonus = entity.getCombat().getBonus(EquipmentStats.MAGIC_DAMAGE)") &&
     targetSpellSource.includes("maxDamage *= (1D + percentageBonus * 0.01)"),
-  "Kronos target spells should apply the visible magic damage equipment percentage after the spell base max"
+  "Nh target spells should apply the visible magic damage equipment percentage after the spell base max"
 );
 
 let countdownState = createState(810, {
@@ -666,7 +666,7 @@ const opponentPidFirstAttackEvents = opponentPidFirstResult.state.events.filter(
 assert(
   opponentPidFirstAttackEvents[0]?.attackerId === "opponent" &&
     opponentPidFirstAttackEvents[1]?.attackerId === "local-player",
-  "same-tick attacks should resolve in the current Kronos/PID process order, not fixed local-player first"
+  "same-tick attacks should resolve in the current Nh/PID process order, not fixed local-player first"
 );
 
 let opponentPidFreezeCancelsUnderStep = createState(1, {
@@ -926,7 +926,7 @@ assert(
     frozenBothMagicTenTilesEvent?.style === "magic" &&
     frozenBothMagicTenTilesEvent.spellId === "ice-barrage" &&
     frozenBothMagicTenTilesResult.routeRequests.length === 0,
-  `both-frozen selected Ice Barrage should fire at Kronos' 10-tile spell TargetRoute distance without requiring movement: ${JSON.stringify({
+  `both-frozen selected Ice Barrage should fire at Nh' 10-tile spell TargetRoute distance without requiring movement: ${JSON.stringify({
     queuedHits: frozenBothMagicTenTilesResult.state.queuedHits,
     routeRequests: frozenBothMagicTenTilesResult.routeRequests,
     event: frozenBothMagicTenTilesEvent
@@ -994,7 +994,7 @@ assert(
     frozenBothRangeNineTilesAccurateResult.routeRequests.some(
       (request) => request.actorId === "local-player" && request.reason === "out-of-range" && request.attackRange === 8
     ),
-  "both-frozen accurate ACB should still respect the Kronos 8-tile weapon range and request movement when one tile too far"
+  "both-frozen accurate ACB should still respect the Nh 8-tile weapon range and request movement when one tile too far"
 );
 
 let frozenBothRangeTenTilesLongrange = createState(1012, {
@@ -1014,7 +1014,7 @@ assert(
     frozenBothRangeTenTilesLongrangeEvent?.style === "ranged" &&
     frozenBothRangeTenTilesLongrangeResult.state.queuedHits[0]?.attackType === "LONG_RANGED" &&
     frozenBothRangeTenTilesLongrangeResult.routeRequests.length === 0,
-  `both-frozen longrange ACB should fire through Kronos' +2 long-ranged TargetRoute distance without movement: ${JSON.stringify({
+  `both-frozen longrange ACB should fire through Nh' +2 long-ranged TargetRoute distance without movement: ${JSON.stringify({
     queuedHits: frozenBothRangeTenTilesLongrangeResult.state.queuedHits,
     routeRequests: frozenBothRangeTenTilesLongrangeResult.routeRequests,
     event: frozenBothRangeTenTilesLongrangeEvent
@@ -1083,7 +1083,7 @@ const consumedMovementMeleeResult = runtimeCombat.advanceRuntimePlayerCombat(con
 assert(
   consumedMovementMeleeResult.state.queuedHits.length === 0 &&
     consumedMovementMeleeResult.routeRequests.some((request) => request.actorId === "local-player" && request.reason === "ready"),
-  "melee should not still attack from step-in range after its Kronos movement step was already consumed this tick"
+  "melee should not still attack from step-in range after its Nh movement step was already consumed this tick"
 );
 
 let consumedMovementSameTileRange = createState(1112, {
@@ -1115,7 +1115,7 @@ assert(
 );
 assert(
   targetRouteSource.includes("r != null && r.target != null && entity.getMovement().isAtDestination()"),
-  "Kronos TargetRoute.beforeMovement should only issue target routing when the actor is already at destination"
+  "Nh TargetRoute.beforeMovement should only issue target routing when the actor is already at destination"
 );
 const tentacleTargetRouteProfile = runtimeCombat.runtimePlayerCombatTargetRouteProfile(
   "local-player",
@@ -1125,7 +1125,7 @@ assert(
   tentacleTargetRouteProfile.melee &&
     tentacleTargetRouteProfile.attackRange === 1 &&
     tentacleTargetRouteProfile.source === "weapon",
-  "target-route helper should expose the active Kronos melee weapon route profile for UI pre-routing"
+  "target-route helper should expose the active Nh melee weapon route profile for UI pre-routing"
 );
 const opponentKodaiTargetRouteProfile = runtimeCombat.runtimePlayerCombatTargetRouteProfile(
   "opponent",
@@ -1145,7 +1145,7 @@ sceneScaledAdjacentMelee = requestLocalAttack(sceneScaledAdjacentMelee);
 const sceneScaledAdjacentMeleeResult = advance(sceneScaledAdjacentMelee);
 assert(
   sceneScaledAdjacentMeleeResult.state.queuedHits.length === 1,
-  "manual-scene adjacent melee should treat Kronos 0.5 scene units as one tile and queue a hit"
+  "manual-scene adjacent melee should treat Nh 0.5 scene units as one tile and queue a hit"
 );
 assert(
   sceneScaledAdjacentMeleeResult.routeRequests.length === 0,
@@ -1185,7 +1185,7 @@ let wandAttack = createState(12, {
 wandAttack = requestLocalAttack(wandAttack);
 const wandAttackResult = advance(wandAttack);
 const wandAttackEvent = wandAttackResult.state.events.find((event) => event.kind === "attack");
-assert(wandAttackEvent?.style === "crush", "Kodai wand default Attack should dispatch the Kronos WAND crush style, not a spell");
+assert(wandAttackEvent?.style === "crush", "Kodai wand default Attack should dispatch the Nh WAND crush style, not a spell");
 assert(wandAttackEvent?.sequenceName === "wand_attack", "Kodai wand default Attack should play the WAND attack animation 393");
 assert(wandAttackEvent?.projectile === undefined, "Kodai wand default Attack should not emit an Ice Barrage projectile");
 assert(wandAttackEvent?.hitDelayTicks === 1, "Kodai wand default melee hit should resolve through the melee hit delay");
@@ -1285,7 +1285,7 @@ assert(
     syncedStaleOpponentActionWindow.actors.opponent.actionUntilTick === staleOpponentMagicStart.actors.opponent.actionUntilTick &&
     syncedStaleOpponentActionWindow.actors.opponent.queuedSpellId === null &&
     syncedStaleOpponentActionWindow.actors.opponent.autocastSpellId === null,
-  "visible ACB/Armadyl opponent sync should keep the already-started Kronos action animation while clearing stale spell/autocast state"
+  "visible ACB/Armadyl opponent sync should keep the already-started Nh action animation while clearing stale spell/autocast state"
 );
 
 const forcedMagicPolicyController = {
@@ -1418,7 +1418,7 @@ assert(
       (event) => event.kind === "spotanim" && event.actorId === "opponent" && event.spotanimId === 340
     ) &&
     manualPolicyGmaulResult.state.actors.opponent.gmaul.specialEnergy === 0,
-  "manual viewport policy gmaul input should become the Kronos Granite maul special attack path"
+  "manual viewport policy gmaul input should become the Nh Granite maul special attack path"
 );
 
 let manualPolicyOpponentFarGmaul = createState(132, {
@@ -1498,7 +1498,7 @@ const manualPolicyNoSpecControlApplied = runtimePolicyOpponent.applyRuntimeOppon
 assert(
   manualPolicyNoSpecControlApplied.opponentLoadoutId === "acb-hides" &&
     manualPolicyNoSpecControlApplied.state.actors.opponent.gmaul.queuedSpecs === 0,
-  "manual viewport policy gmaul intent should be skipped when Kronos tick-start client spec control is unavailable"
+  "manual viewport policy gmaul intent should be skipped when Nh tick-start client spec control is unavailable"
 );
 
 const visibleEvState = nhDuel.createInitialNhDuelState(128);
@@ -1525,7 +1525,7 @@ assert(
 assert(
   nhDuelSource.includes("attackerPrayers: compatiblePrayerSet([...self.activePrayers, offensivePrayerForVisibleStyle(style)])") &&
     nhDuelSource.includes('style === "slash" ? offensivePrayerForStyle("melee") : offensivePrayerForStyle(style)'),
-  "candidate visible-style EV should include the offensive prayer that Kronos would use for the candidate style"
+  "candidate visible-style EV should include the offensive prayer that Nh would use for the candidate style"
 );
 const protectedMissilesVisibleEvOpponent = {
   ...visibleEvOpponent,
@@ -1547,10 +1547,10 @@ assert(
 const defaultNhPolicyPath = path.resolve(
   projectRoot,
   "..",
-  "kronos-osrs-184-master",
-  "kronos-osrs-184-master",
-  "Kronos-master",
-  "kronos-server",
+  "nh-osrs-184-master",
+  "nh-osrs-184-master",
+  "Nh-master",
+  "nh-server",
   "data",
   "ai",
   "nhstaker-selfplay-policy-nhstake-ags.tsv"
@@ -1614,7 +1614,7 @@ assert(
     gmaulSpecProbeAcbInput[11] === 1 &&
     gmaulSpecProbeKodaiInput[10] === 0 &&
     gmaulSpecProbeKodaiInput[11] === 0,
-  `NH policy spec-control features should mirror Kronos tick-start special bar control, not already-equipped gmaul state: ${JSON.stringify({
+  `NH policy spec-control features should mirror Nh tick-start special bar control, not already-equipped gmaul state: ${JSON.stringify({
     acb: gmaulSpecProbeAcbInput.slice(10, 12),
     kodai: gmaulSpecProbeKodaiInput.slice(10, 12)
   })}`
@@ -1827,7 +1827,7 @@ assert(
     expiryTickShark.ok &&
     expiryTickKarambwan.ok &&
     expiryTickKarambwan.attackTimer.additiveAttackDelayTicks === 2,
-  `Kronos TickDelay should expire when currentTick reaches end, so queued consumables are available on the expiry tick: ${JSON.stringify({
+  `Nh TickDelay should expire when currentTick reaches end, so queued consumables are available on the expiry tick: ${JSON.stringify({
     firstShark,
     oneTickEarlyShark,
     expiryTickShark,
@@ -1847,8 +1847,8 @@ const lateTickAtBoundary = lateTickQueue.drainReady(600, 600);
 assert(
   lateTickBeforeBoundary.length === 0 &&
     lateTickAtBoundary.length === 1 &&
-    /const queueInventoryConsumableAction[\s\S]*const readyAtMs = nextKronosGameTickAt\(runtimeTickOriginMsRef\.current, queuedAtMs\);[\s\S]*itemActionQueueRef\.current\.push\(\{[\s\S]*readyAtMs,/.test(viewerSource),
-  `queued consumable packets should resolve on the next Kronos tick boundary even when clicked late in the previous tick: ${JSON.stringify({
+    /const queueInventoryConsumableAction[\s\S]*const readyAtMs = nextNhGameTickAt\(runtimeTickOriginMsRef\.current, queuedAtMs\);[\s\S]*itemActionQueueRef\.current\.push\(\{[\s\S]*readyAtMs,/.test(viewerSource),
+  `queued consumable packets should resolve on the next Nh tick boundary even when clicked late in the previous tick: ${JSON.stringify({
     lateTickBeforeBoundary,
     lateTickAtBoundary
   })}`
@@ -1903,7 +1903,7 @@ assert(
     manualPolicySupplyApplied.state.actors.opponent.hitpoints === 85 &&
     manualPolicySupplyApplied.state.actors.opponent.supplies.manta_ray === 3 &&
     manualPolicySupplyApplied.state.actors.opponent.supplies.karambwan === 3,
-  `manual viewport policy bot should consume and persist Kronos-timed supplies: ${JSON.stringify({
+  `manual viewport policy bot should consume and persist Nh-timed supplies: ${JSON.stringify({
     consumed: manualPolicySupplyApplied.consumedSupplies,
     hp: manualPolicySupplyApplied.state.actors.opponent.hitpoints,
     supplies: manualPolicySupplyApplied.state.actors.opponent.supplies
@@ -1923,7 +1923,7 @@ assert(magicAttackEvent?.style === "magic", "Selected Ice Barrage should dispatc
 assert(magicAttackEvent?.spellId === "ice-barrage" && magicAttackEvent?.autocast === false, "Selected Ice Barrage should be tagged as a queued one-shot spell, not autocast");
 assert(magicAttackEvent?.sequenceName === "barrage_cast", "Selected Ice Barrage should play the barrage cast sequence");
 assert(magicAttackEvent?.projectile?.id === "ice_barrage_projectile", "Selected Ice Barrage should emit the ice barrage projectile profile");
-assert(magicAttackEvent?.hitDelayTicks === 4, "Ice barrage hit delay should match Kronos Projectile.send plus TargetSpell clientDelay(projectileDuration, 19)");
+assert(magicAttackEvent?.hitDelayTicks === 4, "Ice barrage hit delay should match Nh Projectile.send plus TargetSpell clientDelay(projectileDuration, 19)");
 assert(magicAttackEvent?.projectileDurationCycles === 86, "Ice barrage projectile duration should use source 56 + 10 cycles per extra tile");
 assert(magicAttackResult.state.queuedHits[0]?.dueTick === 4, "Ice barrage hitsplat should resolve before the next five-tick magic attack can animate");
 assert(magicAttackResult.state.queuedHits[0]?.spellId === "ice-barrage", "Ice Barrage queued hit should retain spell metadata for RuneLite-style trackers");
@@ -1965,7 +1965,7 @@ assert(
     magicAttackWeaponSync.queuedHits.length === magicAttackResult.state.queuedHits.length &&
     magicAttackWeaponSync.actors["local-player"].queuedSpellId === null &&
     magicAttackWeaponSync.actors["local-player"].autocastSpellId === null,
-  `weapon sync after an attack should preserve the active Kronos animation while clearing spell/autocast state: ${JSON.stringify(magicAttackWeaponSync.actors["local-player"])}`
+  `weapon sync after an attack should preserve the active Nh animation while clearing spell/autocast state: ${JSON.stringify(magicAttackWeaponSync.actors["local-player"])}`
 );
 let magicHitState = magicAttackResult.state;
 for (let index = 0; index < 4; index += 1) {
@@ -2008,8 +2008,8 @@ const bloodAttackEvent = bloodAttackResult.state.events.find((event) => event.ki
 assertAttackAnimationWindow(bloodAttackResult, "local-player", "Blood Barrage attack");
 assert(bloodAttackEvent?.style === "magic", "Selected Blood Barrage should dispatch a magic attack style");
 assert(bloodAttackEvent?.spellId === "blood-barrage" && bloodAttackEvent?.autocast === false, "Selected Blood Barrage should be tagged as a queued one-shot spell");
-assert(bloodAttackEvent?.projectile?.id === "blood_barrage_delay", "Blood Barrage should carry the Kronos delay-only Projectile(51,56,10) profile");
-assert(bloodAttackEvent?.projectile?.gfxId === -1, "Blood Barrage should not render an Ice projectile because Kronos sends no projectile packet for gfx -1");
+assert(bloodAttackEvent?.projectile?.id === "blood_barrage_delay", "Blood Barrage should carry the Nh delay-only Projectile(51,56,10) profile");
+assert(bloodAttackEvent?.projectile?.gfxId === -1, "Blood Barrage should not render an Ice projectile because Nh sends no projectile packet for gfx -1");
 assert(bloodAttackEvent?.projectileDurationCycles === 86, "Blood Barrage delay-only projectile should still use source duration cycles for hit timing");
 assert(bloodAttackResult.state.queuedHits[0]?.maxDamage === 36, `Blood Barrage max should use base 29 plus the source NH gear bonus: ${JSON.stringify(bloodAttackResult.state.queuedHits[0])}`);
 const deterministicBloodHit = bloodAttackResult.state.queuedHits[0];
@@ -2039,7 +2039,7 @@ bloodHitState = advance(bloodHitState).state;
 const bloodHitsplatEvent = bloodHitState.events.find((event) => event.kind === "hitsplat" && event.spellId === "blood-barrage");
 const bloodSpotanimEvent = bloodHitState.events.find((event) => event.kind === "spotanim" && event.spotanimId === 377);
 assert(bloodHitsplatEvent, "Blood Barrage queued damage should resolve into a tagged hitsplat event");
-assert(bloodSpotanimEvent?.artifactUrl === "render/spotanims/blood_barrage_hit.glb", "Blood Barrage should play Kronos hit gfx 377, not the Ice Barrage hit gfx");
+assert(bloodSpotanimEvent?.artifactUrl === "render/spotanims/blood_barrage_hit.glb", "Blood Barrage should play Nh hit gfx 377, not the Ice Barrage hit gfx");
 assert(bloodHitsplatEvent.damage === 20, "Blood Barrage deterministic heal verifier should apply the forced source hit value");
 assert(
   bloodHitState.actors["local-player"].hitpoints === Math.min(99, 50 + Math.trunc(bloodHitsplatEvent.damage / 4)),
@@ -2078,8 +2078,8 @@ assert(bloodBlitzAttack && bloodBlitzAttackResult, "Blood Blitz verifier should 
 const bloodBlitzAttackEvent = bloodBlitzAttackResult.state.events.find((event) => event.kind === "attack");
 assertAttackAnimationWindow(bloodBlitzAttackResult, "local-player", "Blood Blitz attack");
 assert(bloodBlitzAttackEvent?.spellId === "blood-blitz", "Selected Blood Blitz should be tagged as a queued one-shot spell");
-assert(bloodBlitzAttackEvent?.sequenceName === "blitz_cast", "Blood Blitz should use Kronos animation 1978 through the blitz_cast sequence");
-assert(bloodBlitzAttackEvent?.projectile?.id === "blood_blitz_projectile", "Blood Blitz should carry Kronos projectile gfx 374");
+assert(bloodBlitzAttackEvent?.sequenceName === "blitz_cast", "Blood Blitz should use Nh animation 1978 through the blitz_cast sequence");
+assert(bloodBlitzAttackEvent?.projectile?.id === "blood_blitz_projectile", "Blood Blitz should carry Nh projectile gfx 374");
 assert(bloodBlitzAttackEvent?.projectile?.artifactUrl === "render/spotanims/blood_blitz_projectile.glb", "Blood Blitz projectile should render from the cache GLB");
 assert(bloodBlitzAttackEvent?.projectileDurationCycles === 86, "Blood Blitz projectile duration should use the source 56 + 10 per tile cycles");
 assert(bloodBlitzAttackResult.state.queuedHits[0]?.maxDamage === 31, `Blood Blitz max should use base 25 plus the source NH gear bonus: ${JSON.stringify(bloodBlitzAttackResult.state.queuedHits[0])}`);
@@ -2102,7 +2102,7 @@ bloodBlitzHitState = advance(bloodBlitzHitState).state;
 const bloodBlitzHitsplatEvent = bloodBlitzHitState.events.find((event) => event.kind === "hitsplat" && event.spellId === "blood-blitz");
 const bloodBlitzSpotanimEvent = bloodBlitzHitState.events.find((event) => event.kind === "spotanim" && event.spotanimId === 375);
 assert(bloodBlitzHitsplatEvent?.damage === 20, "Blood Blitz deterministic heal verifier should apply the forced source hit value");
-assert(bloodBlitzSpotanimEvent?.artifactUrl === "render/spotanims/blood_blitz_hit.glb", "Blood Blitz should play Kronos hit gfx 375");
+assert(bloodBlitzSpotanimEvent?.artifactUrl === "render/spotanims/blood_blitz_hit.glb", "Blood Blitz should play Nh hit gfx 375");
 assert(
   bloodBlitzHitState.actors["local-player"].hitpoints === Math.min(99, 50 + Math.trunc(bloodBlitzHitsplatEvent.damage / 4)),
   `Blood Blitz should heal the caster by hit.damage / 4 like BloodSpell.afterHit: ${JSON.stringify({
@@ -2133,25 +2133,25 @@ const iceBlitzAttackEvent = iceBlitzAttackResult.state.events.find((event) => ev
 const iceBlitzCastSpotanimEvent = iceBlitzAttackResult.state.events.find((event) => event.kind === "spotanim" && event.spotanimId === 366);
 assertAttackAnimationWindow(iceBlitzAttackResult, "local-player", "Ice Blitz attack");
 assert(iceBlitzAttackEvent?.spellId === "ice-blitz", "Selected Ice Blitz should be tagged as a queued one-shot spell");
-assert(iceBlitzAttackEvent?.sequenceName === "blitz_cast", "Ice Blitz should use Kronos animation 1978 through the blitz_cast sequence");
-assert(iceBlitzAttackEvent?.projectile?.id === "ice_blitz_delay", "Ice Blitz should carry Kronos delay-only Projectile(56,10)");
-assert(iceBlitzAttackEvent?.projectile?.gfxId === -1, "Ice Blitz should not render a travel projectile because Kronos sends no projectile packet for gfx -1");
+assert(iceBlitzAttackEvent?.sequenceName === "blitz_cast", "Ice Blitz should use Nh animation 1978 through the blitz_cast sequence");
+assert(iceBlitzAttackEvent?.projectile?.id === "ice_blitz_delay", "Ice Blitz should carry Nh delay-only Projectile(56,10)");
+assert(iceBlitzAttackEvent?.projectile?.gfxId === -1, "Ice Blitz should not render a travel projectile because Nh sends no projectile packet for gfx -1");
 assert(iceBlitzAttackEvent?.projectileDurationCycles === 86, "Ice Blitz delay-only projectile should still use source duration cycles for hit timing");
-assert(iceBlitzCastSpotanimEvent?.artifactUrl === "render/spotanims/ice_blitz_cast.glb", "Ice Blitz should play Kronos cast gfx 366 on the caster");
+assert(iceBlitzCastSpotanimEvent?.artifactUrl === "render/spotanims/ice_blitz_cast.glb", "Ice Blitz should play Nh cast gfx 366 on the caster");
 assert(iceBlitzAttackResult.state.queuedHits[0]?.maxDamage === 33, `Ice Blitz max should use base 26 plus the source NH gear bonus: ${JSON.stringify(iceBlitzAttackResult.state.queuedHits[0])}`);
 assert(
   runtimeCombat.runtimePlayerCombatSpellDefinitions["ice-blitz"].freezeDurationTicks === runtimeCombat.runtimePlayerCombatIceBlitzFreezeTicks,
-  "Ice Blitz definition should carry the Kronos 15-second freeze duration"
+  "Ice Blitz definition should carry the Nh 15-second freeze duration"
 );
 assert(
   entityLocks.isFrozen(iceBlitzAttackResult.state.actors.opponent.locks, iceBlitzAttackResult.state.tick),
   `Ice Blitz should apply freeze on a successful cast like TargetSpell.hold(): ${JSON.stringify(iceBlitzAttackResult.state.actors.opponent.locks)}`
 );
 
-assert(runtimeCombat.runtimePlayerCombatSpellDefinitions["blood-barrage"].requiredMagicLevel === 92, "Blood Barrage runtime definition should keep Kronos level requirement 92");
-assert(runtimeCombat.runtimePlayerCombatSpellDefinitions["ice-barrage"].requiredMagicLevel === 94, "Ice Barrage runtime definition should keep Kronos level requirement 94");
-assert(runtimeCombat.runtimePlayerCombatSpellDefinitions["blood-blitz"].requiredMagicLevel === 80, "Blood Blitz runtime definition should keep Kronos level requirement 80");
-assert(runtimeCombat.runtimePlayerCombatSpellDefinitions["ice-blitz"].requiredMagicLevel === 82, "Ice Blitz runtime definition should keep Kronos level requirement 82");
+assert(runtimeCombat.runtimePlayerCombatSpellDefinitions["blood-barrage"].requiredMagicLevel === 92, "Blood Barrage runtime definition should keep Nh level requirement 92");
+assert(runtimeCombat.runtimePlayerCombatSpellDefinitions["ice-barrage"].requiredMagicLevel === 94, "Ice Barrage runtime definition should keep Nh level requirement 94");
+assert(runtimeCombat.runtimePlayerCombatSpellDefinitions["blood-blitz"].requiredMagicLevel === 80, "Blood Blitz runtime definition should keep Nh level requirement 80");
+assert(runtimeCombat.runtimePlayerCombatSpellDefinitions["ice-blitz"].requiredMagicLevel === 82, "Ice Blitz runtime definition should keep Nh level requirement 82");
 
 let lowCurrentIce = createState(901, {
   localTile: { x: 0, z: 0 },
@@ -2206,7 +2206,7 @@ assert(
   exactCurrentBloodResult.state.events.some(
     (event) => event.kind === "attack" && event.attackerId === "local-player" && event.spellId === "blood-barrage"
   ),
-  `current Magic 92 should still cast Blood Barrage at the exact Kronos requirement: ${JSON.stringify(exactCurrentBloodResult.state.events)}`
+  `current Magic 92 should still cast Blood Barrage at the exact Nh requirement: ${JSON.stringify(exactCurrentBloodResult.state.events)}`
 );
 
 let exactCurrentIce = createState(904, {
@@ -2221,7 +2221,7 @@ assert(
   exactCurrentIceResult.state.events.some(
     (event) => event.kind === "attack" && event.attackerId === "local-player" && event.spellId === "ice-barrage"
   ),
-  `current Magic 94 should still cast Ice Barrage at the exact Kronos requirement: ${JSON.stringify(exactCurrentIceResult.state.events)}`
+  `current Magic 94 should still cast Ice Barrage at the exact Nh requirement: ${JSON.stringify(exactCurrentIceResult.state.events)}`
 );
 
 let lowCurrentAutocast = createState(905, {
@@ -2366,9 +2366,9 @@ const rangedAttackEvent = rangedAttackResult.state.events.find((event) => event.
 assertAttackAnimationWindow(rangedAttackResult, "local-player", "ACB ranged attack");
 assert(rangedAttackEvent?.style === "ranged", "ACB loadout should dispatch a ranged attack style");
 assert(rangedAttackEvent?.sequenceName === "crossbow_attack", "ACB ranged attack should play the crossbow sequence");
-assert(rangedAttackEvent?.projectile?.id === "dragon_bolt", "ACB dragonstone-bolt loadout should emit the Kronos dragon bolt projectile profile");
+assert(rangedAttackEvent?.projectile?.id === "dragon_bolt", "ACB dragonstone-bolt loadout should emit the Nh dragon bolt projectile profile");
 assert(rangedAttackEvent?.projectile?.gfxId === 1468, "ACB dragonstone-bolt loadout should use Projectile.DRAGON_BOLT gfx 1468");
-assert(rangedAttackEvent?.hitDelayTicks === 2, "ACB bolt hit delay should match Kronos default clientDelay for Projectile.BOLT");
+assert(rangedAttackEvent?.hitDelayTicks === 2, "ACB bolt hit delay should match Nh default clientDelay for Projectile.BOLT");
 assert(rangedAttackEvent?.projectileDurationCycles === 66, "ACB bolt duration should use source 51 + 5 cycles per extra tile");
 
 let delayedPrayerDamageState = null;
@@ -2469,7 +2469,7 @@ const acbSpecialResult = advance(acbSpecialAttack);
 const acbSpecialEvent = acbSpecialResult.state.events.find((event) => event.kind === "attack");
 assertAttackAnimationWindow(acbSpecialResult, "local-player", "ACB special attack");
 assert(acbSpecialEvent?.specialAttack === "armadyl_crossbow", "ACB special attack event should be tagged as Armadyl crossbow special");
-assert(acbSpecialEvent?.projectile?.id === "armadyl_crossbow_special", "ACB special should use the Kronos Armadyl Eye projectile profile");
+assert(acbSpecialEvent?.projectile?.id === "armadyl_crossbow_special", "ACB special should use the Nh Armadyl Eye projectile profile");
 assert(acbSpecialEvent?.projectile?.gfxId === 301, "ACB special projectile should use gfx 301 from ArmadylCrossbow.java");
 assert(acbSpecialEvent?.hitDelayTicks === 2, "ACB special should keep the source projectile client-delay timing");
 assert(acbSpecialResult.state.actors["local-player"].gmaul.specialEnergy === 60, "ACB special should drain 40 percent special energy");
@@ -2484,7 +2484,7 @@ for (let index = 0; index < 49; index += 1) {
 assert(
   specialRegen.actors["local-player"].gmaul.specialEnergy === 60 &&
     specialRegen.actors["local-player"].specialRestoreTicks === 49,
-  `special energy should not restore before Kronos' 50 tick threshold: ${JSON.stringify(specialRegen.actors["local-player"])}`
+  `special energy should not restore before Nh' 50 tick threshold: ${JSON.stringify(specialRegen.actors["local-player"])}`
 );
 specialRegen = advance(specialRegen).state;
 assert(
@@ -2522,7 +2522,7 @@ assert(
 assert(
   acbSpecialRestoreBoundaryResult.state.actors["local-player"].gmaul.specialEnergy === 10 &&
     acbSpecialRestoreBoundaryResult.state.actors["local-player"].specialRestoreTicks === 0,
-  `ACB special should drain first, then Kronos post-attack regen should add 10 percent on the same 50th tick: ${JSON.stringify(
+  `ACB special should drain first, then Nh post-attack regen should add 10 percent on the same 50th tick: ${JSON.stringify(
     acbSpecialRestoreBoundaryResult.state.actors["local-player"]
   )}`
 );
@@ -2688,7 +2688,7 @@ const diagonalLastTargetResult = advance(diagonalLastTargetGmaul);
 assert(
   diagonalLastTargetResult.state.actors["local-player"].targetId === null &&
     diagonalLastTargetResult.state.queuedHits.length === 0,
-  "Granite maul auto-attack should not retarget a diagonal last target; Kronos only auto-targets size-1 players at diffX + diffY == 1"
+  "Granite maul auto-attack should not retarget a diagonal last target; Nh only auto-targets size-1 players at diffX + diffY == 1"
 );
 
 let cardinalLastTargetGmaul = createState(244, {
@@ -2703,7 +2703,7 @@ const cardinalLastTargetResult = advance(cardinalLastTargetGmaul);
 assert(
   cardinalLastTargetResult.state.actors["local-player"].targetId === "opponent" &&
     cardinalLastTargetResult.state.queuedHits.length === 1,
-  "Granite maul auto-attack should retarget and fire only when the last target is cardinal-adjacent like Kronos"
+  "Granite maul auto-attack should retarget and fire only when the last target is cardinal-adjacent like Nh"
 );
 
 let outOfRangeDoubleGmaul = createState(245, {
@@ -2814,7 +2814,7 @@ let doubleGmaulSpecial = createState(25, {
 });
 const firstGmaulClick = runtimeCombat.toggleRuntimePlayerCombatSpecial(doubleGmaulSpecial, "local-player");
 const secondGmaulClick = runtimeCombat.toggleRuntimePlayerCombatSpecial(firstGmaulClick.state, "local-player");
-assert(secondGmaulClick.mutation === "deactivate-queue-gmaul", "second active Granite maul click should deactivate and queue another spec like Kronos");
+assert(secondGmaulClick.mutation === "deactivate-queue-gmaul", "second active Granite maul click should deactivate and queue another spec like Nh");
 assert(secondGmaulClick.queuedGraniteMaulSpecs === 2, "two Granite maul clicks should queue two special hits before combat consumes them");
 doubleGmaulSpecial = requestLocalAttack(secondGmaulClick.state);
 const doubleGmaulResult = advance(doubleGmaulSpecial);
@@ -2846,14 +2846,14 @@ let tripleGmaulSpecial = createState(247, {
 const tripleGmaulFirstClick = runtimeCombat.toggleRuntimePlayerCombatSpecial(tripleGmaulSpecial, "local-player");
 const tripleGmaulSecondClick = runtimeCombat.toggleRuntimePlayerCombatSpecial(tripleGmaulFirstClick.state, "local-player");
 const tripleGmaulThirdClick = runtimeCombat.toggleRuntimePlayerCombatSpecial(tripleGmaulSecondClick.state, "local-player");
-assert(tripleGmaulThirdClick.queuedGraniteMaulSpecs === 3, "three Granite maul clicks should queue three attempts before Kronos energy caps consumption");
+assert(tripleGmaulThirdClick.queuedGraniteMaulSpecs === 3, "three Granite maul clicks should queue three attempts before Nh energy caps consumption");
 tripleGmaulSpecial = requestLocalAttack(tripleGmaulThirdClick.state);
 const tripleGmaulResult = advance(tripleGmaulSpecial);
 assert(
   tripleGmaulResult.state.queuedHits.filter((hit) => hit.weaponId === "granite_maul").length === 2 &&
     tripleGmaulResult.state.actors["local-player"].gmaul.queuedSpecs === 0 &&
     tripleGmaulResult.state.actors["local-player"].gmaul.specialEnergy === 0,
-  "three queued Granite maul clicks at 100 percent energy should consume at most two specs, matching Kronos energy / 500 cap"
+  "three queued Granite maul clicks at 100 percent energy should consume at most two specs, matching Nh energy / 500 cap"
 );
 
 let staleGmaulQueueMeleeFallthrough = createState(248, {
@@ -2878,7 +2878,7 @@ assert(
     staleGmaulQueueMeleeFallthroughAttack?.specialAttack === undefined &&
     staleGmaulQueueMeleeFallthroughResult.state.actors["local-player"].gmaul.queuedSpecs === 0 &&
     staleGmaulQueueMeleeFallthroughResult.state.actors["local-player"].gmaul.specialEnergy === 100,
-  "queued Granite maul specs should be cleared by the Kronos melee fallthrough path when attacking with a non-maul melee weapon"
+  "queued Granite maul specs should be cleared by the Nh melee fallthrough path when attacking with a non-maul melee weapon"
 );
 
 let staleGmaulQueueWeaponSwap = createState(251, {
@@ -3035,15 +3035,15 @@ assert(
 );
 assert(
   JSON.stringify(attackEventTicksFor("kodai-robes", 4, { local: { x: 0, z: 0 }, opponent: { x: 1, z: 0 } })) === JSON.stringify([0, 4]),
-  "Kodai default WAND attack should use the four-tick Kronos melee cooldown"
+  "Kodai default WAND attack should use the four-tick Nh melee cooldown"
 );
 assert(
   JSON.stringify(attackEventTicksFor("acb-hides", 6, { local: { x: 0, z: 0 }, opponent: { x: 4, z: 0 } })) === JSON.stringify([0, 6]),
-  "ACB accurate/longrange should use the six-tick Kronos WeaponType.attackTicks cooldown"
+  "ACB accurate/longrange should use the six-tick Nh WeaponType.attackTicks cooldown"
 );
 assert(
   JSON.stringify(attackEventTicksFor("acb-hides", 5, { local: { x: 0, z: 0 }, opponent: { x: 4, z: 0 } }, { attackSetIndex: 1 })) === JSON.stringify([0, 5]),
-  "ACB rapid style should apply Kronos PlayerCombat's one-tick ranged reduction"
+  "ACB rapid style should apply Nh PlayerCombat's one-tick ranged reduction"
 );
 let attackSetPersistence = createState(140, {
   localLoadoutId: "acb-hides",
@@ -3058,7 +3058,7 @@ assert(
 attackSetPersistence = runtimeCombat.setRuntimePlayerCombatLoadout(attackSetPersistence, "local-player", "acb-hides");
 assert(
   attackSetPersistence.actors["local-player"].attackSetIndex === 1,
-  "switching back to ACB should keep Rapid selected like Kronos varp 43"
+  "switching back to ACB should keep Rapid selected like Nh varp 43"
 );
 const attackSetNullSlotResolved = createState(141, {
   localLoadoutId: "acb-hides",
@@ -3066,26 +3066,26 @@ const attackSetNullSlotResolved = createState(141, {
 });
 assert(
   attackSetNullSlotResolved.actors["local-player"].attackSetIndex === 1,
-  "Kronos null attack-set child 11 should resolve backward to the previous visible attack style"
+  "Nh null attack-set child 11 should resolve backward to the previous visible attack style"
 );
 assert(
   JSON.stringify(attackEventTicksFor("tentacle-bandos", 4, { local: { x: 0, z: 0 }, opponent: { x: 1, z: 0 } })) === JSON.stringify([0, 4]),
-  "whip should emit one attack animation per four-tick Kronos attack cooldown"
+  "whip should emit one attack animation per four-tick Nh attack cooldown"
 );
 assert(
   JSON.stringify(attackEventTicksFor("gmaul-bandos", 7, { local: { x: 0, z: 0 }, opponent: { x: 1, z: 0 } })) === JSON.stringify([0, 7]),
-  "Granite maul regular attacks should use the seven-tick Kronos WeaponType.attackTicks cooldown"
+  "Granite maul regular attacks should use the seven-tick Nh WeaponType.attackTicks cooldown"
 );
 
 assert(
   targetSpellSource.includes("target.freeze(seconds, hit.attacker)") &&
     targetSpellSource.indexOf("int damage = target.hit(hit);") < targetSpellSource.indexOf("afterHit(hit, target);"),
-  "Kronos TargetSpell should roll/queue damage, then apply Ice Barrage hold immediately through afterHit"
+  "Nh TargetSpell should roll/queue damage, then apply Ice Barrage hold immediately through afterHit"
 );
 assert(
   entitySource.includes("freezer.getPosition().isWithinDistance(getPosition(), false, 12)") &&
     positionSource.includes("Math.abs(x - other.x) <= distance && Math.abs(y - other.y) <= distance"),
-  "Kronos freeze break should use Entity.isMovementBlocked freezer Chebyshev distance 12"
+  "Nh freeze break should use Entity.isMovementBlocked freezer Chebyshev distance 12"
 );
 
 let freezeOnCastResult = null;
@@ -3121,7 +3121,7 @@ distantFreezeBreak = freezeActor(distantFreezeBreak, "opponent", distantFreezeBr
 const distantFreezeBreakResult = advance(distantFreezeBreak);
 assert(
   !entityLocks.isFrozen(distantFreezeBreakResult.state.actors.opponent.locks, distantFreezeBreakResult.state.tick),
-  "freeze should reset once the freezer is outside Kronos' distance-12 break range"
+  "freeze should reset once the freezer is outside Nh' distance-12 break range"
 );
 
 let inRangeFreezeHeld = createState(45, {
@@ -3134,7 +3134,7 @@ inRangeFreezeHeld = freezeActor(inRangeFreezeHeld, "opponent", inRangeFreezeHeld
 const inRangeFreezeHeldResult = advance(inRangeFreezeHeld);
 assert(
   entityLocks.isFrozen(inRangeFreezeHeldResult.state.actors.opponent.locks, inRangeFreezeHeldResult.state.tick),
-  "freeze should remain while the freezer is still inside Kronos' inclusive distance-12 break range"
+  "freeze should remain while the freezer is still inside Nh' inclusive distance-12 break range"
 );
 
 let preMovementFreeze = createState(43, {
@@ -3194,11 +3194,11 @@ const walkResetCleared = runtimeCombat.resetRuntimePlayerCombatActorTarget(walkR
 assert(walkResetCleared.actors["local-player"].targetId === null, "manual walk reset should clear the local combat target");
 assert(
   walkResetCleared.actors["local-player"].actionSequenceName === "barrage_cast",
-  "manual walk reset should preserve a primary attack animation that Kronos already launched"
+  "manual walk reset should preserve a primary attack animation that Nh already launched"
 );
 assert(
   walkResetCleared.queuedHits.length === walkResetQueuedHits,
-  "manual walk reset should not delete damage that Kronos already launched"
+  "manual walk reset should not delete damage that Nh already launched"
 );
 let walkResetAdvanced = walkResetCleared;
 for (let index = 0; index < 6; index += 1) {
@@ -3239,7 +3239,7 @@ assert(protectSnapshotHit, "protected queued hit should exist for prayer snapsho
 assert(
   protectSnapshotHit.defenderProtectionPrayer === "protect_from_missiles" &&
     protectSnapshotHit.damage === Math.trunc(protectSnapshotHit.rawDamage * prayers.pvpProtectionDamageMultiplier),
-  `queued hit should store Kronos finalized on-prayer damage at attack time: ${JSON.stringify(protectSnapshotHit)}`
+  `queued hit should store Nh finalized on-prayer damage at attack time: ${JSON.stringify(protectSnapshotHit)}`
 );
 protectSnapshotAttack = {
   ...protectSnapshotAttack,
@@ -3337,7 +3337,7 @@ for (const [loadoutId, tiles] of Object.entries({
     );
     formulaMax = Math.max(formulaMax, estimate.maxDamage);
     maxObserved = Math.max(maxObserved, hit.rawDamage);
-    assert(hit.rawDamage <= estimate.maxDamage, `${loadoutId} raw damage must not exceed the visible Kronos formula max`);
+    assert(hit.rawDamage <= estimate.maxDamage, `${loadoutId} raw damage must not exceed the visible Nh formula max`);
   }
   sampledMaxes[loadoutId] = { maxObserved, formulaMax };
 }
@@ -3504,7 +3504,7 @@ assert(
     runtimeCombatSource.includes("PlayerCombat.restore() and NhStakerBot.prepareFreshState() clear combat") &&
     runtimeCombatSource.includes("supplies: runtimePlayerCombatDefaultSupplies") &&
     runtimeCombatSource.includes("gmaul: createGmaulSpecState(100)"),
-  "runtime respawn reset should stay source-anchored to Kronos PlayerCombat.restore and NhStakerBot.prepareFreshState"
+  "runtime respawn reset should stay source-anchored to Nh PlayerCombat.restore and NhStakerBot.prepareFreshState"
 );
 assert(
   respawnedOpponent.hitpoints === respawnedOpponent.maxHitpoints &&
@@ -3617,8 +3617,8 @@ assert(
     runtimePolicyOpponentSource.includes("movedThisTick: actorView.movedThisTick ?? false") &&
     runtimePolicyOpponentSource.includes("lastMoveDx: actorView.lastMoveDx ?? 0") &&
     runtimePolicyOpponentSource.includes("lastMoveDy: actorView.lastMoveDy ?? 0") &&
-    viewerSource.includes("kronosClientVisibleOpponentHp") &&
-    viewerSource.includes("kronosClientVisibleFreezeTicks") &&
+    viewerSource.includes("nhClientVisibleOpponentHp") &&
+    viewerSource.includes("nhClientVisibleFreezeTicks") &&
     viewerSource.includes("runtimePolicyVisibleStatsFromCombatActor") &&
     viewerSource.includes("runtimePolicyVisibleLocksFromCombatActor") &&
     viewerSource.includes("stats: observedLocalAppearance.stats") &&
@@ -3668,7 +3668,7 @@ assert(
     runtimePolicyOpponentSource.includes("runtimePolicyStyleWeaponCanAttackForSpec(context, action.offenceStyle)") &&
     runtimePolicyOpponentSource.includes("server weapon after switchToStyle(desiredOffence)") &&
     runtimePolicyOpponentSource.includes("context.meleeReachable"),
-  "manual opponent policy gmaul intents should use Kronos tick-start spec-control semantics before equipping the maul"
+  "manual opponent policy gmaul intents should use Nh tick-start spec-control semantics before equipping the maul"
 );
 let capturedDelayedAppearanceContext = null;
 const delayedAppearanceController = {
@@ -3926,7 +3926,7 @@ assert(
     viewerSource.includes("preMovementHitApplied ||") &&
     runtimeCombatSource.includes("applyRuntimePlayerCombatDueHits(actors, queuedHits, currentTick, input.tileScale)") &&
     runtimeCombatSource.includes("syncRuntimePlayerCombatActorsForPreMovementHits"),
-  "manual combat tick should apply due hits/freezes before movement, matching Kronos Player.process() processHits-before-movement order"
+  "manual combat tick should apply due hits/freezes before movement, matching Nh Player.process() processHits-before-movement order"
 );
 assert(
     viewerSource.includes("const resolveManualOpponentPolicyTick = (combatState: RuntimePlayerCombatState): ManualOpponentPolicyTickGate =>") &&
@@ -3954,7 +3954,7 @@ assert(
     nhStakerBotSource.includes("player.getCombat().reset();") &&
     nhStakerBotSource.includes("engagementLockUntilTick = tick + ENGAGEMENT_STICKY_TICKS") &&
     nhStakerBotSource.includes("return lockedTarget"),
-  "manual viewport opponent should keep the NH policy engaged once combat starts, matching Kronos locked-target behavior instead of waiting for another player hit"
+  "manual viewport opponent should keep the NH policy engaged once combat starts, matching Nh locked-target behavior instead of waiting for another player hit"
 );
 assert(
   appSource.includes("<RuntimeSceneViewer") &&
@@ -3973,20 +3973,20 @@ assert(
   "manual viewport opponent should consume the loaded policy controller when available and fall back to the EV-aware scripted NH controller instead of raw auto-retaliate"
 );
 assert(
-  viewerSource.includes("isKronosPlayerContextMenuEntry(defaultEntry)") &&
+  viewerSource.includes("isNhPlayerContextMenuEntry(defaultEntry)") &&
     viewerSource.includes("dispatchPlayerContextEntry(defaultEntry") &&
     viewerSource.includes("issuePlayerAttackCommand(entry"),
   "left-click Attack should dispatch combat instead of falling through as a tile command"
 );
 assert(
-  viewerSource.includes("nextKronosGameTickAt") &&
-    viewerSource.includes("currentKronosGameTickAt") &&
+  viewerSource.includes("nextNhGameTickAt") &&
+    viewerSource.includes("currentNhGameTickAt") &&
     viewerSource.includes("runtimeTickOriginMsRef") &&
-    viewerSource.includes("KRONOS_GAME_TICK_CATCH_UP_LIMIT") &&
+    viewerSource.includes("NH_GAME_TICK_CATCH_UP_LIMIT") &&
     viewerSource.includes("manualCombatStateRef.current.tick < targetTick") &&
     viewerSource.includes("const runCombatTick = (): void =>") &&
-    viewerSource.includes("window.setTimeout(runCombatTick, kronosGameTickDelay(runtimeTickOriginMsRef.current, now))"),
-  "manual combat should advance on Kronos game-tick boundaries and catch up delayed 600ms ticks instead of stretching time"
+    viewerSource.includes("window.setTimeout(runCombatTick, nhGameTickDelay(runtimeTickOriginMsRef.current, now))"),
+  "manual combat should advance on Nh game-tick boundaries and catch up delayed 600ms ticks instead of stretching time"
 );
 assert(
   viewerSource.includes('if (entry.action === "attack")') &&
@@ -3995,10 +3995,10 @@ assert(
 );
 assert(
   viewerSource.includes("routeManualActorToTarget") &&
-    viewerSource.includes("findKronosTargetRouteWaypoints") &&
-    viewerSource.includes("kronosSceneTargetRouteReached") &&
+    viewerSource.includes("findNhTargetRouteWaypoints") &&
+    viewerSource.includes("nhSceneTargetRouteReached") &&
     viewerSource.includes("request.attackRange") &&
-    viewerSource.includes("tileScale: KRONOS_TILE_WORLD_UNITS") &&
+    viewerSource.includes("tileScale: NH_TILE_WORLD_UNITS") &&
     runtimeCombatSource.includes("normalizeRuntimeCombatTileScale(tileScale)") &&
     viewerSource.includes("movementGate(combatActor.locks") &&
     viewerSource.includes("lastRuntimeCombatRouteBlockedReason"),
@@ -4050,21 +4050,21 @@ assert(
 assert(
     viewerSource.includes("orientationUnits") &&
     viewerSource.includes("rotationUnits") &&
-    viewerSource.includes("kronosTargetOrientationUnits") &&
-    viewerSource.includes("rotateManualActorTowardKronosOrientation") &&
-    viewerSource.includes("KRONOS_ACTOR_TURN_ANIMATION_DELAY_TICKS") &&
-    viewerSource.includes("kronosSequenceIsReadyMovement") &&
+    viewerSource.includes("nhTargetOrientationUnits") &&
+    viewerSource.includes("rotateManualActorTowardNhOrientation") &&
+    viewerSource.includes("NH_ACTOR_TURN_ANIMATION_DELAY_TICKS") &&
+    viewerSource.includes("nhSequenceIsReadyMovement") &&
     viewerSource.includes('return sequenceName === "idle" || runtimeSequenceIsWeaponReady(sequenceName);') &&
-    viewerSource.includes("kronosTurnSequenceForReadyMovement(actor.sequenceName, turnTicks, stillTurning)") &&
+    viewerSource.includes("nhTurnSequenceForReadyMovement(actor.sequenceName, turnTicks, stillTurning)") &&
     viewerSource.includes("Math.trunc(units)") &&
     viewerSource.includes("combatActor.actionStartedAtClientCycle") &&
     viewerSource.includes("manualActorBaseSequenceName(") &&
-    viewerSource.includes("kronosWeaponRenderSequenceName(") &&
-    viewerSource.includes("kronosRuntimeSequenceNameForId(sequenceId, actorSequenceDefinitions)") &&
+    viewerSource.includes("nhWeaponRenderSequenceName(") &&
+    viewerSource.includes("nhRuntimeSequenceNameForId(sequenceId, actorSequenceDefinitions)") &&
     viewerSource.includes("runtimeSequenceIsMovement(baseSequenceName)") &&
     viewerSource.includes('sequenceMode: actionFrameActive ? "primary" : undefined') &&
     viewerSource.includes('movementAnimationCycle: movementSequenceName ? actor.animationCycle : undefined'),
-  "manual combat actors should use Kronos orientation/rotation turning and suppress primary-animation idle fallback after source sequence frames end"
+  "manual combat actors should use Nh orientation/rotation turning and suppress primary-animation idle fallback after source sequence frames end"
 );
 assert(
   clientActorMovementSource.includes("if(var0.field720 != 0)") &&
@@ -4075,13 +4075,13 @@ assert(
     clientActorMovementSource.includes("if(var0.movementSequence == var0.readySequence && (var0.field719 > 25 || var14))") &&
     clientActorMovementSource.includes("var0.movementSequence = var0.turnRightSequence;") &&
     clientPlayerSource.includes("super.turnRightSequence = super.turnLeftSequence;"),
-  "Kronos client actor turning source no longer matches the trainer's ready-movement turn contract"
+  "Nh client actor turning source no longer matches the trainer's ready-movement turn contract"
 );
 assert(
-    viewerSource.includes("manualActorMovementBlockedByKronosSequence") &&
-    viewerSource.includes("kronosSequencePrecedenceAnimating(sequence) === 0") &&
-    viewerSource.includes("kronosSequencePriority(sequence) === 0") &&
-    viewerSource.includes("kronosAdvancePrimarySequenceCursor") &&
+    viewerSource.includes("manualActorMovementBlockedByNhSequence") &&
+    viewerSource.includes("nhSequencePrecedenceAnimating(sequence) === 0") &&
+    viewerSource.includes("nhSequencePriority(sequence) === 0") &&
+    viewerSource.includes("nhAdvancePrimarySequenceCursor") &&
     viewerSource.includes("manualActorWithAuthoritativeSequenceCursor") &&
     viewerSource.includes("current.primarySequenceCycle > incoming.primarySequenceCycle") &&
     viewerSource.includes("current.completedSequenceKey && current.completedSequenceKey === incoming.activeSequenceKey") &&
@@ -4099,10 +4099,10 @@ assert(
     viewerSource.includes("sequencePathLengthAtStart: actor.routeWaypoints.length") &&
     viewerSource.includes("snapManualActorToCollision") &&
     viewerSource.includes("renderTile: tile") &&
-    viewerSource.includes("expandKronosManualRoutePath(startTile, routeSegment, collision)") &&
-    viewerSource.includes("setKronosManualServerRoutePath(routePath)") &&
+    viewerSource.includes("expandNhManualRoutePath(startTile, routeSegment, collision)") &&
+    viewerSource.includes("setNhManualServerRoutePath(routePath)") &&
     viewerSource.includes("manualActorRouteClientPosition(actor, startTile)") &&
-    viewerSource.includes("actor.clientPosition ?? kronosClientPositionFromRuntimeTile(actor.renderTile ?? startTile)") &&
+    viewerSource.includes("actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile ?? startTile)") &&
     !viewerSource.includes("actor: advanceManualActorServerRouteTick({") &&
     viewerSource.includes("stopManualActorMovementIfMovementGated") &&
     viewerSource.includes("clearManualActorMovementRoute") &&
@@ -4122,11 +4122,11 @@ assert(
     viewerSource.includes("lastMovementClientCycle") &&
     viewerSource.includes("movementStallTicks: actor.movementStallTicks") &&
     viewerSource.includes("advanceManualActorClientCycle") &&
-    viewerSource.includes("kronosManualMovementSpeed(currentActor, traversalMode, hasCombatTarget)") &&
-    viewerSource.includes("KRONOS_CLIENT_MAX_CYCLES_PER_RENDER_FRAME") &&
+    viewerSource.includes("nhManualMovementSpeed(currentActor, traversalMode, hasCombatTarget)") &&
+    viewerSource.includes("NH_CLIENT_MAX_CYCLES_PER_RENDER_FRAME") &&
     viewerSource.includes("animationCycle - targetMovementCycle > maxCycleCatchUp ? animationCycle : targetMovementCycle") &&
     viewerSource.includes("tile: actor.tile") &&
-    viewerSource.includes("renderTile: runtimeTileFromKronosClientPosition(clientPosition)") &&
+    viewerSource.includes("renderTile: runtimeTileFromNhClientPosition(clientPosition)") &&
     !viewerSource.includes("tile: collision.snapTile(renderTile)") &&
     !viewerSource.includes("tile: nextLogicalTile") &&
     viewerSource.includes("animationFixtures") &&
@@ -4134,18 +4134,18 @@ assert(
     viewerSource.includes('lastManualOpponentPolicyTickSource = "deferred-to-game-tick"') &&
     viewerSource.includes("routeManualActorToTarget(input.actor, input.targetActor.tile, profile.attackRange, input.collision, input.now, false)") &&
     !viewerSource.includes("manualActorFacingTarget(clearManualActorRoutes(localActorSource), opponentActorSource)"),
-  "manual combat movement should use Kronos sequence movement-blocking metadata, route through server-tick path updates, defer opponent policy to the game tick, and avoid target-route visual backtracking"
+  "manual combat movement should use Nh sequence movement-blocking metadata, route through server-tick path updates, defer opponent policy to the game tick, and avoid target-route visual backtracking"
 );
 assert(
   consumableSource.includes("player.resetActions(true, player.getMovement().following != null, true)") &&
     viewerSource.includes("const sourceActor = manualControlRef.current") &&
-    viewerSource.includes("const consumeActor = sameKronosTile(sourceActor.tile, localActor.tile)") &&
+    viewerSource.includes("const consumeActor = sameNhTile(sourceActor.tile, localActor.tile)") &&
     viewerSource.includes("tile: localActor.tile") &&
     viewerSource.includes("renderTile: localActor.tile") &&
     viewerSource.includes("manualControlRef.current = true;") &&
     viewerSource.includes("...finalConsumableSourceActor,") &&
     !viewerSource.includes("tile: sourceActor.tile"),
-  "manual consumable actions should mirror Kronos eat/drink reset semantics without writing stale render tiles back into combat state"
+  "manual consumable actions should mirror Nh eat/drink reset semantics without writing stale render tiles back into combat state"
 );
 assert(
   consumableSource.includes('ItemAction.registerInventory(id, "eat"') &&
@@ -4153,18 +4153,18 @@ assert(
     consumableSource.includes("player.incrementHp(heal);") &&
     viewerSource.includes("queueInventoryConsumableAction") &&
     viewerSource.includes('if (action.kind === "eat" || action.kind === "drink")') &&
-    viewerSource.includes("itemActionQueueRef.current.drainReady(nowMs, KRONOS_GAME_TICK_MS)") &&
+    viewerSource.includes("itemActionQueueRef.current.drainReady(nowMs, NH_GAME_TICK_MS)") &&
     viewerSource.includes("runtimeSimStatsFromActorAndHud(localActor, visibleSnapshotRef.current.hud)") &&
     viewerSource.includes("supplyDelays: result.delays") &&
     !viewerSource.includes("previewInventoryConsumableAction(") &&
     !viewerSource.includes("applyInventoryConsumableResult("),
-  "manual inventory eat/drink clicks should queue like Kronos inventory packets and apply healing/inventory changes only when the next game tick drains the queue"
+  "manual inventory eat/drink clicks should queue like Nh inventory packets and apply healing/inventory changes only when the next game tick drains the queue"
 );
 assert(
   /const nextCombatState = resetRuntimePlayerCombatActorTarget\(manualScene\.combatState, "local-player"\);\s+const movementStatus = movementGate\(/.test(viewerSource) &&
     /if \(movementStatus\.blocked\) \{[\s\S]*manualCombatStateRef\.current = nextCombatState;[\s\S]*setManualCombatState\(nextCombatState\);[\s\S]*showClickCross\(position, color\);[\s\S]*lastTileCommandBlockedByMovementGate/.test(viewerSource) &&
     viewerSource.includes("lastTileCommandSource"),
-  "manual tile commands should mirror Kronos WalkHandler.resetActions before blocked routes and keep the client-side click-cross color"
+  "manual tile commands should mirror Nh WalkHandler.resetActions before blocked routes and keep the client-side click-cross color"
 );
 assert(
   viewerSource.includes('activateManualActor({ loadoutId: "kodai-robes", sequenceName: "idle" })') &&
@@ -4172,15 +4172,15 @@ assert(
   "manual style switches should change gear only; real attack events should be the only source of barrage cast animations"
 );
 assert(
-  viewerSource.includes("createKronosHitsplatRenderState") &&
+  viewerSource.includes("createNhHitsplatRenderState") &&
     viewerSource.includes("combatHit") &&
-    viewerSource.includes("createKronosHealthBarRenderState") &&
-    viewerSource.includes("packetCycle: event.tick * KRONOS_CLIENT_CYCLES_PER_GAME_TICK") &&
+    viewerSource.includes("createNhHealthBarRenderState") &&
+    viewerSource.includes("packetCycle: event.tick * NH_CLIENT_CYCLES_PER_GAME_TICK") &&
     viewerSource.includes("clientCycle,") &&
     viewerSource.includes("latestHealthEventByActor") &&
     viewerSource.includes("slotIndex: event.slotIndex") &&
-    viewerSource.includes("kronosPrayerOverheadDefinition") &&
-    viewerSource.includes("kronosSkullOverheadDefinition"),
+    viewerSource.includes("nhPrayerOverheadDefinition") &&
+    viewerSource.includes("nhSkullOverheadDefinition"),
   "manual combat render events should feed per-hit hitsplats, a single latest health bar, prayer overheads, and skull overheads through the existing renderer"
 );
 assert(
@@ -4189,17 +4189,17 @@ assert(
     viewerSource.includes("reprojectRuntimeOverlaySprites(boundary, frameSnapshot)")
   ) &&
     viewerSource.includes("if (!manualControl) {\n      applySnapshot(") &&
-    viewerSource.includes("kronosRuntimeOverlayAnchor") &&
+    viewerSource.includes("nhRuntimeOverlayAnchor") &&
     viewerSource.includes("runtimeOverlayViewport(boundary)") &&
     viewerSource.includes("buildRuntimeDomOverlays(") &&
-    viewerSource.includes("kronosActorOverlayPlacement(") &&
-    viewerSource.includes("kronosOverlayClientViewportProjection(") &&
-    viewerSource.includes("kronosRuntimeOverlayClientCameraState(boundary)"),
-  "actor overlays should be projected into a 2D screen-space sprite layer through the Kronos viewportTempX/Y client-camera path"
+    viewerSource.includes("nhActorOverlayPlacement(") &&
+    viewerSource.includes("nhOverlayClientViewportProjection(") &&
+    viewerSource.includes("nhRuntimeOverlayClientCameraState(boundary)"),
+  "actor overlays should be projected into a 2D screen-space sprite layer through the Nh viewportTempX/Y client-camera path"
 );
 assert(viewerSource.includes("buildEffectModel"), "RuntimeSceneViewer should use a separate effect model path for projectiles and spotanims");
 assert(
-  viewerSource.includes("kronosClientUnitsToWorldUnits(1)") &&
+  viewerSource.includes("nhClientUnitsToWorldUnits(1)") &&
     !viewerSource.includes("object.scale.multiplyScalar(0.45)") &&
     !viewerSource.includes("object.scale.multiplyScalar(0.55)"),
   "projectiles and spotanims should render at natural cache scale instead of being normalized like players"

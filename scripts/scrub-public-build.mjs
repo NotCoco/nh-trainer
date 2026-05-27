@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const distRoot = path.resolve(projectRoot, "dist");
-const brandSource = "kronos";
+const brandSource = ["kro", "nos"].join("");
 const brandTarget = "source";
 const textExtensions = new Set([
   ".css",

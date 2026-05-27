@@ -141,8 +141,8 @@ async function focusRuntimeSectionForCapture(window) {
       section.style.paddingTop = "0";
       section.style.borderTop = "0";
       window.scrollTo(0, 0);
-      window.dispatchEvent(new CustomEvent("kronos-runtime-camera", { detail: { camera: "isometric" } }));
-      window.dispatchEvent(new CustomEvent("kronos-runtime-cycle", { detail: { cycle: 3 } }));
+      window.dispatchEvent(new CustomEvent("nh-runtime-camera", { detail: { camera: "isometric" } }));
+      window.dispatchEvent(new CustomEvent("nh-runtime-cycle", { detail: { cycle: 3 } }));
       return { ok: true };
     })()
   `);
@@ -162,7 +162,7 @@ async function openObjectContextMenu(window, object) {
           return { ok: false, error: "missing runtime canvas" };
         }
         const rect = canvas.getBoundingClientRect();
-        window.dispatchEvent(new CustomEvent("kronos-runtime-context-menu", {
+        window.dispatchEvent(new CustomEvent("nh-runtime-context-menu", {
           detail: {
             worldTile: object.menuTile ?? { x: object.x, y: object.y, plane: object.plane },
             x: 260,
@@ -170,18 +170,18 @@ async function openObjectContextMenu(window, object) {
           }
         }));
 
-        let menu = document.querySelector(".kronosContextMenu");
+        let menu = document.querySelector(".nhContextMenu");
         const deadline = Date.now() + 1000;
         while (!menu && Date.now() < deadline) {
           await new Promise((resolve) => requestAnimationFrame(resolve));
-          menu = document.querySelector(".kronosContextMenu");
+          menu = document.querySelector(".nhContextMenu");
         }
         if (!menu) {
           return { ok: false, error: "object context menu did not open" };
         }
 
-        const options = Array.from(menu.querySelectorAll(".kronosContextMenuOption")).map((option) => {
-          const glyphs = Array.from(option.querySelectorAll(".kronosContextMenuGlyph"));
+        const options = Array.from(menu.querySelectorAll(".nhContextMenuOption")).map((option) => {
+          const glyphs = Array.from(option.querySelectorAll(".nhContextMenuGlyph"));
           const glyphTops = glyphs.map((glyph) => Number.parseFloat(glyph.style.top || "0"));
           return {
             text: option.textContent ?? "",
@@ -202,7 +202,7 @@ async function openObjectContextMenu(window, object) {
         const canvasRect = canvas.getBoundingClientRect();
         return {
           ok: true,
-          title: menu.querySelector(".kronosContextMenuTitle")?.textContent ?? "",
+          title: menu.querySelector(".nhContextMenuTitle")?.textContent ?? "",
           options,
           sourceFontId: menu.getAttribute("data-source-font-id") ?? "",
           sourceFontArchive: menu.getAttribute("data-source-font-archive") ?? "",
@@ -241,7 +241,7 @@ async function openObjectContextMenu(window, object) {
 async function setRuntimeInventory(window, inventory) {
   await window.webContents.executeJavaScript(`
     (() => {
-      window.dispatchEvent(new CustomEvent("kronos-runtime-inventory", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-inventory", {
         detail: { inventory: ${JSON.stringify(inventory)} }
       }));
     })()
@@ -252,7 +252,7 @@ async function setRuntimeInventory(window, inventory) {
 async function selectInventoryUseOption(window, slotIndex) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const slot = document.querySelector(${JSON.stringify(`.kronosInventorySlot[data-slot-index="${slotIndex}"]`)});
+      const slot = document.querySelector(${JSON.stringify(`.nhInventorySlot[data-slot-index="${slotIndex}"]`)});
       if (!slot) {
         return { ok: false, error: "missing inventory slot" };
       }
@@ -267,16 +267,16 @@ async function selectInventoryUseOption(window, slotIndex) {
         clientY: rect.top + rect.height / 2
       }));
 
-      let menu = document.querySelector(".kronosContextMenu");
+      let menu = document.querySelector(".nhContextMenu");
       const deadline = Date.now() + 1000;
       while (!menu && Date.now() < deadline) {
         await new Promise((resolve) => requestAnimationFrame(resolve));
-        menu = document.querySelector(".kronosContextMenu");
+        menu = document.querySelector(".nhContextMenu");
       }
       if (!menu) {
         return { ok: false, error: "inventory context menu did not open" };
       }
-      const option = Array.from(menu.querySelectorAll(".kronosContextMenuOption")).find((candidate) =>
+      const option = Array.from(menu.querySelectorAll(".nhContextMenuOption")).find((candidate) =>
         candidate.getAttribute("data-menu-action") === "Use" &&
         candidate.getAttribute("data-menu-action-kind") === "inventory-use" &&
         Number(candidate.getAttribute("data-menu-opcode")) === 38
@@ -285,7 +285,7 @@ async function selectInventoryUseOption(window, slotIndex) {
         return {
           ok: false,
           error: "missing inventory Use option",
-          options: Array.from(menu.querySelectorAll(".kronosContextMenuOption")).map((candidate) => ({
+          options: Array.from(menu.querySelectorAll(".nhContextMenuOption")).map((candidate) => ({
             text: candidate.textContent ?? "",
             action: candidate.getAttribute("data-menu-action") ?? "",
             kind: candidate.getAttribute("data-menu-action-kind") ?? "",
@@ -318,7 +318,7 @@ async function selectInventoryUseOption(window, slotIndex) {
 async function clickSideTab(window, tabId) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const tab = document.querySelector(${JSON.stringify(`.kronosSideTabButton[data-tab-id="${tabId}"]`)});
+      const tab = document.querySelector(${JSON.stringify(`.nhSideTabButton[data-tab-id="${tabId}"]`)});
       if (!tab) {
         return { ok: false, error: "missing side tab" };
       }
@@ -348,14 +348,14 @@ async function setRuntimeSpellbook(window, spellbookId) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
       const spellbookId = ${JSON.stringify(spellbookId)};
-      window.dispatchEvent(new CustomEvent("kronos-runtime-spellbook", {
+      window.dispatchEvent(new CustomEvent("nh-runtime-spellbook", {
         detail: { spellbookId }
       }));
       const deadline = Date.now() + 1000;
-      let layer = document.querySelector(".kronosSpellbookIconLayer");
+      let layer = document.querySelector(".nhSpellbookIconLayer");
       while ((!layer || layer.getAttribute("data-book-id") !== spellbookId) && Date.now() < deadline) {
         await new Promise((resolve) => requestAnimationFrame(resolve));
-        layer = document.querySelector(".kronosSpellbookIconLayer");
+        layer = document.querySelector(".nhSpellbookIconLayer");
       }
       const viewport = document.querySelector(".runtimeViewport");
       if (!layer || layer.getAttribute("data-book-id") !== spellbookId) {
@@ -371,7 +371,7 @@ async function setRuntimeSpellbook(window, spellbookId) {
         activeSpellbookId: viewport?.dataset.activeSpellbookId ?? "",
         bookId: layer.getAttribute("data-book-id") ?? "",
         enumId: layer.getAttribute("data-enum-id") ?? "",
-        iconCount: document.querySelectorAll(".kronosSpellbookIconSprite").length
+        iconCount: document.querySelectorAll(".nhSpellbookIconSprite").length
       };
     })()
   `);
@@ -384,7 +384,7 @@ async function setRuntimeSpellbook(window, spellbookId) {
 async function clickSpell(window, spellId) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const spell = document.querySelector(${JSON.stringify(`.kronosSpellbookIconSprite[data-spell-id="${spellId}"]`)});
+      const spell = document.querySelector(${JSON.stringify(`.nhSpellbookIconSprite[data-spell-id="${spellId}"]`)});
       if (!spell) {
         return { ok: false, error: "missing spell" };
       }
@@ -415,7 +415,7 @@ async function clickObjectAction(window, object) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
       const object = ${JSON.stringify(object)};
-      const options = Array.from(document.querySelectorAll(".kronosContextMenuOption"));
+      const options = Array.from(document.querySelectorAll(".nhContextMenuOption"));
       const option = options.find((candidate) =>
         candidate.getAttribute("data-menu-action") === object.actionText &&
         Number(candidate.getAttribute("data-menu-opcode")) === object.opcode &&
@@ -434,7 +434,7 @@ async function clickObjectAction(window, object) {
       }
       return {
         ok: true,
-        menuStillOpen: Boolean(document.querySelector(".kronosContextMenu")),
+        menuStillOpen: Boolean(document.querySelector(".nhContextMenu")),
         dataset: {
           lastTileCommandSource: viewport.dataset.lastTileCommandSource ?? "",
           lastSceneObjectAction: viewport.dataset.lastSceneObjectAction ?? "",
@@ -471,7 +471,7 @@ async function clickObjectAction(window, object) {
 async function readRuntimeClickCross(window) {
   return window.webContents.executeJavaScript(`
     (() => {
-      const cross = document.querySelector(".kronosClickCross");
+      const cross = document.querySelector(".nhClickCross");
       if (!cross) {
         return null;
       }

@@ -84,65 +84,65 @@ function assert(condition, message) {
 }
 
 const {
-  buildKronosPlayerContextEntries,
-  KRONOS_CONTEXT_MENU_BODY_COLOR,
-  KRONOS_CONTEXT_MENU_BODY_BORDER_COLOR,
-  KRONOS_CONTEXT_MENU_FRAME_COLOR,
-  KRONOS_CONTEXT_MENU_HEADER_BOTTOM_COLOR,
-  KRONOS_CONTEXT_MENU_HEADER_TOP_COLOR,
-  KRONOS_CONTEXT_MENU_HOVER_FILL_ALPHA,
-  KRONOS_CONTEXT_MENU_HOVER_FILL_COLOR,
-  KRONOS_CONTEXT_MENU_HOVER_HEIGHT,
-  KRONOS_CONTEXT_MENU_HOVER_LEFT,
-  KRONOS_CONTEXT_MENU_HOVER_TOP,
-  KRONOS_CONTEXT_MENU_HOVER_WIDTH_SUBTRACT,
-  KRONOS_CONTEXT_MENU_OUTLINE_COLOR,
-  KRONOS_CONTEXT_MENU_TEXT_COLOR,
-  KRONOS_PLAYER_ACTION_PACKET_IDS_BY_OPCODE,
-  KRONOS_PLAYER_SELECTED_PACKET_IDS_BY_OPCODE,
-  KRONOS_PLAYER_SPELL_SELECTED_OPCODE,
-  KRONOS_PLAYER_USE_SELECTED_OPCODE,
-  kronosContextMenuHitIndex,
-  kronosContextMenuWidth,
-  kronosMenuBaseOpcode,
-  kronosMenuEntryText,
-  kronosPlayerCommandPacket,
-  kronosPlayerSelectedCommandPacket,
-  orderKronosMenuEntries,
-  resolveKronosContextMenuRect,
-  selectKronosDefaultMenuEntry,
-  visibleKronosMenuEntries
-} = loadTsModule("src/render/kronosContextMenu.ts");
+  buildNhPlayerContextEntries,
+  NH_CONTEXT_MENU_BODY_COLOR,
+  NH_CONTEXT_MENU_BODY_BORDER_COLOR,
+  NH_CONTEXT_MENU_FRAME_COLOR,
+  NH_CONTEXT_MENU_HEADER_BOTTOM_COLOR,
+  NH_CONTEXT_MENU_HEADER_TOP_COLOR,
+  NH_CONTEXT_MENU_HOVER_FILL_ALPHA,
+  NH_CONTEXT_MENU_HOVER_FILL_COLOR,
+  NH_CONTEXT_MENU_HOVER_HEIGHT,
+  NH_CONTEXT_MENU_HOVER_LEFT,
+  NH_CONTEXT_MENU_HOVER_TOP,
+  NH_CONTEXT_MENU_HOVER_WIDTH_SUBTRACT,
+  NH_CONTEXT_MENU_OUTLINE_COLOR,
+  NH_CONTEXT_MENU_TEXT_COLOR,
+  NH_PLAYER_ACTION_PACKET_IDS_BY_OPCODE,
+  NH_PLAYER_SELECTED_PACKET_IDS_BY_OPCODE,
+  NH_PLAYER_SPELL_SELECTED_OPCODE,
+  NH_PLAYER_USE_SELECTED_OPCODE,
+  nhContextMenuHitIndex,
+  nhContextMenuWidth,
+  nhMenuBaseOpcode,
+  nhMenuEntryText,
+  nhPlayerCommandPacket,
+  nhPlayerSelectedCommandPacket,
+  orderNhMenuEntries,
+  resolveNhContextMenuRect,
+  selectNhDefaultMenuEntry,
+  visibleNhMenuEntries
+} = loadTsModule("src/render/nhContextMenu.ts");
 const { applyRuneliteOpponentInfoMenuEntries } = loadTsModule("src/ui/runeliteOpponentInfo.ts");
 const {
-  KRONOS_OBJECT_ACTION_OPCODES,
-  KRONOS_OBJECT_EXAMINE_OPCODE,
-  KRONOS_OBJECT_PACKET_IDS_BY_OPCODE,
-  KRONOS_OBJECT_SERVER_OPTIONS_BY_OPCODE,
-  KRONOS_OBJECT_SPELL_SELECTED_OPCODE,
-  KRONOS_OBJECT_TARGET_COLOR_TAG,
-  KRONOS_OBJECT_USE_SELECTED_OPCODE,
-  buildKronosSceneObjectContextEntries,
-  findKronosSceneObjectForWorldTile,
-  kronosSceneObjectCommandPacket,
-  kronosSceneObjectTargetText
-} = loadTsModule("src/render/kronosSceneObjects.ts");
+  NH_OBJECT_ACTION_OPCODES,
+  NH_OBJECT_EXAMINE_OPCODE,
+  NH_OBJECT_PACKET_IDS_BY_OPCODE,
+  NH_OBJECT_SERVER_OPTIONS_BY_OPCODE,
+  NH_OBJECT_SPELL_SELECTED_OPCODE,
+  NH_OBJECT_TARGET_COLOR_TAG,
+  NH_OBJECT_USE_SELECTED_OPCODE,
+  buildNhSceneObjectContextEntries,
+  findNhSceneObjectForWorldTile,
+  nhSceneObjectCommandPacket,
+  nhSceneObjectTargetText
+} = loadTsModule("src/render/nhSceneObjects.ts");
 const { assertValidClientViewTrace } = loadTsModule("src/sim/clientView.ts");
 const { clientViewTraceToRuntimeReplay, sampleRuntimeReplayScene } = loadTsModule("src/render/clientViewReplay.ts");
 const {
-  KRONOS_CONTEXT_MENU_FONT_KEY,
-  createKronosClientFontStore,
-  kronosClientFontDefinition,
-  kronosClientFontStringWidth
-} = loadTsModule("src/render/kronosClientFonts.ts");
+  NH_CONTEXT_MENU_FONT_KEY,
+  createNhClientFontStore,
+  nhClientFontDefinition,
+  nhClientFontStringWidth
+} = loadTsModule("src/render/nhClientFonts.ts");
 
-const clientFonts = createKronosClientFontStore(
+const clientFonts = createNhClientFontStore(
   JSON.parse(readFileSync(path.join(projectRoot, "fixtures", "assets", "defs", "client-fonts.json"), "utf8"))
 );
 const contextMenuFontSheet = JSON.parse(
   readFileSync(path.join(projectRoot, "fixtures", "render", "sprites", "context_menu_font.json"), "utf8")
 );
-const contextMenuFont = kronosClientFontDefinition(clientFonts, KRONOS_CONTEXT_MENU_FONT_KEY);
+const contextMenuFont = nhClientFontDefinition(clientFonts, NH_CONTEXT_MENU_FONT_KEY);
 assert(contextMenuFont, "missing exported bold12 context-menu font metrics");
 assert(contextMenuFont.fontId === 496, `unexpected bold12 font id: ${JSON.stringify(contextMenuFont)}`);
 assert(contextMenuFont.fontArchiveName === "b12_full", `unexpected bold12 font archive: ${JSON.stringify(contextMenuFont)}`);
@@ -153,21 +153,21 @@ assert(contextMenuFontSheet.sprites.length === 94, `expected printable ASCII gly
 const glyphA = contextMenuFontSheet.sprites.find((sprite) => sprite.charCode === 65);
 assert(glyphA?.advance === contextMenuFont.advances[65], `A glyph advance did not match exported font metrics: ${JSON.stringify(glyphA)}`);
 assert(glyphA.width > 0 && glyphA.height > 0, `A glyph missing sprite pixels: ${JSON.stringify(glyphA)}`);
-assert(KRONOS_CONTEXT_MENU_FRAME_COLOR === "#6d6a5b", `source frame color mismatch: ${KRONOS_CONTEXT_MENU_FRAME_COLOR}`);
-assert(KRONOS_CONTEXT_MENU_OUTLINE_COLOR === "#2b2622", `source outline color mismatch: ${KRONOS_CONTEXT_MENU_OUTLINE_COLOR}`);
-assert(KRONOS_CONTEXT_MENU_HEADER_TOP_COLOR === "#322e22", `source header top color mismatch: ${KRONOS_CONTEXT_MENU_HEADER_TOP_COLOR}`);
-assert(KRONOS_CONTEXT_MENU_HEADER_BOTTOM_COLOR === "#090a04", `source header bottom color mismatch: ${KRONOS_CONTEXT_MENU_HEADER_BOTTOM_COLOR}`);
-assert(KRONOS_CONTEXT_MENU_BODY_BORDER_COLOR === "#524a3d", `source body border color mismatch: ${KRONOS_CONTEXT_MENU_BODY_BORDER_COLOR}`);
-assert(KRONOS_CONTEXT_MENU_BODY_COLOR === "#2b271c", `source body color mismatch: ${KRONOS_CONTEXT_MENU_BODY_COLOR}`);
-assert(KRONOS_CONTEXT_MENU_TEXT_COLOR === "#c6b895", `source text color mismatch: ${KRONOS_CONTEXT_MENU_TEXT_COLOR}`);
-assert(KRONOS_CONTEXT_MENU_HOVER_FILL_COLOR === "#ffffff", `source hover fill color mismatch: ${KRONOS_CONTEXT_MENU_HOVER_FILL_COLOR}`);
-assert(KRONOS_CONTEXT_MENU_HOVER_FILL_ALPHA === 80 / 256, `source hover alpha mismatch: ${KRONOS_CONTEXT_MENU_HOVER_FILL_ALPHA}`);
-assert(KRONOS_CONTEXT_MENU_HOVER_LEFT === 3, `source hover left mismatch: ${KRONOS_CONTEXT_MENU_HOVER_LEFT}`);
-assert(KRONOS_CONTEXT_MENU_HOVER_TOP === -3, `source hover top mismatch: ${KRONOS_CONTEXT_MENU_HOVER_TOP}`);
-assert(KRONOS_CONTEXT_MENU_HOVER_WIDTH_SUBTRACT === 6, `source hover width inset mismatch: ${KRONOS_CONTEXT_MENU_HOVER_WIDTH_SUBTRACT}`);
-assert(KRONOS_CONTEXT_MENU_HOVER_HEIGHT === 15, `source hover height mismatch: ${KRONOS_CONTEXT_MENU_HOVER_HEIGHT}`);
+assert(NH_CONTEXT_MENU_FRAME_COLOR === "#6d6a5b", `source frame color mismatch: ${NH_CONTEXT_MENU_FRAME_COLOR}`);
+assert(NH_CONTEXT_MENU_OUTLINE_COLOR === "#2b2622", `source outline color mismatch: ${NH_CONTEXT_MENU_OUTLINE_COLOR}`);
+assert(NH_CONTEXT_MENU_HEADER_TOP_COLOR === "#322e22", `source header top color mismatch: ${NH_CONTEXT_MENU_HEADER_TOP_COLOR}`);
+assert(NH_CONTEXT_MENU_HEADER_BOTTOM_COLOR === "#090a04", `source header bottom color mismatch: ${NH_CONTEXT_MENU_HEADER_BOTTOM_COLOR}`);
+assert(NH_CONTEXT_MENU_BODY_BORDER_COLOR === "#524a3d", `source body border color mismatch: ${NH_CONTEXT_MENU_BODY_BORDER_COLOR}`);
+assert(NH_CONTEXT_MENU_BODY_COLOR === "#2b271c", `source body color mismatch: ${NH_CONTEXT_MENU_BODY_COLOR}`);
+assert(NH_CONTEXT_MENU_TEXT_COLOR === "#c6b895", `source text color mismatch: ${NH_CONTEXT_MENU_TEXT_COLOR}`);
+assert(NH_CONTEXT_MENU_HOVER_FILL_COLOR === "#ffffff", `source hover fill color mismatch: ${NH_CONTEXT_MENU_HOVER_FILL_COLOR}`);
+assert(NH_CONTEXT_MENU_HOVER_FILL_ALPHA === 80 / 256, `source hover alpha mismatch: ${NH_CONTEXT_MENU_HOVER_FILL_ALPHA}`);
+assert(NH_CONTEXT_MENU_HOVER_LEFT === 3, `source hover left mismatch: ${NH_CONTEXT_MENU_HOVER_LEFT}`);
+assert(NH_CONTEXT_MENU_HOVER_TOP === -3, `source hover top mismatch: ${NH_CONTEXT_MENU_HOVER_TOP}`);
+assert(NH_CONTEXT_MENU_HOVER_WIDTH_SUBTRACT === 6, `source hover width inset mismatch: ${NH_CONTEXT_MENU_HOVER_WIDTH_SUBTRACT}`);
+assert(NH_CONTEXT_MENU_HOVER_HEIGHT === 15, `source hover height mismatch: ${NH_CONTEXT_MENU_HOVER_HEIGHT}`);
 
-const entries = buildKronosPlayerContextEntries({
+const entries = buildNhPlayerContextEntries({
   name: "Opponent",
   combatLevel: 126,
   localCombatLevel: 126,
@@ -176,7 +176,7 @@ const entries = buildKronosPlayerContextEntries({
   actionTile: { x: 4, z: 0 }
 });
 
-const visibleText = visibleKronosMenuEntries(entries).map((entry) => kronosMenuEntryText(entry));
+const visibleText = visibleNhMenuEntries(entries).map((entry) => nhMenuEntryText(entry));
 const expectedText = [
   "Attack Opponent (level-126)",
   "Walk here Opponent (level-126)",
@@ -227,26 +227,26 @@ assert(
   `Opponent Information should color and star the Attack menu target like OpponentInfoPlugin.modify: ${JSON.stringify(opponentInfoAttackEntry)}`
 );
 assert(
-  kronosMenuEntryText(opponentInfoAttackEntry) === "Attack *Opponent (82/99)",
-  `Opponent Information should replace the Attack row combat level with source-style HP: ${kronosMenuEntryText(opponentInfoAttackEntry)}`
+  nhMenuEntryText(opponentInfoAttackEntry) === "Attack *Opponent (82/99)",
+  `Opponent Information should replace the Attack row combat level with source-style HP: ${nhMenuEntryText(opponentInfoAttackEntry)}`
 );
 assert(
-  kronosMenuEntryText(opponentInfoFollowEntry) === "Follow Opponent (level-126)",
-  `Opponent Information menu mutation should not rewrite non-Attack player rows: ${kronosMenuEntryText(opponentInfoFollowEntry)}`
+  nhMenuEntryText(opponentInfoFollowEntry) === "Follow Opponent (level-126)",
+  `Opponent Information menu mutation should not rewrite non-Attack player rows: ${nhMenuEntryText(opponentInfoFollowEntry)}`
 );
 
-const defaultEntry = selectKronosDefaultMenuEntry(entries);
+const defaultEntry = selectNhDefaultMenuEntry(entries);
 assert(defaultEntry?.actionText === "Attack", `left-click default should be Attack, got ${JSON.stringify(defaultEntry)}`);
-assert(kronosMenuBaseOpcode(defaultEntry.opcode) === 44, `Attack should carry base opcode 44, got ${defaultEntry.opcode}`);
+assert(nhMenuBaseOpcode(defaultEntry.opcode) === 44, `Attack should carry base opcode 44, got ${defaultEntry.opcode}`);
 
-assert(KRONOS_PLAYER_USE_SELECTED_OPCODE === 14, `player selected-item opcode mismatch: ${KRONOS_PLAYER_USE_SELECTED_OPCODE}`);
-assert(KRONOS_PLAYER_SPELL_SELECTED_OPCODE === 15, `player selected-spell opcode mismatch: ${KRONOS_PLAYER_SPELL_SELECTED_OPCODE}`);
+assert(NH_PLAYER_USE_SELECTED_OPCODE === 14, `player selected-item opcode mismatch: ${NH_PLAYER_USE_SELECTED_OPCODE}`);
+assert(NH_PLAYER_SPELL_SELECTED_OPCODE === 15, `player selected-spell opcode mismatch: ${NH_PLAYER_SPELL_SELECTED_OPCODE}`);
 assert(
-  JSON.stringify(KRONOS_PLAYER_SELECTED_PACKET_IDS_BY_OPCODE) === JSON.stringify({ 14: 59, 15: 55 }),
-  `player selected target packet table mismatch: ${JSON.stringify(KRONOS_PLAYER_SELECTED_PACKET_IDS_BY_OPCODE)}`
+  JSON.stringify(NH_PLAYER_SELECTED_PACKET_IDS_BY_OPCODE) === JSON.stringify({ 14: 59, 15: 55 }),
+  `player selected target packet table mismatch: ${JSON.stringify(NH_PLAYER_SELECTED_PACKET_IDS_BY_OPCODE)}`
 );
 assert(
-  JSON.stringify(KRONOS_PLAYER_ACTION_PACKET_IDS_BY_OPCODE) ===
+  JSON.stringify(NH_PLAYER_ACTION_PACKET_IDS_BY_OPCODE) ===
     JSON.stringify({
       44: { serverPacketId: 81, sourcePacketName: "ClientPacket.field2387" },
       45: { serverPacketId: 43, sourcePacketName: "ClientPacket.field2383" },
@@ -257,9 +257,9 @@ assert(
       50: { serverPacketId: 90, sourcePacketName: "ClientPacket.field2430" },
       51: { serverPacketId: 78, sourcePacketName: "ClientPacket.field2418" }
     }),
-  `normal player action packet table mismatch: ${JSON.stringify(KRONOS_PLAYER_ACTION_PACKET_IDS_BY_OPCODE)}`
+  `normal player action packet table mismatch: ${JSON.stringify(NH_PLAYER_ACTION_PACKET_IDS_BY_OPCODE)}`
 );
-const attackPlayerPacket = kronosPlayerCommandPacket(defaultEntry);
+const attackPlayerPacket = nhPlayerCommandPacket(defaultEntry);
 assert(
   attackPlayerPacket?.serverPacketId === 81 &&
     attackPlayerPacket?.clientMenuBaseOpcode === 44 &&
@@ -267,7 +267,7 @@ assert(
   `Attack player packet mapping mismatch: ${JSON.stringify(attackPlayerPacket)}`
 );
 const followPlayerEntry = entries.find((entry) => entry.action === "follow");
-const followPlayerPacket = followPlayerEntry ? kronosPlayerCommandPacket(followPlayerEntry) : null;
+const followPlayerPacket = followPlayerEntry ? nhPlayerCommandPacket(followPlayerEntry) : null;
 assert(
   followPlayerPacket?.serverPacketId === 43 &&
     followPlayerPacket?.clientMenuBaseOpcode === 45 &&
@@ -275,14 +275,14 @@ assert(
   `Follow player packet mapping mismatch: ${JSON.stringify(followPlayerPacket)}`
 );
 const tradePlayerEntry = entries.find((entry) => entry.action === "trade");
-const tradePlayerPacket = tradePlayerEntry ? kronosPlayerCommandPacket(tradePlayerEntry) : null;
+const tradePlayerPacket = tradePlayerEntry ? nhPlayerCommandPacket(tradePlayerEntry) : null;
 assert(
   tradePlayerPacket?.serverPacketId === 61 &&
     tradePlayerPacket?.clientMenuBaseOpcode === 46 &&
     tradePlayerPacket?.playerOption === 3,
   `Trade player packet mapping mismatch: ${JSON.stringify(tradePlayerPacket)}`
 );
-const spellPlayerEntries = buildKronosPlayerContextEntries({
+const spellPlayerEntries = buildNhPlayerContextEntries({
   name: "Opponent",
   combatLevel: 126,
   localCombatLevel: 126,
@@ -303,13 +303,13 @@ const spellPlayerEntries = buildKronosPlayerContextEntries({
 assert(spellPlayerEntries.length === 1, `selected spell should replace ordinary player actions: ${JSON.stringify(spellPlayerEntries)}`);
 assert(spellPlayerEntries[0].opcode === 15, `selected spell player opcode mismatch: ${JSON.stringify(spellPlayerEntries[0])}`);
 assert(
-  kronosMenuEntryText(spellPlayerEntries[0]) === "Cast Smoke Rush -> Opponent (level-126)",
-  `selected spell player text mismatch: ${kronosMenuEntryText(spellPlayerEntries[0])}`
+  nhMenuEntryText(spellPlayerEntries[0]) === "Cast Smoke Rush -> Opponent (level-126)",
+  `selected spell player text mismatch: ${nhMenuEntryText(spellPlayerEntries[0])}`
 );
-const spellPlayerPacket = kronosPlayerSelectedCommandPacket(spellPlayerEntries[0]);
+const spellPlayerPacket = nhPlayerSelectedCommandPacket(spellPlayerEntries[0]);
 assert(spellPlayerPacket?.serverPacketId === 55, `selected spell player packet id mismatch: ${JSON.stringify(spellPlayerPacket)}`);
 assert(spellPlayerPacket?.selectedSpell?.spellId === "smoke-rush", `selected spell metadata should reach player packet mapping: ${JSON.stringify(spellPlayerPacket)}`);
-const objectOnlySpellPlayerEntries = buildKronosPlayerContextEntries({
+const objectOnlySpellPlayerEntries = buildNhPlayerContextEntries({
   name: "Opponent",
   combatLevel: 126,
   localCombatLevel: 126,
@@ -331,7 +331,7 @@ assert(
   objectOnlySpellPlayerEntries.length === 0,
   `selected non-player spell should not fall back to Walk/Attack player actions: ${JSON.stringify(objectOnlySpellPlayerEntries)}`
 );
-const itemPlayerEntries = buildKronosPlayerContextEntries({
+const itemPlayerEntries = buildNhPlayerContextEntries({
   name: "Opponent",
   combatLevel: 126,
   localCombatLevel: 126,
@@ -343,49 +343,49 @@ const itemPlayerEntries = buildKronosPlayerContextEntries({
 assert(itemPlayerEntries.length === 1, `selected item should replace ordinary player actions: ${JSON.stringify(itemPlayerEntries)}`);
 assert(itemPlayerEntries[0].opcode === 14, `selected item player opcode mismatch: ${JSON.stringify(itemPlayerEntries[0])}`);
 assert(
-  kronosMenuEntryText(itemPlayerEntries[0]) === "Use Armadyl crossbow -> Opponent (level-126)",
-  `selected item player text mismatch: ${kronosMenuEntryText(itemPlayerEntries[0])}`
+  nhMenuEntryText(itemPlayerEntries[0]) === "Use Armadyl crossbow -> Opponent (level-126)",
+  `selected item player text mismatch: ${nhMenuEntryText(itemPlayerEntries[0])}`
 );
-const itemPlayerPacket = kronosPlayerSelectedCommandPacket(itemPlayerEntries[0]);
+const itemPlayerPacket = nhPlayerSelectedCommandPacket(itemPlayerEntries[0]);
 assert(itemPlayerPacket?.serverPacketId === 59, `selected item player packet id mismatch: ${JSON.stringify(itemPlayerPacket)}`);
 assert(itemPlayerPacket?.selectedItem?.itemId === 11785, `selected item metadata should reach player packet mapping: ${JSON.stringify(itemPlayerPacket)}`);
 
-const ordered = orderKronosMenuEntries(entries);
-const orderedBaseOpcodes = ordered.map((entry) => kronosMenuBaseOpcode(entry.opcode));
+const ordered = orderNhMenuEntries(entries);
+const orderedBaseOpcodes = ordered.map((entry) => nhMenuBaseOpcode(entry.opcode));
 assert(JSON.stringify(orderedBaseOpcodes) === JSON.stringify([46, 45, 23, 44]), `unexpected sorted base opcodes: ${JSON.stringify(orderedBaseOpcodes)}`);
 
 const sourceWidth = Math.max(
-  kronosClientFontStringWidth(contextMenuFont, "Choose Option"),
-  ...entries.map((entry) => kronosClientFontStringWidth(contextMenuFont, kronosMenuEntryText(entry)))
+  nhClientFontStringWidth(contextMenuFont, "Choose Option"),
+  ...entries.map((entry) => nhClientFontStringWidth(contextMenuFont, nhMenuEntryText(entry)))
 ) + 8;
-assert(kronosContextMenuWidth(entries, contextMenuFont) === sourceWidth, `font-backed menu width mismatch: ${sourceWidth}`);
+assert(nhContextMenuWidth(entries, contextMenuFont) === sourceWidth, `font-backed menu width mismatch: ${sourceWidth}`);
 
-const rect = resolveKronosContextMenuRect(260, 180, entries, { width: 512, height: 334 }, contextMenuFont);
+const rect = resolveNhContextMenuRect(260, 180, entries, { width: 512, height: 334 }, contextMenuFont);
 assert(rect.height === entries.length * 15 + 22, `unexpected menu height: ${JSON.stringify(rect)}`);
 assert(rect.width === sourceWidth, `unexpected source font menu width: ${JSON.stringify({ rect, sourceWidth })}`);
 assert(rect.x >= 0 && rect.y >= 0 && rect.x + rect.width <= 512 && rect.y + rect.height <= 334, `menu rect did not clamp to bounds: ${JSON.stringify(rect)}`);
 
-const topVisibleHitIndex = kronosContextMenuHitIndex(rect.x + 4, rect.y + 31, rect, entries);
+const topVisibleHitIndex = nhContextMenuHitIndex(rect.x + 4, rect.y + 31, rect, entries);
 assert(topVisibleHitIndex === ordered.length - 1, `top visible row should hit the sorted default entry: ${topVisibleHitIndex}`);
 assert(ordered[topVisibleHitIndex]?.actionText === "Attack", `top visible hit should be Attack: ${JSON.stringify(ordered[topVisibleHitIndex])}`);
 
 assert(
-  JSON.stringify(KRONOS_OBJECT_ACTION_OPCODES) === JSON.stringify([3, 4, 5, 6, 1001]),
-  `object action opcode table mismatch: ${JSON.stringify(KRONOS_OBJECT_ACTION_OPCODES)}`
+  JSON.stringify(NH_OBJECT_ACTION_OPCODES) === JSON.stringify([3, 4, 5, 6, 1001]),
+  `object action opcode table mismatch: ${JSON.stringify(NH_OBJECT_ACTION_OPCODES)}`
 );
-assert(KRONOS_OBJECT_USE_SELECTED_OPCODE === 1, `object selected-item opcode mismatch: ${KRONOS_OBJECT_USE_SELECTED_OPCODE}`);
-assert(KRONOS_OBJECT_SPELL_SELECTED_OPCODE === 2, `object selected-spell opcode mismatch: ${KRONOS_OBJECT_SPELL_SELECTED_OPCODE}`);
-assert(KRONOS_OBJECT_EXAMINE_OPCODE === 1002, `object examine opcode mismatch: ${KRONOS_OBJECT_EXAMINE_OPCODE}`);
-assert(KRONOS_OBJECT_TARGET_COLOR_TAG === "<col=00ffff>", `object target color should follow World.method1251(65535)`);
+assert(NH_OBJECT_USE_SELECTED_OPCODE === 1, `object selected-item opcode mismatch: ${NH_OBJECT_USE_SELECTED_OPCODE}`);
+assert(NH_OBJECT_SPELL_SELECTED_OPCODE === 2, `object selected-spell opcode mismatch: ${NH_OBJECT_SPELL_SELECTED_OPCODE}`);
+assert(NH_OBJECT_EXAMINE_OPCODE === 1002, `object examine opcode mismatch: ${NH_OBJECT_EXAMINE_OPCODE}`);
+assert(NH_OBJECT_TARGET_COLOR_TAG === "<col=00ffff>", `object target color should follow World.method1251(65535)`);
 assert(
-  JSON.stringify(KRONOS_OBJECT_PACKET_IDS_BY_OPCODE) ===
+  JSON.stringify(NH_OBJECT_PACKET_IDS_BY_OPCODE) ===
     JSON.stringify({ 1: 46, 2: 68, 3: 51, 4: 6, 5: 42, 6: 95, 1001: 50, 1002: 36 }),
-  `object packet id table mismatch: ${JSON.stringify(KRONOS_OBJECT_PACKET_IDS_BY_OPCODE)}`
+  `object packet id table mismatch: ${JSON.stringify(NH_OBJECT_PACKET_IDS_BY_OPCODE)}`
 );
 assert(
-  JSON.stringify(KRONOS_OBJECT_SERVER_OPTIONS_BY_OPCODE) ===
+  JSON.stringify(NH_OBJECT_SERVER_OPTIONS_BY_OPCODE) ===
     JSON.stringify({ 3: 1, 4: 2, 5: 3, 6: 4, 1001: 5, 1002: 6 }),
-  `object server option table mismatch: ${JSON.stringify(KRONOS_OBJECT_SERVER_OPTIONS_BY_OPCODE)}`
+  `object server option table mismatch: ${JSON.stringify(NH_OBJECT_SERVER_OPTIONS_BY_OPCODE)}`
 );
 const syntheticObjectPlacement = {
   id: 12345,
@@ -399,12 +399,12 @@ const syntheticObjectPlacement = {
   sizeX: 2,
   sizeY: 3
 };
-const objectEntries = buildKronosSceneObjectContextEntries({
+const objectEntries = buildNhSceneObjectContextEntries({
   placement: syntheticObjectPlacement,
   walkTile: { x: 1, z: 2 },
   actionTile: { x: 2, z: 3 }
 });
-const visibleObjectText = visibleKronosMenuEntries(objectEntries).map((entry) => kronosMenuEntryText(entry));
+const visibleObjectText = visibleNhMenuEntries(objectEntries).map((entry) => nhMenuEntryText(entry));
 assert(
   JSON.stringify(visibleObjectText) ===
     JSON.stringify([
@@ -417,13 +417,13 @@ assert(
     ]),
   `unexpected visible object menu order: ${JSON.stringify(visibleObjectText)}`
 );
-const objectDefault = selectKronosDefaultMenuEntry(objectEntries);
+const objectDefault = selectNhDefaultMenuEntry(objectEntries);
 assert(objectDefault?.actionText === "Pray-at", `object default should be first source action: ${JSON.stringify(objectDefault)}`);
 assert(objectDefault?.opcode === 3, `object first action opcode should be 3: ${JSON.stringify(objectDefault)}`);
 assert(objectDefault?.identifier === 12345, `object identifier should be object id: ${JSON.stringify(objectDefault)}`);
 assert(objectDefault?.argument1 === 3200 && objectDefault?.argument2 === 3201, `object arguments should be object tile: ${JSON.stringify(objectDefault)}`);
-assert(kronosSceneObjectTargetText("Ancient altar") === "<col=00ffff>Ancient altar", "object target color mismatch");
-const objectDefaultPacket = kronosSceneObjectCommandPacket(objectDefault);
+assert(nhSceneObjectTargetText("Ancient altar") === "<col=00ffff>Ancient altar", "object target color mismatch");
+const objectDefaultPacket = nhSceneObjectCommandPacket(objectDefault);
 assert(
   JSON.stringify(objectDefaultPacket) ===
     JSON.stringify({
@@ -436,7 +436,7 @@ assert(
     }),
   `object default packet mapping mismatch: ${JSON.stringify(objectDefaultPacket)}`
 );
-const objectUseEntries = buildKronosSceneObjectContextEntries({
+const objectUseEntries = buildNhSceneObjectContextEntries({
   placement: syntheticObjectPlacement,
   walkTile: { x: 1, z: 2 },
   actionTile: { x: 2, z: 3 },
@@ -450,13 +450,13 @@ const objectUseEntries = buildKronosSceneObjectContextEntries({
 assert(objectUseEntries.length === 1, `selected item should replace object actions: ${JSON.stringify(objectUseEntries)}`);
 assert(objectUseEntries[0].opcode === 1, `selected item object opcode mismatch: ${JSON.stringify(objectUseEntries[0])}`);
 assert(
-  kronosMenuEntryText(objectUseEntries[0]) === "Use Armadyl crossbow -> Ancient altar",
-  `selected item object text mismatch: ${kronosMenuEntryText(objectUseEntries[0])}`
+  nhMenuEntryText(objectUseEntries[0]) === "Use Armadyl crossbow -> Ancient altar",
+  `selected item object text mismatch: ${nhMenuEntryText(objectUseEntries[0])}`
 );
-const objectUsePacket = kronosSceneObjectCommandPacket(objectUseEntries[0]);
+const objectUsePacket = nhSceneObjectCommandPacket(objectUseEntries[0]);
 assert(objectUsePacket?.serverPacketId === 46, `selected item object packet id mismatch: ${JSON.stringify(objectUsePacket)}`);
 assert(objectUsePacket?.serverOption === null, `selected item object should not map to ObjectAction option: ${JSON.stringify(objectUsePacket)}`);
-const objectSpellEntries = buildKronosSceneObjectContextEntries({
+const objectSpellEntries = buildNhSceneObjectContextEntries({
   placement: syntheticObjectPlacement,
   walkTile: { x: 1, z: 2 },
   actionTile: { x: 2, z: 3 },
@@ -474,14 +474,14 @@ const objectSpellEntries = buildKronosSceneObjectContextEntries({
 assert(objectSpellEntries.length === 1, `selected spell should replace object actions when object flag is set: ${JSON.stringify(objectSpellEntries)}`);
 assert(objectSpellEntries[0].opcode === 2, `selected spell object opcode mismatch: ${JSON.stringify(objectSpellEntries[0])}`);
 assert(
-  kronosMenuEntryText(objectSpellEntries[0]) === "Cast Smoke Rush -> Ancient altar",
-  `selected spell object text mismatch: ${kronosMenuEntryText(objectSpellEntries[0])}`
+  nhMenuEntryText(objectSpellEntries[0]) === "Cast Smoke Rush -> Ancient altar",
+  `selected spell object text mismatch: ${nhMenuEntryText(objectSpellEntries[0])}`
 );
-const objectSpellPacket = kronosSceneObjectCommandPacket(objectSpellEntries[0]);
+const objectSpellPacket = nhSceneObjectCommandPacket(objectSpellEntries[0]);
 assert(objectSpellPacket?.serverPacketId === 68, `selected spell object packet id mismatch: ${JSON.stringify(objectSpellPacket)}`);
 assert(objectSpellPacket?.serverOption === null, `selected spell object should not map to ObjectAction option: ${JSON.stringify(objectSpellPacket)}`);
 assert(objectSpellPacket?.selectedSpell?.spellId === "smoke-rush", `selected spell metadata should reach packet mapping: ${JSON.stringify(objectSpellPacket)}`);
-const playerOnlySpellObjectEntries = buildKronosSceneObjectContextEntries({
+const playerOnlySpellObjectEntries = buildNhSceneObjectContextEntries({
   placement: syntheticObjectPlacement,
   walkTile: { x: 1, z: 2 },
   actionTile: { x: 2, z: 3 },
@@ -500,27 +500,27 @@ assert(
   playerOnlySpellObjectEntries.length === 0,
   `selected non-object spell should not fall back to Walk/Object actions: ${JSON.stringify(playerOnlySpellObjectEntries)}`
 );
-const objectExaminePacket = kronosSceneObjectCommandPacket(objectEntries[objectEntries.length - 1]);
+const objectExaminePacket = nhSceneObjectCommandPacket(objectEntries[objectEntries.length - 1]);
 assert(objectExaminePacket?.serverPacketId === 36, `object examine packet id mismatch: ${JSON.stringify(objectExaminePacket)}`);
 assert(objectExaminePacket?.serverOption === 6, `object examine server option mismatch: ${JSON.stringify(objectExaminePacket)}`);
-const rotatedFootprintMatch = findKronosSceneObjectForWorldTile([syntheticObjectPlacement], { x: 3202, y: 3202, plane: 0 });
+const rotatedFootprintMatch = findNhSceneObjectForWorldTile([syntheticObjectPlacement], { x: 3202, y: 3202, plane: 0 });
 assert(rotatedFootprintMatch?.id === 12345, `rotated object footprint should contain swapped size tile: ${JSON.stringify(rotatedFootprintMatch)}`);
-const hiddenObjectEntries = buildKronosSceneObjectContextEntries({
+const hiddenObjectEntries = buildNhSceneObjectContextEntries({
   placement: { ...syntheticObjectPlacement, name: "null", actions: ["Open"] },
   walkTile: { x: 1, z: 2 },
   actionTile: { x: 2, z: 3 }
 });
 assert(
-  JSON.stringify(visibleKronosMenuEntries(hiddenObjectEntries).map((entry) => kronosMenuEntryText(entry))) === JSON.stringify(["Walk here"]),
+  JSON.stringify(visibleNhMenuEntries(hiddenObjectEntries).map((entry) => nhMenuEntryText(entry))) === JSON.stringify(["Walk here"]),
   `null-name objects should not expose invented menu entries: ${JSON.stringify(hiddenObjectEntries)}`
 );
-const examineOnlyObjectEntries = buildKronosSceneObjectContextEntries({
+const examineOnlyObjectEntries = buildNhSceneObjectContextEntries({
   placement: { ...syntheticObjectPlacement, actions: [null, null, null, null, null] },
   walkTile: { x: 1, z: 2 },
   actionTile: { x: 2, z: 3 }
 });
 assert(
-  JSON.stringify(visibleKronosMenuEntries(examineOnlyObjectEntries).map((entry) => kronosMenuEntryText(entry))) ===
+  JSON.stringify(visibleNhMenuEntries(examineOnlyObjectEntries).map((entry) => nhMenuEntryText(entry))) ===
     JSON.stringify(["Walk here", "Examine Ancient altar"]),
   `named actionless objects should still expose source Examine: ${JSON.stringify(examineOnlyObjectEntries)}`
 );
@@ -595,7 +595,7 @@ const runtimeViewerSource = readFileSync(path.join(projectRoot, "src", "ui", "Ru
 assert(runtimeViewerSource.includes("sourceContextMenu"), "RuntimeSceneViewer should build context menus from client-view snapshots");
 assert(runtimeViewerSource.includes("visibleContextMenu"), "RuntimeSceneViewer should render local or source context menus through one path");
 assert(runtimeViewerSource.includes("data-menu-source-index"), "RuntimeSceneViewer should expose source menu entry indices for validation");
-assert(runtimeViewerSource.includes("kronosContextMenuHover"), "RuntimeSceneViewer should render source-shaped hover highlight rectangles");
+assert(runtimeViewerSource.includes("nhContextMenuHover"), "RuntimeSceneViewer should render source-shaped hover highlight rectangles");
 assert(runtimeViewerSource.includes("data-source-hover-fill-alpha"), "RuntimeSceneViewer should expose source hover alpha for validation");
 assert(
   !runtimeViewerSource.includes("return <span>{text}</span>;"),
@@ -620,11 +620,11 @@ assert(
   "RuntimeSceneViewer should use the resolved source fixed-client layout for context-menu placement"
 );
 assert(
-  runtimeViewerSource.includes("KRONOS_CONTEXT_MENU_OPTION_BASELINE_OFFSET - KRONOS_CONTEXT_MENU_HEADER_AND_PADDING_HEIGHT"),
+  runtimeViewerSource.includes("NH_CONTEXT_MENU_OPTION_BASELINE_OFFSET - NH_CONTEXT_MENU_HEADER_AND_PADDING_HEIGHT"),
   "RuntimeSceneViewer should position context menu option glyphs inside each source row"
 );
 assert(
-  !runtimeViewerSource.includes("KRONOS_CONTEXT_MENU_OPTION_BASELINE_OFFSET - kronosContextMenuOptionTop(index)"),
+  !runtimeViewerSource.includes("NH_CONTEXT_MENU_OPTION_BASELINE_OFFSET - nhContextMenuOptionTop(index)"),
   "RuntimeSceneViewer should not subtract each option row top from an already row-local glyph baseline"
 );
 
@@ -637,7 +637,7 @@ for (const snippet of [
   "#524a3d",
   "#2b271c",
   "#c6b895",
-  ".kronosContextMenuOption:hover .kronosContextMenuHover"
+  ".nhContextMenuOption:hover .nhContextMenuHover"
 ]) {
   assert(stylesSource.includes(snippet), `styles.css should include source-backed context menu style ${snippet}`);
 }
@@ -646,7 +646,7 @@ const clientContextMenuSource = readFileSync(
   path.resolve(
     projectRoot,
     "..",
-    "Kronos184-Client",
+    "Nh184-Client",
     "runelite-client",
     "src",
     "main",
@@ -676,7 +676,7 @@ for (const snippet of [
   assert(clientContextMenuSource.includes(snippet), `source-backed context menu evidence should include ${snippet}`);
 }
 for (const snippet of [
-  "KRONOS_CONTEXT_MENU_MOUSE_LEAVE_MARGIN = 10",
+  "NH_CONTEXT_MENU_MOUSE_LEAVE_MARGIN = 10",
   "event.button === 2",
   "openRuntimeSceneContextMenu(event.nativeEvent)",
   "event.clientX < rect.left - margin",
@@ -685,7 +685,7 @@ for (const snippet of [
   "event.clientY > rect.bottom + margin",
   "data-source-close-margin"
 ]) {
-  assert(runtimeViewerSource.includes(snippet), `RuntimeSceneViewer should mirror Kronos context-menu open/close behavior: ${snippet}`);
+  assert(runtimeViewerSource.includes(snippet), `RuntimeSceneViewer should mirror Nh context-menu open/close behavior: ${snippet}`);
 }
 for (const snippet of [
   "clearSelectedTargetMode(\"scene-selected-target-cancel\")",
@@ -698,7 +698,7 @@ for (const snippet of [
 }
 
 const objectMenuSource = readFileSync(
-  path.resolve(projectRoot, "..", "Kronos184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "class19.java"),
+  path.resolve(projectRoot, "..", "Nh184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "class19.java"),
   "utf8"
 );
 for (const snippet of [
@@ -718,7 +718,7 @@ for (const snippet of [
   assert(objectMenuSource.includes(snippet), `client object menu source should include ${snippet}`);
 }
 const clientMenuActionSource = readFileSync(
-  path.resolve(projectRoot, "..", "Kronos184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "Client.java"),
+  path.resolve(projectRoot, "..", "Nh184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "Client.java"),
   "utf8"
 );
 for (const snippet of [
@@ -758,7 +758,7 @@ for (const snippet of [
   assert(clientMenuActionSource.includes(snippet), `client selected-spell action source should include ${snippet}`);
 }
 const clientPacketSource = readFileSync(
-  path.resolve(projectRoot, "..", "Kronos184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "ClientPacket.java"),
+  path.resolve(projectRoot, "..", "Nh184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "ClientPacket.java"),
   "utf8"
 );
 for (const snippet of [
@@ -779,9 +779,9 @@ const assetExportSource = readFileSync(
   path.resolve(
     projectRoot,
     "..",
-    "kronos-osrs-184-master",
-    "kronos-osrs-184-master",
-    "Kronos-master",
+    "nh-osrs-184-master",
+    "nh-osrs-184-master",
+    "Nh-master",
     "runelite",
     "cache",
     "src",
@@ -791,7 +791,7 @@ const assetExportSource = readFileSync(
     "runelite",
     "cache",
     "tools",
-    "KronosNhTrainerAssetExport.java"
+    "NhNhTrainerAssetExport.java"
   ),
   "utf8"
 );
@@ -804,7 +804,7 @@ assert(assetExportSource.includes("placement.put(\"transforms\", object.getConfi
 assert(assetExportSource.includes("dto.put(\"clickMask\", widget.clickMask);"), "cache exporter should carry widget click masks");
 assert(assetExportSource.includes("dto.put(\"spellActionName\", widget.targetVerb);"), "cache exporter should carry widget target verbs for spell selection");
 assert(assetExportSource.includes("dto.put(\"spellName\", widget.spellName);"), "cache exporter should carry widget spell names");
-assert(runtimeViewerSource.includes("findKronosSceneObjectForWorldTile"), "RuntimeSceneViewer should resolve clicked scene objects from world tiles");
+assert(runtimeViewerSource.includes("findNhSceneObjectForWorldTile"), "RuntimeSceneViewer should resolve clicked scene objects from world tiles");
 assert(runtimeViewerSource.includes("recordSceneObjectCommand"), "RuntimeSceneViewer should expose source object action dispatch metadata");
 assert(runtimeViewerSource.includes("lastSceneObjectServerPacketId"), "RuntimeSceneViewer should expose object command packet ids");
 assert(runtimeViewerSource.includes("\"scene-object\""), "RuntimeSceneViewer should distinguish object commands from plain tile clicks");
@@ -820,20 +820,20 @@ console.log(JSON.stringify({
   orderedBaseOpcodes,
   sourceContextMenu: contextSnapshot.contextMenu,
   sourceColors: {
-    frame: KRONOS_CONTEXT_MENU_FRAME_COLOR,
-    body: KRONOS_CONTEXT_MENU_BODY_COLOR,
-    text: KRONOS_CONTEXT_MENU_TEXT_COLOR,
-    hoverAlpha: KRONOS_CONTEXT_MENU_HOVER_FILL_ALPHA
+    frame: NH_CONTEXT_MENU_FRAME_COLOR,
+    body: NH_CONTEXT_MENU_BODY_COLOR,
+    text: NH_CONTEXT_MENU_TEXT_COLOR,
+    hoverAlpha: NH_CONTEXT_MENU_HOVER_FILL_ALPHA
   },
   objectMenu: {
     visibleObjectText,
     defaultAction: objectDefault.actionText,
-    selectedItemText: kronosMenuEntryText(objectUseEntries[0])
+    selectedItemText: nhMenuEntryText(objectUseEntries[0])
   },
   font: {
     id: contextMenuFont.fontId,
     archive: contextMenuFont.fontArchiveName,
-    chooseOptionWidth: kronosClientFontStringWidth(contextMenuFont, "Choose Option")
+    chooseOptionWidth: nhClientFontStringWidth(contextMenuFont, "Choose Option")
   },
   glyphSheet: {
     id: contextMenuFontSheet.id,

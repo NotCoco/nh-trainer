@@ -9,7 +9,7 @@ const require = createRequire(import.meta.url);
 const electronPath = require("electron");
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const verifierPath = path.join(projectRoot, "scripts", "combat-weapon-tabs-electron.cjs");
-const screenshotPath = uniqueScreenshotPath("kronos-nh-trainer-combat-weapon-tabs");
+const screenshotPath = uniqueScreenshotPath("nh-nh-trainer-combat-weapon-tabs");
 
 await mkdir(screenshotDir, { recursive: true });
 

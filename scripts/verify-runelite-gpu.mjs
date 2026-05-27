@@ -8,8 +8,8 @@ function read(relativePath) {
   return fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
 }
 
-function readKronosClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
+function readNhClient(relativePath) {
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
 }
 
 function assert(condition, message) {
@@ -18,12 +18,12 @@ function assert(condition, message) {
   }
 }
 
-const pluginSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/gpu/GpuPlugin.java");
-const configSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/gpu/GpuPluginConfig.java");
-const antiAliasingSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/gpu/config/AntiAliasingMode.java");
-const anisotropicSource = readKronosClient("runelite-client/src/main/java/net/runelite/client/plugins/gpu/config/AnisotropicFilteringMode.java");
-const constantsSource = readKronosClient("runelite-api/src/main/java/net/runelite/api/Constants.java");
-const perspectiveSource = readKronosClient("runelite-api/src/main/java/net/runelite/api/Perspective.java");
+const pluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/gpu/GpuPlugin.java");
+const configSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/gpu/GpuPluginConfig.java");
+const antiAliasingSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/gpu/config/AntiAliasingMode.java");
+const anisotropicSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/gpu/config/AnisotropicFilteringMode.java");
+const constantsSource = readNhClient("runelite-api/src/main/java/net/runelite/api/Constants.java");
+const perspectiveSource = readNhClient("runelite-api/src/main/java/net/runelite/api/Perspective.java");
 const gpuSource = read("src/ui/runeliteGpu.ts");
 const runtimeSource = read("src/ui/RuntimeSceneViewer.tsx");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
@@ -116,7 +116,7 @@ for (const runtimeAnchor of [
 
 for (const shellAnchor of [
   'id: "gpu"',
-  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/gpu/GpuPluginConfig.java"',
+  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/gpu/GpuPluginConfig.java"',
   'keyName: "drawDistance"',
   'keyName: "smoothBanding"',
   'keyName: "antiAliasingMode"',
