@@ -42,6 +42,10 @@ The project is set up for Vercel. The deployment config builds the static web cl
 npm run build:web
 ```
 
+## License
+
+The project code is available under the MIT License. This license does not apply to third-party game assets, cache-derived assets, trademarks, or other material that the project may reference for compatibility.
+
 ## Current Focus
 
 - Keep the fight loop responsive and tick-accurate.

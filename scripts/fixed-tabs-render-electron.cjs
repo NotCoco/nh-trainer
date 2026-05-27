@@ -387,11 +387,11 @@ app.whenReady().then(async () => {
       quests.noticeboard.some(
         (panel) =>
           panel.groupId === 720 &&
-          panel.textCount === 25 &&
-          panel.text.includes("Players Online") &&
-          !/Total Spent|Amount Donated|Store/i.test(panel.text)
+          panel.textCount === 1 &&
+          panel.text.includes("Base XP") &&
+          !/Server Information|Players Online|Online Staff|Players in Wild|Tournament|Uptime|XP Bonus|Double|Two-factor|Time Played|PVM Points|Achievements|Drop Tables|Settings|Website|Community|Discord|Total Spent|Amount Donated|Store/i.test(panel.text)
       ),
-      "noticeboard dynamic TabQuest text did not render without donation/store rows"
+      "noticeboard quest tab should render only Base XP"
     );
 
     const clanChat = await clickTab(window, "clan-chat");

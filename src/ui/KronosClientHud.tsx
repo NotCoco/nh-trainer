@@ -221,19 +221,12 @@ const equipmentStatsTextColor = "#ff981f";
 const equipmentStatsValueColor = "#ffff00";
 const equipmentStatsWhiteColor = "#ffffff";
 const kronosNoticeboardGreenTag = "<col=27ae60>";
-const kronosNoticeboardRedTag = "<col=FF0000>";
 const kronosNoticeboardCloseTag = "</col>";
 const combatTabVisibleSpecBarWithoutServerSpecialItemIds = new Set([21902]);
-const kronosNoticeboardDynamicTextChildIds = new Set([
-  8, 9, 10, 11, 12, 43, 44, 45, 46, 47, 14, 15, 16, 17, 18, 49, 50, 51, 52, 19, 20, 21, 22
-]);
-const kronosNoticeboardSuppressedTextChildIds = new Set([16, 22]);
-const kronosNoticeboardScrollTextChildIds = new Set([
-  7,
-  13,
-  48,
-  53,
-  ...kronosNoticeboardDynamicTextChildIds
+const kronosNoticeboardBaseXpChildId = 17;
+const kronosNoticeboardVisibleTextChildIds = new Set([kronosNoticeboardBaseXpChildId]);
+const kronosNoticeboardSourceTextChildIds = new Set([
+  7, 8, 9, 10, 11, 12, 13, 43, 44, 45, 46, 47, 14, 15, 16, 17, 18, 48, 49, 50, 51, 52, 53, 19, 20, 21, 22
 ]);
 const kronosNoticeboardClipChildId = 4;
 const kronosEmoteScrollableChildId = 1;
@@ -1074,7 +1067,7 @@ export function KronosClientHud({
   }
   if (activeSidePanelInterface?.groupId === KRONOS_NOTICEBOARD_GROUP_ID) {
     for (const widget of activeSidePanelInterface.widgets) {
-      if (kronosNoticeboardScrollTextChildIds.has(widget.widget.childId)) {
+      if (kronosNoticeboardSourceTextChildIds.has(widget.widget.childId)) {
         suppressedMountedWidgetIds.add(widget.widget.id);
       }
     }
@@ -3152,8 +3145,7 @@ function KronosNoticeboardLayer({
   const widgets = layout.widgets.filter(
     (entry) =>
       entry.widget.type === 4 &&
-      kronosNoticeboardScrollTextChildIds.has(entry.widget.childId) &&
-      !kronosNoticeboardSuppressedTextChildIds.has(entry.widget.childId)
+      kronosNoticeboardVisibleTextChildIds.has(entry.widget.childId)
   );
 
   return (
@@ -5531,31 +5523,9 @@ function stripKronosTags(value: string): string {
 }
 
 function kronosNoticeboardTextByChildId(snapshot: RuntimeSceneSnapshot): ReadonlyMap<number, string> {
-  const playerCount = Math.max(1, snapshot.actors.length);
   const green = (value: string | number): string => `${kronosNoticeboardGreenTag}${value}${kronosNoticeboardCloseTag}`;
-  const red = (value: string): string => `${kronosNoticeboardRedTag}${value}${kronosNoticeboardCloseTag}`;
   return new Map<number, string>([
-    [8, `Players Online: ${green(playerCount)}`],
-    [9, `Online Staff: ${green(0)}`],
-    [10, `Players in Wild: ${green(0)}`],
-    [11, `Players in Tournament: ${green(0)}`],
-    [12, `Server Uptime: ${green("0 seconds")}`],
-    [43, `XP Bonus: ${green(1)}`],
-    [44, `Double Drops: ${red("Disabled")}`],
-    [45, `Double PK Points: ${red("Disabled")}`],
-    [46, `Double Slayer Points: ${red("Disabled")}`],
-    [47, `Double Pest Control: ${red("Disabled")}`],
-    [14, red("Two-factor authentication")],
-    [15, `Time Played: ${green("0 seconds")}`],
-    [17, `Base XP: ${green(1)}`],
-    [18, `Double Drop Chance: ${green("0%")}`],
-    [49, `PVM Points: ${green(0)}`],
-    [50, "Achievements"],
-    [51, "Drop Tables"],
-    [52, "Settings"],
-    [19, "Website"],
-    [20, "Community"],
-    [21, "Discord"]
+    [kronosNoticeboardBaseXpChildId, `Base XP: ${green(1)}`]
   ]);
 }
 

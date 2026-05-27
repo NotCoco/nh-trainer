@@ -90,6 +90,8 @@ for (const trainerAnchor of [
   "runeliteOverlayElementAtPoint",
   "runeliteClientPanelPoint",
   "runeliteClampedOverlayLocation",
+  "event.currentTarget.setPointerCapture(event.pointerId)",
+  "event.currentTarget.releasePointerCapture(event.pointerId)",
   "saveRuneliteOverlayPreferredLocation(overlayName, null)",
   "saveRuneliteOverlayPreferredLocation(movingOverlay.overlayName, location)",
   "runelite-overlay-locations-changed",

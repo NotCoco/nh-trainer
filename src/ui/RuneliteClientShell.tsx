@@ -4888,6 +4888,7 @@ export function RuneliteClientShell({
             width: overlayRect.width / scale,
             height: overlayRect.height / scale
           };
+          event.currentTarget.setPointerCapture(event.pointerId);
           const nextLocation = runeliteClampedOverlayLocation(
             { x: point.x - movingOverlayRef.current.offsetX, y: point.y - movingOverlayRef.current.offsetY },
             movingOverlayRef.current
@@ -4923,6 +4924,9 @@ export function RuneliteClientShell({
 
           event.preventDefault();
           event.stopPropagation();
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+          }
           movingOverlayRef.current = null;
           const location = overlayLocations[movingOverlay.overlayName] ?? null;
           if (location) {
