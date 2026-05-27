@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { Analytics } from "@vercel/analytics/react";
 import { parseNhPolicyTsv, type ParsedNhPolicy } from "../bot";
 import type { DefaultPolicyReadResult } from "../client/bridge";
 import "./styles.css";
@@ -150,6 +151,7 @@ export function App(): JSX.Element {
           onBotDifficultyChange={setBotDifficulty}
         />
       </Suspense>
+      <Analytics />
     </main>
   );
 }

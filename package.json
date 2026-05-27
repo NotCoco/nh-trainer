@@ -111,6 +111,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "@vitejs/plugin-react": "^4.2.1",
     "electron": "^29.1.6",
     "react": "^18.2.0",
