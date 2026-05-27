@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="NH Trainer">
+  <rect width="64" height="64" rx="8" fill="#15120d"/>
+  <rect x="3" y="3" width="58" height="58" rx="6" fill="#3e321c" stroke="#ab813e" stroke-width="2"/>
+  <path d="M8 8h48v48H8z" fill="#16120d" opacity=".42"/>
+  <text
+    x="32"
+    y="40"
+    fill="#f1c86c"
+    font-family="Palatino Linotype, Book Antiqua, Palatino, Georgia, serif"
+    font-size="23"
+    font-weight="700"
+    text-anchor="middle"
+    style="text-shadow:1px 1px 0 #000"
+  >NH</text>
+  <rect x="13" y="50" width="38" height="1.5" fill="#f1c86c" opacity=".34"/>
+</svg>
