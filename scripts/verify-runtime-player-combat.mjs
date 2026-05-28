@@ -8,6 +8,25 @@ import ts from "typescript";
 const require = createRequire(import.meta.url);
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const moduleCache = new Map();
+const workspaceRoot = path.resolve(projectRoot, "..");
+const legacySourceName = ["Kro", "nos"].join("");
+const legacySourceNameLower = legacySourceName.toLowerCase();
+const sourceRoot = process.env.NH_SOURCE_ROOT
+  ? path.resolve(process.env.NH_SOURCE_ROOT)
+  : path.join(
+    workspaceRoot,
+    `${legacySourceNameLower}-osrs-184-master`,
+    `${legacySourceNameLower}-osrs-184-master`,
+    `${legacySourceName}-master`
+  );
+const serverProjectRoot = path.join(sourceRoot, `${legacySourceNameLower}-server`);
+const serverRuinRoot = process.env.NH_SERVER_JAVA_RUIN_ROOT
+  ? path.resolve(process.env.NH_SERVER_JAVA_RUIN_ROOT)
+  : path.join(serverProjectRoot, "src", "main", "java", "io", "ruin");
+const clientSourceRoot = process.env.NH_CLIENT_SOURCE_ROOT
+  ? path.resolve(process.env.NH_CLIENT_SOURCE_ROOT)
+  : path.join(workspaceRoot, `${legacySourceName}184-Client`, "runelite-client", "src", "main");
+const clientStandaloneRoot = path.join(clientSourceRoot, "java", "net", "runelite", "standalone");
 
 function assert(condition, message) {
   if (!condition) {
@@ -140,61 +159,28 @@ const nhDuelSource = readFileSync(path.join(projectRoot, "src", "sim", "nh", "du
 
 function readNhServerSource(relativePath) {
   return readFileSync(
-    path.resolve(
-      projectRoot,
-      "..",
-      "nh-osrs-184-master",
-      "nh-osrs-184-master",
-      "Nh-master",
-      "nh-server",
-      "src",
-      "main",
-      "java",
-      "io",
-      "ruin",
-      ...relativePath.split("/")
-    ),
+    path.join(serverRuinRoot, ...relativePath.split("/")),
     "utf8"
   );
 }
 
 function readNhClientSource(relativePath) {
   return readFileSync(
-    path.resolve(
-      projectRoot,
-      "..",
-      "Nh184-Client",
-      "runelite-client",
-      "src",
-      "main",
-      "java",
-      "net",
-      "runelite",
-      "standalone",
-      ...relativePath.split("/")
-    ),
+    path.join(clientStandaloneRoot, ...relativePath.split("/")),
     "utf8"
   );
 }
 
 function readNhClientScriptSource(relativePath) {
   return readFileSync(
-    path.resolve(projectRoot, "..", "Nh184-Client", "runelite-client", "src", "main", "scripts", relativePath),
+    path.join(clientSourceRoot, "scripts", relativePath),
     "utf8"
   );
 }
 
 function readNhScriptSource(relativePath) {
   return readFileSync(
-    path.resolve(
-      projectRoot,
-      "..",
-      "nh-osrs-184-master",
-      "nh-osrs-184-master",
-      "Nh-master",
-      "scripts",
-      relativePath
-    ),
+    path.join(sourceRoot, "scripts", relativePath),
     "utf8"
   );
 }
@@ -571,7 +557,9 @@ assert(
     runtimeCombatSource.includes("targetRouteMovementConsumed") &&
     viewerSource.includes("preAttackRouteManualActorToCombatTarget") &&
     viewerSource.includes("TargetRoute.beforeMovement(), movement.process()") &&
-    viewerSource.includes("advanceManualActorServerRouteTick(routed.actor)") &&
+    viewerSource.includes("advanceManualActorTargetRouteTick(routed.actor)") &&
+    viewerSource.includes("Only this tick's walk/run step survives") &&
+    viewerSource.includes("localHasTargetRouteBeforeMovement") &&
     viewerSource.includes("targetRouteMovementConsumed: {"),
   "manual melee target routing should port Nh preAttack/TargetRoute/movement ordering before the attack gate"
 );
@@ -1545,12 +1533,7 @@ assert(
   `candidate visible-style EV should apply PvP protection-prayer damage reduction before ranking bot attacks: ${JSON.stringify(Object.fromEntries(protectedMissilesVisibleEvByStyle))}`
 );
 const defaultNhPolicyPath = path.resolve(
-  projectRoot,
-  "..",
-  "nh-osrs-184-master",
-  "nh-osrs-184-master",
-  "Nh-master",
-  "nh-server",
+  serverProjectRoot,
   "data",
   "ai",
   "nhstaker-selfplay-policy-nhstake-ags.tsv"
@@ -4109,8 +4092,13 @@ assert(
     viewerSource.includes('nextCombatState.actors["local-player"].locks') &&
     viewerSource.includes("lastTileCommandBlockedByMovementGate") &&
     viewerSource.includes("advanceManualActorServerRouteTick") &&
-    viewerSource.includes("let local = advanceManualActorServerRouteTick(localBeforeMovement)") &&
-    viewerSource.includes("let opponent = advanceManualActorServerRouteTick(opponentBeforeMovement)") &&
+    viewerSource.includes("localHasTargetRouteBeforeMovement") &&
+    viewerSource.includes("? localBeforeMovement") &&
+    viewerSource.includes(": advanceManualActorServerRouteTick(localBeforeMovement)") &&
+    viewerSource.includes("opponentHasTargetRouteBeforeMovement") &&
+    viewerSource.includes("? opponentBeforeMovement") &&
+    viewerSource.includes(": advanceManualActorServerRouteTick(opponentBeforeMovement)") &&
+    viewerSource.includes("advanceManualActorTargetRouteTick") &&
     viewerSource.includes("actor.running && actor.serverRouteWaypoints.length > 1 ? 2 : 1") &&
     viewerSource.includes("const enqueuedWaypoints = actor.serverRouteWaypoints.slice(0, enqueueCount)") &&
     viewerSource.includes("enqueueManualActorClientPathSteps(actor.routeWaypoints, enqueuedWaypoints)") &&

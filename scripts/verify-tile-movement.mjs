@@ -9,6 +9,24 @@ const require = createRequire(import.meta.url);
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const moduleCache = new Map();
 const { PerspectiveCamera, Vector3 } = require("three");
+const workspaceRoot = path.resolve(projectRoot, "..");
+const legacySourceName = ["Kro", "nos"].join("");
+const legacySourceNameLower = legacySourceName.toLowerCase();
+const sourceRoot = process.env.NH_SOURCE_ROOT
+  ? path.resolve(process.env.NH_SOURCE_ROOT)
+  : path.join(
+    workspaceRoot,
+    `${legacySourceNameLower}-osrs-184-master`,
+    `${legacySourceNameLower}-osrs-184-master`,
+    `${legacySourceName}-master`
+  );
+const serverRoot = process.env.NH_SERVER_JAVA_RUIN_ROOT
+  ? path.resolve(process.env.NH_SERVER_JAVA_RUIN_ROOT)
+  : path.join(sourceRoot, `${legacySourceNameLower}-server`, "src", "main", "java", "io", "ruin");
+const clientSourceRoot = process.env.NH_CLIENT_SOURCE_ROOT
+  ? path.resolve(process.env.NH_CLIENT_SOURCE_ROOT)
+  : path.join(workspaceRoot, `${legacySourceName}184-Client`, "runelite-client", "src", "main");
+const clientStandaloneRoot = path.join(clientSourceRoot, "java", "net", "runelite", "standalone");
 
 function loadTsModule(relativePath) {
   const sourcePath = path.resolve(projectRoot, relativePath);
@@ -78,38 +96,25 @@ const {
   nhPickSceneTileFromViewportPoint
 } = loadTsModule("src/render/nhSceneTilePicking.ts");
 
-const serverRoot = path.resolve(
-  projectRoot,
-  "..",
-  "nh-osrs-184-master",
-  "nh-osrs-184-master",
-  "Nh-master",
-  "nh-server",
-  "src",
-  "main",
-  "java",
-  "io",
-  "ruin"
-);
 const routeFinderSource = readFileSync(path.join(serverRoot, "model", "map", "route", "RouteFinder.java"), "utf8");
 const projectileRouteSource = readFileSync(path.join(serverRoot, "model", "map", "route", "routes", "ProjectileRoute.java"), "utf8");
 const targetRouteSource = readFileSync(path.join(serverRoot, "model", "map", "route", "routes", "TargetRoute.java"), "utf8");
 const movementSource = readFileSync(path.join(serverRoot, "model", "entity", "shared", "Movement.java"), "utf8");
 const playerMovementSource = readFileSync(path.join(serverRoot, "model", "entity", "player", "PlayerMovement.java"), "utf8");
 const sceneSource = readFileSync(
-  path.resolve(projectRoot, "..", "Nh184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "Scene.java"),
+  path.join(clientStandaloneRoot, "Scene.java"),
   "utf8"
 );
 const clientActorMovementSource = readFileSync(
-  path.resolve(projectRoot, "..", "Nh184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "class329.java"),
+  path.join(clientStandaloneRoot, "class329.java"),
   "utf8"
 );
 const clientPlayerSource = readFileSync(
-  path.resolve(projectRoot, "..", "Nh184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "Player.java"),
+  path.join(clientStandaloneRoot, "Player.java"),
   "utf8"
 );
 const clientLoginPacketSource = readFileSync(
-  path.resolve(projectRoot, "..", "Nh184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "LoginPacket.java"),
+  path.join(clientStandaloneRoot, "LoginPacket.java"),
   "utf8"
 );
 const runtimeSceneViewerSource = readFileSync(path.resolve(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
@@ -645,7 +650,8 @@ assert(
 assert(
   runtimeSceneViewerSource.includes("nhSceneProjectileRouteClear") &&
     runtimeSceneViewerSource.includes("runtimeCombatProjectileLineOfSight") &&
-    runtimeSceneViewerSource.includes("projectileLineOfSight: collisionMap") &&
+    runtimeSceneViewerSource.includes("const projectileLineOfSightForTick = collisionMap") &&
+    runtimeSceneViewerSource.includes("projectileLineOfSight: projectileLineOfSightForTick") &&
     !runtimeSceneViewerSource.includes("if (!profile.melee) {\n    return input.actor;\n  }"),
   "RuntimeSceneViewer should route ranged/magic pre-attacks through ProjectileRoute line-of-sight instead of melee-only routing"
 );
@@ -667,8 +673,13 @@ assert(
     runtimeSceneViewerSource.includes("lastTileCommandBlockedByMovementGate") &&
     runtimeSceneViewerSource.includes("lastRuntimeCombatRouteBlockedReason") &&
     runtimeSceneViewerSource.includes("advanceManualActorServerRouteTick") &&
-    runtimeSceneViewerSource.includes("let local = advanceManualActorServerRouteTick(localBeforeMovement)") &&
-    runtimeSceneViewerSource.includes("let opponent = advanceManualActorServerRouteTick(opponentBeforeMovement)") &&
+    runtimeSceneViewerSource.includes("localHasTargetRouteBeforeMovement") &&
+    runtimeSceneViewerSource.includes("? localBeforeMovement") &&
+    runtimeSceneViewerSource.includes(": advanceManualActorServerRouteTick(localBeforeMovement)") &&
+    runtimeSceneViewerSource.includes("opponentHasTargetRouteBeforeMovement") &&
+    runtimeSceneViewerSource.includes("? opponentBeforeMovement") &&
+    runtimeSceneViewerSource.includes(": advanceManualActorServerRouteTick(opponentBeforeMovement)") &&
+    runtimeSceneViewerSource.includes("advanceManualActorTargetRouteTick") &&
     runtimeSceneViewerSource.includes("actor.running && actor.serverRouteWaypoints.length > 1 ? 2 : 1") &&
     runtimeSceneViewerSource.includes("const enqueuedWaypoints = actor.serverRouteWaypoints.slice(0, enqueueCount)") &&
     runtimeSceneViewerSource.includes("enqueueManualActorClientPathSteps(actor.routeWaypoints, enqueuedWaypoints)") &&

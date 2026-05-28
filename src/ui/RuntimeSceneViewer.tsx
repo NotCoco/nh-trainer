@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import equipmentRowsJson from "../generated/equipment-bonuses.json";
 import kitsJson from "../generated/kits.json";
@@ -1078,6 +1078,9 @@ interface NhRuntimeDebugSnapshot {
   readonly motion?: NhRuntimeMotionDebugSnapshot;
   readonly manualOpponentPolicy?: readonly NhRuntimeManualOpponentPolicyDebugEntry[];
   readonly manualOpponentAudit?: readonly NhRuntimeManualOpponentTickAuditEntry[];
+  readonly manualCombatTicks?: readonly NhRuntimeManualCombatTickLogEntry[];
+  readonly manualCombatTickSnapshot?: readonly NhRuntimeManualCombatTickLogEntry[];
+  readonly manualCombatTickSnapshotAtMs?: number;
 }
 
 interface NhRuntimeManualOpponentPolicyDebugEntry {
@@ -1118,6 +1121,54 @@ interface NhRuntimeManualOpponentTickAuditEntry {
   readonly opponentMovementConsumed: boolean;
   readonly preAttackRouteMoved: boolean;
   readonly routeRequests: readonly NhRuntimeManualOpponentRouteDebugEntry[];
+}
+
+interface NhRuntimeManualCombatActorTickLog {
+  readonly tile: RuntimeTile;
+  readonly renderTile: RuntimeTile;
+  readonly clientPosition: RuntimeClientPosition | null;
+  readonly routeWaypoints: readonly RuntimeTile[];
+  readonly routeTraversalModes: readonly number[];
+  readonly serverRouteWaypoints: readonly RuntimeTile[];
+  readonly serverRouteTraversalModes: readonly number[];
+  readonly sequenceName: RuntimeSequenceName;
+  readonly activeSequenceKey: string | null;
+  readonly movementBlockedBySequence: boolean;
+  readonly movementStallTicks: number;
+  readonly loadoutId: RuntimeLoadoutId;
+  readonly combatTile: RuntimeTile;
+  readonly targetId: RuntimeActorId | null;
+  readonly lastTargetId: RuntimeActorId | null;
+  readonly queuedSpellId: RuntimePlayerCombatSpellId | null;
+  readonly autocastSpellId: RuntimePlayerCombatSpellId | null;
+  readonly attackSetIndex: number;
+  readonly specialActive: boolean;
+  readonly specialEnergy: number;
+  readonly queuedGmaulSpecs: number;
+  readonly attackTimer: RuntimePlayerCombatActorState["attackTimer"];
+  readonly actionSequenceName: RuntimeSequenceName | null;
+  readonly actionStartedAtTick: number | null;
+  readonly actionUntilTick: number;
+  readonly movementGateBlocked: boolean;
+  readonly movementGateReason: string;
+  readonly freezeUntilTick: number;
+}
+
+interface NhRuntimeManualCombatTickLogEntry {
+  readonly tick: number;
+  readonly clientCycle: number;
+  readonly processOrder: readonly RuntimeActorId[];
+  readonly localBeforeMovement: NhRuntimeManualCombatActorTickLog;
+  readonly opponentBeforeMovement: NhRuntimeManualCombatActorTickLog;
+  readonly localAfterPreRoute: NhRuntimeManualCombatActorTickLog;
+  readonly opponentAfterPreRoute: NhRuntimeManualCombatActorTickLog;
+  readonly localAfterSync: NhRuntimeManualCombatActorTickLog;
+  readonly opponentAfterSync: NhRuntimeManualCombatActorTickLog;
+  readonly targetRouteMovementConsumed: Readonly<Record<RuntimeActorId, boolean>>;
+  readonly projectileLineOfSight: Readonly<Record<RuntimeActorId, boolean>>;
+  readonly preAttackRouteMoved: boolean;
+  readonly routeRequests: readonly NhRuntimeManualOpponentRouteDebugEntry[];
+  readonly currentTickEvents: readonly Record<string, unknown>[];
 }
 
 interface NhRuntimeMotionDebugSnapshot {
@@ -2917,6 +2968,86 @@ function advanceManualActorServerRouteTick(actor: ManualActorState): ManualActor
   };
 }
 
+function advanceManualActorTargetRouteTick(actor: ManualActorState): ManualActorState {
+  if (actor.serverRouteWaypoints.length === 0) {
+    return actor;
+  }
+  const sourceTickStepCount = actor.running && actor.serverRouteWaypoints.length > 1 ? 2 : 1;
+  const enqueueCount = Math.min(sourceTickStepCount, actor.serverRouteWaypoints.length);
+  const enqueuedWaypoints = actor.serverRouteWaypoints.slice(0, enqueueCount);
+  const traversalMode = sourceTickStepCount > 1 ? 2 : 1;
+  const clientPosition = actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile ?? actor.tile);
+  const settlementWaypoints = nhClientSettlementWaypoints(clientPosition, actor.tile);
+  const settlementTraversalModes = settlementWaypoints.map(() => actor.running ? 2 : 1);
+  const targetRouteWaypoints = [...settlementWaypoints, ...enqueuedWaypoints];
+  const targetRouteTraversalModes = [
+    ...settlementTraversalModes,
+    ...Array.from({ length: enqueueCount }, () => traversalMode)
+  ];
+  // Source: TargetRoute.beforeMovement() rewrites Movement steps before each
+  // movement pass. The source client then receives the fresh accepted movement
+  // path; an older click-away/client tail must not sit ahead of the pull-in step.
+  const compressedRoute = compressManualActorTargetRouteClientPath(
+    clientPosition,
+    targetRouteWaypoints,
+    targetRouteTraversalModes,
+    enqueueCount
+  );
+  return {
+    ...actor,
+    tile: enqueuedWaypoints[enqueuedWaypoints.length - 1] ?? actor.tile,
+    routeWaypoints: compressedRoute.routeWaypoints,
+    routeTraversalModes: compressedRoute.routeTraversalModes,
+    serverRouteWaypoints: [],
+    serverRouteTraversalModes: []
+  };
+}
+
+function compressManualActorTargetRouteClientPath(
+  clientPosition: RuntimeClientPosition,
+  routeWaypoints: readonly RuntimeTile[],
+  routeTraversalModes: readonly number[],
+  preservedTailCount = 0
+): Pick<ManualActorState, "routeWaypoints" | "routeTraversalModes"> {
+  if (routeWaypoints.length <= 9) {
+    return { routeWaypoints, routeTraversalModes };
+  }
+
+  const tailCount = Math.min(Math.max(0, Math.trunc(preservedTailCount)), 9, routeWaypoints.length);
+  const tailStart = routeWaypoints.length - tailCount;
+  const prefixWaypoints = routeWaypoints.slice(0, tailStart);
+  const prefixTraversalModes = routeTraversalModes.slice(0, tailStart);
+  const prefixLimit = 9 - tailCount;
+  const compressedWaypoints: RuntimeTile[] = [];
+  const compressedTraversalModes: number[] = [];
+  let currentPosition = clientPosition;
+  let nextIndex = 0;
+  while (nextIndex < prefixWaypoints.length && compressedWaypoints.length < prefixLimit) {
+    let bestIndex = nextIndex;
+    for (let index = nextIndex; index < prefixWaypoints.length; index += 1) {
+      const candidatePosition = nhClientPositionFromRuntimeTile(prefixWaypoints[index]);
+      if (
+        Math.abs(candidatePosition.x - currentPosition.x) > 2 * NH_ACTOR_TILE_CLIENT_UNITS ||
+        Math.abs(candidatePosition.z - currentPosition.z) > 2 * NH_ACTOR_TILE_CLIENT_UNITS
+      ) {
+        break;
+      }
+      bestIndex = index;
+    }
+
+    const waypoint = prefixWaypoints[bestIndex];
+    compressedWaypoints.push(waypoint);
+    compressedTraversalModes.push(prefixTraversalModes[bestIndex] ?? 1);
+    currentPosition = nhClientPositionFromRuntimeTile(waypoint);
+    nextIndex = bestIndex + 1;
+  }
+
+  return {
+    routeWaypoints: [...compressedWaypoints, ...routeWaypoints.slice(tailStart)],
+    routeTraversalModes: [...compressedTraversalModes, ...routeTraversalModes.slice(tailStart)]
+  };
+}
+
 function enqueueManualActorClientPathSteps(
   current: readonly RuntimeTile[],
   nextSteps: readonly RuntimeTile[]
@@ -3030,6 +3161,19 @@ function syncManualActorServerTileToCombatActor(
   });
 }
 
+function manualActorHasActiveCombatTargetRoute(input: {
+  readonly combatActor: RuntimePlayerCombatActorState;
+  readonly targetActorId: RuntimeActorId;
+  readonly targetCombatActor: RuntimePlayerCombatActorState;
+  readonly tick: number;
+}): boolean {
+  return (
+    input.combatActor.targetId === input.targetActorId &&
+    !isRuntimePlayerCombatActorDead(input.combatActor, input.tick) &&
+    !isRuntimePlayerCombatActorDead(input.targetCombatActor, input.tick)
+  );
+}
+
 function preAttackRouteManualActorToCombatTarget(input: {
   readonly actorId: RuntimeActorId;
   readonly actor: ManualActorState;
@@ -3044,9 +3188,7 @@ function preAttackRouteManualActorToCombatTarget(input: {
 }): ManualActorState {
   if (
     input.movedThisTick ||
-    input.combatActor.targetId !== input.targetActorId ||
-    isRuntimePlayerCombatActorDead(input.combatActor, input.tick) ||
-    isRuntimePlayerCombatActorDead(input.targetCombatActor, input.tick)
+    !manualActorHasActiveCombatTargetRoute(input)
   ) {
     return input.actor;
   }
@@ -3057,14 +3199,21 @@ function preAttackRouteManualActorToCombatTarget(input: {
   }
 
   if (nhSceneTargetRouteReached(input.actor.tile, input.targetActor.tile, profile.attackRange, input.collision)) {
-    return input.actor;
+    return {
+      ...input.actor,
+      serverRouteWaypoints: [],
+      serverRouteTraversalModes: []
+    };
   }
 
   // Source: Nh Player.process() runs combat.preAttack(), TargetRoute.beforeMovement(), movement.process(),
   // TargetRoute.afterMovement(), then combat.attack(); target-route movement is consumed before the attack gate,
   // even when the first step has not reached attack range yet.
   const routed = routeManualActorToTarget(input.actor, input.targetActor.tile, profile.attackRange, input.collision, input.now, false);
-  return advanceManualActorServerRouteTick(routed.actor);
+  // Source: TargetRoute.beforeMovement() recomputes RouteFinder.routeEntity() each tick before Movement.process().
+  // Only this tick's walk/run step survives; carrying the remaining target-route tail into the next tick makes
+  // melee pathing use stale waypoints instead of the freshly recomputed entity route.
+  return advanceManualActorTargetRouteTick(routed.actor);
 }
 
 function runtimeCombatProjectileLineOfSight(input: {
@@ -9416,6 +9565,109 @@ function writeManualOpponentTickAuditSnapshot(
   };
 }
 
+function compactManualCombatActorTickLog(
+  actor: ManualActorState,
+  combatActor: RuntimePlayerCombatActorState,
+  tick: number
+): NhRuntimeManualCombatActorTickLog {
+  const gate = movementGate(combatActor.locks, tick);
+  return {
+    tile: actor.tile,
+    renderTile: actor.renderTile,
+    clientPosition: actor.clientPosition,
+    routeWaypoints: actor.routeWaypoints,
+    routeTraversalModes: actor.routeTraversalModes,
+    serverRouteWaypoints: actor.serverRouteWaypoints,
+    serverRouteTraversalModes: actor.serverRouteTraversalModes,
+    sequenceName: actor.sequenceName,
+    activeSequenceKey: actor.activeSequenceKey,
+    movementBlockedBySequence: actor.movementBlockedBySequence,
+    movementStallTicks: actor.movementStallTicks,
+    loadoutId: combatActor.loadoutId,
+    combatTile: combatActor.tile,
+    targetId: combatActor.targetId,
+    lastTargetId: combatActor.lastTargetId,
+    queuedSpellId: combatActor.queuedSpellId,
+    autocastSpellId: combatActor.autocastSpellId,
+    attackSetIndex: combatActor.attackSetIndex,
+    specialActive: combatActor.specialActive,
+    specialEnergy: combatActor.gmaul.specialEnergy,
+    queuedGmaulSpecs: combatActor.gmaul.queuedSpecs,
+    attackTimer: combatActor.attackTimer,
+    actionSequenceName: combatActor.actionSequenceName,
+    actionStartedAtTick: combatActor.actionStartedAtTick,
+    actionUntilTick: combatActor.actionUntilTick,
+    movementGateBlocked: gate.blocked,
+    movementGateReason: gate.reason,
+    freezeUntilTick: combatActor.locks.freezeUntilTick
+  };
+}
+
+function compactRuntimeCombatEventForTickLog(event: RuntimePlayerCombatEvent): Record<string, unknown> {
+  const compact: Record<string, unknown> = {
+    kind: event.kind,
+    id: event.id,
+    tick: event.tick
+  };
+  if ("actorId" in event) {
+    compact.actorId = event.actorId;
+  }
+  if ("attackerId" in event) {
+    compact.attackerId = event.attackerId;
+  }
+  if ("defenderId" in event) {
+    compact.defenderId = event.defenderId;
+  }
+  if ("attackerTile" in event) {
+    compact.attackerTile = event.attackerTile;
+  }
+  if ("defenderTile" in event) {
+    compact.defenderTile = event.defenderTile;
+  }
+  if ("style" in event) {
+    compact.style = event.style;
+  }
+  if ("sequenceName" in event) {
+    compact.sequenceName = event.sequenceName;
+  }
+  if ("specialAttack" in event) {
+    compact.specialAttack = event.specialAttack;
+  }
+  if ("hitDelayTicks" in event) {
+    compact.hitDelayTicks = event.hitDelayTicks;
+  }
+  if ("damage" in event) {
+    compact.damage = event.damage;
+  }
+  if ("previousHitpoints" in event) {
+    compact.previousHitpoints = event.previousHitpoints;
+  }
+  if ("nextHitpoints" in event) {
+    compact.nextHitpoints = event.nextHitpoints;
+  }
+  if ("maxDamage" in event) {
+    compact.maxDamage = event.maxDamage;
+  }
+  if ("hitChance" in event) {
+    compact.hitChance = event.hitChance;
+  }
+  return compact;
+}
+
+function pushManualCombatTickDebugLog(
+  current: readonly NhRuntimeManualCombatTickLogEntry[],
+  entry: NhRuntimeManualCombatTickLogEntry
+): readonly NhRuntimeManualCombatTickLogEntry[] {
+  const next = [...current, entry].slice(-64);
+  window.__nhRuntimeDebug = {
+    ...window.__nhRuntimeDebug,
+    cycle: entry.tick,
+    overlays: window.__nhRuntimeDebug?.overlays ?? [],
+    manualCombatTicks: next
+  };
+  return next;
+}
+
 function runtimeOverlayViewport(boundary: RuntimeSceneBoundary): NhFixedClientLayout["viewport"] {
   return boundary.fixedClientLayout?.viewport ?? {
     rect: {
@@ -10815,6 +11067,7 @@ export function RuntimeSceneViewer({
   const initialManualActorSpawnRef = useRef(initialManualActor);
   const initialManualOpponentSpawnRef = useRef(initialManualOpponent);
   const manualCombatStateRef = useRef(initialRuntimePlayerCombatState);
+  const manualCombatTickLogRef = useRef<readonly NhRuntimeManualCombatTickLogEntry[]>([]);
   const manualOpponentFightEngagedRef = useRef(false);
   const manualOpponentTargetTrackingRef = useRef<RuntimePolicyTargetTrackingState>(
     emptyRuntimePolicyTargetTrackingState
@@ -12531,8 +12784,24 @@ export function RuntimeSceneViewer({
           combatStateBeforeMovement.actors.opponent,
           combatStateBeforeMovement.tick
         );
-        let local = advanceManualActorServerRouteTick(localBeforeMovement);
-        let opponent = advanceManualActorServerRouteTick(opponentBeforeMovement);
+        const localHasTargetRouteBeforeMovement = manualActorHasActiveCombatTargetRoute({
+          combatActor: combatStateBeforeMovement.actors["local-player"],
+          targetActorId: "opponent",
+          targetCombatActor: combatStateBeforeMovement.actors.opponent,
+          tick: combatStateBeforeMovement.tick
+        });
+        const opponentHasTargetRouteBeforeMovement = manualActorHasActiveCombatTargetRoute({
+          combatActor: combatStateBeforeMovement.actors.opponent,
+          targetActorId: "local-player",
+          targetCombatActor: combatStateBeforeMovement.actors["local-player"],
+          tick: combatStateBeforeMovement.tick
+        });
+        let local = localHasTargetRouteBeforeMovement
+          ? localBeforeMovement
+          : advanceManualActorServerRouteTick(localBeforeMovement);
+        let opponent = opponentHasTargetRouteBeforeMovement
+          ? opponentBeforeMovement
+          : advanceManualActorServerRouteTick(opponentBeforeMovement);
         processPendingGroundItemPickup(local.tile);
         let localMovedThisTick = !sameNhTile(localBeforeMovement.tile, local.tile);
         let opponentMovedThisTick = !sameNhTile(opponentBeforeMovement.tile, opponent.tile);
@@ -12542,6 +12811,8 @@ export function RuntimeSceneViewer({
           opponentMovedThisTick
         );
         let preAttackRouteMoved = false;
+        let localPreAttackRouteMovedThisTick = false;
+        let opponentPreAttackRouteMovedThisTick = false;
         manualActorRef.current = local;
         manualOpponentRef.current = opponent;
         let policyResponse: ManualOpponentCombatResponse | null = null;
@@ -12561,45 +12832,58 @@ export function RuntimeSceneViewer({
             writeManualOpponentPolicyDataset(viewport, policyResponse);
           }
         }
+        const processOrderForTick = runtimePlayerCombatProcessOrderForTick(combatStateForTick, combatStateForTick.tick);
+        const localProcessIndex = processOrderForTick.indexOf("local-player");
+        const opponentProcessIndex = processOrderForTick.indexOf("opponent");
         const tickNow = performance.now();
         if (collisionMap) {
-          const localBeforePreAttackRoute = local;
-          local = preAttackRouteManualActorToCombatTarget({
-            actorId: "local-player",
-            actor: local,
-            combatActor: combatStateForTick.actors["local-player"],
-            targetActorId: "opponent",
-            targetActor: opponent,
-            targetCombatActor: combatStateForTick.actors.opponent,
-            collision: collisionMap,
-            tick: combatStateForTick.tick,
-            now: tickNow,
-            movedThisTick: localMovedThisTick
-          });
-          const localPreAttackRouteMoved = !sameNhTile(localBeforePreAttackRoute.tile, local.tile);
-          localMovedThisTick = localMovedThisTick || localPreAttackRouteMoved;
-          preAttackRouteMoved = preAttackRouteMoved || localPreAttackRouteMoved;
-
-          const opponentBeforePreAttackRoute = opponent;
-          opponent = preAttackRouteManualActorToCombatTarget({
-            actorId: "opponent",
-            actor: opponent,
-            combatActor: combatStateForTick.actors.opponent,
-            targetActorId: "local-player",
-            targetActor: local,
-            targetCombatActor: combatStateForTick.actors["local-player"],
-            collision: collisionMap,
-            tick: combatStateForTick.tick,
-            now: tickNow,
-            movedThisTick: opponentMovedThisTick
-          });
-          const opponentPreAttackRouteMoved = !sameNhTile(opponentBeforePreAttackRoute.tile, opponent.tile);
-          opponentMovedThisTick = opponentMovedThisTick || opponentPreAttackRouteMoved;
-          preAttackRouteMoved = preAttackRouteMoved || opponentPreAttackRouteMoved;
+          // Source: each Nh Player.process() runs its own TargetRoute.beforeMovement()
+          // in CoreWorker PID order, so an earlier player routes against a later
+          // player's pre-movement tile instead of chasing that player's future step.
+          for (const actorId of processOrderForTick) {
+            if (actorId === "local-player") {
+              const localBeforePreAttackRoute = local;
+              const opponentHasProcessed = opponentProcessIndex < localProcessIndex;
+              local = preAttackRouteManualActorToCombatTarget({
+                actorId: "local-player",
+                actor: local,
+                combatActor: combatStateForTick.actors["local-player"],
+                targetActorId: "opponent",
+                targetActor: opponentHasProcessed ? opponent : opponentBeforeMovement,
+                targetCombatActor: combatStateForTick.actors.opponent,
+                collision: collisionMap,
+                tick: combatStateForTick.tick,
+                now: tickNow,
+                movedThisTick: localMovedThisTick
+              });
+              const localPreAttackRouteMoved = !sameNhTile(localBeforePreAttackRoute.tile, local.tile);
+              localMovedThisTick = localMovedThisTick || localPreAttackRouteMoved;
+              preAttackRouteMoved = preAttackRouteMoved || localPreAttackRouteMoved;
+              localPreAttackRouteMovedThisTick = localPreAttackRouteMovedThisTick || localPreAttackRouteMoved;
+            } else {
+              const opponentBeforePreAttackRoute = opponent;
+              const localHasProcessed = localProcessIndex < opponentProcessIndex;
+              opponent = preAttackRouteManualActorToCombatTarget({
+                actorId: "opponent",
+                actor: opponent,
+                combatActor: combatStateForTick.actors.opponent,
+                targetActorId: "local-player",
+                targetActor: localHasProcessed ? local : localBeforeMovement,
+                targetCombatActor: combatStateForTick.actors["local-player"],
+                collision: collisionMap,
+                tick: combatStateForTick.tick,
+                now: tickNow,
+                movedThisTick: opponentMovedThisTick
+              });
+              const opponentPreAttackRouteMoved = !sameNhTile(opponentBeforePreAttackRoute.tile, opponent.tile);
+              opponentMovedThisTick = opponentMovedThisTick || opponentPreAttackRouteMoved;
+              preAttackRouteMoved = preAttackRouteMoved || opponentPreAttackRouteMoved;
+              opponentPreAttackRouteMovedThisTick = opponentPreAttackRouteMovedThisTick || opponentPreAttackRouteMoved;
+            }
+          }
           manualActorRef.current = local;
           manualOpponentRef.current = opponent;
         }
-        const processOrderForTick = runtimePlayerCombatProcessOrderForTick(combatStateForTick, combatStateForTick.tick);
         const projectileLineOfSightForActor = (actorId: RuntimeActorId): boolean => {
           if (!collisionMap) {
             return true;
@@ -12624,6 +12908,12 @@ export function RuntimeSceneViewer({
             collision: collisionMap
           });
         };
+        const projectileLineOfSightForTick = collisionMap
+          ? {
+              "local-player": projectileLineOfSightForActor("local-player"),
+              opponent: projectileLineOfSightForActor("opponent")
+            }
+          : undefined;
         const result = advanceRuntimePlayerCombat(combatStateForTick, {
           preMovementTiles: {
             "local-player": localBeforeMovement.tile,
@@ -12656,12 +12946,7 @@ export function RuntimeSceneViewer({
             "local-player": localMovedThisTick,
             opponent: opponentMovedThisTick
           },
-          projectileLineOfSight: collisionMap
-            ? {
-                "local-player": projectileLineOfSightForActor("local-player"),
-                opponent: projectileLineOfSightForActor("opponent")
-              }
-            : undefined,
+          projectileLineOfSight: projectileLineOfSightForTick,
           tileScale: NH_TILE_WORLD_UNITS,
           clientCycle: Math.floor(tickNow / NH_CLIENT_CYCLE_MS)
         });
@@ -12693,6 +12978,54 @@ export function RuntimeSceneViewer({
           nextTickCombatState.actors.opponent,
           nextTickCombatState.tick
         );
+        manualCombatTickLogRef.current = pushManualCombatTickDebugLog(manualCombatTickLogRef.current, {
+          tick: combatStateForTick.tick,
+          clientCycle: Math.floor(tickNow / NH_CLIENT_CYCLE_MS),
+          processOrder: processOrderForTick,
+          localBeforeMovement: compactManualCombatActorTickLog(
+            localBeforeMovement,
+            combatStateForTick.actors["local-player"],
+            combatStateForTick.tick
+          ),
+          opponentBeforeMovement: compactManualCombatActorTickLog(
+            opponentBeforeMovement,
+            combatStateForTick.actors.opponent,
+            combatStateForTick.tick
+          ),
+          localAfterPreRoute: compactManualCombatActorTickLog(
+            local,
+            { ...combatStateForTick.actors["local-player"], tile: local.tile },
+            combatStateForTick.tick
+          ),
+          opponentAfterPreRoute: compactManualCombatActorTickLog(
+            opponent,
+            { ...combatStateForTick.actors.opponent, tile: opponent.tile },
+            combatStateForTick.tick
+          ),
+          localAfterSync: compactManualCombatActorTickLog(
+            syncedLocal,
+            nextTickCombatState.actors["local-player"],
+            nextTickCombatState.tick
+          ),
+          opponentAfterSync: compactManualCombatActorTickLog(
+            syncedOpponent,
+            nextTickCombatState.actors.opponent,
+            nextTickCombatState.tick
+          ),
+          targetRouteMovementConsumed: {
+            "local-player": localMovedThisTick,
+            opponent: opponentMovedThisTick
+          },
+          projectileLineOfSight: projectileLineOfSightForTick ?? {
+            "local-player": true,
+            opponent: true
+          },
+          preAttackRouteMoved,
+          routeRequests: compactManualOpponentRouteRequests(result.routeRequests),
+          currentTickEvents: nextTickCombatState.events
+            .filter((event) => event.tick >= combatStateForTick.tick)
+            .map(compactRuntimeCombatEventForTickLog)
+        });
         const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
         if (viewport && policyResponse) {
           writeManualOpponentTickAuditSnapshot(viewport, {
@@ -12745,8 +13078,13 @@ export function RuntimeSceneViewer({
         if (combatVisiblyChanged || !actorsStillMoving) {
           setManualCombatState(nextTickCombatState);
         }
-        if (!actorsStillMoving) {
+        if (localPreAttackRouteMovedThisTick || !actorsStillMoving) {
+          // Source: Player.process() runs TargetRoute.beforeMovement() and movement.process()
+          // before combat.attack(); the client receives that accepted movement step alongside
+          // the attack sequence, so the rendered actor must not wait for route completion.
           setManualActor(syncedLocal);
+        }
+        if (opponentPreAttackRouteMovedThisTick || !actorsStillMoving) {
           setManualOpponent(syncedOpponent);
         }
         if (collisionMap && !freshFightReset) {
@@ -15353,6 +15691,38 @@ export function RuntimeSceneViewer({
       viewport.dataset.temporaryFreezeBypassSource = "temporary-dev-control";
     }
   };
+
+  const copyRecentManualCombatTickLog = useCallback((): void => {
+    const snapshot = manualCombatTickLogRef.current.slice(-8);
+    const payload = {
+      capturedAtMs: performance.now(),
+      currentTick: manualCombatStateRef.current.tick,
+      entries: snapshot
+    };
+    window.__nhRuntimeDebug = {
+      ...window.__nhRuntimeDebug,
+      cycle: manualCombatStateRef.current.tick,
+      overlays: window.__nhRuntimeDebug?.overlays ?? [],
+      manualCombatTicks: manualCombatTickLogRef.current,
+      manualCombatTickSnapshot: snapshot,
+      manualCombatTickSnapshotAtMs: payload.capturedAtMs
+    };
+    console.info("[nh-trainer] recent manual combat ticks", payload);
+    const json = JSON.stringify(payload, null, 2);
+    if (navigator.clipboard?.writeText) {
+      void navigator.clipboard.writeText(json)
+        .then(() => setTemporarySetupStatus(`Copied ${snapshot.length} tick log`))
+        .catch(() => setTemporarySetupStatus(`Logged ${snapshot.length} ticks; clipboard blocked`));
+    } else {
+      setTemporarySetupStatus(`Logged ${snapshot.length} ticks; clipboard unavailable`);
+    }
+    const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
+    if (viewport) {
+      viewport.dataset.lastManualCombatLogTickCount = String(snapshot.length);
+      viewport.dataset.lastManualCombatLogCurrentTick = String(payload.currentTick);
+      viewport.dataset.lastManualCombatLogCopiedAtMs = String(payload.capturedAtMs);
+    }
+  }, []);
 
   const queueCombatSpecialAfterPendingItemPackets = (command: NhCombatSpecialCommand): boolean => {
     const pendingItemPackets = itemActionQueueRef.current.snapshot();
@@ -18517,6 +18887,9 @@ export function RuntimeSceneViewer({
             </button>
             <button type="button" onClick={resetTemporarySetupToDefault}>
               Reset default
+            </button>
+            <button type="button" onClick={copyRecentManualCombatTickLog}>
+              Log 8 ticks
             </button>
             {temporarySetupStatus ? (
               <span className="runtimeTemporaryDevStatus">{temporarySetupStatus}</span>
