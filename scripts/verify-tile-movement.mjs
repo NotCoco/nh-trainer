@@ -673,12 +673,12 @@ assert(
     runtimeSceneViewerSource.includes("lastTileCommandBlockedByMovementGate") &&
     runtimeSceneViewerSource.includes("lastRuntimeCombatRouteBlockedReason") &&
     runtimeSceneViewerSource.includes("advanceManualActorServerRouteTick") &&
-    runtimeSceneViewerSource.includes("localHasTargetRouteBeforeMovement") &&
-    runtimeSceneViewerSource.includes("? localBeforeMovement") &&
-    runtimeSceneViewerSource.includes(": advanceManualActorServerRouteTick(localBeforeMovement)") &&
-    runtimeSceneViewerSource.includes("opponentHasTargetRouteBeforeMovement") &&
-    runtimeSceneViewerSource.includes("? opponentBeforeMovement") &&
-    runtimeSceneViewerSource.includes(": advanceManualActorServerRouteTick(opponentBeforeMovement)") &&
+    runtimeSceneViewerSource.includes("const localHasTargetRoute = manualActorHasActiveCombatTargetRoute") &&
+    runtimeSceneViewerSource.includes("const opponentHasTargetRoute = manualActorHasActiveCombatTargetRoute") &&
+    runtimeSceneViewerSource.includes(": advanceManualActorServerRouteTick(local)") &&
+    runtimeSceneViewerSource.includes(": advanceManualActorServerRouteTick(opponent)") &&
+    runtimeSceneViewerSource.includes("and Movement.process() in CoreWorker PID order") &&
+    runtimeSceneViewerSource.includes("cancels a later player's queued movement before it can be consumed") &&
     runtimeSceneViewerSource.includes("advanceManualActorTargetRouteTick") &&
     runtimeSceneViewerSource.includes("actor.running && actor.serverRouteWaypoints.length > 1 ? 2 : 1") &&
     runtimeSceneViewerSource.includes("const enqueuedWaypoints = actor.serverRouteWaypoints.slice(0, enqueueCount)") &&

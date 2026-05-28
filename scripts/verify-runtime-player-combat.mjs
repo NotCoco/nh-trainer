@@ -556,10 +556,12 @@ assert(
     runtimeCombatSource.includes("runtimePlayerCombatTargetRouteProfile") &&
     runtimeCombatSource.includes("targetRouteMovementConsumed") &&
     viewerSource.includes("preAttackRouteManualActorToCombatTarget") &&
-    viewerSource.includes("TargetRoute.beforeMovement(), movement.process()") &&
+    viewerSource.includes("TargetRoute.beforeMovement()") &&
+    viewerSource.includes("and Movement.process() in CoreWorker PID order") &&
     viewerSource.includes("advanceManualActorTargetRouteTick(routed.actor)") &&
     viewerSource.includes("Only this tick's walk/run step survives") &&
-    viewerSource.includes("localHasTargetRouteBeforeMovement") &&
+    viewerSource.includes("const localHasTargetRoute = manualActorHasActiveCombatTargetRoute") &&
+    viewerSource.includes("const opponentHasTargetRoute = manualActorHasActiveCombatTargetRoute") &&
     viewerSource.includes("targetRouteMovementConsumed: {"),
   "manual melee target routing should port Nh preAttack/TargetRoute/movement ordering before the attack gate"
 );
@@ -4092,12 +4094,11 @@ assert(
     viewerSource.includes('nextCombatState.actors["local-player"].locks') &&
     viewerSource.includes("lastTileCommandBlockedByMovementGate") &&
     viewerSource.includes("advanceManualActorServerRouteTick") &&
-    viewerSource.includes("localHasTargetRouteBeforeMovement") &&
-    viewerSource.includes("? localBeforeMovement") &&
-    viewerSource.includes(": advanceManualActorServerRouteTick(localBeforeMovement)") &&
-    viewerSource.includes("opponentHasTargetRouteBeforeMovement") &&
-    viewerSource.includes("? opponentBeforeMovement") &&
-    viewerSource.includes(": advanceManualActorServerRouteTick(opponentBeforeMovement)") &&
+    viewerSource.includes("const localHasTargetRoute = manualActorHasActiveCombatTargetRoute") &&
+    viewerSource.includes("const opponentHasTargetRoute = manualActorHasActiveCombatTargetRoute") &&
+    viewerSource.includes(": advanceManualActorServerRouteTick(local)") &&
+    viewerSource.includes(": advanceManualActorServerRouteTick(opponent)") &&
+    viewerSource.includes("cancels a later player's queued movement before it can be consumed") &&
     viewerSource.includes("advanceManualActorTargetRouteTick") &&
     viewerSource.includes("actor.running && actor.serverRouteWaypoints.length > 1 ? 2 : 1") &&
     viewerSource.includes("const enqueuedWaypoints = actor.serverRouteWaypoints.slice(0, enqueueCount)") &&

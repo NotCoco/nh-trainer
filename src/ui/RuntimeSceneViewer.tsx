@@ -12894,32 +12894,11 @@ export function RuntimeSceneViewer({
           combatStateBeforeMovement.actors.opponent,
           combatStateBeforeMovement.tick
         );
-        const localHasTargetRouteBeforeMovement = manualActorHasActiveCombatTargetRoute({
-          combatActor: combatStateBeforeMovement.actors["local-player"],
-          targetActorId: "opponent",
-          targetCombatActor: combatStateBeforeMovement.actors.opponent,
-          tick: combatStateBeforeMovement.tick
-        });
-        const opponentHasTargetRouteBeforeMovement = manualActorHasActiveCombatTargetRoute({
-          combatActor: combatStateBeforeMovement.actors.opponent,
-          targetActorId: "local-player",
-          targetCombatActor: combatStateBeforeMovement.actors["local-player"],
-          tick: combatStateBeforeMovement.tick
-        });
-        let local = localHasTargetRouteBeforeMovement
-          ? localBeforeMovement
-          : advanceManualActorServerRouteTick(localBeforeMovement);
-        let opponent = opponentHasTargetRouteBeforeMovement
-          ? opponentBeforeMovement
-          : advanceManualActorServerRouteTick(opponentBeforeMovement);
-        processPendingGroundItemPickup(local.tile);
-        let localMovedThisTick = !sameNhTile(localBeforeMovement.tile, local.tile);
-        let opponentMovedThisTick = !sameNhTile(opponentBeforeMovement.tile, opponent.tile);
-        const opponentPolicySelfMovement = manualPolicyActorMovementViewFromTiles(
-          opponentBeforeMovement.tile,
-          opponent.tile,
-          opponentMovedThisTick
-        );
+        let local = localBeforeMovement;
+        let opponent = opponentBeforeMovement;
+        let localMovedThisTick = false;
+        let opponentMovedThisTick = false;
+        const opponentPolicySelfMovement = manualOpponentObservedSelfMovementRef.current;
         let preAttackRouteMoved = false;
         let localPreAttackRouteMovedThisTick = false;
         let opponentPreAttackRouteMovedThisTick = false;
@@ -12948,49 +12927,80 @@ export function RuntimeSceneViewer({
         const tickNow = performance.now();
         if (collisionMap) {
           // Source: each Nh Player.process() runs its own TargetRoute.beforeMovement()
-          // in CoreWorker PID order, so an earlier player routes against a later
-          // player's pre-movement tile instead of chasing that player's future step.
+          // and Movement.process() in CoreWorker PID order, so an earlier freeze
+          // cancels a later player's queued movement before it can be consumed.
           for (const actorId of processOrderForTick) {
             if (actorId === "local-player") {
-              const localBeforePreAttackRoute = local;
+              const localBeforePidMovement = local;
               const opponentHasProcessed = opponentProcessIndex < localProcessIndex;
-              local = preAttackRouteManualActorToCombatTarget({
-                actorId: "local-player",
-                actor: local,
+              const localHasTargetRoute = manualActorHasActiveCombatTargetRoute({
                 combatActor: combatStateForTick.actors["local-player"],
                 targetActorId: "opponent",
-                targetActor: opponentHasProcessed ? opponent : opponentBeforeMovement,
                 targetCombatActor: combatStateForTick.actors.opponent,
-                collision: collisionMap,
-                tick: combatStateForTick.tick,
-                now: tickNow,
-                movedThisTick: localMovedThisTick
+                tick: combatStateForTick.tick
               });
-              const localPreAttackRouteMoved = !sameNhTile(localBeforePreAttackRoute.tile, local.tile);
-              localMovedThisTick = localMovedThisTick || localPreAttackRouteMoved;
-              preAttackRouteMoved = preAttackRouteMoved || localPreAttackRouteMoved;
-              localPreAttackRouteMovedThisTick = localPreAttackRouteMovedThisTick || localPreAttackRouteMoved;
+              local = localHasTargetRoute
+                ? preAttackRouteManualActorToCombatTarget({
+                    actorId: "local-player",
+                    actor: local,
+                    combatActor: combatStateForTick.actors["local-player"],
+                    targetActorId: "opponent",
+                    targetActor: opponentHasProcessed ? opponent : opponentBeforeMovement,
+                    targetCombatActor: combatStateForTick.actors.opponent,
+                    collision: collisionMap,
+                    tick: combatStateForTick.tick,
+                    now: tickNow,
+                    movedThisTick: localMovedThisTick
+                  })
+                : localMovedThisTick
+                  ? local
+                  : advanceManualActorServerRouteTick(local);
+              const localPidMovementMoved = !sameNhTile(localBeforePidMovement.tile, local.tile);
+              localMovedThisTick = localMovedThisTick || localPidMovementMoved;
+              preAttackRouteMoved = preAttackRouteMoved || localPidMovementMoved;
+              localPreAttackRouteMovedThisTick =
+                localPreAttackRouteMovedThisTick || (localHasTargetRoute && localPidMovementMoved);
+              processPendingGroundItemPickup(local.tile);
             } else {
-              const opponentBeforePreAttackRoute = opponent;
+              const opponentBeforePidMovement = opponent;
               const localHasProcessed = localProcessIndex < opponentProcessIndex;
-              opponent = preAttackRouteManualActorToCombatTarget({
-                actorId: "opponent",
-                actor: opponent,
+              const opponentHasTargetRoute = manualActorHasActiveCombatTargetRoute({
                 combatActor: combatStateForTick.actors.opponent,
                 targetActorId: "local-player",
-                targetActor: localHasProcessed ? local : localBeforeMovement,
                 targetCombatActor: combatStateForTick.actors["local-player"],
-                collision: collisionMap,
-                tick: combatStateForTick.tick,
-                now: tickNow,
-                movedThisTick: opponentMovedThisTick
+                tick: combatStateForTick.tick
               });
-              const opponentPreAttackRouteMoved = !sameNhTile(opponentBeforePreAttackRoute.tile, opponent.tile);
-              opponentMovedThisTick = opponentMovedThisTick || opponentPreAttackRouteMoved;
-              preAttackRouteMoved = preAttackRouteMoved || opponentPreAttackRouteMoved;
-              opponentPreAttackRouteMovedThisTick = opponentPreAttackRouteMovedThisTick || opponentPreAttackRouteMoved;
+              opponent = opponentHasTargetRoute
+                ? preAttackRouteManualActorToCombatTarget({
+                    actorId: "opponent",
+                    actor: opponent,
+                    combatActor: combatStateForTick.actors.opponent,
+                    targetActorId: "local-player",
+                    targetActor: localHasProcessed ? local : localBeforeMovement,
+                    targetCombatActor: combatStateForTick.actors["local-player"],
+                    collision: collisionMap,
+                    tick: combatStateForTick.tick,
+                    now: tickNow,
+                    movedThisTick: opponentMovedThisTick
+                  })
+                : opponentMovedThisTick
+                  ? opponent
+                  : advanceManualActorServerRouteTick(opponent);
+              const opponentPidMovementMoved = !sameNhTile(opponentBeforePidMovement.tile, opponent.tile);
+              opponentMovedThisTick = opponentMovedThisTick || opponentPidMovementMoved;
+              preAttackRouteMoved = preAttackRouteMoved || opponentPidMovementMoved;
+              opponentPreAttackRouteMovedThisTick =
+                opponentPreAttackRouteMovedThisTick || (opponentHasTargetRoute && opponentPidMovementMoved);
             }
           }
+          manualActorRef.current = local;
+          manualOpponentRef.current = opponent;
+        } else {
+          local = advanceManualActorServerRouteTick(local);
+          opponent = opponentMovedThisTick ? opponent : advanceManualActorServerRouteTick(opponent);
+          processPendingGroundItemPickup(local.tile);
+          localMovedThisTick = !sameNhTile(localBeforeMovement.tile, local.tile);
+          opponentMovedThisTick = opponentMovedThisTick || !sameNhTile(opponentBeforeMovement.tile, opponent.tile);
           manualActorRef.current = local;
           manualOpponentRef.current = opponent;
         }
