@@ -164,7 +164,7 @@ body {
 .nhSiteIntroDetails {
   display: grid;
   grid-column: 2;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 13px;
   width: min(620px, 100%);
   border-top: 1px solid rgb(171 129 62 / 0.32);

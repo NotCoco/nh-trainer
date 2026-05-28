@@ -124,11 +124,7 @@ export function App(): JSX.Element {
               View source on GitHub
             </a>
           </p>
-          <div className="nhSiteIntroDetails" aria-label="Current bot difficulty modes">
-            <div>
-              <span>Current</span>
-              <strong>Easy, Medium, and Hard AI modes</strong>
-            </div>
+          <div className="nhSiteIntroDetails" aria-label="Project focus and browser profile">
             <div>
               <span>Focus</span>
               <strong>Client feel, combat timing, and movement</strong>
