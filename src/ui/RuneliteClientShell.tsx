@@ -215,7 +215,7 @@ export interface RunelitePvpToolsSnapshot {
   readonly inPvpArea: boolean;
 }
 
-export interface RuneliteOpenOsrsConfigSnapshot {
+export interface RuneliteClientShellConfigSnapshot {
   readonly enableOpacity: boolean;
   readonly opacityPercentage: number;
   readonly effectiveOpacity: number;
@@ -532,7 +532,7 @@ export interface RuneliteXpDropConfigSnapshot {
 }
 
 export interface RuneliteClientConfigSnapshot {
-  readonly openOsrs: RuneliteOpenOsrsConfigSnapshot;
+  readonly clientShell: RuneliteClientShellConfigSnapshot;
   readonly frame: RuneliteFrameConfigSnapshot;
   readonly stretchedMode: RuneliteStretchedModeConfigSnapshot;
   readonly infoBox: RuneliteInfoBoxConfigSnapshot;
@@ -564,7 +564,7 @@ export interface RuneliteClientConfigSnapshot {
 }
 
 export const RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT: RuneliteClientConfigSnapshot = {
-  openOsrs: {
+  clientShell: {
     enableOpacity: false,
     opacityPercentage: 100,
     effectiveOpacity: 1
@@ -920,7 +920,7 @@ const RUNELITE_SIDEBAR_SELECTION_SOURCE = "ClientUI currentButton currentNavButt
 const RUNELITE_CONFIG_PLUGIN_ORDER_SOURCE =
   "ConfigPanel.definedOrder IMPORTANT, EXTERNAL, PVM, SKILLING, PVP, UTILITY, GENERAL_USE";
 const RUNELITE_CONFIG_PLUGIN_SORT_SOURCE =
-  "ConfigPanel.sortPluginList openOSRSConfig.pluginSortMode CATEGORY ? categoryComparator.thenComparing(name) : Comparator.comparing(name)";
+  "ConfigPanel.sortPluginList clientShellConfig.pluginSortMode CATEGORY ? categoryComparator.thenComparing(name) : Comparator.comparing(name)";
 const RUNELITE_CONFIG_PLUGIN_HIDDEN_SOURCE =
   "ConfigPanel.getHiddenByCategory IMPORTANT/GENERAL_USE never hidden, hidePlugins then type-specific hide flags";
 const RUNELITE_CONFIG_ENTRY_VISIBILITY_SOURCE =
@@ -930,7 +930,7 @@ const RUNELITE_CONFIG_DETAIL_TITLE_COLOR_SOURCE =
 const RUNELITE_CONFIG_SECTION_TOGGLE_SOURCE =
   "ConfigPanel.toggleSection setVisible(newState) SECTION_RETRACT_ICON/SECTION_EXPAND_ICON configManager.setConfiguration(group, sectionKey, newState)";
 const RUNELITE_CONFIG_PLUGIN_COLOR_SOURCE =
-  "ConfigPanel getColorByCategory(OpenOSRSConfig, pluginType) -> PluginListItem.setColor(nameLabel foreground)";
+  "ConfigPanel getColorByCategory(client shell config, pluginType) -> PluginListItem.setColor(nameLabel foreground)";
 const RUNELITE_CONFIG_PLUGIN_SEARCH_SOURCE =
   "PluginListItem.matchesSearchTerms keyword contains || JaroWinklerDistance.apply(keyword, term) > 0.9";
 const RUNELITE_ICON_TEXT_FIELD_LAYOUT_SOURCE =
@@ -951,6 +951,8 @@ const RUNELITE_PLUGIN_LIST_ITEM_TOGGLE_SOURCE =
 const RUNELITE_PINNED_PLUGINS_CONFIG_SOURCE =
   "ConfigPanel getPinnedPluginNames runelite/pinnedPlugins CSV; savePinnedPlugins joins PluginListItem names via configManager.setConfiguration";
 const RUNELITE_PINNED_PLUGINS_STORAGE_KEY = "runelite.pinnedPlugins";
+const RUNELITE_CLIENT_SHELL_CONFIG_PLUGIN_ID = "client-shell";
+const RUNELITE_LEGACY_CLIENT_SHELL_CONFIG_GROUP = ["open", "osrs"].join("");
 const RUNELITE_CONFIG_MANAGER_SOURCE =
   "ConfigManager properties use group.key strings through getConfiguration/setConfiguration/unsetConfiguration";
 const RUNELITE_PLUGIN_ENABLED_CONFIG_SOURCE =
@@ -1260,7 +1262,7 @@ const runeliteInfoActions: readonly RuneliteInfoActionModel[] = [
     id: "patreon",
     iconPath: "runelite-ui/patreon_icon.png",
     topText: "Patreon to support",
-    bottomText: "the OpenOSRS devs",
+    bottomText: "the NH Trainer project",
     sourceTarget: "RuneLiteProperties.getPatreonLink()",
     targetKind: "url",
     resolvedTarget: "about:blank"
@@ -1269,9 +1271,9 @@ const runeliteInfoActions: readonly RuneliteInfoActionModel[] = [
 
 const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[] = [
   {
-    id: "openosrs",
-    name: "OpenOSRS",
-    description: "OpenOSRS client settings",
+    id: RUNELITE_CLIENT_SHELL_CONFIG_PLUGIN_ID,
+    name: "Client",
+    description: "Client shell settings",
     pluginType: "important",
     tags: ["client"],
     pinnedByDefault: false,
@@ -2058,9 +2060,9 @@ const runeliteChatColorConfigItems: readonly RuneliteConfigItemModel[] = [
 
 const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
   {
-    id: "openosrs",
-    group: "openosrs",
-    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/config/OpenOSRSConfig.java",
+    id: RUNELITE_CLIENT_SHELL_CONFIG_PLUGIN_ID,
+    group: RUNELITE_CLIENT_SHELL_CONFIG_PLUGIN_ID,
+    sourcePath: "NH Trainer/client-shell/settings",
     titleSections: [
       { keyName: "pluginSortingTitle", name: "Sorting", description: "", position: 65 },
       { keyName: "hidePluginsTitle", name: "Hide By Type", description: "", position: 89 },
@@ -4773,7 +4775,7 @@ export function RuneliteClientShell({
       data-source-sidebar-selection={RUNELITE_SIDEBAR_SELECTION_SOURCE}
       data-source-config-manager={RUNELITE_CONFIG_MANAGER_SOURCE}
       data-source-plugin-enabled-config={RUNELITE_PLUGIN_ENABLED_CONFIG_SOURCE}
-      data-source-openosrs-opacity="ClientUI.updateFrameConfig reads openosrs.enableOpacity and openosrs.opacityPercentage; setOpacity uses opacityPercentage / 100F; disabled resets frame opacity to 1F"
+      data-source-client-opacity="ClientUI.updateFrameConfig reads client opacity settings; disabled resets frame opacity to 1F"
       data-source-frame-config={RUNELITE_FRAME_CONFIG_SOURCE}
       data-source-client-title={RUNELITE_CLIENT_TITLE_SOURCE}
       data-source-overlay-menu={RUNELITE_OVERLAY_MENU_SOURCE}
@@ -4783,9 +4785,9 @@ export function RuneliteClientShell({
       data-sidebar-open={String(sidebarState.isSidebarOpen)}
       data-current-nav-button-id={sidebarState.activePanelId ?? ""}
       data-plugin-panel-open={visiblePanel === null ? "false" : "true"}
-      data-openosrs-opacity-enabled={String(configSnapshot.openOsrs.enableOpacity)}
-      data-openosrs-opacity-percentage={configSnapshot.openOsrs.opacityPercentage}
-      data-openosrs-effective-opacity={configSnapshot.openOsrs.effectiveOpacity}
+      data-client-opacity-enabled={String(configSnapshot.clientShell.enableOpacity)}
+      data-client-opacity-percentage={configSnapshot.clientShell.opacityPercentage}
+      data-client-effective-opacity={configSnapshot.clientShell.effectiveOpacity}
       data-runelite-frame-title={clientFrameConfig.title}
       data-runelite-frame-always-on-top={String(clientFrameConfig.alwaysOnTop)}
       data-runelite-frame-resizable={String(clientFrameConfig.resizable)}
@@ -5609,7 +5611,7 @@ function runeliteAntiDragOverlayStyle(
 }
 
 function runeliteClientShellStyle(config: RuneliteClientConfigSnapshot): CSSProperties | undefined {
-  return config.openOsrs.enableOpacity ? { opacity: config.openOsrs.effectiveOpacity } : undefined;
+  return config.clientShell.enableOpacity ? { opacity: config.clientShell.effectiveOpacity } : undefined;
 }
 
 function runeliteClientPanelFrameStyle(layout: RuneliteStretchedClientLayout): CSSProperties {
@@ -6130,7 +6132,7 @@ function RuneliteConfigurationPanel({
 }): JSX.Element {
   const [search, setSearch] = useState("");
   const [activeConfigPluginId, setActiveConfigPluginId] = useState<string | null>(null);
-  const openOsrsConfigValues = configValuesByPluginId.openosrs ?? {};
+  const clientShellConfigValues = configValuesByPluginId[RUNELITE_CLIENT_SHELL_CONFIG_PLUGIN_ID] ?? {};
 
   useEffect(() => {
     if (!openConfigRequest || !findRuneliteConfigDescriptor(openConfigRequest.pluginId)) {
@@ -6143,21 +6145,21 @@ function RuneliteConfigurationPanel({
 
   const matchingItems = useMemo(() => {
     const terms = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
-    const sortedItems = sortRuneliteConfigPluginListItems(runeliteTrainerAvailablePluginListItems(), openOsrsConfigValues);
+    const sortedItems = sortRuneliteConfigPluginListItems(runeliteTrainerAvailablePluginListItems(), clientShellConfigValues);
     const visible = sortedItems.filter(
-      (item) => !runeliteConfigPluginHiddenByCategory(item.pluginType, openOsrsConfigValues) && matchesRunelitePluginSearchTerms(item, terms)
+      (item) => !runeliteConfigPluginHiddenByCategory(item.pluginType, clientShellConfigValues) && matchesRunelitePluginSearchTerms(item, terms)
     );
     const pinned = visible.filter((item) => pinnedPluginIds.has(item.id));
     const unpinned = visible.filter((item) => !pinnedPluginIds.has(item.id));
     return [...pinned, ...unpinned];
-  }, [openOsrsConfigValues, pinnedPluginIds, search]);
+  }, [clientShellConfigValues, pinnedPluginIds, search]);
 
   if (activeConfigPluginId) {
     const activeItem = runeliteTrainerAvailablePluginListItems().find((item) => item.id === activeConfigPluginId) ?? null;
     const descriptor = findRuneliteConfigDescriptor(activeConfigPluginId);
 
     if (activeItem && descriptor) {
-      const activeItemColor = runeliteConfigPluginColorByCategory(activeItem.pluginType, openOsrsConfigValues);
+      const activeItemColor = runeliteConfigPluginColorByCategory(activeItem.pluginType, clientShellConfigValues);
       return (
         <RuneliteConfigurationDetailPanel
           item={activeItem}
@@ -6205,7 +6207,7 @@ function RuneliteConfigurationPanel({
             pinned={pinnedPluginIds.has(item.id)}
             enabled={enabledPluginIds.has(item.id)}
             pluginBacked={item.pluginBacked}
-            pluginListColor={runeliteConfigPluginColorByCategory(item.pluginType, openOsrsConfigValues)}
+            pluginListColor={runeliteConfigPluginColorByCategory(item.pluginType, clientShellConfigValues)}
             onPinnedToggle={() => onPinnedToggle(item.id)}
             onEnabledToggle={() => onEnabledToggle(item.id)}
             onConfigOpen={() => setActiveConfigPluginId(item.id)}
@@ -6800,7 +6802,7 @@ function buildRuneliteClientConfigSnapshot(
   configValuesByPluginId: Readonly<Record<string, Readonly<Record<string, RuneliteConfigValue>>>>,
   antiDragHotkeyState: RuneliteAntiDragHotkeyState = RUNELITE_INITIAL_ANTI_DRAG_HOTKEY_STATE
 ): RuneliteClientConfigSnapshot {
-  const openOsrsValues = configValuesByPluginId.openosrs ?? {};
+  const clientShellValues = configValuesByPluginId[RUNELITE_CLIENT_SHELL_CONFIG_PLUGIN_ID] ?? {};
   const runeliteValues = configValuesByPluginId.runelite ?? {};
   const stretchedModeValues = configValuesByPluginId[RUNELITE_STRETCHED_MODE_PLUGIN_ID] ?? {};
   const gpuValues = configValuesByPluginId.gpu ?? {};
@@ -6825,13 +6827,13 @@ function buildRuneliteClientConfigSnapshot(
   const pvpToolsValues = configValuesByPluginId["pvp-tools"] ?? {};
   const prayAgainstPlayerValues = configValuesByPluginId[RUNELITE_PRAY_AGAINST_PLAYER_PLUGIN_ID] ?? {};
   const xpDropValues = configValuesByPluginId["xp-drop"] ?? {};
-  const openOsrsEnableOpacity = runeliteConfigBoolean(
-    openOsrsValues.enableOpacity,
-    RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT.openOsrs.enableOpacity
+  const clientShellEnableOpacity = runeliteConfigBoolean(
+    clientShellValues.enableOpacity,
+    RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT.clientShell.enableOpacity
   );
-  const openOsrsOpacityPercentage = runeliteConfigPercentage(
-    openOsrsValues.opacityPercentage,
-    RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT.openOsrs.opacityPercentage,
+  const clientShellOpacityPercentage = runeliteConfigPercentage(
+    clientShellValues.opacityPercentage,
+    RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT.clientShell.opacityPercentage,
     15,
     100
   );
@@ -6934,10 +6936,10 @@ function buildRuneliteClientConfigSnapshot(
     RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT.customCursor.cursorStyle
   );
   return {
-    openOsrs: {
-      enableOpacity: openOsrsEnableOpacity,
-      opacityPercentage: openOsrsOpacityPercentage,
-      effectiveOpacity: openOsrsEnableOpacity ? openOsrsOpacityPercentage / 100 : 1
+    clientShell: {
+      enableOpacity: clientShellEnableOpacity,
+      opacityPercentage: clientShellOpacityPercentage,
+      effectiveOpacity: clientShellEnableOpacity ? clientShellOpacityPercentage / 100 : 1
     },
     frame: {
       automaticResizeType: runeliteAutomaticResizeType,
@@ -7999,14 +8001,33 @@ function readRuneliteConfigProperties(): Record<string, string> {
       return {};
     }
 
-    return Object.fromEntries(
+    return migrateRuneliteClientShellConfigProperties(Object.fromEntries(
       Object.entries(parsed).flatMap(([key, value]) =>
         typeof value === "string" ? [[key, value]] : []
       )
-    );
+    ));
   } catch {
     return {};
   }
+}
+
+function migrateRuneliteClientShellConfigProperties(properties: Record<string, string>): Record<string, string> {
+  const legacyPrefix = `${RUNELITE_LEGACY_CLIENT_SHELL_CONFIG_GROUP}.`;
+  const currentPrefix = `${RUNELITE_CLIENT_SHELL_CONFIG_PLUGIN_ID}.`;
+  const migrated = { ...properties };
+
+  for (const [key, value] of Object.entries(properties)) {
+    if (!key.startsWith(legacyPrefix)) {
+      continue;
+    }
+
+    const migratedKey = `${currentPrefix}${key.slice(legacyPrefix.length)}`;
+    if (migrated[migratedKey] === undefined) {
+      migrated[migratedKey] = value;
+    }
+  }
+
+  return migrated;
 }
 
 function setRuneliteConfigProperty(group: string, key: string, value: string): void {
@@ -8031,9 +8052,9 @@ function sortRuneliteConfigProperties(properties: Readonly<Record<string, string
 
 function sortRuneliteConfigPluginListItems(
   items: readonly RuneliteConfigPluginListItemModel[],
-  openOsrsValues: Readonly<Record<string, RuneliteConfigValue>>
+  clientShellValues: Readonly<Record<string, RuneliteConfigValue>>
 ): readonly RuneliteConfigPluginListItemModel[] {
-  const sortMode = runelitePluginSortMode(openOsrsValues.pluginSortMode);
+  const sortMode = runelitePluginSortMode(clientShellValues.pluginSortMode);
 
   return [...items].sort((left, right) => {
     if (sortMode === "Category") {
@@ -8059,34 +8080,34 @@ function runelitePluginTypeSortIndex(pluginType: RunelitePluginType): number {
 
 function runeliteConfigPluginHiddenByCategory(
   pluginType: RunelitePluginType,
-  openOsrsValues: Readonly<Record<string, RuneliteConfigValue>>
+  clientShellValues: Readonly<Record<string, RuneliteConfigValue>>
 ): boolean {
   if (pluginType === "important" || pluginType === "general-use") {
     return false;
   }
 
-  if (runeliteConfigBoolean(openOsrsValues.hidePlugins, false)) {
+  if (runeliteConfigBoolean(clientShellValues.hidePlugins, false)) {
     return true;
   }
 
   if (pluginType === "external") {
-    return runeliteConfigBoolean(openOsrsValues.hideExternalPlugins, false);
+    return runeliteConfigBoolean(clientShellValues.hideExternalPlugins, false);
   }
 
   if (pluginType === "pvm") {
-    return runeliteConfigBoolean(openOsrsValues.hidePvmPlugins, false);
+    return runeliteConfigBoolean(clientShellValues.hidePvmPlugins, false);
   }
 
   if (pluginType === "skilling") {
-    return runeliteConfigBoolean(openOsrsValues.hideSkillingPlugins, false);
+    return runeliteConfigBoolean(clientShellValues.hideSkillingPlugins, false);
   }
 
   if (pluginType === "pvp") {
-    return runeliteConfigBoolean(openOsrsValues.hidePvpPlugins, false);
+    return runeliteConfigBoolean(clientShellValues.hidePvpPlugins, false);
   }
 
   if (pluginType === "utility") {
-    return runeliteConfigBoolean(openOsrsValues.hideUtilityPlugins, false);
+    return runeliteConfigBoolean(clientShellValues.hideUtilityPlugins, false);
   }
 
   return false;
@@ -8094,26 +8115,26 @@ function runeliteConfigPluginHiddenByCategory(
 
 function runeliteConfigPluginColorByCategory(
   pluginType: RunelitePluginType,
-  openOsrsValues: Readonly<Record<string, RuneliteConfigValue>>
+  clientShellValues: Readonly<Record<string, RuneliteConfigValue>>
 ): string | null {
   if (pluginType === "external") {
-    return runeliteConfigString(openOsrsValues.externalColor, "#B19CD9");
+    return runeliteConfigString(clientShellValues.externalColor, "#B19CD9");
   }
 
   if (pluginType === "pvm") {
-    return runeliteConfigString(openOsrsValues.pvmColor, "#77DD77");
+    return runeliteConfigString(clientShellValues.pvmColor, "#77DD77");
   }
 
   if (pluginType === "pvp") {
-    return runeliteConfigString(openOsrsValues.pvpColor, "#FF6961");
+    return runeliteConfigString(clientShellValues.pvpColor, "#FF6961");
   }
 
   if (pluginType === "skilling") {
-    return runeliteConfigString(openOsrsValues.skillingColor, "#FCFC64");
+    return runeliteConfigString(clientShellValues.skillingColor, "#FCFC64");
   }
 
   if (pluginType === "utility") {
-    return runeliteConfigString(openOsrsValues.utilityColor, "#90D4ED");
+    return runeliteConfigString(clientShellValues.utilityColor, "#90D4ED");
   }
 
   return null;

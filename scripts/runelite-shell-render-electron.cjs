@@ -207,36 +207,36 @@ async function readShellState(window) {
         };
       });
 
-      const openOsrsConfigButton = queryShell('.runelitePluginListItem[data-plugin-list-item-id="openosrs"] .runelitePluginConfigButton');
-      openOsrsConfigButton?.click();
+      const clientShellConfigButton = queryShell('.runelitePluginListItem[data-plugin-list-item-id="client-shell"] .runelitePluginConfigButton');
+      clientShellConfigButton?.click();
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-      const openOsrsConfigDetail = queryShell('.runeliteConfigDetailPanel[data-config-plugin-id="openosrs"]');
-      const openOsrsDetailToggleButton = openOsrsConfigDetail?.querySelector("button.runeliteConfigDetailToggleButton");
-      const openOsrsDetailHiddenToggle = openOsrsConfigDetail?.querySelector(
+      const clientShellConfigDetail = queryShell('.runeliteConfigDetailPanel[data-config-plugin-id="client-shell"]');
+      const clientShellDetailToggleButton = clientShellConfigDetail?.querySelector("button.runeliteConfigDetailToggleButton");
+      const clientShellDetailHiddenToggle = clientShellConfigDetail?.querySelector(
         ".runeliteConfigDetailToggleButton.runelitePluginToggleButton-hidden"
       );
-      const openOsrsVisibilitySource = openOsrsConfigDetail?.getAttribute("data-source-entry-visibility") ?? "";
-      const openOsrsInitialEntries = queryShellAll('.runeliteConfigDetailPanel[data-config-plugin-id="openosrs"] [data-config-item-key]').map(
+      const clientShellVisibilitySource = clientShellConfigDetail?.getAttribute("data-source-entry-visibility") ?? "";
+      const clientShellInitialEntries = queryShellAll('.runeliteConfigDetailPanel[data-config-plugin-id="client-shell"] [data-config-item-key]').map(
         (entry) => entry.getAttribute("data-config-item-key")
       );
-      const openOsrsDetailToggle = {
-        buttonPresent: Boolean(openOsrsDetailToggleButton),
-        hiddenPresent: Boolean(openOsrsDetailHiddenToggle),
-        sourceToggle: openOsrsDetailHiddenToggle?.getAttribute("data-source-toggle") ?? ""
+      const clientShellDetailToggle = {
+        buttonPresent: Boolean(clientShellDetailToggleButton),
+        hiddenPresent: Boolean(clientShellDetailHiddenToggle),
+        sourceToggle: clientShellDetailHiddenToggle?.getAttribute("data-source-toggle") ?? ""
       };
       const hidePluginsCheckbox = queryShell(
-        '.runeliteConfigDetailPanel[data-config-plugin-id="openosrs"] [data-config-item-key="hidePlugins"] .runeliteConfigCheckbox'
+        '.runeliteConfigDetailPanel[data-config-plugin-id="client-shell"] [data-config-item-key="hidePlugins"] .runeliteConfigCheckbox'
       );
       hidePluginsCheckbox?.click();
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      const openOsrsAfterHidePluginsEntries = queryShellAll(
-        '.runeliteConfigDetailPanel[data-config-plugin-id="openosrs"] [data-config-item-key]'
+      const clientShellAfterHidePluginsEntries = queryShellAll(
+        '.runeliteConfigDetailPanel[data-config-plugin-id="client-shell"] [data-config-item-key]'
       ).map((entry) => entry.getAttribute("data-config-item-key"));
       hidePluginsCheckbox?.click();
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      const openOsrsBackButton = queryShell(".runeliteConfigBackButton");
-      openOsrsBackButton?.click();
+      const clientShellBackButton = queryShell(".runeliteConfigBackButton");
+      clientShellBackButton?.click();
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
       const chatColorConfigButton = queryShell('.runelitePluginListItem[data-plugin-list-item-id="chat-color"] .runelitePluginConfigButton');
@@ -979,7 +979,7 @@ async function readShellState(window) {
           pluginListItems.length >= 10 &&
           pluginListItems.some(
             (item) =>
-              item.id === "openosrs" &&
+              item.id === "client-shell" &&
               item.enabled === "false" &&
               item.pinned === "false" &&
               item.pluginBacked === "false" &&
@@ -1023,7 +1023,7 @@ async function readShellState(window) {
               item.toggleButtonPresent === true &&
               item.hiddenTogglePresent === false &&
               item.sourceCategoryColor ===
-                "ConfigPanel getColorByCategory(OpenOSRSConfig, pluginType) -> PluginListItem.setColor(nameLabel foreground)"
+                "ConfigPanel getColorByCategory(client shell config, pluginType) -> PluginListItem.setColor(nameLabel foreground)"
           ) &&
           pluginListItems.some((item) => item.id === "freeze-timers" && item.enabled === "false") &&
           pluginListItems.some((item) => item.id === "spec-bar" && item.enabled === "false") &&
@@ -1038,33 +1038,33 @@ async function readShellState(window) {
             (item) =>
               item.id === "freeze-timers" &&
               item.sourceCategoryColor ===
-                "ConfigPanel getColorByCategory(OpenOSRSConfig, pluginType) -> PluginListItem.setColor(nameLabel foreground)" &&
+                "ConfigPanel getColorByCategory(client shell config, pluginType) -> PluginListItem.setColor(nameLabel foreground)" &&
               item.nameColor === "rgb(255, 105, 97)"
           ) &&
           pluginListItems.some((item) => item.id === "gpu" && item.nameColor === "rgb(144, 212, 237)") &&
           panelIcons.every((icon) => icon.complete && icon.naturalWidth > 0 && icon.naturalHeight > 0) &&
           panelIcons.some((icon) => icon.src === "runelite-ui/switcher_on.png" && icon.width === 25 && icon.height === 15) &&
           panelIcons.some((icon) => icon.src === "runelite-ui/star_on.png" && icon.width === 18 && icon.height === 18) &&
-          Boolean(openOsrsConfigDetail) &&
-          openOsrsDetailToggle.buttonPresent === false &&
-          openOsrsDetailToggle.hiddenPresent === true &&
-          openOsrsDetailToggle.sourceToggle.includes("plugin == null") &&
-          openOsrsVisibilitySource === "ConfigPanel.openGroupConfigPanel ConfigItem.hidden/unhide/hide/unhideValue/hideValue conditional continue" &&
-          openOsrsInitialEntries.includes("hidePlugins") &&
-          openOsrsInitialEntries.includes("hideExternalPlugins") &&
-          openOsrsInitialEntries.includes("hidePvmPlugins") &&
-          openOsrsInitialEntries.includes("hideSkillingPlugins") &&
-          openOsrsInitialEntries.includes("hidePvpPlugins") &&
-          openOsrsInitialEntries.includes("hideUtilityPlugins") &&
-          openOsrsInitialEntries.includes("externalColor") &&
-          openOsrsInitialEntries.includes("pvpColor") &&
-          openOsrsInitialEntries.includes("utilityColor") &&
-          openOsrsAfterHidePluginsEntries.includes("hidePlugins") &&
-          !openOsrsAfterHidePluginsEntries.includes("hideExternalPlugins") &&
-          !openOsrsAfterHidePluginsEntries.includes("hidePvmPlugins") &&
-          !openOsrsAfterHidePluginsEntries.includes("hideSkillingPlugins") &&
-          !openOsrsAfterHidePluginsEntries.includes("hidePvpPlugins") &&
-          !openOsrsAfterHidePluginsEntries.includes("hideUtilityPlugins") &&
+          Boolean(clientShellConfigDetail) &&
+          clientShellDetailToggle.buttonPresent === false &&
+          clientShellDetailToggle.hiddenPresent === true &&
+          clientShellDetailToggle.sourceToggle.includes("plugin == null") &&
+          clientShellVisibilitySource === "ConfigPanel.openGroupConfigPanel ConfigItem.hidden/unhide/hide/unhideValue/hideValue conditional continue" &&
+          clientShellInitialEntries.includes("hidePlugins") &&
+          clientShellInitialEntries.includes("hideExternalPlugins") &&
+          clientShellInitialEntries.includes("hidePvmPlugins") &&
+          clientShellInitialEntries.includes("hideSkillingPlugins") &&
+          clientShellInitialEntries.includes("hidePvpPlugins") &&
+          clientShellInitialEntries.includes("hideUtilityPlugins") &&
+          clientShellInitialEntries.includes("externalColor") &&
+          clientShellInitialEntries.includes("pvpColor") &&
+          clientShellInitialEntries.includes("utilityColor") &&
+          clientShellAfterHidePluginsEntries.includes("hidePlugins") &&
+          !clientShellAfterHidePluginsEntries.includes("hideExternalPlugins") &&
+          !clientShellAfterHidePluginsEntries.includes("hidePvmPlugins") &&
+          !clientShellAfterHidePluginsEntries.includes("hideSkillingPlugins") &&
+          !clientShellAfterHidePluginsEntries.includes("hidePvpPlugins") &&
+          !clientShellAfterHidePluginsEntries.includes("hideUtilityPlugins") &&
           Boolean(chatColorConfigDetail) &&
           chatColorConfigDetailState.configGroup === "textrecolor" &&
           chatColorConfigDetailState.title === "Chat Color" &&
@@ -1373,11 +1373,11 @@ async function readShellState(window) {
         },
         pluginListItems,
         panelIcons,
-        openOsrsConfigDetail: {
-          toggle: openOsrsDetailToggle,
-          visibilitySource: openOsrsVisibilitySource,
-          initialEntries: openOsrsInitialEntries,
-          afterHidePluginsEntries: openOsrsAfterHidePluginsEntries
+        clientShellConfigDetail: {
+          toggle: clientShellDetailToggle,
+          visibilitySource: clientShellVisibilitySource,
+          initialEntries: clientShellInitialEntries,
+          afterHidePluginsEntries: clientShellAfterHidePluginsEntries
         },
         chatColorConfigDetail: chatColorConfigDetailState,
         gpuConfigDetail: {

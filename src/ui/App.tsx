@@ -123,6 +123,10 @@ export function App(): JSX.Element {
             <a href="https://github.com/NotCoco/nh-trainer" target="_blank" rel="noreferrer">
               View source on GitHub
             </a>
+            <span aria-hidden="true"> / </span>
+            <a href="/blog/">
+              Training blog
+            </a>
           </p>
           <div className="nhSiteIntroDetails" aria-label="Project focus and browser profile">
             <div>
