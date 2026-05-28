@@ -4,6 +4,10 @@ Browser-based NH practice with a trained AI opponent.
 
 Live site: [nh-train.com](https://nh-train.com)
 
+<p align="center">
+  <img src="docs/nh-trainer-demo.gif" alt="NH Trainer gameplay demo" width="720">
+</p>
+
 NH Trainer is a free, unofficial fan/practice project. It is not a real game
 client, does not connect to the live game, does not use player accounts, and is
 not endorsed by or affiliated with Jagex.
