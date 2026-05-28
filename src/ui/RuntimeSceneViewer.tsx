@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import equipmentRowsJson from "../generated/equipment-bonuses.json";
 import kitsJson from "../generated/kits.json";
@@ -4608,7 +4608,7 @@ function pointerEventToRuntimeActorHits(
     if (!actor) {
       continue;
     }
-    const rect = actorSourceClickboxRect(boundary, slot.group, actor);
+    const rect = actorSourceClickboxRect(boundary, slot.group, actor, point);
     if (!rect || !pointInSourceRect(rect, point)) {
       continue;
     }
@@ -4717,10 +4717,14 @@ function pointerEventToSourceViewportPoint(
 function actorSourceClickboxRect(
   boundary: RuntimeSceneBoundary,
   actorRoot: Group,
-  actor?: RuntimeActorPose
+  actor?: RuntimeActorPose,
+  point?: RuntimeViewportSourcePoint
 ): RuntimeSourceHitRect | null {
   const sourceViewport = boundary.fixedClientLayout?.viewport;
   if (!sourceViewport) {
+    return null;
+  }
+  if (!actorRoot.visible) {
     return null;
   }
   const bounds = new Box3().setFromObject(actorRoot);
@@ -4742,12 +4746,118 @@ function actorSourceClickboxRect(
   const minimumHalfExtent = sourceHorizontalClientUnitsToSceneUnits(sourceSingleTileModelMinimumClientUnits);
   const halfX = Math.max(size.x / 2, minimumHalfExtent);
   const halfZ = Math.max(size.z / 2, minimumHalfExtent);
-  return projectWorldBoxToSourceHitRect(
+  const coarseRect = projectWorldBoxToSourceHitRect(
     boundary,
     new Vector3(center.x - halfX, minY, center.z - halfZ),
     new Vector3(center.x + halfX, maxY, center.z + halfZ),
-    sourceSingleTileFacePaddingPixels
+    sourceDefaultFacePaddingPixels
   );
+  if (!coarseRect || (point && !pointInSourceRect(coarseRect, point))) {
+    return null;
+  }
+
+  const modelClickbox = actorModelSourceClickboxRect(boundary, actorRoot, point);
+  return modelClickbox.rect ?? (modelClickbox.hadRenderableFaces ? null : coarseRect);
+}
+
+interface RuntimeActorModelClickboxResult {
+  readonly rect: RuntimeSourceHitRect | null;
+  readonly hadRenderableFaces: boolean;
+}
+
+function actorModelSourceClickboxRect(
+  boundary: RuntimeSceneBoundary,
+  actorRoot: Group,
+  point?: RuntimeViewportSourcePoint
+): RuntimeActorModelClickboxResult {
+  const sourceViewport = boundary.fixedClientLayout?.viewport;
+  if (!sourceViewport) {
+    return { rect: null, hadRenderableFaces: false };
+  }
+
+  // Source: Player.getConvexHull()/Client.checkClickbox project model vertices and
+  // model triangle face bounds; player clicks should follow the rendered model, not a tile rectangle.
+  actorRoot.updateMatrixWorld(true);
+  const faceRects: RuntimeSourceFaceRect[] = [];
+  let left = Number.POSITIVE_INFINITY;
+  let top = Number.POSITIVE_INFINITY;
+  let right = Number.NEGATIVE_INFINITY;
+  let bottom = Number.NEGATIVE_INFINITY;
+  let depthClientUnits = Number.POSITIVE_INFINITY;
+  let hadRenderableFaces = false;
+
+  actorRoot.traverse((node) => {
+    const mesh = node as Mesh;
+    if (!mesh.isMesh || !mesh.visible || !mesh.geometry) {
+      return;
+    }
+
+    const position = mesh.geometry.getAttribute("position");
+    if (!position || position.count < 3) {
+      return;
+    }
+
+    const index = mesh.geometry.getIndex();
+    const faceCount = index ? Math.floor(index.count / 3) : Math.floor(position.count / 3);
+    const projectedVertices = new Map<number, ReturnType<typeof nhProjectWorldPointToViewport>>();
+    const projectVertex = (vertexIndex: number): ReturnType<typeof nhProjectWorldPointToViewport> => {
+      if (projectedVertices.has(vertexIndex)) {
+        return projectedVertices.get(vertexIndex) ?? null;
+      }
+
+      const worldPoint = new Vector3().fromBufferAttribute(position, vertexIndex);
+      mesh.localToWorld(worldPoint);
+      const projected = nhProjectWorldPointToViewport(boundary.camera, sourceViewport, worldPoint);
+      projectedVertices.set(vertexIndex, projected);
+      return projected;
+    };
+
+    for (let faceIndex = 0; faceIndex < faceCount; faceIndex += 1) {
+      const offset = faceIndex * 3;
+      const vertexA = index ? index.getX(offset) : offset;
+      const vertexB = index ? index.getX(offset + 1) : offset + 1;
+      const vertexC = index ? index.getX(offset + 2) : offset + 2;
+      const a = projectVertex(vertexA);
+      const b = projectVertex(vertexB);
+      const c = projectVertex(vertexC);
+      if (!a || !b || !c) {
+        continue;
+      }
+      hadRenderableFaces = true;
+
+      const faceLeft = Math.min(a.x, b.x, c.x) - sourceDefaultFacePaddingPixels;
+      const faceTop = Math.min(a.y, b.y, c.y) - sourceDefaultFacePaddingPixels;
+      const faceRight = Math.max(a.x, b.x, c.x) + sourceDefaultFacePaddingPixels;
+      const faceBottom = Math.max(a.y, b.y, c.y) + sourceDefaultFacePaddingPixels;
+      const faceRect = { left: faceLeft, top: faceTop, right: faceRight, bottom: faceBottom };
+      if (point && !pointInSourceFaceRect(faceRect, point)) {
+        continue;
+      }
+
+      faceRects.push(faceRect);
+      left = Math.min(left, faceLeft);
+      top = Math.min(top, faceTop);
+      right = Math.max(right, faceRight);
+      bottom = Math.max(bottom, faceBottom);
+      depthClientUnits = Math.min(depthClientUnits, a.depthClientUnits, b.depthClientUnits, c.depthClientUnits);
+    }
+  });
+
+  if (faceRects.length === 0 || !Number.isFinite(left) || !Number.isFinite(top) || !Number.isFinite(depthClientUnits)) {
+    return { rect: null, hadRenderableFaces };
+  }
+
+  return {
+    rect: {
+      left,
+      top,
+      right,
+      bottom,
+      depthClientUnits,
+      sourceFaceRects: faceRects
+    },
+    hadRenderableFaces
+  };
 }
 
 interface RuntimeActorPick {
@@ -15692,38 +15802,6 @@ export function RuntimeSceneViewer({
     }
   };
 
-  const copyRecentManualCombatTickLog = useCallback((): void => {
-    const snapshot = manualCombatTickLogRef.current.slice(-8);
-    const payload = {
-      capturedAtMs: performance.now(),
-      currentTick: manualCombatStateRef.current.tick,
-      entries: snapshot
-    };
-    window.__nhRuntimeDebug = {
-      ...window.__nhRuntimeDebug,
-      cycle: manualCombatStateRef.current.tick,
-      overlays: window.__nhRuntimeDebug?.overlays ?? [],
-      manualCombatTicks: manualCombatTickLogRef.current,
-      manualCombatTickSnapshot: snapshot,
-      manualCombatTickSnapshotAtMs: payload.capturedAtMs
-    };
-    console.info("[nh-trainer] recent manual combat ticks", payload);
-    const json = JSON.stringify(payload, null, 2);
-    if (navigator.clipboard?.writeText) {
-      void navigator.clipboard.writeText(json)
-        .then(() => setTemporarySetupStatus(`Copied ${snapshot.length} tick log`))
-        .catch(() => setTemporarySetupStatus(`Logged ${snapshot.length} ticks; clipboard blocked`));
-    } else {
-      setTemporarySetupStatus(`Logged ${snapshot.length} ticks; clipboard unavailable`);
-    }
-    const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
-    if (viewport) {
-      viewport.dataset.lastManualCombatLogTickCount = String(snapshot.length);
-      viewport.dataset.lastManualCombatLogCurrentTick = String(payload.currentTick);
-      viewport.dataset.lastManualCombatLogCopiedAtMs = String(payload.capturedAtMs);
-    }
-  }, []);
-
   const queueCombatSpecialAfterPendingItemPackets = (command: NhCombatSpecialCommand): boolean => {
     const pendingItemPackets = itemActionQueueRef.current.snapshot();
     if (pendingItemPackets.length === 0) {
@@ -18887,9 +18965,6 @@ export function RuntimeSceneViewer({
             </button>
             <button type="button" onClick={resetTemporarySetupToDefault}>
               Reset default
-            </button>
-            <button type="button" onClick={copyRecentManualCombatTickLog}>
-              Log 8 ticks
             </button>
             {temporarySetupStatus ? (
               <span className="runtimeTemporaryDevStatus">{temporarySetupStatus}</span>

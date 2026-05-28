@@ -9,7 +9,7 @@ const electronPath = require("electron");
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const validatorPath = path.join(projectRoot, "scripts", "render-parity-electron.cjs");
 const defaultReferenceRoot = path.join(projectRoot, "fixtures", "reference", "client-render");
-const defaultOutputRoot = "C:\\codeximg";
+const defaultOutputRoot = process.env.NH_TRAINER_ARTIFACT_DIR ?? "C:\\nh-trainer-artifacts";
 
 function parseArgs(argv) {
   const options = {

@@ -37,7 +37,7 @@ export const toolRegistry: readonly ToolDescriptor[] = [
     purpose: "Launch Electron hidden, load a cache GLB in the Three.js viewport, and check that WebGL draws nonblank pixels.",
     command: "npm run verify:render-smoke",
     status: "implemented",
-    output: "Console render-smoke JSON plus a unique C:\\codeximg\\nh-nh-trainer-render-smoke-*.png.",
+    output: "Console render-smoke JSON plus a unique C:\\nh-trainer-artifacts\\nh-nh-trainer-render-smoke-*.png.",
     writesToNh: false
   },
   {
@@ -67,7 +67,7 @@ export const toolRegistry: readonly ToolDescriptor[] = [
   {
     id: "capture-client-reference",
     purpose: "Capture Nh client reference frames for player loadouts, projectiles, overheads, and map camera comparison.",
-    command: "npm run capture:client -- --source C:\\codeximg\\nh-client-reference",
+    command: "npm run capture:client -- --source C:\\nh-trainer-artifacts\\nh-client-reference",
     status: "implemented",
     output: "Viewport-cropped Nh client PNGs, optional *.client-view.json traces, and fixtures/reference/client-render/manifest.json.",
     writesToNh: false
@@ -77,7 +77,7 @@ export const toolRegistry: readonly ToolDescriptor[] = [
     purpose: "Compare trainer render output against captured Nh client frames for the accepted parity gates.",
     command: "npm run verify:render",
     status: "implemented",
-    output: "Pixel-diff JSON plus C:\\codeximg\\nh-render-parity-*-actual.png and *-diff.png.",
+    output: "Pixel-diff JSON plus C:\\nh-trainer-artifacts\\nh-render-parity-*-actual.png and *-diff.png.",
     writesToNh: false
   },
   {
