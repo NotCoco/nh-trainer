@@ -115,9 +115,14 @@ export function App(): JSX.Element {
             </span>
           </h1>
           <p className="nhSiteIntroStatement">
-            A browser practice client for getting real NH reps against an AI opponent. It is playable
-            now, still being tightened, and built around one honest goal: make switches, prayers,
-            pathing, supplies, and pressure feel useful enough to practice.
+            An open-source browser practice client for getting real NH reps against an AI opponent.
+            It is playable now, still being tightened, and built around one honest goal: make
+            switches, prayers, pathing, supplies, and pressure feel useful enough to practice.
+          </p>
+          <p className="nhSiteSourceLine">
+            <a href="https://github.com/NotCoco/nh-trainer" target="_blank" rel="noreferrer">
+              View source on GitHub
+            </a>
           </p>
           <div className="nhSiteIntroDetails" aria-label="Current bot difficulty modes">
             <div>
@@ -138,7 +143,7 @@ export function App(): JSX.Element {
             <p>
               The opponent is a trained NH bot, not a scripted rotation. It uses the current fight
               setup and learned policy to choose gear, prayers, supplies, movement, and attacks. More
-              detailed information will be on the GitHub soon.
+              detailed information is available in the GitHub repo.
             </p>
           </details>
           <p className="nhSiteNotice">

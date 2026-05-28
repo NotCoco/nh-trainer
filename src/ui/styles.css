@@ -141,6 +141,26 @@ body {
   line-height: 1.5;
 }
 
+.nhSiteSourceLine {
+  grid-column: 2;
+  margin: -2px 0 0;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.nhSiteSourceLine a {
+  color: #dfbd72;
+  font-weight: 700;
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+
+.nhSiteSourceLine a:hover,
+.nhSiteSourceLine a:focus-visible {
+  color: #f0cc7a;
+  text-decoration: underline;
+}
+
 .nhSiteIntroDetails {
   display: grid;
   grid-column: 2;
@@ -257,6 +277,10 @@ body {
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;
     justify-self: stretch;
+  }
+
+  .nhSiteSourceLine {
+    grid-column: 1;
   }
 
   .nhSiteMoreInfo {
