@@ -998,14 +998,19 @@ export function setRuntimePlayerCombatAutocast(
 export function setRuntimePlayerCombatLoadout(
   state: RuntimePlayerCombatState,
   actorId: RuntimeActorId,
-  loadoutId: RuntimeLoadoutId
+  loadoutId: RuntimeLoadoutId,
+  equipment: VisibleEquipment = nhLoadouts[loadoutId].equipment
 ): RuntimePlayerCombatState {
   const actor = state.actors[actorId];
-  if (actor.loadoutId === loadoutId) {
+  if (actor.loadoutId === loadoutId && actor.equipment === equipment) {
     return state;
   }
   const previousProfile = weaponProfileForRuntimeActor(actor);
-  const nextWeaponId = weaponIdForLoadout(loadoutId);
+  const previousWeaponId = weaponIdForRuntimeActor(actor);
+  const nextWeaponId = weaponIdForEquipment(equipment) ?? weaponIdForLoadout(loadoutId);
+  const loadoutChanged = actor.loadoutId !== loadoutId;
+  const weaponChanged = nextWeaponId !== previousWeaponId;
+  const weaponSlotChanged = (actor.equipment.weapon?.itemId ?? null) !== (equipment.weapon?.itemId ?? null);
   const nextAttackSetIndex = resolveRuntimePlayerCombatAttackSetIndexForWeapon(nextWeaponId, actor.attackSetIndex);
   return {
     ...state,
@@ -1014,16 +1019,19 @@ export function setRuntimePlayerCombatLoadout(
       [actorId]: {
         ...actor,
         loadoutId,
-        equipment: nhLoadouts[loadoutId].equipment,
+        equipment,
         attackSetIndex: nextAttackSetIndex,
-        queuedSpellId: null,
-        autocastSpellId: null,
-        defensiveCast: false,
-        specialActive: false,
-        gmaul: updateGmaulEquipment(actor.gmaul, state.tick, {
-          equippedGraniteMaul: nextWeaponId === "granite_maul",
-          previousWeaponHadVisibleSpecBar: previousProfile.hasVisibleSpecBar
-        })
+        queuedSpellId: loadoutChanged || weaponSlotChanged ? null : actor.queuedSpellId,
+        autocastSpellId: loadoutChanged || weaponSlotChanged ? null : actor.autocastSpellId,
+        defensiveCast: loadoutChanged || weaponSlotChanged ? false : actor.defensiveCast,
+        specialActive: loadoutChanged || weaponSlotChanged ? false : actor.specialActive,
+        gmaul:
+          loadoutChanged || weaponChanged
+            ? updateGmaulEquipment(actor.gmaul, state.tick, {
+                equippedGraniteMaul: nextWeaponId === "granite_maul",
+                previousWeaponHadVisibleSpecBar: previousProfile.hasVisibleSpecBar
+              })
+            : actor.gmaul
       }
     }
   };

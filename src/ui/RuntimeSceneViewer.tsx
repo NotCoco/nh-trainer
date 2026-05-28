@@ -16386,9 +16386,18 @@ export function RuntimeSceneViewer({
 
   const applyInventoryActorLoadoutMutation = (
     loadoutId: RuntimeLoadoutId,
-    appearance?: RuntimePlayerAppearance
+    appearance?: RuntimePlayerAppearance,
+    equipmentItems?: RuntimeEquipmentItemIdsBySlot
   ): void => {
-    const nextCombatState = setRuntimePlayerCombatLoadout(manualCombatStateRef.current, "local-player", loadoutId);
+    const nextEquipment = equipmentItems
+      ? visibleEquipmentFromRuntimeItemIdsBySlot(equipmentItems, inventoryItemDefinitionsRef.current)
+      : undefined;
+    const nextCombatState = setRuntimePlayerCombatLoadout(
+      manualCombatStateRef.current,
+      "local-player",
+      loadoutId,
+      nextEquipment
+    );
     const nextAttackSetIndex = nextCombatState.actors["local-player"].attackSetIndex;
     const snapshotActor = collisionMap
       ? snapManualActorToCollision(manualActorFromSnapshot(visibleSnapshotRef.current), collisionMap)
@@ -16549,7 +16558,11 @@ export function RuntimeSceneViewer({
       }));
     }
     if (resolution.actorLoadoutId) {
-      applyInventoryActorLoadoutMutation(resolution.actorLoadoutId);
+      applyInventoryActorLoadoutMutation(
+        resolution.actorLoadoutId,
+        undefined,
+        resolution.equipmentItems ?? undefined
+      );
     }
   };
 
@@ -16818,7 +16831,11 @@ export function RuntimeSceneViewer({
         }));
       }
       if (actorLoadoutChanged || nextActorAppearance) {
-        applyInventoryActorLoadoutMutation(nextActorLoadoutId, nextActorAppearance);
+        applyInventoryActorLoadoutMutation(
+          nextActorLoadoutId,
+          nextActorAppearance,
+          equipmentChanged ? nextEquipmentItems : undefined
+        );
       }
       if (inventoryConsumableApplied && finalConsumableStats && finalConsumableSourceActor && finalConsumableItem && finalConsumableResult) {
         setManualCombatState(nextCombatState);

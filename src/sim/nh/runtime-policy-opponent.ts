@@ -468,7 +468,7 @@ export function applyRuntimeOpponentPolicyAction(input: {
       // applyLoadout() begins with clearAutocast() before equipping the style.
       state = setRuntimePlayerCombatAutocast(state, "opponent", null);
     }
-    state = setRuntimePlayerCombatLoadout(state, "opponent", targetLoadoutId);
+    state = setRuntimePlayerCombatLoadout(state, "opponent", targetLoadoutId, targetEquipment);
     state = syncRuntimePlayerCombatStateToInput(state, {
       tiles: {
         opponent: input.state.actors.opponent.tile
