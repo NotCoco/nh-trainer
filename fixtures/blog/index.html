@@ -118,10 +118,6 @@
         margin-top: 6px;
       }
 
-      .keywords {
-        color: #8f846f;
-        font-size: 13px;
-      }
     </style>
   </head>
   <body>
@@ -130,20 +126,18 @@
       <p class="eyebrow">Development blog</p>
       <h1>Training an NH AI opponent for browser PvP practice</h1>
       <p class="intro">
-        NH Trainer is built around a trained opponent rather than a fixed rotation. This blog is
-        where we document the practical work behind NH AI training, OSRS-style PvP practice,
-        policy checkpoints, and the messy process of making a bot feel like a useful sparring
-        partner.
+        NH Trainer is a browser practice client for fighting a trained sparring partner. This blog
+        documents the practical work behind NH AI training, OSRS-style PvP practice, policy
+        checkpoints, and the process of making the opponent more useful over time.
       </p>
 
       <article>
         <section>
           <h2>Why the bot uses a learned policy</h2>
           <p>
-            NH fights are not just a choice between mage, range, and melee. The bot has to consider
-            prayers, supplies, gear, weapon cooldowns, freezes, distance, under-stepping, special
-            attack energy, and what recently happened in the fight. A scripted opponent can look
-            convincing for a few seconds, but it tends to break once the player changes rhythm.
+            NH fights are too reactive for a fixed rotation to stay interesting. The opponent needs
+            to adapt to timing, pressure, and the player's rhythm rather than simply looping through
+            a script.
           </p>
           <p>
             The training process uses many paired fights and records a rolling window of recent
@@ -191,10 +185,6 @@
             The public client currently exposes multiple policy checkpoints. Easy, medium, and hard
             are not hand-authored personalities; they are snapshots taken after different amounts
             of training and then served as selectable opponents.
-          </p>
-          <p class="keywords">
-            Keywords: NH AI training OSRS, OSRS NH trainer, AI NH bot, OSRS PvP practice,
-            tribrid practice, browser PvP trainer.
           </p>
         </section>
       </article>
