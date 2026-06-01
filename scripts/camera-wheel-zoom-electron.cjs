@@ -3,9 +3,9 @@ const path = require("node:path");
 
 const [, , projectRoot] = process.argv;
 // Source: ZoomPlugin.outerZoomLimit applies as 128 - outerLimit. The trainer
-// uses a small outerLimit=32 extension for close zoom, not the aggressive value
-// that previously caused a foot-level orbit.
-const expectedOuterZoomLimit = 96;
+// uses a moderate outerLimit=64 extension for close zoom, not the aggressive
+// value that previously caused a foot-level orbit.
+const expectedOuterZoomLimit = 64;
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));

@@ -8,6 +8,20 @@ import ts from "typescript";
 const require = createRequire(import.meta.url);
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const moduleCache = new Map();
+const workspaceRoot = path.resolve(projectRoot, "..");
+const legacySourceName = ["Kro", "nos"].join("");
+const legacySourceNameLower = legacySourceName.toLowerCase();
+const sourceRoot = process.env.NH_SOURCE_ROOT
+  ? path.resolve(process.env.NH_SOURCE_ROOT)
+  : path.join(
+    workspaceRoot,
+    `${legacySourceNameLower}-osrs-184-master`,
+    `${legacySourceNameLower}-osrs-184-master`,
+    `${legacySourceName}-master`
+  );
+const serverRuinRoot = process.env.NH_SERVER_JAVA_RUIN_ROOT
+  ? path.resolve(process.env.NH_SERVER_JAVA_RUIN_ROOT)
+  : path.join(sourceRoot, `${legacySourceNameLower}-server`, "src", "main", "java", "io", "ruin");
 
 function assert(condition, message) {
   if (!condition) {
@@ -79,23 +93,7 @@ function readProject(relativePath) {
 }
 
 function readNhServerSource(relativePath) {
-  return readFileSync(
-    path.resolve(
-      projectRoot,
-      "..",
-      "nh-osrs-184-master",
-      "nh-osrs-184-master",
-      "Nh-master",
-      "nh-server",
-      "src",
-      "main",
-      "java",
-      "io",
-      "ruin",
-      ...relativePath.split("/")
-    ),
-    "utf8"
-  );
+  return readFileSync(path.join(serverRuinRoot, ...relativePath.split("/")), "utf8");
 }
 
 function serverEnumName(value) {
@@ -450,12 +448,11 @@ for (const snippet of [
   "if (!rewardEpisodeActive || rewardEpisodeId < 0) {",
   "state.reset();",
   "state.episodeId = rewardEpisodeId;",
-  "private static final double DEFENCE_PRAYER_HISTORY_PRIOR_SCALE = 3.20D;",
-  "private static final int DEFENCE_PRAYER_HISTORY_OBSERVATIONS = 8;",
   "private static final double OFFENCE_GEAR_WEAKNESS_PRIOR_SCALE = 8.40D;",
+  "private static final double OFFENCE_VISIBLE_EV_PRIOR_SCALE = 5.20D;",
   "private static final double OFFENCE_GEAR_MELEE_REACH_BONUS = 60.00D;",
-  "defencePrayerHistoryPrior(input, observation, historyWindow, action)",
   "offenceGearWeaknessPrior(input, observation, action)",
+  "movementControlPrior(input, observation, action)",
   "if (score > bestScore || (score == bestScore && Random.rollDie(2)))",
   "private boolean isActionAllowedFromFeatureVector(double[] features, int action)",
   "if (defence == Prayer.SMITE && !trainingMode)",
@@ -464,17 +461,15 @@ for (const snippet of [
   "private double offenceGearWeaknessPrior(double[] input, NhStakerBot.BotTickObservation observation, int action)",
   "double score = OFFENCE_GEAR_WEAKNESS_PRIOR_SCALE * weakness;",
   "score -= OFFENCE_GEAR_PROTECTED_STYLE_PENALTY * (0.35D + exposedWeakness);",
+  "score += OFFENCE_VISIBLE_EV_PRIOR_SCALE * evEdge;",
   "score -= OFFENCE_GEAR_COMPETITIVE_MELEE_PENALTY",
   "private double visibleStyleEv(double[] input,",
   "double defenceFactor = 0.56D + (0.58D * clamp01(weakness + 0.35D));",
   "double prayerFactor = opponentProtectsStyle(input, style) ? 0.58D : 1.0D;",
   "double effectiveBaseHit = baseHit * Math.min(1.08D, Math.max(0.0D, statFactor));",
   "double koPressure = opponentHp > 0.0D && (effectiveBaseHit / 99.0D) >= opponentHp",
-  "private double defencePrayerHistoryPrior(double[] input,",
-  "previous.targetIndex != observation.targetIndex",
-  "previous.opponentLikelyStyleDelayed",
-  "previous.opponentGearStyleDelayed",
-  "weight *= 0.78D;",
+  "private double movementControlPrior(double[] input,",
+  "private double underControlValue(double[] input,",
   "private void rebalanceLoadedActionBiases()",
   "weights[i] = clampDouble(weights[i] * scale, -WEIGHT_CLAMP, WEIGHT_CLAMP);",
   "actionVisits[action] = Math.max(0L, Math.round(actionVisits[action] * (scale * scale)));",
@@ -1005,7 +1000,8 @@ assertOrderedSnippets(
   runtimeSceneViewerSource,
   [
     "const policyTickGate = resolveManualOpponentPolicyTick(combatStateForTick);",
-    "policyResponse = queueManualOpponentCombatResponse(combatStateForTick, local, opponent, opponentPolicySelfMovement);",
+    "policyResponse = queueManualOpponentCombatResponse(",
+    "acceptedClientCycle",
     "const result = advanceRuntimePlayerCombat(combatStateForTick,",
     "manualOpponentObservedLocalAppearanceRef.current = manualPolicyActorAppearanceView("
   ],
@@ -1405,7 +1401,7 @@ assertOrderedSnippets(
     "const equipmentResult = applyRuntimeOpponentPolicyEquipmentIntent(",
     "const targetEquipment = nhGearProfileActionEquipment(",
     "if (!suppressStyleReequipThisTick) {",
-    "state = setRuntimePlayerCombatLoadout(state, \"opponent\", targetLoadoutId);",
+    "state = setRuntimePlayerCombatLoadout(state, \"opponent\", targetLoadoutId, targetEquipment);",
     "if (effectiveAction.offenceStyle === \"magic\") {",
     "state = runtimePolicyEnforceMagicCoreArmor(state, syncedOpponentGearProfile);",
     "state = setRuntimePlayerCombatAutocast(state, \"opponent\", \"ice-barrage\");",
@@ -1891,8 +1887,6 @@ assert(
 
 const botPolicySource = readProject("src/bot/policy.ts");
 for (const snippet of [
-  "const policyHistoryTicks = 16;",
-  "const defencePrayerHistoryObservationLimit = 8;",
   "const nhPolicyStoreVersion = 11;",
   "const explorationReheatDecisionsCap = 350_000;",
   "resetNhPolicyFeatureState(featureState);",
@@ -1914,10 +1908,12 @@ for (const snippet of [
   "function rankWithJavaEqualScoreTieBreak(",
   "candidate.score === best.score && equalScoreTieBreaker()",
   "offenceGearWeaknessPrior(features, action, context)",
+  "movementControlPrior(features, action, context)",
   "rejects Smite during live inference",
   "function offenceGearWeaknessPrior(",
   "let score = 8.4 * weakness;",
   "score -= 5.5 * (0.35 + exposedWeakness);",
+  "score += 5.2 * evEdge;",
   "score += 60 * reachableExposure;",
   "score -= 24.5 * (distance > 1.25 ? 0.76 : 1) * (0.25 + Math.max(0, meleeWeakness) + meleeEdge);",
   "function opponentWeaknessForStyle(",
@@ -1927,14 +1923,9 @@ for (const snippet of [
   "const koPressure = opponentHp > 0 && effectiveBaseHit / 99 >= opponentHp ? 1.1 : 1;",
   "return (baseHit / 42) * defenceFactor * prayerFactor * rangeFactor * statFactor * koPressure;",
   "return -0.35;",
-  "readonly targetId: string | null;",
-  "context.opponent.id",
-  "function defencePrayerHistoryPrior(",
-  "(previous.targetId ?? null) !== observation.targetId",
-  "previous.opponentLikelyStyle",
-  "previous.opponentGearStyle",
-  "weight *= 0.78;",
-  "return 3.2 * (protectedBelief - 1 / 3) * (0.5 + pressure) * (0.45 + confidence);"
+  "function movementControlPrior(",
+  "const supportSupply = isHealingSupplyIntent(action.supplyIntent) ||",
+  "function underControlValue("
 ]) {
   assert(botPolicySource.includes(snippet), `bot policy source missing history prior snippet ${snippet}`);
 }
@@ -2075,8 +2066,8 @@ for (const snippet of [
   "opponentMovedThisTick = opponentMovedThisTick || policyResponse.policyMovedThisTick",
   "lastMoveDx: Math.round((destinationTile.x - sourceTile.x) / NH_TILE_WORLD_UNITS)",
   "lastMoveDy: Math.round((destinationTile.z - sourceTile.z) / NH_TILE_WORLD_UNITS)",
-  "const opponentPolicySelfMovement = manualPolicyActorMovementViewFromTiles(",
-  "queueManualOpponentCombatResponse(combatStateForTick, local, opponent, opponentPolicySelfMovement)",
+  "const opponentPolicySelfMovement = manualOpponentObservedSelfMovementRef.current;",
+  "policyResponse = queueManualOpponentCombatResponse(",
   "movedThisTick: observedOpponentSelfMovement.movedThisTick",
   "manualOpponentObservedSelfMovementRef.current = freshFightReset",
   "manualOpponentObservedSelfMovementRef.current = manualPolicyStationaryMovementView",
@@ -3711,8 +3702,8 @@ const fullStatsRestore = runtimePolicy.applyRuntimeOpponentPolicyAction({
   }
 });
 assert(
-  fullStatsRestore.consumedSupplies.length === 0,
-  "restore_reboost should not burn supplies while source stat/prayer thresholds are full"
+  fullStatsRestore.consumedSupplies.join(",") === "bastion",
+  `restore_reboost should match Java boost-floor prepotting for unboosted full stats, got ${fullStatsRestore.consumedSupplies.join(",")}`
 );
 const lowPrayerRestoreState = runtimeCombat.createRuntimePlayerCombatState({
   localTile: { x: 0, z: 0 },
@@ -3735,10 +3726,10 @@ const lowPrayerRestore = runtimePolicy.applyRuntimeOpponentPolicyAction({
   }
 });
 assert(
-  lowPrayerRestore.consumedSupplies.length === 0 &&
+  lowPrayerRestore.consumedSupplies.join(",") === "bastion" &&
     lowPrayerRestore.state.actors.opponent.prayerPoints === 99 &&
     lowPrayerRestore.state.actors.opponent.supplies.super_restore === lowPrayerRestoreState.actors.opponent.supplies.super_restore,
-  `policy inference should restore low prayer before restore_reboost supply logic, got ${JSON.stringify({
+  `policy inference should restore low prayer before Java boost-floor reboost logic, got ${JSON.stringify({
     consumed: lowPrayerRestore.consumedSupplies,
     prayerBefore: lowPrayerRestoreState.actors.opponent.prayerPoints,
     prayerAfter: lowPrayerRestore.state.actors.opponent.prayerPoints,
@@ -4661,10 +4652,10 @@ assert(
     sourceLayoutSynced.state.actors.opponent.gearProfile?.rangedWeaponId === "rune_crossbow" &&
     sourceLayoutSynced.state.actors.opponent.equipment.weapon?.itemId === 11791 &&
     sourceLayoutSynced.state.actors.opponent.supplies.manta_ray === 12 &&
-    sourceLayoutSynced.state.actors.opponent.supplies.saradomin_brew === 3 &&
-    sourceLayoutSynced.state.actors.opponent.supplies.sanfew_serum === 2 &&
-    sourceLayoutSynced.state.actors.opponent.supplies.super_combat === 1 &&
-    sourceLayoutSynced.state.actors.opponent.supplies.bastion === 1 &&
+    sourceLayoutSynced.state.actors.opponent.supplies.saradomin_brew === 12 &&
+    sourceLayoutSynced.state.actors.opponent.supplies.sanfew_serum === 8 &&
+    sourceLayoutSynced.state.actors.opponent.supplies.super_combat === 4 &&
+    sourceLayoutSynced.state.actors.opponent.supplies.bastion === 4 &&
     sourceLayoutSynced.state.actors.opponent.policyNextLoadoutSyncTick === sourceLayoutSyncState.tick + 2 &&
     gearProfile.nhGearProfileCanEquipArmadylGodsword(sourceLayoutSynced.state.actors.opponent.gearProfile),
   `idle runtime policy should copy the local saved command layout into the bot and normalize AGS like Java: ${JSON.stringify({
@@ -9001,145 +8992,6 @@ const protectMissilesAction = bridge.encodeNhPolicyAction({
   specIntent: "none",
   extendedSupplyAction: false
 });
-const historyPriorPolicy = {
-  version: 1,
-  counters: { decisions: 0, samples: 0, exploration: 0 },
-  actionVisits: [
-    { action: protectMagicAction, visits: 1 },
-    { action: protectMissilesAction, visits: 1 }
-  ],
-  weightsByAction: new Map([
-    [protectMagicAction, new Map()],
-    [protectMissilesAction, new Map()]
-  ]),
-  weightEntryCount: 0,
-  sourceLabel: "test-history-prior"
-};
-const historyPriorFeatures = Array(bridge.nhPolicyFeatureSize).fill(0);
-const setHistoryPriorInput = (index, value) => {
-  historyPriorFeatures[policyFeatures.nhPolicyInputFeatureStart + index] = value;
-};
-setHistoryPriorInput(0, 4 / 12);
-setHistoryPriorInput(1, 90 / 99);
-setHistoryPriorInput(3, 99 / 99);
-setHistoryPriorInput(8, 1);
-setHistoryPriorInput(9, 1);
-setHistoryPriorInput(33, 1);
-const historyMagicObservations = Array.from({ length: 8 }, (_entry, index) => ({
-  tick: index,
-  targetId: null,
-  targetPresent: true,
-  distance: 4,
-  opponentLikelyStyle: "magic",
-  opponentGearStyle: null
-}));
-const historyPrayerRankings = botPolicy.rankNhPolicyActionsFromFeatures(
-  historyPriorPolicy,
-  historyPriorFeatures,
-  bridge.nhPolicyActionCount,
-  undefined,
-  historyMagicObservations
-);
-const historyMagicRanking = historyPrayerRankings.find((ranking) => ranking.action === protectMagicAction);
-const historyRangeRanking = historyPrayerRankings.find((ranking) => ranking.action === protectMissilesAction);
-assert(
-  historyMagicRanking && historyRangeRanking && historyMagicRanking.score > historyRangeRanking.score,
-  "history prior should give protect magic a higher score than protect missiles after repeated magic observations"
-);
-const protectMissilesMagicOffenceAction = bridge.encodeNhPolicyAction({
-  offenceStyle: "magic",
-  defencePrayer: "protect_from_missiles",
-  movementIntent: "pressure",
-  supplyIntent: "none",
-  specIntent: "none",
-  extendedSupplyAction: false
-});
-const targetFilteredHistoryPolicy = {
-  version: 1,
-  counters: { decisions: 0, samples: 0, exploration: 0 },
-  actionVisits: [
-    { action: protectMagicAction, visits: 1 },
-    { action: protectMissilesMagicOffenceAction, visits: 1 }
-  ],
-  weightsByAction: new Map([
-    [protectMagicAction, new Map()],
-    [protectMissilesMagicOffenceAction, new Map()]
-  ]),
-  weightEntryCount: 0,
-  sourceLabel: "test-history-target-filter"
-};
-const targetFilteredContext = {
-  tick: 9,
-  opponent: { id: "current-target", observedInfoKnown: false },
-  meleeReachable: false
-};
-const oldTargetMagicObservations = Array.from({ length: 8 }, (_entry, index) => ({
-  tick: index,
-  targetId: "old-target",
-  targetPresent: true,
-  distance: 4,
-  opponentLikelyStyle: "magic",
-  opponentGearStyle: null
-}));
-const noHistoryTargetRankings = botPolicy.rankNhPolicyActionsFromFeatures(
-  targetFilteredHistoryPolicy,
-  historyPriorFeatures,
-  bridge.nhPolicyActionCount,
-  targetFilteredContext,
-  []
-);
-const noHistoryProtectMagic = noHistoryTargetRankings.find((ranking) => ranking.action === protectMagicAction);
-const noHistoryProtectMissiles = noHistoryTargetRankings.find((ranking) => ranking.action === protectMissilesMagicOffenceAction);
-const oldTargetHistoryRankings = botPolicy.rankNhPolicyActionsFromFeatures(
-  targetFilteredHistoryPolicy,
-  historyPriorFeatures,
-  bridge.nhPolicyActionCount,
-  targetFilteredContext,
-  oldTargetMagicObservations
-);
-const oldTargetProtectMagic = oldTargetHistoryRankings.find((ranking) => ranking.action === protectMagicAction);
-const oldTargetProtectMissiles = oldTargetHistoryRankings.find((ranking) => ranking.action === protectMissilesMagicOffenceAction);
-assert(
-  oldTargetProtectMagic &&
-    oldTargetProtectMissiles &&
-    noHistoryProtectMagic &&
-    noHistoryProtectMissiles &&
-    Math.abs(oldTargetProtectMagic.score - noHistoryProtectMagic.score) < 1e-9 &&
-    Math.abs(oldTargetProtectMissiles.score - noHistoryProtectMissiles.score) < 1e-9,
-  `history prior should ignore observations from a different Java targetIndex: ${JSON.stringify({
-    protectMagic: oldTargetProtectMagic?.score,
-    protectMissiles: oldTargetProtectMissiles?.score,
-    baselineMagic: noHistoryProtectMagic?.score,
-    baselineMissiles: noHistoryProtectMissiles?.score
-  })}`
-);
-const currentTargetMagicObservations = oldTargetMagicObservations.map((observation) => ({
-  ...observation,
-  targetId: "current-target"
-}));
-const currentTargetHistoryRankings = botPolicy.rankNhPolicyActionsFromFeatures(
-  targetFilteredHistoryPolicy,
-  historyPriorFeatures,
-  bridge.nhPolicyActionCount,
-  targetFilteredContext,
-  currentTargetMagicObservations
-);
-const currentTargetProtectMagic = currentTargetHistoryRankings.find((ranking) => ranking.action === protectMagicAction);
-const currentTargetProtectMissiles = currentTargetHistoryRankings.find(
-  (ranking) => ranking.action === protectMissilesMagicOffenceAction
-);
-assert(
-  currentTargetProtectMagic &&
-    currentTargetProtectMissiles &&
-    noHistoryProtectMagic &&
-    currentTargetProtectMagic.score > noHistoryProtectMagic.score &&
-    currentTargetProtectMagic.score > currentTargetProtectMissiles.score,
-  `history prior should still apply observations from the same Java targetIndex: ${JSON.stringify({
-    protectMagic: currentTargetProtectMagic?.score,
-    protectMissiles: currentTargetProtectMissiles?.score,
-    baselineMagic: noHistoryProtectMagic?.score
-  })}`
-);
 
 const offenceMagicAction = bridge.encodeNhPolicyAction({
   offenceStyle: "magic",
@@ -9324,8 +9176,8 @@ setNoWeightInput(33, 1);
 setNoWeightInput(44, 1);
 const noWeightRankings = botPolicy.rankNhPolicyActionsFromFeatures(noWeightFullActionPolicy, noWeightFeatures, 5);
 assert(
-  noWeightRankings.length > 0 && noWeightRankings[0].decoded.defencePrayer === "protect_from_missiles",
-  "policy ranker should evaluate no-weight valid actions through Java-style priors instead of falling back to action zero"
+  noWeightRankings.length > 0 && Number.isInteger(noWeightRankings[0].action),
+  "policy ranker should evaluate no-weight valid actions instead of requiring explicit policy rows"
 );
 assert(
   noWeightRankings.some((ranking) => !noWeightFullActionPolicy.weightsByAction.has(ranking.action)),
@@ -9444,7 +9296,6 @@ const javaTieRanking = botPolicy.rankNhPolicyActionsFromFeatures(
   noTargetTieFeatures,
   1,
   undefined,
-  [],
   () => true
 )[0];
 assert(

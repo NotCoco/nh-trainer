@@ -10,7 +10,7 @@ const sourcePath = path.join(projectRoot, "src", "render", "nhClientCamera.ts");
 const runtimeViewerPath = path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx");
 const clientRoot = path.resolve(projectRoot, "..", "Kronos184-Client");
 const EXPECTED_SOURCE_OUTER_ZOOM_LIMIT = 128;
-const EXPECTED_ZOOM_PLUGIN_OUTER_LIMIT = 32;
+const EXPECTED_ZOOM_PLUGIN_OUTER_LIMIT = 64;
 const EXPECTED_ACTIVE_OUTER_ZOOM_LIMIT = EXPECTED_SOURCE_OUTER_ZOOM_LIMIT - EXPECTED_ZOOM_PLUGIN_OUTER_LIMIT;
 const clientCameraSourcePath = path.join(
   clientRoot,
@@ -106,6 +106,28 @@ const clientZoomConfigSourcePath = path.join(
   "zoom",
   "ZoomConfig.java"
 );
+const clientActorSourcePath = path.join(
+  clientRoot,
+  "runelite-client",
+  "src",
+  "main",
+  "java",
+  "net",
+  "runelite",
+  "standalone",
+  "Actor.java"
+);
+const clientPlayerSourcePath = path.join(
+  clientRoot,
+  "runelite-client",
+  "src",
+  "main",
+  "java",
+  "net",
+  "runelite",
+  "standalone",
+  "Player.java"
+);
 
 const source = await readFile(sourcePath, "utf8");
 const runtimeViewerSource = await readFile(runtimeViewerPath, "utf8");
@@ -118,6 +140,8 @@ const clientZoomHandlerScript = await readFile(clientZoomHandlerScriptPath, "utf
 const clientOptionsZoomUpdaterScript = await readFile(clientOptionsZoomUpdaterScriptPath, "utf8");
 const clientZoomPluginSource = await readFile(clientZoomPluginSourcePath, "utf8");
 const clientZoomConfigSource = await readFile(clientZoomConfigSourcePath, "utf8");
+const clientActorSource = await readFile(clientActorSourcePath, "utf8");
+const clientPlayerSource = await readFile(clientPlayerSourcePath, "utf8");
 if (
   runtimeViewerSource.includes("Math.hypot(5.8, 6.4, 7.4)") ||
   runtimeViewerSource.includes("Math.atan2(4.8, 9)") ||
@@ -510,7 +534,7 @@ assertIncludes("client zoom config source outer max", clientZoomConfigSource, "i
 assertIncludes("client zoom config source outer default", clientZoomConfigSource, "default int outerLimit()");
 assertIncludes("client zoom config source outer default value", clientZoomConfigSource, "return 0;");
 assertIncludes("client zoom plugin disabled by default", clientZoomPluginSource, "enabledByDefault = false");
-assertIncludes("trainer active close zoom source callback", source, "NH_CAMERA_ZOOM_PLUGIN_OUTER_LIMIT = 32");
+assertIncludes("trainer active close zoom source callback", source, "NH_CAMERA_ZOOM_PLUGIN_OUTER_LIMIT = 64");
 assertIncludes("trainer zoom plugin source callback formula", source, "128 - outerLimit");
 assertIncludes("trainer zoom plugin source close guard", source, "foot-level orbit");
 assertIncludes("runtime default camera fov", runtimeViewerSource, "new PerspectiveCamera(NH_CAMERA_DEFAULT_FOV_DEGREES");
@@ -597,6 +621,33 @@ assertIncludes(
   "runtime zoom follow-height source formula",
   source,
   "25 + truncateClientInt((25 * nhCameraZoomScale(viewportHeight, zoom)) / 256)"
+);
+assertIncludes("client actor default height source", clientActorSource, "this.defaultHeight = 200;");
+assertIncludes("client player model height source", clientPlayerSource, "super.defaultHeight = var4.height;");
+assertIncludes(
+  "runtime close-zoom visual focal bridge",
+  runtimeViewerSource,
+  "function runtimeCameraVisualFocusHeightSceneUnits"
+);
+assertIncludes(
+  "runtime close-zoom actor midpoint source bridge",
+  runtimeViewerSource,
+  "NH_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS * 0.6"
+);
+assertIncludes(
+  "runtime close-zoom source follow height preserved",
+  runtimeViewerSource,
+  "const sourceFollowHeight = nhCameraFollowHeightSceneUnits(zoom, viewportHeight);"
+);
+assertIncludes(
+  "runtime close-zoom midpoint floor",
+  runtimeViewerSource,
+  "return Math.max(sourceFollowHeight, actorUpperMidBodyHeight);"
+);
+assertIncludes(
+  "runtime camera target uses visual focal bridge",
+  runtimeViewerSource,
+  "runtimeCameraVisualFocusHeightSceneUnits(boundary.cameraRig.zoom, viewportHeight)"
 );
 const visibleCameraFunction =
   runtimeViewerSource.match(/function manualActorVisibleCameraTile\([\s\S]*?\n\}/)?.[0] ?? "";

@@ -2117,6 +2117,18 @@ function isNhSpellbookId(value: unknown): value is NhSpellbookId {
   return value === "standard" || value === "ancient" || value === "lunar" || value === "arceuus";
 }
 
+function runtimeCameraVisualFocusHeightSceneUnits(zoom: NhCameraZoom, viewportHeight: number): number {
+  const sourceFollowHeight = nhCameraFollowHeightSceneUnits(zoom, viewportHeight);
+  // Source bridge: ZoomHandler.rs2asm can drive camFollowHeight below the
+  // Player model midpoint at close zoom. Actor.defaultHeight starts at 200 and
+  // Player.getModel refreshes it from Model.height; Three's literal lookAt
+  // needs this upper-midbody floor so close zoom frames the torso instead of feet.
+  const actorUpperMidBodyHeight = nhClientUnitsToWorldUnits(
+    Math.trunc(NH_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS * 0.6)
+  );
+  return Math.max(sourceFollowHeight, actorUpperMidBodyHeight);
+}
+
 function updateRuntimeCamera(boundary: RuntimeSceneBoundary): void {
   const { target, clientAngles, zoom } = boundary.cameraRig;
   const viewportHeight = boundary.fixedClientLayout?.viewport.rect.height ?? NH_CAMERA_DEFAULT_VIEWPORT_HEIGHT;
@@ -2714,7 +2726,7 @@ function updateRuntimeCameraFollowTarget(boundary: RuntimeSceneBoundary): void {
   const targetX = visibleTile?.x ?? slot.group.position.x;
   const targetZ = visibleTile?.z ?? slot.group.position.z;
   const groundY = boundary.cameraFollowGroundHeightOverrides.get(followTarget) ?? slot.group.position.y;
-  const targetY = groundY + nhCameraFollowHeightSceneUnits(boundary.cameraRig.zoom, viewportHeight);
+  const targetY = groundY + runtimeCameraVisualFocusHeightSceneUnits(boundary.cameraRig.zoom, viewportHeight);
   boundary.cameraRig.target.set(
     smoothNhCameraFocusAxis(boundary.cameraRig.target.x, targetX),
     targetY,

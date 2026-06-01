@@ -47,9 +47,10 @@ export const NH_CAMERA_DEFAULT_FOV_DEGREES = nhViewportZoomToFovDegrees(
 );
 export const NH_CAMERA_SOURCE_OUTER_ZOOM_LIMIT = 128;
 // Source: ZoomPlugin.outerZoomLimit applies as 128 - outerLimit. The trainer
-// opts into a small RuneLite-style extension so close zoom is useful without
-// dropping to the foot-level orbit caused by more aggressive values.
-export const NH_CAMERA_ZOOM_PLUGIN_OUTER_LIMIT = 32;
+// opts into a moderate RuneLite-style extension so close zoom can frame
+// adjacent players tightly without dropping to the foot-level orbit caused by
+// aggressive values near ZoomConfig.OUTER_LIMIT_MAX.
+export const NH_CAMERA_ZOOM_PLUGIN_OUTER_LIMIT = 64;
 export const NH_CAMERA_OUTER_ZOOM_LIMIT =
   NH_CAMERA_SOURCE_OUTER_ZOOM_LIMIT - NH_CAMERA_ZOOM_PLUGIN_OUTER_LIMIT;
 export const NH_CAMERA_INNER_ZOOM_LIMIT = 896;

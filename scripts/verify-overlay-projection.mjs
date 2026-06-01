@@ -92,6 +92,7 @@ const {
   nhProjectWorldPointToViewport
 } = loadTsModule("src/render/nhOverlayProjection.ts");
 const {
+  nhCameraDoZoom,
   nhCameraFollowHeightSceneUnits,
   nhClientSceneCameraOffset,
   nhRuntimeCameraPreset,
@@ -101,11 +102,10 @@ const overlayProjectionSource = readFileSync(path.join(projectRoot, "src", "rend
 const clientViewReplaySource = readFileSync(path.join(projectRoot, "src", "render", "clientViewReplay.ts"), "utf8");
 const runtimeViewerSource = readFileSync(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
 const runtimeStylesSource = readFileSync(path.join(projectRoot, "src", "ui", "styles.css"), "utf8");
+const clientRoot = path.resolve(projectRoot, "..", "Kronos184-Client");
 const runelitePerspectiveSource = readFileSync(
-  path.resolve(
-    projectRoot,
-    "..",
-    "Nh184-Client",
+  path.join(
+    clientRoot,
     "runelite-api",
     "src",
     "main",
@@ -118,10 +118,8 @@ const runelitePerspectiveSource = readFileSync(
   "utf8"
 );
 const runelitePlayerAppearanceSource = readFileSync(
-  path.resolve(
-    projectRoot,
-    "..",
-    "Nh184-Client",
+  path.join(
+    clientRoot,
     "runelite-client",
     "src",
     "main",
@@ -130,6 +128,34 @@ const runelitePlayerAppearanceSource = readFileSync(
     "runelite",
     "standalone",
     "PlayerAppearance.java"
+  ),
+  "utf8"
+);
+const clientViewportShapeSource = readFileSync(
+  path.join(
+    clientRoot,
+    "runelite-client",
+    "src",
+    "main",
+    "java",
+    "net",
+    "runelite",
+    "standalone",
+    "AbstractByteArrayCopier.java"
+  ),
+  "utf8"
+);
+const clientViewportOpcodeSource = readFileSync(
+  path.join(
+    clientRoot,
+    "runelite-client",
+    "src",
+    "main",
+    "java",
+    "net",
+    "runelite",
+    "standalone",
+    "Entity.java"
   ),
   "utf8"
 );
@@ -179,6 +205,18 @@ assert(
   runelitePlayerAppearanceSource.includes("Client.viewportTempX = var0 * Client.viewportZoom / var1 + Client.viewportWidth / 2") &&
     runelitePlayerAppearanceSource.includes("Client.viewportTempY = Client.viewportHeight / 2 + var8 * Client.viewportZoom / var1"),
   "Nh PlayerAppearance.method4162 should still project actor overheads through Client.viewportTempX/Y"
+);
+assert(
+  clientViewportShapeSource.includes("Client.viewportZoom = var3 * var6 / 334;") &&
+    clientViewportShapeSource.includes("Client.viewportWidth = var2;") &&
+    clientViewportShapeSource.includes("Client.viewportHeight = var3;"),
+  "Nh setViewportShape should still derive Client.viewportZoom from viewport height and fov clamp fields"
+);
+assert(
+  clientViewportOpcodeSource.includes("Client.zoomHeight = (short)Interpreter.Interpreter_intStack[Interpreter.Interpreter_intStackSize];") &&
+    clientViewportOpcodeSource.includes("Client.zoomWidth = (short)Interpreter.Interpreter_intStack[Interpreter.Interpreter_intStackSize + 1];") &&
+    clientViewportOpcodeSource.includes("Client.field1088 = (short)PlayerAppearance.method4127"),
+  "Nh viewport opcodes should keep camera distance zoom separate from projection fov clamp fields"
 );
 assert(
   overlayProjectionSource.includes("Math.trunc(Math.sin(clientUnitsToRadians(units)) * clientTrigAmplitude)") &&
@@ -240,12 +278,17 @@ assert(
   "client-view replay prayer/skull overheads should keep actor-stable identities like the manual runtime path"
 );
 assert(
-  runtimeViewerSource.includes("const projection = nhOverlayClientViewportProjection(") &&
+    runtimeViewerSource.includes("const projection = nhOverlayClientViewportProjection(") &&
     runtimeViewerSource.includes("nhRuntimeOverlayClientCameraState(boundary),") &&
     runtimeViewerSource.includes("Source: Scene.copy$drawActor2d calls World.method1253") &&
-    runtimeViewerSource.includes("advanceRuntimeCameraClientCycle(boundary, cameraKeysRef.current)") &&
+    runtimeViewerSource.includes("advanceRuntimeCameraAnglesClientCycle(boundary, cameraKeysRef.current)") &&
     runtimeViewerSource.includes("updateRuntimeCamera(boundary)"),
   "runtime DOM overlays should use the Nh Client.viewportTempX/Y integer camera path so arrow-key camera motion cannot desync overheads"
+);
+assert(
+  runtimeViewerSource.includes("boundary.camera.fov = nhViewportZoomToFovDegrees(fixedLayout.viewport.rect.height, fixedLayout.viewport.zoom)") &&
+    runtimeViewerSource.includes("const offset = nhClientSceneCameraOffset(clientAngles, viewportHeight, zoom);"),
+  "runtime camera should mirror Nh by using viewportZoom for projection FOV and zoomHeight/zoomWidth only for camera distance"
 );
 assert(
   runtimeStylesSource.includes(".nhActorOverlay") &&
@@ -302,8 +345,10 @@ assert(
   "client-camera overlay projection should respect the RuneLite localToCanvas depth guard"
 );
 
-function applyRuntimeCamera(camera, target, angles) {
-  const offset = nhClientSceneCameraOffset(angles, viewport.rect.height);
+function applyRuntimeCamera(camera, target, angles, sourceViewport = viewport, zoom) {
+  camera.fov = nhViewportZoomToFovDegrees(sourceViewport.rect.height, sourceViewport.zoom);
+  camera.aspect = sourceViewport.rect.width / sourceViewport.rect.height;
+  const offset = nhClientSceneCameraOffset(angles, sourceViewport.rect.height, zoom);
   camera.position.set(target.x - offset.x, target.y + offset.y, target.z - offset.z);
   camera.lookAt(target.x, target.y, target.z);
   camera.updateProjectionMatrix();
@@ -335,6 +380,113 @@ for (const yaw of [0, 256, 512, 768, 1024, 1280, 1536, 1792]) {
   assertAlmost(`camera sweep ${yaw}.x`, clientProjection.x, renderProjection.x, 1);
   assertAlmost(`camera sweep ${yaw}.y`, clientProjection.y, renderProjection.y, 1);
   assertAlmost(`camera sweep ${yaw}.depth`, clientProjection.depthClientUnits, renderProjection.depthClientUnits, 1);
+}
+
+function makeSourceViewport(width, height) {
+  const viewportBaseHeight = 334;
+  const viewportBaseZoom = 512;
+  const minHeightZoom = 256;
+  const maxHeightZoom = 205;
+  const minAspect = 1;
+  const maxAspect = 32767;
+  const heightDelta = height - viewportBaseHeight;
+  let zoomScale;
+  if (heightDelta < 0) {
+    zoomScale = minHeightZoom;
+  } else if (heightDelta >= 100) {
+    zoomScale = maxHeightZoom;
+  } else {
+    zoomScale = Math.trunc(((maxHeightZoom - minHeightZoom) * heightDelta) / 100 + minHeightZoom);
+  }
+
+  const aspect = Math.trunc((height * zoomScale * viewportBaseZoom) / (width * viewportBaseHeight));
+  assert(
+    aspect >= minAspect && aspect <= maxAspect,
+    "source viewport test cases should avoid the black-bar aspect clamp path"
+  );
+  return {
+    rect: { x: 0, y: 0, width, height },
+    zoom: Math.trunc((height * zoomScale) / viewportBaseHeight)
+  };
+}
+
+function assertRuntimeProjectionMatchesClient(sourceViewport, cameraZoom, label) {
+  const cameraStateTarget = new Vector3(0, nhCameraFollowHeightSceneUnits(cameraZoom, sourceViewport.rect.height), 0);
+  const cameraAngles = [
+    nhRuntimeCameraPreset("north"),
+    nhRuntimeCameraPreset("isometric"),
+    { ...nhRuntimeCameraPreset("north"), yaw: 768 },
+    { ...nhRuntimeCameraPreset("south"), pitch: 192 }
+  ];
+  const actorPositions = [
+    new Vector3(0, 0, 0),
+    new Vector3(0.3, 0, 0),
+    new Vector3(-0.3, 0, 0.3),
+    new Vector3(0.3, 0, -0.3),
+    new Vector3(-0.3, 0, -0.3)
+  ];
+  const anchors = [0, 100, 200];
+  let checkedVisiblePoints = 0;
+
+  for (const [angleIndex, angles] of cameraAngles.entries()) {
+    applyRuntimeCamera(camera, cameraStateTarget, angles, sourceViewport, cameraZoom);
+    for (const [positionIndex, actorPosition] of actorPositions.entries()) {
+      for (const anchorClientUnits of anchors) {
+        const anchorPosition = nhActorAnchorWorldPosition(actorPosition, anchorClientUnits);
+        const renderProjection = nhProjectWorldPointToViewport(camera, sourceViewport, anchorPosition);
+        const clientProjection = nhOverlayClientViewportProjection(
+          { target: cameraStateTarget, angles, zoom: cameraZoom },
+          sourceViewport,
+          actorPosition,
+          { anchorClientUnits, centerOffsetXPixels: 0, centerOffsetYPixelsDown: 0 }
+        );
+        assert(
+          Boolean(renderProjection) === Boolean(clientProjection),
+          `${label} angle=${angleIndex} position=${positionIndex} anchor=${anchorClientUnits} projection visibility mismatch`
+        );
+        if (!renderProjection || !clientProjection) {
+          continue;
+        }
+        const edgeMargin = 32;
+        const nearVisibleViewport =
+          renderProjection.x >= -edgeMargin &&
+          renderProjection.x <= sourceViewport.rect.width + edgeMargin &&
+          renderProjection.y >= -edgeMargin &&
+          renderProjection.y <= sourceViewport.rect.height + edgeMargin &&
+          clientProjection.x >= -edgeMargin &&
+          clientProjection.x <= sourceViewport.rect.width + edgeMargin &&
+          clientProjection.y >= -edgeMargin &&
+          clientProjection.y <= sourceViewport.rect.height + edgeMargin;
+        if (!nearVisibleViewport) {
+          continue;
+        }
+        checkedVisiblePoints += 1;
+        assertAlmost(`${label} angle=${angleIndex} position=${positionIndex} anchor=${anchorClientUnits}.x`, renderProjection.x, clientProjection.x, 3);
+        assertAlmost(`${label} angle=${angleIndex} position=${positionIndex} anchor=${anchorClientUnits}.y`, renderProjection.y, clientProjection.y, 3);
+        assertAlmost(
+          `${label} angle=${angleIndex} position=${positionIndex} anchor=${anchorClientUnits}.depth`,
+          renderProjection.depthClientUnits,
+          clientProjection.depthClientUnits,
+          3
+        );
+      }
+    }
+  }
+  assert(checkedVisiblePoints >= 8, `${label} should compare multiple visible or edge-near projection points`);
+}
+
+for (const [viewportLabel, candidateViewport] of [
+  ["fixed", viewport],
+  ["wide-resizable", makeSourceViewport(765, 503)],
+  ["short-resizable", makeSourceViewport(760, 334)]
+]) {
+  for (const [zoomLabel, cameraZoom] of [
+    ["close", nhCameraDoZoom(64, 64)],
+    ["default", nhCameraDoZoom(512, 512)],
+    ["far", nhCameraDoZoom(896, 896)]
+  ]) {
+    assertRuntimeProjectionMatchesClient(candidateViewport, cameraZoom, `${viewportLabel}-${zoomLabel}`);
+  }
 }
 
 camera.position.set(0, 0, 10);
