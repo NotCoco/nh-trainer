@@ -1,0 +1,9 @@
+node_modules
+dist
+dist-electron
+test-results
+logs
+*.log
+*.bak
+.playwright-cli
+.codex-*.log

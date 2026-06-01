@@ -1899,11 +1899,11 @@
   {
     "id": "cache-client-widget-layout-export",
     "area": "ui",
-    "title": "The cache exporter writes fixed-mode widget groups and original widget layout fields.",
+    "title": "The cache exporter writes fixed and resizable widget groups with original widget layout fields.",
     "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/runelite/cache/src/main/java/net/runelite/cache/tools/NhNhTrainerAssetExport.java",
     "requiredSnippets": [
       "private static final int[] CLIENT_WIDGET_GROUP_IDS",
-      "548, 160, 162, 149, 387, 541, 218, 593, 320",
+      "548, 161, 164, 160, 162, 149, 387, 541, 218, 593, 320",
       "7, 182, 216, 239, 261, 399, 429, 432, 629, 720",
       "writeJson(outDir.resolve(\"assets\").resolve(\"defs\").resolve(\"client-widgets.json\"), loadClientWidgetLayouts(store));",
       "side-panel tab contents",
@@ -1922,7 +1922,7 @@
       "dto.put(\"textShadowed\", widget.textShadowed);",
       "dto.put(\"textColor\", widget.textColor);"
     ],
-    "implementationRule": "Fixed-mode HUD, viewport layout, and side-panel tab contents must read exported InterfaceDefinition fields instead of hard-coded browser rectangles."
+    "implementationRule": "Client HUD, viewport layout, and side-panel tab contents must read exported InterfaceDefinition fields instead of hard-coded browser rectangles."
   },
   {
     "id": "client-chatbox-widget-contract",

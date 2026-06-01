@@ -7,7 +7,7 @@ import ts from "typescript";
 
 const require = createRequire(import.meta.url);
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const nhClientRoot = path.resolve(projectRoot, "..", "Nh184-Client");
+const nhClientRoot = path.resolve(projectRoot, "..", "Kronos184-Client");
 const moduleCache = new Map();
 
 function loadTsModule(relativePath) {
@@ -92,6 +92,26 @@ function assertSourceIncludes(source, snippet, label) {
   assert(source.includes(snippet), `${label} should include ${snippet}`);
 }
 
+function extractBlockSource(source, marker) {
+  const markerIndex = source.indexOf(marker);
+  assert(markerIndex !== -1, `Could not find source marker: ${marker}`);
+  const openBraceIndex = source.indexOf("{", markerIndex);
+  assert(openBraceIndex !== -1, `Could not find source block for marker: ${marker}`);
+  let depth = 0;
+  for (let index = openBraceIndex; index < source.length; index += 1) {
+    const character = source[index];
+    if (character === "{") {
+      depth += 1;
+    } else if (character === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        return source.slice(markerIndex, index + 1);
+      }
+    }
+  }
+  throw new Error(`Could not close source block for marker: ${marker}`);
+}
+
 const {
   NH_MINIMAP_DOT_SIZE,
   NH_MINIMAP_LOCAL_PLAYER_DOT_COLOR,
@@ -125,6 +145,7 @@ const clientSceneSource = readNhClientSource("runelite-client/src/main/java/net/
 const spriteMaskSource = readNhClientSource("runelite-client/src/main/java/net/runelite/standalone/SpriteMask.java");
 const minimapSceneSource = readProjectSource("src/render/nhMinimapScene.ts");
 const minimapProjectionSource = readProjectSource("src/render/nhMinimap.ts");
+const runtimeSceneViewerSource = readProjectSource("src/ui/RuntimeSceneViewer.tsx");
 for (const snippet of [
   "static int camAngleY;",
   "static int minimapState;",
@@ -147,6 +168,18 @@ assert(
 assert(
   !minimapProjectionSource.includes("fallbackMinimapDotSize"),
   "minimap dots should require exported class17.mapDotSprites dimensions instead of a handmade fallback dot size"
+);
+const runtimeMinimapFrameSnapshotSource = extractBlockSource(
+  runtimeSceneViewerSource,
+  "function runtimeMinimapFrameSnapshotFromManualActors"
+);
+assert(
+  runtimeMinimapFrameSnapshotSource.includes("\"local-player\": localActor.renderTile") &&
+    runtimeMinimapFrameSnapshotSource.includes("opponent: opponentActor.renderTile") &&
+    runtimeMinimapFrameSnapshotSource.includes("renderTile: renderedTiles[actor.actorId] ?? actor.renderTile") &&
+    !runtimeMinimapFrameSnapshotSource.includes("logicalClientPosition") &&
+    !runtimeMinimapFrameSnapshotSource.includes("manualActorLogicalRenderTile"),
+  "runtime minimap frame snapshot should follow the rendered actor track during primary-sequence stalls, not the logical route cursor"
 );
 
 const captureReferenceSource = readProjectSource("scripts/capture-client-reference.mjs");
@@ -338,27 +371,27 @@ assertSame("cache scene minimap map-icon object", syntheticMapIconScene.mapIconO
   objectId: 12345,
   worldX: syntheticMapIconObject.x,
   worldY: syntheticMapIconObject.y,
-  tile: { x: 1, z: 0 },
+  tile: { x: 0.5, z: 0 },
   type: 10,
   orientation: 0
 });
 assertSame("cache scene minimap origin", sceneSprite.originWorldTile, { x: 3103, y: 3532, plane: 0 });
 assertSame("cache scene minimap local center", nhMinimapSceneCenter(sceneSprite, { x: -2, z: 0 }), {
-  x: 250,
+  x: 242,
   y: 254
 });
 assertSame("cache scene minimap north transform", nhMinimapSceneTransform(sceneSprite, { x: -2, z: 0 }, 0, mask), {
-  centerX: 250,
+  centerX: 242,
   centerY: 254,
   angleDegrees: 0,
-  left: -178,
+  left: -170,
   top: -179
 });
 assertSame("cache scene minimap south transform", nhMinimapSceneTransform(sceneSprite, { x: -2, z: 0 }, 1024, mask), {
-  centerX: 250,
+  centerX: 242,
   centerY: 254,
   angleDegrees: 180,
-  left: -178,
+  left: -170,
   top: -179
 });
 
@@ -439,16 +472,16 @@ assertSame("local player center dot", local, { left: 71, top: 74, width: 3, heig
 assert(NH_MINIMAP_LOCAL_PLAYER_DOT_SIZE === 3, "local player dot should use the client fillRectangle width/height");
 assert(NH_MINIMAP_LOCAL_PLAYER_DOT_COLOR === 16777215, "local player dot should use the client fillRectangle color");
 assertSame("runtime tile to minimap units", nhMinimapActorDeltas({ x: -2, z: 0 }, { x: 2, z: -1 }), {
-  deltaX: 16,
-  deltaY: -4
+  deltaX: 32,
+  deltaY: -8
 });
 assertSame(
-  "actor minimap position prefers render tile",
+  "actor minimap position uses client render tile",
   nhMinimapActorTile({ tile: { x: -2, z: 0 }, renderTile: { x: -1.5, z: 0 } }),
   { x: -1.5, z: 0 }
 );
 assertSame(
-  "actor dots use rendered local tile",
+  "actor dots use client render local tile",
   nhMinimapDotsForSnapshot(
     {
       actors: [
@@ -477,11 +510,11 @@ assertSame(
     mapDotSpriteSizeForKind
   )[0],
   {
-    left: 72,
+    left: 74,
     top: 73,
-    rotatedX: 2,
+    rotatedX: 4,
     rotatedY: 0,
-    distanceSquared: 4,
+    distanceSquared: 16,
     clipped: false,
     actorId: "opponent",
     kind: "player",
@@ -502,8 +535,8 @@ assertSame(
   "destination tile to minimap units",
   nhMinimapDestinationDeltas({ x: -1, z: 0 }, { x: 0, z: 0 }),
   {
-    deltaX: 6,
-    deltaY: 2
+    deltaX: 8,
+    deltaY: 0
   }
 );
 assertSame(
@@ -516,11 +549,11 @@ assertSame(
     { width: destinationMarkerSprite.width, height: destinationMarkerSprite.height }
   ),
   {
-    left: 74,
-    top: 66,
-    rotatedX: 6,
-    rotatedY: 2,
-    distanceSquared: 40,
+    left: 76,
+    top: 68,
+    rotatedX: 8,
+    rotatedY: 0,
+    distanceSquared: 64,
     clipped: false,
     id: "destination",
     tile: { x: 0, z: 0 },
@@ -538,39 +571,39 @@ const syntheticProjectedMapIcon = nhMinimapMapIconForObject(
   { width: sampleMapIconSprite.width, height: sampleMapIconSprite.height }
 );
 assertSame("map-icon object projection", syntheticProjectedMapIcon, {
-  left: 6 + Math.trunc(mask.width / 2) - Math.trunc(sampleMapIconSprite.width / 2),
-  top: Math.trunc(mask.height / 2) - 2 - Math.trunc(sampleMapIconSprite.height / 2),
-  rotatedX: 6,
-  rotatedY: 2,
-  distanceSquared: 40,
+  left: 4 + Math.trunc(mask.width / 2) - Math.trunc(sampleMapIconSprite.width / 2),
+  top: Math.trunc(mask.height / 2) - Math.trunc(sampleMapIconSprite.height / 2),
+  rotatedX: 4,
+  rotatedY: 0,
+  distanceSquared: 16,
   clipped: false,
   id: syntheticMapIconScene.mapIconObjects[0].key,
   objectId: 12345,
   mapIconId: sampleMapIconSprite.areaId,
-  tile: { x: 1, z: 0 },
+  tile: { x: 0.5, z: 0 },
   width: sampleMapIconSprite.width,
   height: sampleMapIconSprite.height
 });
 assertSame(
   "client-view source map-icon projection",
   nhMinimapMapIconForSource(
-    { id: "live-map-icon-0", objectId: 12345, mapIconId: sampleMapIconSprite.areaId, tile: { x: 1, z: 0 } },
+    { id: "live-map-icon-0", objectId: 12345, mapIconId: sampleMapIconSprite.areaId, tile: { x: 0.5, z: 0 } },
     { x: 0, z: 0 },
     0,
     mask,
     { width: sampleMapIconSprite.width, height: sampleMapIconSprite.height }
   ),
   {
-    left: 6 + Math.trunc(mask.width / 2) - Math.trunc(sampleMapIconSprite.width / 2),
-    top: Math.trunc(mask.height / 2) - 2 - Math.trunc(sampleMapIconSprite.height / 2),
-    rotatedX: 6,
-    rotatedY: 2,
-    distanceSquared: 40,
+    left: 4 + Math.trunc(mask.width / 2) - Math.trunc(sampleMapIconSprite.width / 2),
+    top: Math.trunc(mask.height / 2) - Math.trunc(sampleMapIconSprite.height / 2),
+    rotatedX: 4,
+    rotatedY: 0,
+    distanceSquared: 16,
     clipped: false,
     id: "live-map-icon-0",
     objectId: 12345,
     mapIconId: sampleMapIconSprite.areaId,
-    tile: { x: 1, z: 0 },
+    tile: { x: 0.5, z: 0 },
     width: sampleMapIconSprite.width,
     height: sampleMapIconSprite.height
   }
@@ -586,11 +619,11 @@ assertSame(
     { width: 15, height: 15 }
   ),
   {
-    left: 71,
-    top: 66,
-    rotatedX: 6,
-    rotatedY: 2,
-    distanceSquared: 40,
+    left: 73,
+    top: 68,
+    rotatedX: 8,
+    rotatedY: 0,
+    distanceSquared: 64,
     clipped: false,
     id: "near-target",
     tile: { x: 0, z: 0 },
@@ -623,18 +656,18 @@ assertSame("far hint marker clipped edge projection", {
   height: edgeHint.height,
   rotationDegrees: Math.round(edgeHint.rotationDegrees * 1000) / 1000
 }, {
-  left: 108,
-  top: 54,
-  rotatedX: 90,
-  rotatedY: 2,
-  distanceSquared: 8104,
+  left: 109,
+  top: 55,
+  rotatedX: 176,
+  rotatedY: 0,
+  distanceSquared: 30976,
   clipped: true,
   id: "far-target",
   kind: "hint",
   sourceSpriteIndex: 1,
   width: 20,
   height: 20,
-  rotationDegrees: 88.727
+  rotationDegrees: 90
 });
 assert(
   nhMinimapHintMarker("too-far-target", { x: -2, z: 0 }, { x: 80, z: 0 }, 0, mask, { width: 15, height: 15 }) === null,
@@ -655,7 +688,7 @@ assertSame(
   "east minimap click",
   nhMinimapClickToTile({ ...mask, localTile: { x: -2, z: 0 }, clickX: 76, clickY: 75, camAngleY: 0 }),
   {
-    tile: { x: -1, z: 0 },
+    tile: { x: -1.5, z: 0 },
     centeredX: 4,
     centeredY: 0,
     rotatedLocalX: 128,
@@ -666,7 +699,7 @@ assertSame(
   "north minimap click",
   nhMinimapClickToTile({ ...mask, localTile: { x: -2, z: 0 }, clickX: 72, clickY: 71, camAngleY: 0 }),
   {
-    tile: { x: -2, z: 1 },
+    tile: { x: -2, z: 0.5 },
     centeredX: 0,
     centeredY: -4,
     rotatedLocalX: 0,
@@ -677,7 +710,7 @@ assertSame(
   "south camera minimap click",
   nhMinimapClickToTile({ ...mask, localTile: { x: -2, z: 0 }, clickX: 76, clickY: 75, camAngleY: 1024 }),
   {
-    tile: { x: -3, z: 0 },
+    tile: { x: -2.5, z: 0 },
     centeredX: 4,
     centeredY: 0,
     rotatedLocalX: -128,

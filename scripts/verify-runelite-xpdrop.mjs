@@ -3,42 +3,48 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const workspaceRoot = path.resolve(projectRoot, "..");
+
+function firstExistingPath(relativePaths) {
+  for (const relativePath of relativePaths) {
+    const candidate = path.resolve(workspaceRoot, relativePath);
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  throw new Error(`Missing source root; checked ${relativePaths.join(", ")}`);
+}
+
+const sourceClientRoot = firstExistingPath(["Kronos184-Client", "Nh184-Client"]);
+const sourceServerRoot = firstExistingPath([
+  path.join("kronos-osrs-184-master", "kronos-osrs-184-master", "Kronos-master"),
+  path.join("nh-osrs-184-master", "nh-osrs-184-master", "Nh-master")
+]);
 
 function read(relativePath) {
   return fs.readFileSync(path.join(projectRoot, relativePath), "utf8");
 }
 
 function readNhClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
+  return fs.readFileSync(path.resolve(sourceClientRoot, relativePath), "utf8");
 }
 
 function readNhServerScript(fileName) {
-  return fs.readFileSync(
-    path.resolve(
-      projectRoot,
-      "..",
-      "nh-osrs-184-master",
-      "nh-osrs-184-master",
-      "Nh-master",
-      "scripts",
-      fileName
-    ),
-    "utf8"
-  );
+  return fs.readFileSync(path.resolve(sourceServerRoot, "scripts", fileName), "utf8");
 }
 
 function readNhServer(relativePath) {
-  return fs.readFileSync(
-    path.resolve(
-      projectRoot,
-      "..",
-      "nh-osrs-184-master",
-      "nh-osrs-184-master",
-      "Nh-master",
-      relativePath
-    ),
-    "utf8"
-  );
+  const candidate = path.resolve(sourceServerRoot, relativePath);
+  if (fs.existsSync(candidate)) {
+    return fs.readFileSync(candidate, "utf8");
+  }
+  if (relativePath.startsWith("nh-server/")) {
+    const kronosCandidate = path.resolve(sourceServerRoot, relativePath.replace(/^nh-server\//, "kronos-server/"));
+    if (fs.existsSync(kronosCandidate)) {
+      return fs.readFileSync(kronosCandidate, "utf8");
+    }
+  }
+  return fs.readFileSync(candidate, "utf8");
 }
 
 function assert(condition, message) {
@@ -50,6 +56,8 @@ function assert(condition, message) {
 const pluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/experiencedrop/XpDropPlugin.java");
 const configSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/experiencedrop/XpDropConfig.java");
 const overlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/experiencedrop/XpDropOverlay.java");
+const widgetOverlaySource = readNhClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/WidgetOverlay.java");
+const overlayRendererSource = readNhClient("runelite-client/src/main/java/net/runelite/client/ui/overlay/OverlayRenderer.java");
 const shellSource = read("src/ui/RuneliteClientShell.tsx");
 const runtimeSource = read("src/ui/RuntimeSceneViewer.tsx");
 const hudSource = read("src/ui/NhClientHud.tsx");
@@ -78,6 +86,24 @@ for (const sourceAnchor of [
   'tickShow = 3'
 ]) {
   assert(pluginSource.includes(sourceAnchor), `RuneLite XP Drop plugin source missing ${sourceAnchor}`);
+}
+
+for (const sourceAnchor of [
+  "WidgetInfo.EXPERIENCE_TRACKER_WIDGET, OverlayPosition.TOP_RIGHT",
+  "final Rectangle parent = getParentBounds(widget)",
+  "widget.setRelativeX(bounds.x - parent.x)",
+  "widget.setRelativeY(bounds.y - parent.y)"
+]) {
+  assert(widgetOverlaySource.includes(sourceAnchor), `RuneLite WidgetOverlay source missing ${sourceAnchor}`);
+}
+
+for (const sourceAnchor of [
+  "client.getViewportWidget().getBounds()",
+  "final Rectangle snapCorner = snapCorners.forPosition(overlayPosition)",
+  "OverlayUtil.transformPosition(overlayPosition, dimension)",
+  "viewportOffset + viewportBounds.width - BORDER"
+]) {
+  assert(overlayRendererSource.includes(sourceAnchor), `RuneLite OverlayRenderer source missing ${sourceAnchor}`);
 }
 
 for (const sourceAnchor of [
@@ -140,6 +166,11 @@ for (const trainerAnchor of [
   'applyRuneliteXpDropConfig',
   'buildRuneliteXpDropDamageDomOverlay',
   'syncRuneliteXpDropDomOverlays',
+  'runeliteXpDropPanelCssRect',
+  'RUNELITE_RESIZABLE_VIEWPORT_WIDGET_CHILD_ID = 12',
+  'fixedLayout.displayMode === "resizable"',
+  'entry.widget.childId === RUNELITE_RESIZABLE_VIEWPORT_WIDGET_CHILD_ID',
+  'panelRect.x + panelRect.width - RUNELITE_XP_DROP_PANEL_RIGHT * cssLayout.scale',
   'emittedQueuedHitIds: Set<string>',
   'XpDropPlugin responds once to ExperienceChanged/ScriptCallbackEvent hpXpGained',
   'activeDroplets.has(hit.id) || emittedQueuedHitIds.has(hit.id)',
@@ -172,7 +203,7 @@ for (const trainerAnchor of [
   'data-trainer-text-scale={overlay.textScale.toFixed(3)}',
   'data-trainer-move-distance={overlay.moveDistance}',
   'data-source-droplet-move="xpdrops_dropletmove interpolate(0, elapsed, 0, enum_1171(varbit4722), 16384)"',
-  'data-source-panel-position="xpdrops_setposition right:2 top:2 when varbit4692=0"',
+  'data-source-panel-position="WidgetOverlay EXPERIENCE_TRACKER_WIDGET TOP_RIGHT over client.getViewportWidget; xpdrops_setposition right:2 top:2 when varbit4692=0"',
   'trainerFont/trainerTextSize/trainerMoveDistance scale source font and droplet movement',
   'xpDropOrbContextEntries',
   'runelite-config-value-set',

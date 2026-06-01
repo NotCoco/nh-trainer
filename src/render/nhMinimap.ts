@@ -1,4 +1,5 @@
 import { NH_CAMERA_UNITS } from "./nhClientCamera";
+import { NH_TILE_WORLD_UNITS } from "./nhTileMovement";
 import type { RuntimeActorPose, RuntimeMinimapDotKind, RuntimeSceneSnapshot, RuntimeTile } from "./runtimeScene";
 
 export interface NhMinimapMask {
@@ -103,6 +104,8 @@ export const NH_MINIMAP_CLIPPED_DOT_DISTANCE_SQUARED = 2500;
 export const NH_MINIMAP_HINT_EDGE_MIN_DISTANCE_SQUARED = 4225;
 export const NH_MINIMAP_HINT_EDGE_MAX_DISTANCE_SQUARED = 90000;
 export const NH_MINIMAP_HINT_EDGE_SIZE = 20;
+const NH_MINIMAP_CLIENT_UNITS_PER_PIXEL = 32;
+const NH_MINIMAP_CLIENT_UNITS_PER_TILE = 128;
 
 const rasterizerTrigScale = 65536;
 const radiansPerClientUnit = (Math.PI * 2) / NH_CAMERA_UNITS;
@@ -137,9 +140,11 @@ export function nhMinimapActorDeltas(
   localTile: RuntimeTile,
   targetTile: RuntimeTile
 ): { readonly deltaX: number; readonly deltaY: number } {
+  const localPosition = nhMinimapClientPositionFromRuntimeTile(localTile);
+  const targetPosition = nhMinimapClientPositionFromRuntimeTile(targetTile);
   return {
-    deltaX: Math.trunc((targetTile.x - localTile.x) * NH_MINIMAP_UNITS_PER_TILE),
-    deltaY: Math.trunc((targetTile.z - localTile.z) * NH_MINIMAP_UNITS_PER_TILE)
+    deltaX: nhMinimapClientPixel(targetPosition.x) - nhMinimapClientPixel(localPosition.x),
+    deltaY: nhMinimapClientPixel(targetPosition.z) - nhMinimapClientPixel(localPosition.z)
   };
 }
 
@@ -151,9 +156,11 @@ export function nhMinimapDestinationDeltas(
   localTile: RuntimeTile,
   destinationTile: RuntimeTile
 ): { readonly deltaX: number; readonly deltaY: number } {
+  const localPosition = nhMinimapClientPositionFromRuntimeTile(localTile);
+  const destinationPosition = nhMinimapClientPositionFromRuntimeTile(destinationTile);
   return {
-    deltaX: Math.trunc(destinationTile.x * NH_MINIMAP_UNITS_PER_TILE + 2 - Math.trunc(localTile.x * NH_MINIMAP_UNITS_PER_TILE)),
-    deltaY: Math.trunc(destinationTile.z * NH_MINIMAP_UNITS_PER_TILE + 2 - Math.trunc(localTile.z * NH_MINIMAP_UNITS_PER_TILE))
+    deltaX: nhMinimapClientPixel(destinationPosition.x) - nhMinimapClientPixel(localPosition.x),
+    deltaY: nhMinimapClientPixel(destinationPosition.z) - nhMinimapClientPixel(localPosition.z)
   };
 }
 
@@ -180,13 +187,12 @@ export function nhMinimapClickToTile(input: NhMinimapClickInput): NhMinimapClick
   const cosine = rasterizerCosine(angle);
   const rotatedLocalX = (centeredY * sine + centeredX * cosine) >> 11;
   const rotatedLocalY = (centeredY * cosine - sine * centeredX) >> 11;
-  const localX = Math.trunc(input.localTile.x * 128);
-  const localY = Math.trunc(input.localTile.z * 128);
+  const localPosition = nhMinimapClientPositionFromRuntimeTile(input.localTile);
 
   return {
     tile: {
-      x: (rotatedLocalX + localX) >> 7,
-      z: (localY - rotatedLocalY) >> 7
+      x: runtimeTileAxisFromMinimapClientUnits(rotatedLocalX + localPosition.x),
+      z: runtimeTileAxisFromMinimapClientUnits(localPosition.z - rotatedLocalY)
     },
     centeredX,
     centeredY,
@@ -524,4 +530,19 @@ function rasterizerCosine(angle: number): number {
 
 function wrapClientAngle(units: number): number {
   return ((Math.trunc(units) % NH_CAMERA_UNITS) + NH_CAMERA_UNITS) % NH_CAMERA_UNITS;
+}
+
+function nhMinimapClientPositionFromRuntimeTile(tile: RuntimeTile): { readonly x: number; readonly z: number } {
+  return {
+    x: Math.round((tile.x / NH_TILE_WORLD_UNITS) * NH_MINIMAP_CLIENT_UNITS_PER_TILE),
+    z: Math.round((tile.z / NH_TILE_WORLD_UNITS) * NH_MINIMAP_CLIENT_UNITS_PER_TILE)
+  };
+}
+
+function nhMinimapClientPixel(clientUnits: number): number {
+  return Math.floor(clientUnits / NH_MINIMAP_CLIENT_UNITS_PER_PIXEL);
+}
+
+function runtimeTileAxisFromMinimapClientUnits(clientUnits: number): number {
+  return Number((((clientUnits >> 7) * NH_TILE_WORLD_UNITS)).toFixed(6));
 }

@@ -90,7 +90,7 @@ function readJson(relativePath) {
 }
 
 function readNhClientSource(relativePath) {
-  return readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", ...relativePath.split("/")), "utf8");
+  return readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", ...relativePath.split("/")), "utf8");
 }
 
 function assert(condition, message) {
@@ -308,10 +308,6 @@ function firstMesh(scene) {
   return found;
 }
 
-function hasVisibleSourceFaceAlpha(metadata) {
-  return (metadata.sourceFaceAlphas ?? []).some((alpha) => (alpha & 0xff) !== 0);
-}
-
 function colorDelta(left, right) {
   let delta = 0;
   const length = Math.min(left.length, right.length);
@@ -375,7 +371,7 @@ const runtimeViewerSource = readFileSync(path.join(projectRoot, "src", "ui", "Ru
 const renderParitySource = readFileSync(path.join(projectRoot, "scripts", "render-parity-electron.cjs"), "utf8");
 const electronMainSource = readFileSync(path.join(projectRoot, "src", "client", "main.ts"), "utf8");
 const playerModelSource = readFileSync(path.join(projectRoot, "src", "render", "nhPlayerModel.ts"), "utf8");
-assertSourceIncludes(livePlayerSource, "byte[] nhNhAppearancePacket;", "Player live appearance capture");
+assertSourceIncludes(livePlayerSource, "byte[] kronosNhAppearancePacket;", "Player live appearance capture");
 assertSourceIncludes(
   livePlayerSource,
   "Arrays.copyOf(var1.array, var1.offset)",
@@ -468,15 +464,12 @@ for (const snippet of [
   "render/textures/texture_${textureId}.png",
   "updateNhAnimatedTextures",
   "Nh Texture.copy$animate",
-  "cache-composed-player-appearance-opaque",
-  "cache-composed-player-appearance-alpha",
-  "clonePlayerAppearanceGeometry",
-  "playerTriangleUsesTransparentPass",
+  "cache-composed-player-appearance",
   "nhTriangleSourceIndices",
-  "Browser renderer split: opaque faces stay in Three's opaque path",
+  "Model.method2375()/method2376 draws player faces in painter order",
   "depthTest: true",
-  "depthWrite: !transparent",
-  "transparent,"
+  "depthWrite: false",
+  "transparent: true"
 ]) {
   assertSourceIncludes(playerModelSource, snippet, "player model face render priority order port");
 }
@@ -636,8 +629,8 @@ for (const loadout of runtimeLoadouts) {
     `${loadout.id} should preserve expanded vertex to source face mapping for alpha transforms`
   );
   assert(
-    sceneMaterialTransparent(composed.scene) === hasVisibleSourceFaceAlpha(composed.metadata),
-    `${loadout.id} player mesh material transparency should only be enabled for visible source face alpha`
+    sceneMaterialTransparent(composed.scene) === true,
+    `${loadout.id} player mesh should render through the source painter-ordered transparent pass`
   );
   if (loadout.itemIds.includes(6570)) {
     assert(sceneHasTextureMaterial(composed.scene, 40), `${loadout.id} should render Fire cape with texture 40`);

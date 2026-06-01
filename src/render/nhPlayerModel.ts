@@ -2,7 +2,6 @@ import {
   BufferAttribute,
   BufferGeometry,
   Camera,
-  Group,
   Mesh,
   MeshBasicMaterial,
   NearestFilter,
@@ -547,51 +546,18 @@ function createPlayerAppearanceScene(
   geometry: BufferGeometry,
   mesh: NhMutableMesh,
   textureDefinitions: ReadonlyMap<number, NhTextureDefinition>
-): Mesh | Group {
-  const opaqueTriangles: number[] = [];
-  const alphaTriangles: number[] = [];
-  for (let triangle = 0; triangle < mesh.indices.length / 3; triangle += 1) {
-    const target = playerTriangleUsesTransparentPass(mesh, triangle, textureDefinitions)
-      ? alphaTriangles
-      : opaqueTriangles;
-    target.push(triangle);
-  }
-
-  if (alphaTriangles.length === 0) {
-    const scene = createPlayerAppearanceSubmesh(
-      geometry,
-      mesh,
-      textureDefinitions,
-      opaqueTriangles,
-      "cache-composed-player-appearance-opaque"
-    );
-    scene.name = "cache-composed-player-appearance-opaque";
-    return scene;
-  }
-
-  const root = new Group();
-  root.name = "cache-composed-player-appearance";
-  if (opaqueTriangles.length > 0) {
-    root.add(
-      createPlayerAppearanceSubmesh(
-        clonePlayerAppearanceGeometry(geometry),
-        mesh,
-        textureDefinitions,
-        opaqueTriangles,
-        "cache-composed-player-appearance-opaque"
-      )
-    );
-  }
-  root.add(
-    createPlayerAppearanceSubmesh(
-      clonePlayerAppearanceGeometry(geometry),
-      mesh,
-      textureDefinitions,
-      alphaTriangles,
-      "cache-composed-player-appearance-alpha"
-    )
+): Mesh {
+  const sourceTriangles = Array.from(
+    { length: mesh.indices.length / 3 },
+    (_, triangle) => triangle
   );
-  return root;
+  return createPlayerAppearanceSubmesh(
+    geometry,
+    mesh,
+    textureDefinitions,
+    sourceTriangles,
+    "cache-composed-player-appearance"
+  );
 }
 
 function createPlayerAppearanceSubmesh(
@@ -658,25 +624,6 @@ function createPlayerAppearanceSubmesh(
   return scene;
 }
 
-function clonePlayerAppearanceGeometry(source: BufferGeometry): BufferGeometry {
-  const geometry = new BufferGeometry();
-  const position = source.getAttribute("position") as BufferAttribute;
-  const color = source.getAttribute("color") as BufferAttribute;
-  const uv = source.getAttribute("uv") as BufferAttribute;
-  geometry.setAttribute("position", new BufferAttribute(new Float32Array(position.array as ArrayLike<number>), 3));
-  geometry.setAttribute("color", new BufferAttribute(new Float32Array(color.array as ArrayLike<number>), 4));
-  geometry.setAttribute("uv", new BufferAttribute(new Float32Array(uv.array as ArrayLike<number>), 2));
-  return geometry;
-}
-
-function playerTriangleUsesTransparentPass(
-  mesh: NhMutableMesh,
-  triangle: number,
-  textureDefinitions: ReadonlyMap<number, NhTextureDefinition>
-): boolean {
-  return playerTriangleMaterialKey(mesh, triangle, textureDefinitions).transparent;
-}
-
 function playerTriangleMaterialKey(
   mesh: NhMutableMesh,
   triangle: number,
@@ -703,16 +650,15 @@ function createPlayerAppearanceMaterial(
 ): MeshBasicMaterial {
   const textureDefinition = textureDefinitions.get(key.textureId);
   const texture = key.textureId === NH_UNTEXTURED_FACE_ID ? null : nhPlayerTexture(key.textureId, textureDefinition);
-  const transparent = key.transparent;
   const material = new MeshBasicMaterial({
-    // Browser renderer split: opaque faces stay in Three's opaque path while source alpha and
-    // transparent texture faces use the transparent path. This preserves Nh face alpha
-    // semantics without letting ordinary gear sort through capes or other transparent parts.
+    // Source: Model.method2375()/method2376 draws player faces in painter order
+    // instead of with a GPU depth stream. Keep player face depth writes off so
+    // later source-ordered cape/leg/arm faces are not hidden by earlier faces.
     depthTest: true,
-    depthWrite: !transparent,
+    depthWrite: false,
     map: texture,
     alphaTest: textureDefinition?.transparent ? 0.5 : 0,
-    transparent,
+    transparent: true,
     vertexColors: true
   });
   material.name =
@@ -720,6 +666,7 @@ function createPlayerAppearanceMaterial(
       ? "nh-player-vertex-colors"
       : `nh-player-texture-${key.textureId}`;
   material.userData.nhTextureId = key.textureId;
+  material.userData.nhSourceTransparent = key.transparent;
   material.userData.nhSource =
     key.textureId === NH_UNTEXTURED_FACE_ID
       ? "Nh ModelData.method2778 untextured face colors"

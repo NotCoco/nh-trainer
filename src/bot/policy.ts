@@ -64,17 +64,6 @@ export interface NhPolicyRuntimeController extends NhDuelController {
   readonly getLastRankings: () => readonly NhPolicyScoredAction[];
 }
 
-export interface NhPolicyHistoryObservation {
-  readonly tick: number;
-  readonly targetId: string | null;
-  readonly targetPresent: boolean;
-  readonly distance: number;
-  readonly opponentLikelyStyle: NhPolicyAction["offenceStyle"] | null;
-  readonly opponentGearStyle: NhPolicyAction["offenceStyle"] | null;
-}
-
-const policyHistoryTicks = 16;
-const defencePrayerHistoryObservationLimit = 8;
 const nhPolicyStoreVersion = 11;
 const explorationReheatDecisionsCap = 350_000;
 const loadedPolicyWeightClamp = 6;
@@ -90,7 +79,6 @@ const actionVisitMapCache = new WeakMap<ParsedNhPolicy, ReadonlyMap<number, numb
 
 export function createNhPolicyController(policy: ParsedNhPolicy): NhPolicyRuntimeController {
   const featureState = createNhPolicyFeatureState();
-  const historyWindow: NhPolicyHistoryObservation[] = [];
   let lastRankings: readonly NhPolicyScoredAction[] = [];
   let activeEpisodeId: number | null = null;
   let lastContextTick: number | null = null;
@@ -101,32 +89,23 @@ export function createNhPolicyController(policy: ParsedNhPolicy): NhPolicyRuntim
       const rewardEpisodeId = context.rewardEpisodeId ?? 0;
       if (context.rewardEpisodeId === undefined && lastContextTick !== null && context.tick < lastContextTick) {
         resetNhPolicyFeatureState(featureState);
-        historyWindow.length = 0;
         activeEpisodeId = null;
       }
       if (!rewardEpisodeActive || rewardEpisodeId < 0) {
         resetNhPolicyFeatureState(featureState);
-        historyWindow.length = 0;
         activeEpisodeId = null;
       } else if (activeEpisodeId !== rewardEpisodeId) {
         resetNhPolicyFeatureState(featureState);
-        historyWindow.length = 0;
         activeEpisodeId = rewardEpisodeId;
       }
       const features = encodeNhPolicyFeatures(context, featureState);
-      const observation = policyHistoryObservationFromFeatures(features, context.tick, context.opponent.id);
       lastRankings = rankNhPolicyActionsFromFeatures(
         policy,
         features,
         5,
         context,
-        historyWindow,
         javaStyleEqualScoreTieBreaker
       );
-      historyWindow.push(observation);
-      while (historyWindow.length > policyHistoryTicks) {
-        historyWindow.shift();
-      }
       lastContextTick = context.tick;
       return lastRankings[0]?.decoded ?? scriptedNhController.chooseAction(context);
     },
@@ -314,18 +293,11 @@ export function rankNhPolicyActionsFromFeatures(
   features: readonly number[],
   limit = 6,
   context?: NhDuelControllerContext,
-  historyWindow: readonly NhPolicyHistoryObservation[] = [],
   equalScoreTieBreaker?: NhPolicyEqualScoreTieBreaker
 ): readonly NhPolicyScoredAction[] {
   if (features.length !== nhPolicyFeatureSize) {
     throw new Error(`NH policy feature vector must have ${nhPolicyFeatureSize} entries, got ${features.length}.`);
   }
-  const currentObservation = policyHistoryObservationFromFeatures(
-    features,
-    context?.tick ?? nextPolicyHistoryTick(historyWindow),
-    context?.opponent.id ?? null
-  );
-
   const actionVisits = actionVisitMap(policy);
   const rankings: NhPolicyScoredAction[] = [];
   for (let action = 0; action < nhPolicyActionCount; action += 1) {
@@ -340,7 +312,61 @@ export function rankNhPolicyActionsFromFeatures(
         score += value * features[featureIndex];
       }
     }
-    score += actionPrior(features, decoded, context, historyWindow, currentObservation);
+    score += actionPrior(features, decoded, context);
+    rankings.push({
+      action,
+      score,
+      visits: actionVisits.get(action) ?? 0,
+      decoded
+    });
+  }
+
+  const resolvedRankings =
+    rankings.length > 0
+      ? rankings
+      : [
+          {
+            action: 0,
+            score: policyScore(policy, 0, features),
+            visits: actionVisits.get(0) ?? 0,
+            decoded: decodeNhPolicyAction(0)
+          }
+        ];
+
+  if (equalScoreTieBreaker) {
+    return rankWithJavaEqualScoreTieBreak(resolvedRankings, limit, equalScoreTieBreaker);
+  }
+
+  return resolvedRankings
+    .sort((left, right) => right.score - left.score)
+    .slice(0, Math.max(1, Math.trunc(limit)));
+}
+
+export function rankNhPolicyCandidateActionsFromFeatures(
+  policy: ParsedNhPolicy,
+  features: readonly number[],
+  candidateActions: readonly number[],
+  limit = 6,
+  context?: NhDuelControllerContext,
+  equalScoreTieBreaker?: NhPolicyEqualScoreTieBreaker
+): readonly NhPolicyScoredAction[] {
+  if (features.length !== nhPolicyFeatureSize) {
+    throw new Error(`NH policy feature vector must have ${nhPolicyFeatureSize} entries, got ${features.length}.`);
+  }
+  const actionVisits = actionVisitMap(policy);
+  const rankings: NhPolicyScoredAction[] = [];
+  const seen = new Set<number>();
+  for (const candidateAction of candidateActions) {
+    const action = Math.trunc(candidateAction);
+    if (!isValidAction(action) || seen.has(action)) {
+      continue;
+    }
+    seen.add(action);
+    const decoded = decodeNhPolicyAction(action);
+    if (!isNhPolicyActionAllowed(features, decoded)) {
+      continue;
+    }
+    const score = policyScore(policy, action, features) + actionPrior(features, decoded, context);
     rankings.push({
       action,
       score,
@@ -414,15 +440,11 @@ function actionVisitMap(policy: ParsedNhPolicy): ReadonlyMap<number, number> {
 function actionPrior(
   features: readonly number[],
   action: NhPolicyAction,
-  context?: NhDuelControllerContext,
-  historyWindow: readonly NhPolicyHistoryObservation[] = [],
-  currentObservation: NhPolicyHistoryObservation = policyHistoryObservationFromFeatures(features, nextPolicyHistoryTick(historyWindow))
+  context?: NhDuelControllerContext
 ): number {
   return specOpportunityPrior(features, action) +
     specApproachPrior(features, action) +
     offenceGearWeaknessPrior(features, action, context) +
-    defencePrayerPrior(features, action) +
-    defencePrayerHistoryPrior(features, action, historyWindow, currentObservation) +
     supplyIntentPrior(features, action, context) +
     movementControlPrior(features, action, context);
 }
@@ -458,142 +480,6 @@ function specApproachPrior(features: readonly number[], action: NhPolicyAction):
   }
   const styleScale = action.offenceStyle === "melee" ? 1 : 0.42;
   return 18 * (window - 0.2) * styleScale;
-}
-
-function defencePrayerPrior(features: readonly number[], action: NhPolicyAction): number {
-  if (inputFeature(features, 33) <= 0.5) {
-    return 0;
-  }
-  let magic = 1;
-  let ranged = 1;
-  let melee = 1;
-  let readable = false;
-  const likely = readEncodedStyle(features, 43);
-  if (likely) {
-    magic += likely === "magic" ? 1.55 : 0;
-    ranged += likely === "ranged" ? 1.55 : 0;
-    melee += likely === "melee" ? 1.55 : 0;
-    readable = true;
-  }
-  const gear = readEncodedStyle(features, 46);
-  if (gear) {
-    magic += gear === "magic" ? 1.1 : 0;
-    ranged += gear === "ranged" ? 1.1 : 0;
-    melee += gear === "melee" ? 1.1 : 0;
-    readable = true;
-  }
-  if (!readable) {
-    return 0;
-  }
-
-  const distance = Math.max(0, Math.round(clamp01(inputFeature(features, 0)) * 12));
-  if (distance > 1) {
-    magic += 0.35;
-    ranged += 0.35;
-    melee *= 0.72;
-  } else {
-    melee += 0.25;
-  }
-
-  const total = Math.max(1e-6, magic + ranged + melee);
-  const best = Math.max(magic, ranged, melee);
-  const confidence = clamp01((best / total - 1 / 3) * 1.8);
-  if (confidence < 0.18) {
-    return 0;
-  }
-
-  const selfHp = clamp01(inputFeature(features, 1));
-  const lastTaken = Math.max(0, inputFeature(features, 24));
-  let pressure = 0.45 + (1 - selfHp) * 0.35 + clamp01(lastTaken * 1.8) * 0.35;
-  if (distance <= 2) {
-    pressure += 0.15;
-  }
-  pressure = clamp01(pressure);
-
-  const protectedStyle = protectedStyleForPrayer(action.defencePrayer);
-  if (!protectedStyle) {
-    return -4.6 * 0.6 * confidence * pressure;
-  }
-  const protectedBelief = beliefForStyle(protectedStyle, magic, ranged, melee) / total;
-  return 4.6 * (protectedBelief - 1 / 3) * (0.55 + pressure) * (0.5 + confidence);
-}
-
-function defencePrayerHistoryPrior(
-  features: readonly number[],
-  action: NhPolicyAction,
-  historyWindow: readonly NhPolicyHistoryObservation[],
-  observation: NhPolicyHistoryObservation
-): number {
-  if (inputFeature(features, 33) <= 0.5 || !observation.targetPresent || historyWindow.length === 0) {
-    return 0;
-  }
-
-  let magic = 1;
-  let ranged = 1;
-  let melee = 1;
-  let readable = false;
-  let observations = 0;
-  let weight = 1;
-  for (let index = historyWindow.length - 1; index >= 0 && observations < defencePrayerHistoryObservationLimit; index -= 1) {
-    const previous = historyWindow[index];
-    if (
-      !previous.targetPresent ||
-      previous.tick >= observation.tick ||
-      (previous.targetId ?? null) !== observation.targetId
-    ) {
-      continue;
-    }
-    if (previous.opponentLikelyStyle) {
-      magic += styleEvidence(previous.opponentLikelyStyle, "magic", weight);
-      ranged += styleEvidence(previous.opponentLikelyStyle, "ranged", weight);
-      melee += styleEvidence(previous.opponentLikelyStyle, "melee", weight);
-      readable = true;
-    } else if (previous.opponentGearStyle) {
-      const gearWeight = weight * 0.58;
-      magic += styleEvidence(previous.opponentGearStyle, "magic", gearWeight);
-      ranged += styleEvidence(previous.opponentGearStyle, "ranged", gearWeight);
-      melee += styleEvidence(previous.opponentGearStyle, "melee", gearWeight);
-      readable = true;
-    }
-    observations += 1;
-    weight *= 0.78;
-  }
-  if (!readable) {
-    return 0;
-  }
-
-  const distance = observation.distance < 0
-    ? Math.max(0, Math.round(clamp01(inputFeature(features, 0)) * 12))
-    : observation.distance;
-  if (distance > 1) {
-    magic += 0.25;
-    ranged += 0.25;
-    melee *= 0.8;
-  } else {
-    melee += 0.2;
-  }
-
-  const total = Math.max(1e-6, magic + ranged + melee);
-  const best = Math.max(magic, ranged, melee);
-  const confidence = clamp01((best / total - 1 / 3) * 1.75);
-  if (confidence < 0.1) {
-    return 0;
-  }
-
-  const selfHp = clamp01(inputFeature(features, 1));
-  const lastTaken = Math.max(0, inputFeature(features, 24));
-  let pressure = 0.36 + (1 - selfHp) * 0.36 + clamp01(lastTaken * 1.7) * 0.28;
-  if (distance <= 2) {
-    pressure += 0.12;
-  }
-  pressure = clamp01(pressure);
-
-  const protectedStyle = protectedStyleForPrayer(action.defencePrayer);
-  if (!protectedStyle) {
-    return -3.2 * 0.6 * confidence * pressure;
-  }
-  const protectedBelief = beliefForStyle(protectedStyle, magic, ranged, melee) / total;
-  return 3.2 * (protectedBelief - 1 / 3) * (0.5 + pressure) * (0.45 + confidence);
 }
 
 function offenceGearWeaknessPrior(
@@ -1217,25 +1103,6 @@ function readEncodedStyle(features: readonly number[], startIndex: number): NhPo
   return null;
 }
 
-function policyHistoryObservationFromFeatures(
-  features: readonly number[],
-  tick: number,
-  targetId: string | null = null
-): NhPolicyHistoryObservation {
-  return {
-    tick,
-    targetId,
-    targetPresent: inputFeature(features, 33) > 0.5,
-    distance: Math.max(0, Math.round(clamp01(inputFeature(features, 0)) * 12)),
-    opponentLikelyStyle: readEncodedStyle(features, 43),
-    opponentGearStyle: readEncodedStyle(features, 46)
-  };
-}
-
-function nextPolicyHistoryTick(historyWindow: readonly NhPolicyHistoryObservation[]): number {
-  return historyWindow.reduce((tick, observation) => Math.max(tick, observation.tick), -1) + 1;
-}
-
 function isProtectedByOpponentPrayer(features: readonly number[], style: NhPolicyAction["offenceStyle"]): boolean {
   if (style === "magic") {
     return inputFeature(features, 52) > 0.5;
@@ -1265,24 +1132,6 @@ function isHealingSupplyIntent(supply: NhPolicyAction["supplyIntent"]): boolean 
     supply === "triple_eat" ||
     supply === "brew_only" ||
     supply === "panic_full";
-}
-
-function styleEvidence(
-  actual: NhPolicyAction["offenceStyle"],
-  expected: NhPolicyAction["offenceStyle"],
-  weight: number
-): number {
-  return actual === expected ? weight : 0;
-}
-
-function beliefForStyle(style: NhPolicyAction["offenceStyle"], magic: number, ranged: number, melee: number): number {
-  if (style === "magic") {
-    return magic;
-  }
-  if (style === "ranged") {
-    return ranged;
-  }
-  return melee;
 }
 
 function inputFeature(features: readonly number[], inputIndex: number): number {

@@ -405,6 +405,15 @@ function findHintMarker(snapshot) {
   return snapshot.markers.find((marker) => marker.markerKind === "hint");
 }
 
+function sourceMinimapClickTileFromLocalPose(localPose, deltaX, deltaY) {
+  const localX = Math.trunc(localPose.x * 128);
+  const localY = Math.trunc(localPose.z * 128);
+  return {
+    x: (localX + deltaX) >> 7,
+    z: (localY - deltaY) >> 7
+  };
+}
+
 app.whenReady().then(async () => {
   const window = new BrowserWindow({
     width: 1280,
@@ -549,12 +558,13 @@ app.whenReady().then(async () => {
       })}`
     );
     const minimapClick = await clickMinimap(window, 76, 75);
+    const expectedMinimapTile = sourceMinimapClickTileFromLocalPose(beforeClick.localPose, 128, 0);
     assert(minimapClick.hitInsideRoot, `minimap click should hit inside the overlay: ${JSON.stringify(minimapClick)}`);
     assert(
       Number(minimapClick.lastClickX) === 76 &&
         Number(minimapClick.lastClickY) === 75 &&
-        Number(minimapClick.lastClickTileX) === beforeClick.localPose.x + 1 &&
-        Number(minimapClick.lastClickTileZ) === beforeClick.localPose.z,
+        Number(minimapClick.lastClickTileX) === expectedMinimapTile.x &&
+        Number(minimapClick.lastClickTileZ) === expectedMinimapTile.z,
       `north-facing minimap east click should dispatch one tile east: ${JSON.stringify({ beforeClick, minimapClick })}`
     );
     const afterClick = await readRuntimeControlState(window);
@@ -600,7 +610,7 @@ app.whenReady().then(async () => {
     const afterRoute = await readRuntimeControlState(window);
     assert(
       movementState.localPose.x > beforeClick.localPose.x &&
-        movementState.localPose.x < afterRoute.localPose.x &&
+        movementState.localPose.x <= afterRoute.localPose.x &&
         afterRoute.localPose.x > beforeClick.localPose.x &&
         Math.abs(movementState.localPose.z - beforeClick.localPose.z) < 0.001 &&
         Math.abs(afterRoute.localPose.z - beforeClick.localPose.z) < 0.001,

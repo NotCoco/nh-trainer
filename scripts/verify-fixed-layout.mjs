@@ -85,11 +85,11 @@ const hudSource = readFileSync(path.join(projectRoot, "src", "ui", "NhClientHud.
 const runtimeSceneSource = readFileSync(path.join(projectRoot, "src", "render", "runtimeScene.ts"), "utf8");
 const assetManifestSource = readFileSync(path.join(projectRoot, "src", "assets", "index.ts"), "utf8");
 const compassDrawSource = readFileSync(
-  path.resolve(projectRoot, "..", "Nh184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "SoundSystem.java"),
+  path.resolve(projectRoot, "..", "Kronos184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "SoundSystem.java"),
   "utf8"
 );
 const compassLoadSource = readFileSync(
-  path.resolve(projectRoot, "..", "Nh184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "class188.java"),
+  path.resolve(projectRoot, "..", "Kronos184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "class188.java"),
   "utf8"
 );
 
@@ -160,6 +160,8 @@ assert(
 assert(hudSource.includes('compassAtlas={spriteAtlases.get("compass")}'), "HUD should pass the exported compass sprite atlas");
 assert(hudSource.includes('findSprite(compassAtlas, "compass")'), "HUD should render the exported Nh compass sprite");
 assert(hudSource.includes("AttackOption.compass.method6205(var1,var2,mask.width,mask.height,25,25,Client.camAngleY,256,mask.xStarts,mask.xWidths)"), "HUD should keep the source compass draw contract anchored");
+assert(hudSource.includes("Math.trunc(rect.width / 2) - sourceCenterX"), "HUD compass should place the source center over the mask center");
+assert(hudSource.includes("transformOrigin: `${sourceCenterX}px ${sourceCenterY}px`"), "HUD compass should rotate around the source method6205 center");
 assert(runtimeSceneSource.includes('| "compass"'), "Runtime sprite sheet ids should include compass");
 assert(assetManifestSource.includes('"fixtures/render/sprites/compass.png"'), "asset manifest should require compass sprite sheet");
 assert(layout.chatbox?.groupId === NH_CHATBOX_GROUP_ID, "chatbox group mismatch");
@@ -370,18 +372,18 @@ assertSame("fixed side panel mounted interfaces", sidePanelInterfaceSummary, {
 const nhServerRoot = path.resolve(
   projectRoot,
   "..",
-  "nh-osrs-184-master",
-  "nh-osrs-184-master",
-  "Nh-master"
+  "kronos-osrs-184-master",
+  "kronos-osrs-184-master",
+  "Kronos-master"
 );
 const interfaceSource = readFileSync(
-  path.join(nhServerRoot, "nh-server", "src", "main", "java", "io", "ruin", "model", "inter", "Interface.java"),
+  path.join(nhServerRoot, "kronos-server", "src", "main", "java", "io", "ruin", "model", "inter", "Interface.java"),
   "utf8"
 );
 const tabSocialSource = readFileSync(
   path.join(
     nhServerRoot,
-    "nh-server",
+    "kronos-server",
     "src",
     "main",
     "java",
@@ -397,7 +399,7 @@ const tabSocialSource = readFileSync(
 const tabQuestSource = readFileSync(
   path.join(
     nhServerRoot,
-    "nh-server",
+    "kronos-server",
     "src",
     "main",
     "java",
@@ -422,7 +424,7 @@ const assetExporterSource = readFileSync(
     "runelite",
     "cache",
     "tools",
-    "NhNhTrainerAssetExport.java"
+    "KronosNhTrainerAssetExport.java"
   ),
   "utf8"
 );

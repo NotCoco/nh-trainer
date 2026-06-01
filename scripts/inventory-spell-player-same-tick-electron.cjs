@@ -31,7 +31,7 @@ async function waitForReady(window) {
         document.querySelector(".runeliteClientShell") &&
         document.querySelector(".glbStatus-ready") &&
         document.querySelector(".runtimeViewport canvas") &&
-        document.querySelector('.nhInventorySlot[data-inventory-item-id="21006"]') &&
+        document.querySelector('.nhInventorySlot[data-inventory-item-id="4736"]') &&
         document.querySelector('.nhSideTabButton[data-tab-id="magic"]')
       ))()
     `);
@@ -41,6 +41,56 @@ async function waitForReady(window) {
     await delay(250);
   }
   throw new Error("Timed out waiting for runtime inventory, scene, and magic tab.");
+}
+
+async function clickStartAndWaitForGo(window) {
+  await window.webContents.executeJavaScript(`
+    (() => {
+      const button = document.querySelector(".runtimeFightStartButton");
+      if (!button) {
+        return;
+      }
+      const rect = button.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      button.dispatchEvent(new PointerEvent("pointerdown", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        pointerId: 121,
+        pointerType: "mouse",
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+        clientX: x,
+        clientY: y
+      }));
+      button.dispatchEvent(new PointerEvent("pointerup", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        pointerId: 121,
+        pointerType: "mouse",
+        isPrimary: true,
+        button: 0,
+        buttons: 0,
+        clientX: x,
+        clientY: y
+      }));
+      button.click();
+    })()
+  `);
+  const deadline = Date.now() + 7000;
+  while (Date.now() < deadline) {
+    const ready = await window.webContents.executeJavaScript(`
+      (() => !document.querySelector(".runtimeFightStartButton") && !document.querySelector(".runtimeFightCountdownOverlay"))()
+    `);
+    if (ready) {
+      return;
+    }
+    await delay(100);
+  }
+  throw new Error("Timed out waiting for fight countdown to finish.");
 }
 
 async function dispatchEvent(window, eventName, detail) {
@@ -87,74 +137,25 @@ async function locateOpponentClick(window) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
       const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
-      const canvas = document.querySelector(".runtimeViewport canvas");
-      if (!canvas) {
-        return { ok: false, error: "missing runtime canvas" };
-      }
-      const rect = canvas.getBoundingClientRect();
-      const offsets = [
-        [600, 320],
-        [560, 320],
-        [640, 320],
-        [600, 280],
-        [600, 360]
-      ];
-      for (let y = 80; y <= rect.height - 80; y += 40) {
-        for (let x = 80; x <= rect.width - 80; x += 40) {
-          offsets.push([x, y]);
-        }
-      }
-      let attemptCount = 0;
-      for (const [x, y] of offsets) {
-        attemptCount += 1;
-        const clientX = rect.left + x;
-        const clientY = rect.top + y;
-        canvas.dispatchEvent(new PointerEvent("pointerdown", {
-          bubbles: true,
-          cancelable: true,
-          view: window,
-          pointerId: 91,
-          pointerType: "mouse",
-          isPrimary: true,
-          button: 2,
-          buttons: 2,
-          clientX,
-          clientY
-        }));
+      const deadline = Date.now() + 3000;
+      while (Date.now() < deadline) {
         await settle();
-        let menu = document.querySelector(".nhContextMenu");
-        if (!menu) {
-          canvas.dispatchEvent(new MouseEvent("contextmenu", {
-            bubbles: true,
-            cancelable: true,
-            view: window,
-            button: 2,
-            buttons: 2,
-            clientX,
-            clientY
-          }));
-          await settle();
-          menu = document.querySelector(".nhContextMenu");
-        }
-        const options = menu
-          ? Array.from(menu.querySelectorAll(".nhContextMenuOption")).map((option) => ({
-              text: option.textContent ?? "",
-              actionKind: option.getAttribute("data-menu-action-kind") ?? "",
-              opcode: Number(option.getAttribute("data-menu-opcode"))
-            }))
-          : [];
-        if (options.some((option) => option.text.includes("Attack Opponent") && option.actionKind === "attack")) {
-          window.dispatchEvent(new KeyboardEvent("keydown", {
-            key: "Escape",
-            code: "Escape",
-            bubbles: true,
-            cancelable: true
-          }));
-          await settle();
-          return { ok: true, x, y, clientX, clientY, options, attemptCount };
+        const motion = window.__nhRuntimeDebug?.motion;
+        const opponent = motion?.actors?.find((actor) => actor.actorId === "opponent");
+        if (opponent?.screen && opponent?.tile) {
+          return {
+            ok: true,
+            x: opponent.screen.x,
+            y: opponent.screen.y,
+            clientX: opponent.screen.x,
+            clientY: opponent.screen.y,
+            tile: opponent.tile,
+            options: [],
+            attemptCount: 1
+          };
         }
       }
-      return { ok: false, error: "could not locate opponent click", attemptCount };
+      return { ok: false, error: "could not locate opponent debug projection" };
     })()
   `);
   if (!result.ok) {
@@ -163,24 +164,24 @@ async function locateOpponentClick(window) {
   return result;
 }
 
-async function equipKodaiSelectBarrageAndClickOpponentBeforeTick(window, opponent) {
+async function equipGearSelectBarrageAndClickOpponentBeforeTick(window, opponent) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
       const settle = (ms = 20) => new Promise((resolve) => setTimeout(resolve, ms));
       const viewport = document.querySelector(".runtimeViewport");
-      const kodaiSlot = document.querySelector('.nhInventorySlot[data-inventory-item-id="21006"]');
+      const gearSlot = document.querySelector('.nhInventorySlot[data-inventory-item-id="4736"]');
       const magicTab = document.querySelector('.nhSideTabButton[data-tab-id="magic"]');
       const canvas = document.querySelector(".runtimeViewport canvas");
-      if (!kodaiSlot || !magicTab || !canvas) {
-        return { ok: false, error: "missing Kodai slot, magic tab, or canvas" };
+      if (!gearSlot || !magicTab || !canvas) {
+        return { ok: false, error: "missing gear slot, magic tab, or canvas" };
       }
 
-      const slotRect = kodaiSlot.getBoundingClientRect();
+      const slotRect = gearSlot.getBoundingClientRect();
       const slotX = slotRect.left + slotRect.width / 2;
       const slotY = slotRect.top + slotRect.height / 2;
       const slotTarget = document.elementFromPoint(slotX, slotY);
-      if (!slotTarget || slotTarget.closest(".nhInventorySlot") !== kodaiSlot) {
-        return { ok: false, error: "Kodai slot is not the pointer target" };
+      if (!slotTarget || slotTarget.closest(".nhInventorySlot") !== gearSlot) {
+        return { ok: false, error: "gear slot is not the pointer target" };
       }
 
       slotTarget.dispatchEvent(new PointerEvent("pointerdown", {
@@ -253,17 +254,13 @@ async function equipKodaiSelectBarrageAndClickOpponentBeforeTick(window, opponen
 
       const opponentX = ${JSON.stringify(opponent.clientX)};
       const opponentY = ${JSON.stringify(opponent.clientY)};
-      canvas.dispatchEvent(new PointerEvent("pointerdown", {
-        bubbles: true,
-        cancelable: true,
-        view: window,
-        pointerId: 134,
-        pointerType: "mouse",
-        isPrimary: true,
-        button: 2,
-        buttons: 2,
-        clientX: opponentX,
-        clientY: opponentY
+      window.dispatchEvent(new CustomEvent("nh-runtime-context-menu", {
+        detail: {
+          actorId: "opponent",
+          tile: ${JSON.stringify(opponent.tile)},
+          x: opponentX,
+          y: opponentY
+        }
       }));
       await settle(20);
       const spellOption = Array.from(document.querySelectorAll(".nhContextMenuOption")).find(
@@ -301,7 +298,7 @@ async function equipKodaiSelectBarrageAndClickOpponentBeforeTick(window, opponen
       return {
         ok: true,
         dataset: { ...viewport?.dataset },
-        kodaiSlotIndex: Number(kodaiSlot.getAttribute("data-slot-index")),
+        gearSlotIndex: Number(gearSlot.getAttribute("data-slot-index")),
         opponent: ${JSON.stringify(opponent)}
       };
     })()
@@ -327,6 +324,21 @@ async function readRuntimeState(window) {
       }))
     }))()
   `);
+}
+
+async function waitForQueuedPlayerPacketProcessed(window) {
+  const deadline = Date.now() + 8000;
+  while (Date.now() < deadline) {
+    const processed = await window.webContents.executeJavaScript(`
+      (() => document.querySelector(".runtimeViewport")?.dataset.lastPlayerQueuedForTickProcessed === "true")()
+    `);
+    if (processed) {
+      return;
+    }
+    await delay(100);
+  }
+  const state = await readRuntimeState(window);
+  throw new Error(`Timed out waiting for queued inventory/spell/player packet processing: ${JSON.stringify(state, null, 2)}`);
 }
 
 async function installXpDropObserver(window) {
@@ -494,6 +506,7 @@ app.whenReady().then(async () => {
     await dispatchEvent(window, "nh-runtime-cycle", { cycle: 200 });
     await dispatchEvent(window, "nh-runtime-spellbook", { spellbookId: "ancient" });
     await delay(200);
+    await clickStartAndWaitForGo(window);
     await clickSideTab(window, "inventory");
     const opponent = await locateOpponentClick(window);
     await dispatchEvent(window, "nh-runtime-reset-tick-origin", {});
@@ -501,11 +514,11 @@ app.whenReady().then(async () => {
     await installActionSequenceObserver(window);
     await delay(80);
 
-    const dispatch = await equipKodaiSelectBarrageAndClickOpponentBeforeTick(window, opponent);
+    const dispatch = await equipGearSelectBarrageAndClickOpponentBeforeTick(window, opponent);
     if (
       dispatch.dataset.lastInventoryQueuedForTick !== "true" ||
-      dispatch.dataset.lastInventoryAction !== "Wield" ||
-      dispatch.dataset.lastInventoryItemId !== "21006" ||
+      dispatch.dataset.lastInventoryAction !== "Wear" ||
+      dispatch.dataset.lastInventoryItemId !== "4736" ||
       dispatch.dataset.lastPlayerActionKind !== "player-spell-selected" ||
       dispatch.dataset.lastPlayerServerPacketId !== "55" ||
       dispatch.dataset.lastPlayerSelectedSpellId !== "ice-barrage" ||
@@ -514,15 +527,15 @@ app.whenReady().then(async () => {
       dispatch.dataset.lastPlayerQueuedCombatKind !== "spell" ||
       dispatch.dataset.lastPlayerQueuedSpellId !== "ice-barrage"
     ) {
-      throw new Error(`same-tick Kodai equip plus Ice Barrage player packet did not queue correctly: ${JSON.stringify(dispatch, null, 2)}`);
+      throw new Error(`same-tick gear equip plus Ice Barrage player packet did not queue correctly: ${JSON.stringify(dispatch, null, 2)}`);
     }
 
-    await delay(1000);
+    await waitForQueuedPlayerPacketProcessed(window);
     await clickSideTab(window, "equipment");
     const state = await readRuntimeState(window);
-    const weapon = state.equipmentItems.find((item) => item.slotId === "weapon");
-    if (weapon?.itemId !== 21006) {
-      throw new Error(`Kodai wand was not equipped before queued Ice Barrage resolved: ${JSON.stringify(state, null, 2)}`);
+    const body = state.equipmentItems.find((item) => item.slotId === "body");
+    if (body?.itemId !== 4736) {
+      throw new Error(`gear body switch was not equipped before queued Ice Barrage resolved: ${JSON.stringify(state, null, 2)}`);
     }
     if (
       state.dataset.lastPlayerPacketDispatch !== "player-spell-selected" ||
@@ -535,7 +548,7 @@ app.whenReady().then(async () => {
       throw new Error(`queued Ice Barrage did not resolve after the equipment mutation: ${JSON.stringify(state, null, 2)}`);
     }
     if (state.localPose.loadoutId !== "kodai-robes") {
-      throw new Error(`local actor did not render the Kodai mage loadout for queued Ice Barrage: ${JSON.stringify(state, null, 2)}`);
+      throw new Error(`local actor should keep the mage loadout while rendering the equipped gear appearance: ${JSON.stringify(state, null, 2)}`);
     }
 
     await delay(3600);

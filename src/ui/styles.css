@@ -194,6 +194,37 @@ body {
   line-height: 1.28;
 }
 
+.nhSiteUpdates {
+  display: grid;
+  grid-column: 2;
+  gap: 5px;
+  width: min(620px, 100%);
+  margin-top: 0;
+  padding-top: 9px;
+  border-top: 1px solid rgb(171 129 62 / 0.18);
+  color: #a99c84;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.nhSiteUpdates > span {
+  color: #7e7667;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.nhSiteUpdates ul {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding-left: 16px;
+}
+
+.nhSiteUpdates li::marker {
+  color: #8e7442;
+}
+
 .nhSiteMoreInfo {
   position: absolute;
   left: 0;
@@ -279,6 +310,10 @@ body {
     justify-self: stretch;
   }
 
+  .nhSiteUpdates {
+    grid-column: 1;
+  }
+
   .nhSiteSourceLine {
     grid-column: 1;
   }
@@ -313,6 +348,7 @@ body {
   }
 
   .nhSiteIntroDetails,
+  .nhSiteUpdates,
   .nhSiteMoreInfo,
   .nhSiteNotice,
   .nhSiteBackdrop::after {
@@ -2227,6 +2263,13 @@ h3 {
   pointer-events: none;
 }
 
+.nhOptionsWindowModeLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
 .nhOptionsCameraZoomLayer {
   position: absolute;
   inset: 0;
@@ -2242,7 +2285,8 @@ h3 {
 }
 
 .nhOptionsKeybindingSourceFrame,
-.nhOptionsKeybindingGeneratedIcon {
+.nhOptionsKeybindingGeneratedIcon,
+.nhOptionsWindowModeIcon {
   position: absolute;
   display: block;
   pointer-events: none;
@@ -2252,6 +2296,7 @@ h3 {
 .nhSideTabButton,
 .nhOptionsCameraZoomTrack,
 .nhOptionsCameraZoomReset,
+.nhOptionsWindowModeButton,
 .nhOptionsKeybindingButton,
 .nhChatboxButton,
 .nhEquipmentItemButton,
@@ -2269,6 +2314,7 @@ h3 {
 .nhSideTabButton:focus-visible,
 .nhOptionsCameraZoomTrack:focus-visible,
 .nhOptionsCameraZoomReset:focus-visible,
+.nhOptionsWindowModeButton:focus-visible,
 .nhOptionsKeybindingButton:focus-visible,
 .nhChatboxButton:focus-visible,
 .nhEquipmentItemButton:focus-visible,
@@ -3791,6 +3837,24 @@ h3 {
   color: #c6b895;
   line-height: 15px;
   pointer-events: auto;
+  user-select: none;
+}
+
+.nhContextMenu,
+.nhContextMenu * {
+  outline: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nhContextMenu:focus,
+.nhContextMenu:focus-visible,
+.nhContextMenu *:focus,
+.nhContextMenu *:focus-visible,
+.nhContextMenu *:active {
+  outline: none;
+  box-shadow: none;
 }
 
 .nhContextMenuTitle {
@@ -3820,13 +3884,24 @@ h3 {
   display: block;
   width: 100%;
   height: 15px;
+  appearance: none;
+  -webkit-appearance: none;
   border: 0;
   padding: 0;
   background: transparent;
   color: #c6b895;
   text-align: left;
   cursor: default;
+  font: inherit;
   --nh-context-menu-text-color: #c6b895;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nhContextMenuOption:focus,
+.nhContextMenuOption:focus-visible,
+.nhContextMenuOption:active {
+  outline: none;
+  box-shadow: none;
 }
 
 .nhContextMenuHover {

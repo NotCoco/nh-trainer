@@ -2,6 +2,10 @@ const { app, BrowserWindow } = require("electron");
 const path = require("node:path");
 
 const [, , projectRoot] = process.argv;
+// Source: ZoomPlugin.outerZoomLimit applies as 128 - outerLimit. The trainer
+// uses a small outerLimit=32 extension for close zoom, not the aggressive value
+// that previously caused a foot-level orbit.
+const expectedOuterZoomLimit = 96;
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -111,8 +115,8 @@ app.whenReady().then(async () => {
     });
     assertWheelState("scroll up zoom clamps at Nh outer limit", state.afterOuterClamp, {
       lastRotation: "1",
-      zoomHeight: 128,
-      zoomWidth: 128
+      zoomHeight: expectedOuterZoomLimit,
+      zoomWidth: expectedOuterZoomLimit
     });
     assertWheelState("scroll down zoom clamps at Nh inner limit", state.afterInnerClamp, {
       lastRotation: "-1",

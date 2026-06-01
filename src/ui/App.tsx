@@ -138,6 +138,13 @@ export function App(): JSX.Element {
               <strong>Settings and setup save in this browser</strong>
             </div>
           </div>
+          <div className="nhSiteUpdates" aria-label="Recent updates">
+            <span>Updates</span>
+            <ul>
+              <li>Hard mode improved: beat the previous hard bot in 68.8% of decisive head-to-head fights.</li>
+              <li>Movement bug fix: opponent teleporting around freeze/pathing transitions should be reduced.</li>
+            </ul>
+          </div>
           <details className="nhSiteMoreInfo">
             <summary>More info</summary>
             <p>

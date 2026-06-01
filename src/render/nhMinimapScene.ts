@@ -1,4 +1,5 @@
 import { NH_CAMERA_UNITS } from "./nhClientCamera";
+import { NH_TILE_WORLD_UNITS } from "./nhTileMovement";
 import type { NhArenaMetadata, NhArenaObjectPlacement, NhArenaTile } from "./nhSceneCollision";
 import type { RuntimeTile } from "./runtimeScene";
 
@@ -257,8 +258,17 @@ export function nhMinimapSceneCenter(
   localTile: RuntimeTile
 ): { readonly x: number; readonly y: number } {
   return {
-    x: sprite.sourceInsetPixels + sprite.originSceneTile.x * sprite.pixelsPerTile + localTile.x * sprite.pixelsPerTile + 2,
-    y: sourceSpriteSize - sprite.sourceInsetPixels - sprite.originSceneTile.y * sprite.pixelsPerTile - localTile.z * sprite.pixelsPerTile - 2
+    x:
+      sprite.sourceInsetPixels +
+      sprite.originSceneTile.x * sprite.pixelsPerTile +
+      Math.trunc((localTile.x / NH_TILE_WORLD_UNITS) * sprite.pixelsPerTile) +
+      2,
+    y:
+      sourceSpriteSize -
+      sprite.sourceInsetPixels -
+      sprite.originSceneTile.y * sprite.pixelsPerTile -
+      Math.trunc((localTile.z / NH_TILE_WORLD_UNITS) * sprite.pixelsPerTile) -
+      2
   };
 }
 
@@ -432,8 +442,8 @@ function mapIconObject(
       worldX: object.x,
       worldY: object.y,
       tile: {
-        x: object.x - originWorldTile.x,
-        z: object.y - originWorldTile.y
+        x: (object.x - originWorldTile.x) * NH_TILE_WORLD_UNITS,
+        z: (object.y - originWorldTile.y) * NH_TILE_WORLD_UNITS
       },
       type: object.type,
       orientation: object.orientation & 3

@@ -7,6 +7,24 @@ import ts from "typescript";
 
 const require = createRequire(import.meta.url);
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const workspaceRoot = path.resolve(projectRoot, "..");
+const legacySourceName = ["Kro", "nos"].join("");
+const legacySourceNameLower = legacySourceName.toLowerCase();
+const sourceRoot = process.env.NH_SOURCE_ROOT
+  ? path.resolve(process.env.NH_SOURCE_ROOT)
+  : path.join(
+    workspaceRoot,
+    `${legacySourceNameLower}-osrs-184-master`,
+    `${legacySourceNameLower}-osrs-184-master`,
+    `${legacySourceName}-master`
+  );
+const serverRoot = process.env.NH_SERVER_JAVA_RUIN_ROOT
+  ? path.resolve(process.env.NH_SERVER_JAVA_RUIN_ROOT)
+  : path.join(sourceRoot, `${legacySourceNameLower}-server`, "src", "main", "java", "io", "ruin");
+const clientSourceRoot = process.env.NH_CLIENT_SOURCE_ROOT
+  ? path.resolve(process.env.NH_CLIENT_SOURCE_ROOT)
+  : path.join(workspaceRoot, `${legacySourceName}184-Client`, "runelite-client", "src", "main");
+const clientStandaloneRoot = path.join(clientSourceRoot, "java", "net", "runelite", "standalone");
 const moduleCache = new Map();
 
 function loadTsModule(relativePath) {
@@ -92,6 +110,26 @@ function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
   }
+}
+
+function extractBlockSource(source, marker) {
+  const markerIndex = source.indexOf(marker);
+  assert(markerIndex !== -1, `Could not find source marker: ${marker}`);
+  const openBraceIndex = source.indexOf("{", markerIndex);
+  assert(openBraceIndex !== -1, `Could not find source block for marker: ${marker}`);
+  let depth = 0;
+  for (let index = openBraceIndex; index < source.length; index += 1) {
+    const character = source[index];
+    if (character === "{") {
+      depth += 1;
+    } else if (character === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        return source.slice(markerIndex, index + 1);
+      }
+    }
+  }
+  throw new Error(`Could not close source block for marker: ${marker}`);
 }
 
 function geometryForMetadata(metadata) {
@@ -229,6 +267,25 @@ const playerModelSources = {
   serverItems: readJson("fixtures/assets/defs/server-items.json"),
   bodyColors: readJson("fixtures/assets/defs/body-colors.json")
 };
+const runtimeSceneViewerSource = readFileSync(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
+const runtimePlayerCombatSource = readFileSync(path.join(projectRoot, "src", "sim", "runtimePlayerCombat.ts"), "utf8");
+const clientActorMovementSource = readFileSync(path.join(clientStandaloneRoot, "class329.java"), "utf8");
+const serverTabInventorySource = readFileSync(
+  path.join(serverRoot, "model", "inter", "handlers", "TabInventory.java"),
+  "utf8"
+);
+const serverEquipmentSource = readFileSync(
+  path.join(serverRoot, "model", "item", "containers", "Equipment.java"),
+  "utf8"
+);
+const serverPlayerCombatSource = readFileSync(
+  path.join(serverRoot, "model", "entity", "player", "PlayerCombat.java"),
+  "utf8"
+);
+const serverDirectionUpdateSource = readFileSync(
+  path.join(serverRoot, "model", "entity", "shared", "masks", "EntityDirectionUpdate.java"),
+  "utf8"
+);
 assertValidClientViewTrace(fixtureTrace);
 
 assert(actorSequenceDefinitions.get(1979) === "barrage_cast", "actor sequence store should resolve barrage_cast from exported render sequence fixtures");
@@ -375,38 +432,22 @@ const composedTentacle = composeNhPlayerModel(playerModelSources, {
   bodyColors: tentacleLoadout.bodyColors
 });
 attachNhAnimationMetadata(composedTentacle.scene, composedTentacle.metadata);
-const attachedOpaqueTransparency = materialTransparencyByMeshName(
+const attachedPlayerTransparency = materialTransparencyByMeshName(
   composedTentacle.scene,
-  "cache-composed-player-appearance-opaque"
-);
-const attachedAlphaTransparency = materialTransparencyByMeshName(
-  composedTentacle.scene,
-  "cache-composed-player-appearance-alpha"
+  "cache-composed-player-appearance"
 );
 restoreNhActorBasePose(composedTentacle.scene);
-const opaqueTransparency = materialTransparencyByMeshName(
+const restoredPlayerTransparency = materialTransparencyByMeshName(
   composedTentacle.scene,
-  "cache-composed-player-appearance-opaque"
-);
-const alphaTransparency = materialTransparencyByMeshName(
-  composedTentacle.scene,
-  "cache-composed-player-appearance-alpha"
+  "cache-composed-player-appearance"
 );
 assert(
-  attachedOpaqueTransparency.length > 0 && attachedOpaqueTransparency.every((transparent) => transparent === false),
-  "opaque player submesh must stay opaque when sequence metadata is attached"
+  attachedPlayerTransparency.length > 0 && attachedPlayerTransparency.every((transparent) => transparent === true),
+  "single painter-ordered player mesh should stay in the transparent render pass when sequence metadata is attached"
 );
 assert(
-  attachedAlphaTransparency.length > 0 && attachedAlphaTransparency.every((transparent) => transparent === true),
-  "alpha player submesh should stay transparent when sequence metadata is attached"
-);
-assert(
-  opaqueTransparency.length > 0 && opaqueTransparency.every((transparent) => transparent === false),
-  "opaque player submesh must stay opaque after sequence alpha restore"
-);
-assert(
-  alphaTransparency.length > 0 && alphaTransparency.every((transparent) => transparent === true),
-  "alpha player submesh should remain transparent after sequence alpha restore"
+  restoredPlayerTransparency.length > 0 && restoredPlayerTransparency.every((transparent) => transparent === true),
+  "single painter-ordered player mesh should remain in the transparent render pass after sequence alpha restore"
 );
 
 const [walkFrameGroup, walkFrameId] = walkSequence.frames[0].frameKey.split(":").map((part) => Number(part));
@@ -433,6 +474,168 @@ assert(tick2Local?.sequenceName === "walk", "fixture tick 2 local actor should u
 assert(tick2Local?.sequenceMode === "loop", "fixture tick 2 walk should use loop playback");
 assert(tick2Local?.animationCycle === 2, "movement playback should advance on the replay cycle");
 
+assert(
+  serverTabInventorySource.includes("player.getEquipment().equip(item);") &&
+    serverTabInventorySource.includes("player.resetActions(false, player.getMovement().following != null, true);") &&
+    serverEquipmentSource.includes("if(!player.recentlyEquipped.isDelayed() && equipSlot == Equipment.SLOT_WEAPON)") &&
+    serverEquipmentSource.includes("player.recentlyEquipped.delay(1);") &&
+    serverEquipmentSource.includes("// player.resetAnimation();"),
+  "Nh equipment source no longer matches the assumption that equipping does not reset the current animation sequence"
+);
+const applyLoadoutMutationSource = extractBlockSource(
+  runtimeSceneViewerSource,
+  "const applyInventoryActorLoadoutMutation ="
+);
+const cacheRuntimeActorModelsSource = extractBlockSource(
+  runtimeSceneViewerSource,
+  "const cacheRuntimeActorModels ="
+);
+const ensureLocalActorEquipmentModelSource = extractBlockSource(
+  runtimeSceneViewerSource,
+  "const ensureLocalActorEquipmentModel ="
+);
+const equipmentOverrideModelEffectSource = extractBlockSource(
+  runtimeSceneViewerSource,
+  "useEffect(() => {\n    if (!equipmentOverride"
+);
+for (const snippet of [
+  "wasManualControl ? manualActorRef.current : snapshotActor",
+  "loadoutId",
+  "appearance",
+  "setRuntimePlayerCombatLoadout",
+  "manualActorRef.current = nextActor",
+  "setManualActor(nextActor)"
+]) {
+  assert(
+    applyLoadoutMutationSource.includes(snippet),
+    `applyInventoryActorLoadoutMutation should preserve the manual actor and only patch appearance/loadout state: ${snippet}`
+  );
+}
+for (const forbiddenSnippet of [
+  "activeSequenceKey:",
+  "completedSequenceKey:",
+  "sequencePathLengthAtStart:",
+  "primaryFrame:",
+  "primaryFrameCycle:",
+  "primarySequenceCycle:",
+  "routeWaypoints: []",
+  "logicalRouteWaypoints: []",
+  "clientPosition: nhClientPositionFromRuntimeTile",
+  "setManualActor((currentActor)"
+]) {
+  assert(
+    !applyLoadoutMutationSource.includes(forbiddenSnippet),
+    `applyInventoryActorLoadoutMutation must not reset source animation/path cursor state on equip: ${forbiddenSnippet}`
+  );
+}
+assert(
+  cacheRuntimeActorModelsSource.includes("modelsRef.current = currentModels") &&
+    cacheRuntimeActorModelsSource.includes("setModels(currentModels)") &&
+    ensureLocalActorEquipmentModelSource.includes("cacheRuntimeActorModels([pose])") &&
+    !ensureLocalActorEquipmentModelSource.includes("composeNhPlayerModel(") &&
+    equipmentOverrideModelEffectSource.includes("cacheRuntimeActorModels([localPose])") &&
+    !equipmentOverrideModelEffectSource.includes("composeNhPlayerModel(") &&
+    !equipmentOverrideModelEffectSource.includes("setModels(") &&
+    runtimeSceneViewerSource.includes("RUNTIME_EQUIPMENT_MODEL_PREWARM_SEQUENCE_NAMES") &&
+    runtimeSceneViewerSource.includes("runtimeSwitchableEquipmentModelSignature(equipmentItems, inventorySlots)") &&
+    runtimeSceneViewerSource.includes("runtimeSwitchableEquipmentModelStates") &&
+    runtimeSceneViewerSource.includes("PlayerAppearance_cachedModels") &&
+    runtimeSceneViewerSource.includes("sequenceMode: sequenceName === \"idle\" ? \"loop\" : \"primary\""),
+  "equipment swaps during a held primary sequence should use the shared/prewarmed model cache with a stable item-set signature instead of composing a new player model in the equip click path"
+);
+const advanceManualActorSource = extractBlockSource(
+  runtimeSceneViewerSource,
+  "function advanceManualActor(\n  actor"
+);
+const manualActorHasClientTargetIndexSource = extractBlockSource(
+  runtimeSceneViewerSource,
+  "function manualActorHasClientTargetIndex"
+);
+assert(
+  advanceManualActorSource.includes("manualActorHasClientTargetIndex(currentActor, combatActor, cycle)") &&
+    manualActorHasClientTargetIndexSource.includes("combatActor !== null && combatActor.targetId !== null") &&
+    manualActorHasClientTargetIndexSource.includes("actor.clientTargetIndexUntilClientCycle >= clientCycle") &&
+    runtimeSceneViewerSource.includes("manualActorWithClientTargetIndexHold") &&
+    runtimeSceneViewerSource.includes("NH_CLIENT_TARGET_INDEX_RESET_HOLD_CYCLES") &&
+    !manualActorHasClientTargetIndexSource.includes("lastTargetTimeoutTicks") &&
+    runtimeSceneViewerSource.includes("NH_CLIENT_TARGET_INDEX_EQUIP_RESET_HOLD_CYCLES") &&
+    runtimeSceneViewerSource.includes("event.kind !== \"attack\" || event.spellId === undefined || event.autocast === true") &&
+    serverPlayerCombatSource.includes("if(!autocast)") &&
+    serverPlayerCombatSource.includes("reset();") &&
+    serverPlayerCombatSource.includes("player.faceNone(!isDead());") &&
+    serverDirectionUpdateSource.includes("public void remove(boolean delay)") &&
+    serverDirectionUpdateSource.includes("stage = 1;") &&
+    serverDirectionUpdateSource.includes("stage = 2;"),
+  "manual movement speed should use source-shaped delayed targetIndex holds for equipment resets and manual spell resets, not the trainer's broad last-target timeout"
+);
+const setCombatLoadoutSource = extractBlockSource(
+  runtimePlayerCombatSource,
+  "export function setRuntimePlayerCombatLoadout"
+);
+assert(
+  setCombatLoadoutSource.includes("...actor") &&
+    setCombatLoadoutSource.includes("loadoutId,") &&
+    setCombatLoadoutSource.includes("equipment,") &&
+    !setCombatLoadoutSource.includes("actionSequenceName:") &&
+    !setCombatLoadoutSource.includes("actionUntilTick:") &&
+    !setCombatLoadoutSource.includes("actionStartedAtTick:") &&
+    !setCombatLoadoutSource.includes("actionStartedAtClientCycle:"),
+  "setRuntimePlayerCombatLoadout should preserve the active action sequence fields while changing equipment"
+);
+const syncManualActorActionSequenceSource = extractBlockSource(
+  runtimeSceneViewerSource,
+  "function syncManualActorActionSequence"
+);
+const advancePrimarySequenceCursorSource = extractBlockSource(
+  runtimeSceneViewerSource,
+  "function nhAdvancePrimarySequenceCursor"
+);
+const authoritativeSequenceCursorSource = extractBlockSource(
+  runtimeSceneViewerSource,
+  "function manualActorWithAuthoritativeSequenceCursor"
+);
+const movementBlockedBySequenceSource = extractBlockSource(
+  runtimeSceneViewerSource,
+  "function manualActorMovementBlockedByNhSequence"
+);
+assert(
+  syncManualActorActionSequenceSource.includes("if (actor.activeSequenceKey !== null)") &&
+    syncManualActorActionSequenceSource.includes("return actor;") &&
+    advancePrimarySequenceCursorSource.includes("manualActorActiveSequenceContext") &&
+    authoritativeSequenceCursorSource.includes("incoming.activeSequenceKey === null") &&
+    authoritativeSequenceCursorSource.includes("React state must not erase that client cursor") &&
+    authoritativeSequenceCursorSource.includes("lastMovementClientCycle") &&
+    authoritativeSequenceCursorSource.includes("same-sequence stale React state") &&
+    authoritativeSequenceCursorSource.includes("routeWaypoints: current.routeWaypoints") &&
+    authoritativeSequenceCursorSource.includes("logicalRouteWaypoints: current.logicalRouteWaypoints") &&
+    authoritativeSequenceCursorSource.includes("serverRouteWaypoints: current.serverRouteWaypoints") &&
+    authoritativeSequenceCursorSource.includes("clientTargetIndexUntilClientCycle: current.clientTargetIndexUntilClientCycle") &&
+    authoritativeSequenceCursorSource.includes("movementStallTicks: current.movementStallTicks") &&
+    authoritativeSequenceCursorSource.includes("movementBlockedBySequence: current.movementBlockedBySequence") &&
+    movementBlockedBySequenceSource.includes("manualActorActiveSequenceContext") &&
+    !movementBlockedBySequenceSource.includes("runtimePlayerCombatActionActive"),
+  "client primary sequences must outlive combat action timers and keep movement/path blocking until class329-style frame playback finishes"
+);
+assert(
+  authoritativeSequenceCursorSource.includes("current.completedSequenceKey && current.completedSequenceKey === incoming.activeSequenceKey") &&
+    authoritativeSequenceCursorSource.includes("after the primary sequence ended, it must still not roll back the slingshot") &&
+    authoritativeSequenceCursorSource.includes("routeWaypoints: current.routeWaypoints") &&
+    authoritativeSequenceCursorSource.includes("logicalRouteWaypoints: current.logicalRouteWaypoints") &&
+    authoritativeSequenceCursorSource.includes("serverRouteWaypoints: current.serverRouteWaypoints") &&
+    authoritativeSequenceCursorSource.includes("clientTargetIndexUntilClientCycle: current.clientTargetIndexUntilClientCycle") &&
+    authoritativeSequenceCursorSource.includes("movementStallTicks: current.movementStallTicks") &&
+    authoritativeSequenceCursorSource.includes("lastMovementClientCycle: current.lastMovementClientCycle"),
+  "late equipment appearance state should preserve the completed-sequence slingshot path/catch-up cursor"
+);
+assert(
+  clientActorMovementSource.includes("var2.field3436 == 1 && var0.field726 > 0") &&
+    clientActorMovementSource.includes("var0.sequenceDelay = 1") &&
+    advancePrimarySequenceCursorSource.includes("primarySequenceDelayCycles") &&
+    advancePrimarySequenceCursorSource.includes("nhSequencePrecedenceAnimating(sequence) === 1") &&
+    advancePrimarySequenceCursorSource.includes("actor.sequencePathLengthAtStart > 0"),
+  "primary sequence playback should mirror class329 sequenceDelay when precedenceAnimating=1 and field726/path length remains"
+);
+
 console.log(
   JSON.stringify(
     {
@@ -456,10 +659,8 @@ console.log(
         smoothingFractionalCursorDeltaX: smoothedFractionalCursor.positions[0] - unsmoothedSourceCursor.positions[0],
         primaryEndCursor,
         primaryFractionalCursor,
-        tentacleAttachedOpaqueMeshTransparent: attachedOpaqueTransparency,
-        tentacleAttachedAlphaMeshTransparent: attachedAlphaTransparency,
-        tentacleOpaqueMeshTransparent: opaqueTransparency,
-        tentacleAlphaMeshTransparent: alphaTransparency
+        tentacleAttachedPlayerMeshTransparent: attachedPlayerTransparency,
+        tentaclePlayerMeshTransparent: restoredPlayerTransparency
       },
       replay: {
         tick1Local: tick1Local.sequenceName,

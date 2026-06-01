@@ -8,7 +8,24 @@ const require = createRequire(import.meta.url);
 const electronPath = require("electron");
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const scriptPath = path.join(projectRoot, "scripts", "inventory-spell-player-same-tick-electron.cjs");
-const nhRoot = path.resolve(projectRoot, "..", "nh-osrs-184-master", "nh-osrs-184-master", "Nh-master");
+const workspaceRoot = path.resolve(projectRoot, "..");
+const legacySourceName = ["Kro", "nos"].join("");
+const legacySourceNameLower = legacySourceName.toLowerCase();
+const sourceRoot = process.env.NH_SOURCE_ROOT
+  ? path.resolve(process.env.NH_SOURCE_ROOT)
+  : path.resolve(
+    workspaceRoot,
+    `${legacySourceNameLower}-osrs-184-master`,
+    `${legacySourceNameLower}-osrs-184-master`,
+    `${legacySourceName}-master`
+  );
+const serverRoot = process.env.NH_SERVER_JAVA_RUIN_ROOT
+  ? path.resolve(process.env.NH_SERVER_JAVA_RUIN_ROOT)
+  : path.join(sourceRoot, `${legacySourceNameLower}-server`, "src", "main", "java", "io", "ruin");
+const clientSourceRoot = process.env.NH_CLIENT_SOURCE_ROOT
+  ? path.resolve(process.env.NH_CLIENT_SOURCE_ROOT)
+  : path.join(workspaceRoot, `${legacySourceName}184-Client`, "runelite-client", "src", "main");
+const clientStandaloneRoot = path.join(clientSourceRoot, "java", "net", "runelite", "standalone");
 
 const runtimeSource = await readFile(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
 for (const snippet of [
@@ -17,7 +34,7 @@ for (const snippet of [
   "selectedSpellWidget/selectedSpellChildIndex",
   "lastPlayerQueuedCombatKind = \"spell\"",
   "applyPlayerSpellCommand(packet.entry, packet.position, packet.spellId, \"queued\")",
-  "actionSequenceKey: actionFrameActive ? actionSequenceKey ?? undefined : undefined",
+  "actionSequenceKey: actionFrameActive ? activeSequence?.key : undefined",
   "nhAdvancePrimarySequenceCursor",
   "primaryFrameCycle > frameLength",
   "completedSequenceKey: actor.activeSequenceKey",
@@ -30,7 +47,7 @@ for (const snippet of [
 }
 
 const clientSource = await readFile(
-  path.join(nhRoot, "runelite", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "Client.java"),
+  path.join(clientStandaloneRoot, "Client.java"),
   "utf8"
 );
 for (const snippet of [
@@ -46,11 +63,11 @@ for (const snippet of [
 }
 
 const loginPacketSource = await readFile(
-  path.join(nhRoot, "runelite", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "LoginPacket.java"),
+  path.join(clientStandaloneRoot, "LoginPacket.java"),
   "utf8"
 );
 const clientActorStepSource = await readFile(
-  path.join(nhRoot, "runelite", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "class329.java"),
+  path.join(clientStandaloneRoot, "class329.java"),
   "utf8"
 );
 for (const snippet of [
@@ -65,7 +82,7 @@ for (const snippet of [
 }
 
 const targetSpellSource = await readFile(
-  path.join(nhRoot, "nh-server", "src", "main", "java", "io", "ruin", "model", "skills", "magic", "spells", "TargetSpell.java"),
+  path.join(serverRoot, "model", "skills", "magic", "spells", "TargetSpell.java"),
   "utf8"
 );
 if (!targetSpellSource.includes("entityAction = (p, e) -> p.getCombat().queueSpell(this, e);")) {
@@ -73,7 +90,7 @@ if (!targetSpellSource.includes("entityAction = (p, e) -> p.getCombat().queueSpe
 }
 
 const playerCombatSource = await readFile(
-  path.join(nhRoot, "nh-server", "src", "main", "java", "io", "ruin", "model", "entity", "player", "PlayerCombat.java"),
+  path.join(serverRoot, "model", "entity", "player", "PlayerCombat.java"),
   "utf8"
 );
 for (const snippet of [

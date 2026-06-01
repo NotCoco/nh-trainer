@@ -25,6 +25,7 @@ import {
   runtimePlayerCombatDefaultLevels,
   runtimePlayerCombatDefaultSupplies,
   setRuntimePlayerCombatAutocast,
+  setRuntimePlayerCombatAttackSet,
   setRuntimePlayerCombatLoadout,
   setRuntimePlayerCombatPrayers,
   syncRuntimePlayerCombatStateToInput,
@@ -486,6 +487,7 @@ export function applyRuntimeOpponentPolicyAction(input: {
     // ICE_BARRAGE_AUTOCAST_SLOT) before attackTarget(opponent).
     state = setRuntimePlayerCombatAutocast(state, "opponent", "ice-barrage");
   }
+  state = runtimePolicySyncRangedAttackMode(state, effectiveAction, context);
   const contextAfterSupply = runtimePolicyContextWithSelfActor(
     context,
     state.actors.opponent,
@@ -563,7 +565,7 @@ export function applyRuntimeOpponentPolicyAction(input: {
     canStep: input.canStep,
     projectileLineOfSight: input.projectileLineOfSight
   });
-  state = magicLineOfSightResult.state;
+  state = runtimePolicyStateWithOpponentTile(magicLineOfSightResult.state, magicLineOfSightResult.opponentTile);
   state = requestRuntimePlayerCombatAttack(state, "opponent", "local-player");
 
   return {
@@ -581,6 +583,30 @@ export function applyRuntimeOpponentPolicyAction(input: {
     nextRepositionTick: magicLineOfSightResult.nextRepositionTick,
     consumedSupplies: supplyResult.consumed,
     strippedEquipmentSlots: equipmentResult.strippedSlots
+  };
+}
+
+function runtimePolicyStateWithOpponentTile(
+  state: RuntimePlayerCombatState,
+  opponentTile: RuntimeTile
+): RuntimePlayerCombatState {
+  const opponent = state.actors.opponent;
+  if (sameRuntimePolicyTile(opponent.tile, opponentTile)) {
+    return state;
+  }
+
+  // Source: NhStakerBot movement decisions update the player's Position only
+  // through accepted Movement steps. A no-move policy tick must keep the live
+  // combat tile aligned to that current Position, not an older bridge tile.
+  return {
+    ...state,
+    actors: {
+      ...state.actors,
+      opponent: {
+        ...opponent,
+        tile: opponentTile
+      }
+    }
   };
 }
 
@@ -2562,7 +2588,7 @@ function runtimePolicyResolveDefencePrayer(
       ? "redemption"
       : runtimePolicyProtectionPrayerForOpponent(context);
   }
-  return requested;
+  return runtimePolicyReachableProtectionPrayer(context, requested);
 }
 
 function runtimePolicyActionWithDelayedPrayerCounter(
@@ -2628,10 +2654,10 @@ const runtimePolicyOffenceStripBadOffencePenalty = 0;
 const runtimePolicyOffenceStripBadNetPenalty = 0;
 const runtimePolicyOffenceStripAsymmetricLossScale = 0;
 const runtimePolicyRegearStyleBonus = 0;
-const runtimePolicyDefenceBeliefEvScale = 0.48;
-const runtimePolicyDefenceBeliefHitScale = 0.28;
-const runtimePolicyDefenceBeliefBestGapScale = 0.58;
-const runtimePolicyDefenceBeliefBestMatchBonus = 0.1;
+const runtimePolicyDefenceBeliefEvScale = 0.04;
+const runtimePolicyDefenceBeliefHitScale = 0.02;
+const runtimePolicyDefenceBeliefBestGapScale = 0.05;
+const runtimePolicyDefenceBeliefBestMatchBonus = 0.01;
 const runtimePolicyDefenceBeliefMinPressure = 0.08;
 const runtimePolicyActualPrayerOnHitBonus = 0.7;
 const runtimePolicyActualPrayerOnDamageScale = 0.018;
@@ -2788,7 +2814,46 @@ function runtimePolicyProtectionPrayerForOpponent(context: NhDuelControllerConte
     return activeProtectionPrayer(context.self.activePrayers) ?? "protect_from_melee";
   }
   const likely = runtimePolicyResolveThreatStyle(context);
-  return likely ? protectPrayerForStyle(styleCombatStyle(likely)) : activeProtectionPrayer(context.self.activePrayers) ?? "protect_from_melee";
+  const requested = likely
+    ? protectPrayerForStyle(styleCombatStyle(likely))
+    : activeProtectionPrayer(context.self.activePrayers) ?? "protect_from_melee";
+  return runtimePolicyReachableProtectionPrayer(context, requested);
+}
+
+function runtimePolicyReachableProtectionPrayer(
+  context: NhDuelControllerContext,
+  requested: PrayerId
+): PrayerId {
+  const requestedStyle = runtimePolicyProtectedStyleFromPrayer(requested as ProtectionPrayerId);
+  if (requestedStyle !== "melee" || context.opponent.observedInfoKnown === false) {
+    return requested;
+  }
+  const distance = runtimePolicyObservedDistance(context);
+  if (distance < 0 || runtimePolicyClientStyleThreatDamage(context, "melee", undefined, distance) > 0) {
+    return requested;
+  }
+  const fallback = activeProtectionPrayer(context.self.activePrayers);
+  const best = runtimePolicyStrongestReachableThreatPrayer(context, distance);
+  if (best) {
+    return best;
+  }
+  return fallback && fallback !== "protect_from_melee" ? fallback : requested;
+}
+
+function runtimePolicyStrongestReachableThreatPrayer(
+  context: NhDuelControllerContext,
+  distance: number
+): ProtectionPrayerId | null {
+  let bestPrayer: ProtectionPrayerId | null = null;
+  let bestDamage = 0;
+  for (const style of nhOffenceStyles) {
+    const damage = runtimePolicyClientStyleThreatDamage(context, style, undefined, distance);
+    if (damage > bestDamage) {
+      bestDamage = damage;
+      bestPrayer = protectPrayerForStyle(styleCombatStyle(style));
+    }
+  }
+  return bestPrayer;
 }
 
 function runtimePolicyResolveThreatStyle(context: NhDuelControllerContext): NhOffenceStyle | null {
@@ -5576,6 +5641,7 @@ function runtimePolicyPressureApproachTile(input: {
 
 function runtimePolicyDirectionalStepWouldStarveTargetRoute(
   input: {
+    readonly state: RuntimePlayerCombatState;
     readonly action: NhPolicyAction;
     readonly context: NhDuelControllerContext;
     readonly opponentTile: RuntimeTile;
@@ -5587,7 +5653,11 @@ function runtimePolicyDirectionalStepWouldStarveTargetRoute(
   if (!runtimePolicyMovementIsDirectional(input.action.movementIntent)) {
     return false;
   }
-  const maxRange = runtimePolicyTargetRouteRangeForStyle(input.action.offenceStyle, input.context.self);
+  const maxRange = runtimePolicyTargetRouteRangeForStyle(
+    input.action.offenceStyle,
+    input.context.self,
+    input.state.actors.opponent.attackSetIndex
+  );
   if (maxRange === null) {
     return false;
   }
@@ -5613,7 +5683,50 @@ function runtimePolicyMovementIsDirectional(movement: NhMovementIntent): boolean
   return movement.startsWith("step_") && movement !== "step_out";
 }
 
-function runtimePolicyTargetRouteRangeForStyle(style: NhOffenceStyle, actor: NhDuelActorState): number | null {
+function runtimePolicySyncRangedAttackMode(
+  state: RuntimePlayerCombatState,
+  action: NhPolicyAction,
+  context: NhDuelControllerContext
+): RuntimePlayerCombatState {
+  if (action.offenceStyle !== "ranged") {
+    return state;
+  }
+  const actor = state.actors.opponent;
+  const attackSetIndex = runtimePolicyPreferredRangedAttackSetIndex(actor, context);
+  return setRuntimePlayerCombatAttackSet(state, "opponent", attackSetIndex);
+}
+
+function runtimePolicyPreferredRangedAttackSetIndex(
+  actor: RuntimePlayerCombatActorState,
+  context: NhDuelControllerContext
+): number {
+  const weaponId = runtimePolicyRangedWeaponIdForCombatActor(actor, context.self);
+  const baseRange = nhWeaponProfiles[weaponId].attackRange;
+  const longRange = Math.min(baseRange + 2, 10);
+  const distance = chebyshevPolicyDistance(context.self.tile, context.opponent.tile);
+  // Source: PlayerCombat.preAttack() adds 2 tiles for AttackType.LONG_RANGED,
+  // capped at 10, while RAPID_RANGED subtracts one attack tick. Keep rapid unless
+  // the extra long-range strip is the difference between in-range and out-of-range.
+  return distance > baseRange && distance <= longRange ? 3 : 1;
+}
+
+function runtimePolicyRangedWeaponIdForCombatActor(
+  actor: RuntimePlayerCombatActorState,
+  fallback: NhDuelActorState
+): NhWeaponId {
+  return (
+    nhGearProfileWeaponIdForEquipment(actor.equipment) ??
+    actor.gearProfile?.rangedWeaponId ??
+    fallback.gearProfile?.rangedWeaponId ??
+    fallback.weaponId
+  );
+}
+
+function runtimePolicyTargetRouteRangeForStyle(
+  style: NhOffenceStyle,
+  actor: NhDuelActorState,
+  attackSetIndex: number
+): number | null {
   if (style === "magic") {
     return 10;
   }
@@ -5622,7 +5735,8 @@ function runtimePolicyTargetRouteRangeForStyle(style: NhOffenceStyle, actor: NhD
       actor.gearProfile?.rangedWeaponId ??
       nhGearProfileWeaponIdForEquipment(actor.candidateEquipmentByStyle?.ranged ?? actor.equipment) ??
       actor.weaponId;
-    return nhWeaponProfiles[rangedWeaponId].attackRange;
+    const baseRange = nhWeaponProfiles[rangedWeaponId].attackRange;
+    return attackSetIndex === 3 ? Math.min(baseRange + 2, 10) : baseRange;
   }
   return null;
 }

@@ -1,6 +1,6 @@
 {
   "id": "client_p11_font",
-  "source": "Nh client FontName archive p11_full SpriteDefinition glyphs",
+  "source": "Kronos client FontName archive p11_full SpriteDefinition glyphs",
   "image": "client_p11_font.png",
   "width": 480,
   "height": 10,

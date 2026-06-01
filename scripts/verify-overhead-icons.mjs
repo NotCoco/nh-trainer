@@ -6,7 +6,10 @@ import vm from "node:vm";
 import ts from "typescript";
 
 const require = createRequire(import.meta.url);
+const { Box3, BufferAttribute, BufferGeometry, Group, Mesh, MeshBasicMaterial } = require("three");
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const workspaceRoot = path.resolve(projectRoot, "..");
+const legacySourceName = ["Kro", "nos"].join("");
 const moduleCache = new Map();
 
 function loadTsModule(relativePath) {
@@ -110,6 +113,10 @@ const {
   nhPrayerOverheadDefinition,
   nhSkullOverheadDefinition
 } = loadTsModule("src/render/nhOverheadIcons.ts");
+const {
+  applyNhSequenceAnimation,
+  attachNhAnimationMetadata
+} = loadTsModule("src/render/nhSequencePlayback.ts");
 const { assertValidClientViewTrace } = loadTsModule("src/sim/clientView.ts");
 const { clientViewTraceToRuntimeReplay } = loadTsModule("src/render/clientViewReplay.ts");
 
@@ -117,6 +124,22 @@ const overheadIconSource = readJson("fixtures/assets/defs/overhead-icons.json");
 const prayerAtlas = readJson("fixtures/render/sprites/prayer_overheads.json");
 const skullAtlas = readJson("fixtures/render/sprites/pk_skull.json");
 const overheadIconDefinitions = createNhOverheadIconDefinitionStore(overheadIconSource);
+const clientStandaloneRoot = path.join(
+  workspaceRoot,
+  `${legacySourceName}184-Client`,
+  "runelite-client",
+  "src",
+  "main",
+  "java",
+  "net",
+  "runelite",
+  "standalone"
+);
+const clientSceneSource = readFileSync(path.join(clientStandaloneRoot, "Scene.java"), "utf8");
+const clientPlayerSource = readFileSync(path.join(clientStandaloneRoot, "Player.java"), "utf8");
+const runtimeSceneViewerSource = readFileSync(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
+const overlayPlacementSource = readFileSync(path.join(projectRoot, "src", "render", "nhOverlayPlacement.ts"), "utf8");
+const sequencePlaybackSource = readFileSync(path.join(projectRoot, "src", "render", "nhSequencePlayback.ts"), "utf8");
 
 const melee = nhPrayerOverheadDefinition("protect_from_melee", overheadIconDefinitions);
 const missiles = nhPrayerOverheadDefinition("protect_from_missiles", overheadIconDefinitions);
@@ -216,6 +239,76 @@ assert(!runtimeSceneSource.includes("?? 2"), "runtimeScene should not hardcode f
 assert(
   runtimeSceneSource.includes('throw new Error("missing exported protect-from-magic overhead definition")'),
   "runtimeScene should fail closed when the exported overhead definition is missing"
+);
+assert(
+  clientSceneSource.includes("World.method1253(var0, var0.defaultHeight + 15);") &&
+    clientSceneSource.includes("World.method1253(var0, var0.defaultHeight / 2);"),
+  "client Scene.java should still project overhead icons from Actor.defaultHeight + 15 and hitsplats from defaultHeight / 2"
+);
+assert(
+  clientPlayerSource.includes("var4.method2359();") &&
+    clientPlayerSource.includes("super.defaultHeight = var4.height;"),
+  "client Player.getModel() should still refresh Actor.defaultHeight from the transformed model height"
+);
+assert(
+  overlayPlacementSource.includes("actorDefaultHeightClientUnits + 15") &&
+    overlayPlacementSource.includes("actorDefaultHeightClientUnits / 2"),
+  "nhOverlayPlacement should anchor overhead icons and hitsplats to the source Actor.defaultHeight formulas"
+);
+assert(
+  runtimeSceneViewerSource.includes("currentDefaultHeightClientUnits") &&
+    runtimeSceneViewerSource.includes("function updateActorSlotDefaultHeight") &&
+    runtimeSceneViewerSource.includes("Player.getModel() calls Model.method2359() after sequence transforms") &&
+    runtimeSceneViewerSource.includes("then stores Model.height in Actor.defaultHeight") &&
+    runtimeSceneViewerSource.includes("slot.currentDefaultHeightClientUnits") &&
+    runtimeSceneViewerSource.includes("buildRuntimeDomOverlays("),
+  "RuntimeSceneViewer should recompute actor default height after animation application and feed it into overhead placement"
+);
+assert(
+  sequencePlaybackSource.includes("function refreshNhAnimatedMeshGeometryBounds") &&
+    sequencePlaybackSource.includes("geometry.computeBoundingBox();") &&
+    sequencePlaybackSource.includes("geometry.computeBoundingSphere();") &&
+    sequencePlaybackSource.includes("refreshNhAnimatedMeshGeometryBounds(mesh.geometry);") &&
+    sequencePlaybackSource.includes("Three keeps BufferGeometry bounds cached"),
+  "nhSequencePlayback should refresh animated geometry bounds so Actor.defaultHeight follows the transformed model instead of stale base bounds"
+);
+
+const bobGeometry = new BufferGeometry();
+bobGeometry.setAttribute("position", new BufferAttribute(new Float32Array([0, 0, 0]), 3));
+const bobMesh = new Mesh(bobGeometry, new MeshBasicMaterial());
+const bobRoot = new Group();
+bobRoot.add(bobMesh);
+attachNhAnimationMetadata(bobRoot, {
+  sourceVertexCount: 1,
+  expandedVertexCount: 1,
+  sourceVertexGroups: [1],
+  expandedToSourceVertex: [0]
+});
+const bobSequence = {
+  sequenceId: 99001,
+  frames: [{ frameKey: "bob:0", lengthClientCycles: 10 }]
+};
+applyNhSequenceAnimation(
+  bobRoot,
+  bobSequence,
+  0,
+  {
+    frameStore: {
+      frames: {
+        "bob:0": {
+          transforms: [{ label: 0, type: 1, groups: [1], x: 0, y: -20, z: 0 }]
+        }
+      }
+    },
+    sequences: new Map([["bob", bobSequence]]),
+    sequencesById: new Map([[99001, bobSequence]])
+  },
+  "primary"
+);
+const animatedBounds = new Box3().setFromObject(bobRoot);
+assert(
+  animatedBounds.max.y === 20,
+  `animated geometry bounds should update after sequence transforms so overhead icons bob with model height, got ${animatedBounds.max.y}`
 );
 
 console.log(

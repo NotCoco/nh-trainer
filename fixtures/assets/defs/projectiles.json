@@ -1,5 +1,5 @@
 {
-  "source": "Nh server projectile payload ids and timings used by NH combat effects",
+  "source": "Kronos server projectile payload ids and timings used by NH combat effects",
   "projectiles": [
     {
       "id": "ice_barrage_projectile",

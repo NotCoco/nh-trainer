@@ -10,6 +10,7 @@ import type {
   NhCombatSpecialBarLayout,
   NhCombatStyleSlotLayout,
   NhCombatTextLayout,
+  NhClientDisplayMode,
   NhEquipmentPanelLayout,
   NhEquipmentSlotLayout,
   NhEquipmentUtilityButtonLayout,
@@ -368,12 +369,15 @@ interface NhClientHudProps {
   readonly layout: NhFixedClientCssLayout | null;
   readonly sourceLayout: NhFixedClientLayout | null;
   readonly snapshot: RuntimeSceneSnapshot;
+  readonly minimapSnapshot?: RuntimeSceneSnapshot;
   readonly minimapDestinationTile: RuntimeTile | null;
   readonly minimapCameraYaw: number;
   readonly minimapSceneSprite: NhMinimapSceneSprite | null;
   readonly cameraZoom?: NhCameraZoom;
   readonly onCameraZoomChange?: (zoom: NhCameraZoom) => void;
   readonly onCameraZoomReset?: () => void;
+  readonly clientDisplayMode?: NhClientDisplayMode;
+  readonly onClientDisplayModeChange?: (displayMode: NhClientDisplayMode) => void;
   readonly onMinimapTileCommand?: (command: NhMinimapTileCommand) => void;
   readonly onInventoryContextMenu?: (command: NhInventorySlotCommand) => void;
   readonly onInventoryEmptyContextMenu?: (command: NhInventoryEmptyCommand) => void;
@@ -953,12 +957,15 @@ export function NhClientHud({
   layout,
   sourceLayout,
   snapshot,
+  minimapSnapshot,
   minimapDestinationTile,
   minimapCameraYaw,
   minimapSceneSprite,
   cameraZoom,
   onCameraZoomChange,
   onCameraZoomReset,
+  clientDisplayMode,
+  onClientDisplayModeChange,
   onMinimapTileCommand,
   onInventoryContextMenu,
   onInventoryEmptyContextMenu,
@@ -1028,6 +1035,7 @@ export function NhClientHud({
   if (!atlas || !layout || !sourceLayout) {
     return null;
   }
+  const activeMinimapSnapshot = minimapSnapshot ?? snapshot;
   const normalizedInventorySlots = normalizeNhInventorySlots(inventorySlots);
   const localEquipmentItemIds = localPlayerEquipmentItemIdsBySlot(snapshot, inventoryEquipmentDefinitions);
   const localWeaponItemId = localEquipmentItemIds.get(3) ?? null;
@@ -1119,7 +1127,7 @@ export function NhClientHud({
           mapMarkerAtlas={spriteAtlases.get("minimap_map_markers")}
           mapSceneAtlas={spriteAtlases.get("minimap_map_scenes")}
           onTileCommand={onMinimapTileCommand}
-          snapshot={snapshot}
+          snapshot={activeMinimapSnapshot}
           widget={sourceLayout?.minimapWidget ?? null}
         />
         <NhCompassOverlay
@@ -1157,6 +1165,12 @@ export function NhClientHud({
           onChange={onCameraZoomChange}
           onReset={onCameraZoomReset}
           viewportHeight={sourceLayout.viewport.rect.height}
+        />
+        <NhOptionsWindowModeLayer
+          atlas={atlas}
+          displayMode={clientDisplayMode ?? sourceLayout.displayMode}
+          layout={resolvedActiveSideTabId === "options" ? activeSidePanelInterface : null}
+          onChange={onClientDisplayModeChange}
         />
         <NhNoticeboardLayer
           clientFonts={clientFonts}
@@ -1450,6 +1464,8 @@ function fixedClientStyle(layout: NhFixedClientCssLayout | null): CSSProperties 
   return {
     left: layout.surfaceRect.x,
     top: layout.surfaceRect.y,
+    width: Math.max(1, Math.round(layout.surfaceRect.width / layout.scale)),
+    height: Math.max(1, Math.round(layout.surfaceRect.height / layout.scale)),
     right: "auto",
     bottom: "auto",
     transform: `scale(${layout.scale})`,
@@ -1509,7 +1525,9 @@ function NhCompassOverlay({
       <span
         className="nhCompassSpriteRotator"
         data-angle-degrees={angleDegrees}
-        style={compassSpriteRotatorStyle(angleDegrees)}
+        data-source-left={Math.trunc(widget.rect.width / 2) - 25}
+        data-source-top={Math.trunc(widget.rect.height / 2) - 25}
+        style={compassSpriteRotatorStyle(widget.rect, compassSprite, angleDegrees)}
       >
         <span className="nhCompassSprite" style={spriteStyle(compassAtlas, compassSprite)} />
       </span>
@@ -1642,7 +1660,7 @@ function NhMinimapOverlay({
 
         const target = nhMinimapClickToTile({
           ...mask,
-          localTile: localActor.tile,
+          localTile: localActorMinimapTile,
           clickX: click.x,
           clickY: click.y,
           camAngleY: cameraYaw
@@ -2013,9 +2031,23 @@ function compassOverlayStyle(
   };
 }
 
-function compassSpriteRotatorStyle(angleDegrees: number): CSSProperties {
+function compassSpriteRotatorStyle(
+  rect: NhResolvedWidget["rect"],
+  sprite: NhHudSprite,
+  angleDegrees: number
+): CSSProperties {
+  // Source: Sprite.method6205 samples the compass around source center (25,25)
+  // into the widget mask. For the fixed 32x33 mask this means drawing the 51x51
+  // compass sprite from x/y +9 at yaw 0, so the CSS sprite must sit at -9,-9.
+  const sourceCenterX = 25;
+  const sourceCenterY = 25;
   return {
-    transform: `rotate(${angleDegrees}deg)`
+    left: Math.trunc(rect.width / 2) - sourceCenterX,
+    top: Math.trunc(rect.height / 2) - sourceCenterY,
+    width: sprite.width,
+    height: sprite.height,
+    transform: `rotate(${angleDegrees}deg)`,
+    transformOrigin: `${sourceCenterX}px ${sourceCenterY}px`
   };
 }
 
@@ -2406,6 +2438,138 @@ function NhOptionsCameraZoomLayer({
 const nhOptionsZoomIconActionChildId = 5;
 const nhOptionsZoomSliderTrackChildId = 14;
 const nhOptionsZoomSliderKnobChildId = 15;
+
+function NhOptionsWindowModeLayer({
+  atlas,
+  displayMode,
+  layout,
+  onChange
+}: {
+  readonly atlas: NhHudAtlas;
+  readonly displayMode: NhClientDisplayMode;
+  readonly layout: NhMountedInterfaceLayout | null;
+  readonly onChange: ((displayMode: NhClientDisplayMode) => void) | undefined;
+}): JSX.Element | null {
+  if (!layout) {
+    return null;
+  }
+
+  const fixedContainer = layout.widgets.find((widget) => widget.widget.childId === nhOptionsWindowModeFixedContainerChildId);
+  const resizableContainer = layout.widgets.find((widget) => widget.widget.childId === nhOptionsWindowModeResizableContainerChildId);
+  if (!fixedContainer || !resizableContainer) {
+    return null;
+  }
+
+  return (
+    <div
+      className="nhOptionsWindowModeLayer"
+      data-source-client-script="options_windowmode_init/options_windowmode_draw/options_windowmode_set"
+      data-source-handler="setwindowmode and setdefaultwindowmode"
+    >
+      <NhOptionsWindowModeButton
+        atlas={atlas}
+        container={fixedContainer}
+        currentDisplayMode={displayMode}
+        displayMode="fixed"
+        onChange={onChange}
+      />
+      <NhOptionsWindowModeButton
+        atlas={atlas}
+        container={resizableContainer}
+        currentDisplayMode={displayMode}
+        displayMode="resizable"
+        onChange={onChange}
+      />
+    </div>
+  );
+}
+
+function NhOptionsWindowModeButton({
+  atlas,
+  container,
+  currentDisplayMode,
+  displayMode,
+  onChange
+}: {
+  readonly atlas: NhHudAtlas;
+  readonly container: NhResolvedWidget;
+  readonly currentDisplayMode: NhClientDisplayMode;
+  readonly displayMode: NhClientDisplayMode;
+  readonly onChange: ((displayMode: NhClientDisplayMode) => void) | undefined;
+}): JSX.Element | null {
+  const selected = currentDisplayMode === displayMode;
+  const iconSpriteId =
+    displayMode === "fixed"
+      ? selected
+        ? nhOptionsWindowModeFixedSelectedSpriteId
+        : nhOptionsWindowModeFixedSpriteId
+      : selected
+        ? nhOptionsWindowModeResizableSelectedSpriteId
+        : nhOptionsWindowModeResizableSpriteId;
+  const iconSprite = findSpriteById(atlas, iconSpriteId);
+  const buttonRect = nhOptionsWindowModeButtonRect(container.rect);
+  const actionText = displayMode === "fixed" ? "Fixed mode" : "Resizable mode";
+
+  return (
+    <Fragment>
+      {iconSprite ? (
+        <span
+          aria-hidden="true"
+          className="nhOptionsWindowModeIcon"
+          data-selected={selected ? "true" : "false"}
+          data-source-component-child-id={container.widget.childId}
+          data-source-graphic={displayMode === "fixed" ? "windowmode_icons,0/4" : "windowmode_icons,1/5"}
+          data-sprite-id={iconSprite.spriteId}
+          style={{
+            ...spriteStyle(atlas, iconSprite),
+            left: buttonRect.x,
+            top: buttonRect.y,
+            zIndex: selected ? 3 : 2
+          }}
+        />
+      ) : null}
+      <button
+        aria-label={actionText}
+        className="nhOptionsWindowModeButton"
+        data-action-text={actionText}
+        data-current={selected ? "true" : "false"}
+        data-display-mode={displayMode}
+        data-source-client-script="options_windowmode_set"
+        data-source-component-child-id={container.widget.childId}
+        onPointerDown={(event) => {
+          if (event.button !== 0) {
+            return;
+          }
+          event.preventDefault();
+          event.stopPropagation();
+          if (!selected) {
+            onChange?.(displayMode);
+          }
+        }}
+        style={{ ...rectStyle(buttonRect), zIndex: 4 }}
+        type="button"
+      />
+    </Fragment>
+  );
+}
+
+const nhOptionsWindowModeFixedContainerChildId = 33;
+const nhOptionsWindowModeResizableContainerChildId = 34;
+const nhOptionsWindowModeFixedSpriteId = 1169;
+const nhOptionsWindowModeResizableSpriteId = 1170;
+const nhOptionsWindowModeFixedSelectedSpriteId = 1572;
+const nhOptionsWindowModeResizableSelectedSpriteId = 1573;
+
+function nhOptionsWindowModeButtonRect(rect: NhRect): NhRect {
+  const width = 54;
+  const height = 46;
+  return {
+    x: rect.x + Math.trunc((rect.width - width) / 2),
+    y: rect.y + Math.trunc((rect.height - height) / 2),
+    width,
+    height
+  };
+}
 
 function NhOptionsKeybindingControlLayer({
   atlas,

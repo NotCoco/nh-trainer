@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { unstable_batchedUpdates } from "react-dom";
+import { flushSync, unstable_batchedUpdates } from "react-dom";
 import equipmentRowsJson from "../generated/equipment-bonuses.json";
 import kitsJson from "../generated/kits.json";
 import serverItemsJson from "../generated/server-items.json";
@@ -112,6 +112,7 @@ import {
   pointInNhRect,
   resolveNhFixedClientLayout,
   scaleNhFixedClientLayout,
+  type NhClientDisplayMode,
   type NhClientWidgetDefinitions,
   type NhFixedClientCssLayout,
   type NhFixedClientLayout,
@@ -131,7 +132,8 @@ import {
   nhClientPixelScaleAtWorldPosition,
   nhOverlayClientViewportProjection,
   nhOverlayWorldPositionFromViewport,
-  nhProjectWorldPointToViewport
+  nhProjectWorldPointToViewport,
+  nhWorldUnitsToClientUnits
 } from "../render/nhOverlayProjection";
 import {
   createNhHitsplatRenderState,
@@ -298,7 +300,6 @@ import {
   resetRuntimePlayerCombatActorPolicyDisengage,
   resetRuntimePlayerCombatActorTarget,
   runtimePlayerCombatActionDurationTicks,
-  runtimePlayerCombatActorSequence,
   runtimePlayerCombatActiveProtectionPrayer,
   runtimePlayerCombatDefaultLevels,
   runtimePlayerCombatDistance,
@@ -614,7 +615,12 @@ interface RuntimeSceneBoundary {
   readonly controlRoot: Group;
   readonly actorSlots: Map<RuntimeActorId, ActorRenderSlot>;
   readonly cameraRig: RuntimeCameraRig;
+  readonly cameraFollowTileOverrides: Map<RuntimeActorId, RuntimeTile>;
+  readonly cameraFollowGroundHeightOverrides: Map<RuntimeActorId, number>;
   sceneTilePicker: RuntimeSceneTilePicker | null;
+  clientWidgetDefinitions: NhClientWidgetDefinitions | null;
+  clientSpellbookDefinitions: NhSpellbookDefinitions | null;
+  clientDisplayMode: NhClientDisplayMode;
   fixedClientLayout: NhFixedClientLayout | null;
   fixedClientCssLayout: NhFixedClientCssLayout | null;
 }
@@ -627,6 +633,7 @@ interface ActorRenderSlot {
   lastActionPrimaryFrame: number | null;
   lastActionPrimaryFrameCycle: number | null;
   actionAnimationRewindCount: number;
+  currentDefaultHeightClientUnits: number;
 }
 
 type RuntimeFollowTarget = RuntimeActorId | "free";
@@ -669,8 +676,15 @@ interface ManualActorState {
   readonly routeTraversalModes: readonly number[];
   readonly serverRouteWaypoints: readonly RuntimeTile[];
   readonly serverRouteTraversalModes: readonly number[];
+  /** Server route is already represented in the held client path buffer. */
+  readonly serverRouteVisualQueued: boolean;
   readonly clientPosition: RuntimeClientPosition | null;
+  /** Source server-side/true location used by minimap while a primary sequence holds the visible model. */
+  readonly logicalClientPosition: RuntimeClientPosition | null;
+  readonly logicalRouteWaypoints: readonly RuntimeTile[];
+  readonly logicalRouteTraversalModes: readonly number[];
   readonly lastMovementClientCycle: number | null;
+  readonly clientTargetIndexUntilClientCycle: number;
   readonly movementStallTicks: number;
   readonly sequencePathLengthAtStart: number;
   readonly activeSequenceKey: string | null;
@@ -679,6 +693,7 @@ interface ManualActorState {
   readonly primaryFrameCycle: number;
   readonly primarySequenceLoops: number;
   readonly primarySequenceCycle: number;
+  readonly primarySequenceDelayCycles: number;
   readonly movementBlockedBySequence: boolean;
   readonly movementFrame: number;
   readonly movementFrameCycle: number;
@@ -1076,6 +1091,7 @@ interface NhRuntimeDebugSnapshot {
   readonly cycle: number;
   readonly overlays: readonly NhRuntimeOverlayDebugEntry[];
   readonly motion?: NhRuntimeMotionDebugSnapshot;
+  readonly motionHistory?: readonly NhRuntimeMotionDebugSnapshot[];
   readonly manualOpponentPolicy?: readonly NhRuntimeManualOpponentPolicyDebugEntry[];
   readonly manualOpponentAudit?: readonly NhRuntimeManualOpponentTickAuditEntry[];
   readonly manualCombatTicks?: readonly NhRuntimeManualCombatTickLogEntry[];
@@ -1101,6 +1117,8 @@ interface NhRuntimeManualOpponentRouteDebugEntry {
   readonly targetId: RuntimeActorId;
   readonly reason: string;
   readonly attackRange: number;
+  readonly tick: number;
+  readonly movementBlockedReason: string | null;
   readonly targetTile: RuntimeTile;
 }
 
@@ -1131,6 +1149,7 @@ interface NhRuntimeManualCombatActorTickLog {
   readonly routeTraversalModes: readonly number[];
   readonly serverRouteWaypoints: readonly RuntimeTile[];
   readonly serverRouteTraversalModes: readonly number[];
+  readonly serverRouteVisualQueued: boolean;
   readonly sequenceName: RuntimeSequenceName;
   readonly activeSequenceKey: string | null;
   readonly movementBlockedBySequence: boolean;
@@ -1175,6 +1194,7 @@ interface NhRuntimeMotionDebugSnapshot {
   readonly timeMs: number;
   readonly clientCycle: number;
   readonly actors: readonly NhRuntimeMotionDebugActor[];
+  readonly inventory?: readonly (number | null)[];
 }
 
 interface NhRuntimeMotionDebugActor {
@@ -1191,6 +1211,11 @@ interface NhRuntimeMotionDebugActor {
   readonly screen: { readonly x: number; readonly y: number; readonly depthClientUnits: number } | null;
   readonly movementFrame?: number;
   readonly movementFrameCycle?: number;
+  readonly routeCount?: number;
+  readonly serverRouteCount?: number;
+  readonly movementStallTicks?: number;
+  readonly clientTargetIndexUntilClientCycle?: number;
+  readonly lastMovementClientCycle?: number | null;
 }
 
 interface RuntimeOverlayAnchorData {
@@ -1424,6 +1449,7 @@ declare global {
       readonly primaryFrameCycle?: number;
       readonly rewindSuppressed: boolean;
     }>;
+    __NH_TRAINER_ENABLE_INTERNAL_TEST_COMMANDS?: boolean;
   }
 }
 
@@ -1596,14 +1622,31 @@ const NH_CLIENT_CYCLE_MS = 20;
 const NH_CLIENT_CYCLES_PER_GAME_TICK = NH_GAME_TICK_MS / NH_CLIENT_CYCLE_MS;
 // Source-backed by Nh NanoClock.vmethod3511: the client may process up to 10 client cycles before one draw.
 const NH_CLIENT_MAX_CYCLES_PER_RENDER_FRAME = 10;
+// Source: GameShell runs at most NanoClock.vmethod3511() cycles before one draw,
+// and NanoClock caps that loop at 10. Movement must share that draw cadence so
+// held-path release keeps the same visual slingshot shape as the client.
+const NH_CLIENT_MAX_MOVEMENT_CYCLES_PER_RENDER_FRAME = NH_CLIENT_MAX_CYCLES_PER_RENDER_FRAME;
+// Source: faceNone(true) goes through EntityDirectionUpdate.remove(delay):
+// stage 1 queues, reset() moves it to stage 2, and the following reset() sends
+// the -1 target mask. The local client keeps targetIndex through those update
+// boundaries, so class329's movement speed should not immediately fall into the
+// no-target turning branch after a manual spell/equip reset.
+const NH_CLIENT_TARGET_INDEX_RESET_HOLD_CYCLES = NH_CLIENT_CYCLES_PER_GAME_TICK * 3;
+const NH_CLIENT_TARGET_INDEX_EQUIP_RESET_HOLD_CYCLES = NH_CLIENT_TARGET_INDEX_RESET_HOLD_CYCLES;
 // Browser timers can resume late after a busy frame; catch up bounded game ticks so the trainer hitches instead of stretching time.
 const NH_GAME_TICK_CATCH_UP_LIMIT = 10;
+const NH_GAME_TICK_PROCESS_LIMIT_PER_CALLBACK = 1;
+// The JS trainer can enqueue several accepted server steps before the next draw
+// after a busy frame. Keep those steps instead of dropping the unreached head,
+// because client class329 only snaps when an impossible next path tile is fed in.
+const NH_CLIENT_ROUTE_BUFFER_LIMIT = 9;
 const NH_TRAINER_ATTACK_SET_STORAGE_KEY = "nhTrainer.attackSet.v1";
 const NH_AUTO_RETALIATE_STORAGE_KEY = "nhTrainer.autoRetaliate.v1";
 const LEGACY_AUTO_RETALIATE_STORAGE_KEYS = ["source.autoRetaliate.v1"] as const;
 const NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY = "nhTrainer.temporaryNhStakeSetup.v1";
 const NH_TRAINER_PVP_FIGHT_HISTORY_STORAGE_KEY = "nhTrainer.pvpFightHistory.v1";
 const NH_TRAINER_BROWSER_CLIENT_WINDOW_STORAGE_KEY = "nhTrainer.browserClientWindow.v2";
+const NH_TRAINER_CLIENT_DISPLAY_MODE_STORAGE_KEY = "nhTrainer.clientDisplayMode.v1";
 const NH_TRAINER_PRAYER_REORDER_ENABLED_STORAGE_KEY = "nhTrainer.prayerReorder.enabled.v1";
 const NH_TRAINER_PRAYER_REORDER_ORDER_STORAGE_KEY = "nhTrainer.prayerReorder.order.v1";
 const NH_TRAINER_SPELLBOOK_REORDER_ENABLED_STORAGE_KEY = "nhTrainer.spellbookReorder.enabled.v1";
@@ -1762,6 +1805,7 @@ const RUNELITE_XP_DROP_SKILL_ICONS: Readonly<Record<RuntimePlayerCombatXpSkillId
 const RUNELITE_XP_DROP_SOURCE_WIDTH_PADDING = 3;
 const RUNELITE_XP_DROP_PANEL_RIGHT = 2;
 const RUNELITE_XP_DROP_PANEL_TOP = 2;
+const RUNELITE_RESIZABLE_VIEWPORT_WIDGET_CHILD_ID = 12;
 const RUNELITE_XP_DROP_TEXT_COLOR = "#ffff40";
 const RUNELITE_XP_DROP_DURATION_CLIENT_CYCLES = 120;
 const RUNELITE_XP_DROP_STACK_MIN_PANEL_HEIGHT = 100;
@@ -1838,8 +1882,13 @@ const initialManualActor: ManualActorState = {
   routeTraversalModes: [],
   serverRouteWaypoints: [],
   serverRouteTraversalModes: [],
+  serverRouteVisualQueued: false,
   clientPosition: nhClientPositionFromRuntimeTile(initialLocalPose.renderTile ?? initialLocalPose.tile),
+  logicalClientPosition: nhClientPositionFromRuntimeTile(initialLocalPose.renderTile ?? initialLocalPose.tile),
+  logicalRouteWaypoints: [],
+  logicalRouteTraversalModes: [],
   lastMovementClientCycle: null,
+  clientTargetIndexUntilClientCycle: 0,
   movementStallTicks: 0,
   sequencePathLengthAtStart: 0,
   activeSequenceKey: null,
@@ -1848,6 +1897,7 @@ const initialManualActor: ManualActorState = {
   primaryFrameCycle: 0,
   primarySequenceLoops: 0,
   primarySequenceCycle: 0,
+  primarySequenceDelayCycles: 0,
   movementBlockedBySequence: false,
   movementFrame: 0,
   movementFrameCycle: 0,
@@ -1872,8 +1922,13 @@ const initialManualOpponent: ManualActorState = {
   routeTraversalModes: [],
   serverRouteWaypoints: [],
   serverRouteTraversalModes: [],
+  serverRouteVisualQueued: false,
   clientPosition: nhClientPositionFromRuntimeTile(initialOpponentPose.renderTile ?? initialOpponentPose.tile),
+  logicalClientPosition: nhClientPositionFromRuntimeTile(initialOpponentPose.renderTile ?? initialOpponentPose.tile),
+  logicalRouteWaypoints: [],
+  logicalRouteTraversalModes: [],
   lastMovementClientCycle: null,
+  clientTargetIndexUntilClientCycle: 0,
   movementStallTicks: 0,
   sequencePathLengthAtStart: 0,
   activeSequenceKey: null,
@@ -1882,6 +1937,7 @@ const initialManualOpponent: ManualActorState = {
   primaryFrameCycle: 0,
   primarySequenceLoops: 0,
   primarySequenceCycle: 0,
+  primarySequenceDelayCycles: 0,
   movementBlockedBySequence: false,
   movementFrame: 0,
   movementFrameCycle: 0,
@@ -2005,7 +2061,8 @@ function createRuntimeBoundary(canvas: HTMLCanvasElement): RuntimeSceneBoundary 
       lastActionAnimationCycle: 0,
       lastActionPrimaryFrame: null,
       lastActionPrimaryFrameCycle: null,
-      actionAnimationRewindCount: 0
+      actionAnimationRewindCount: 0,
+      currentDefaultHeightClientUnits: NH_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS
     });
   }
 
@@ -2031,7 +2088,12 @@ function createRuntimeBoundary(canvas: HTMLCanvasElement): RuntimeSceneBoundary 
     controlRoot,
     actorSlots,
     cameraRig,
+    cameraFollowTileOverrides: new Map(),
+    cameraFollowGroundHeightOverrides: new Map(),
     sceneTilePicker: null,
+    clientWidgetDefinitions: null,
+    clientSpellbookDefinitions: null,
+    clientDisplayMode: "fixed",
     fixedClientLayout: null,
     fixedClientCssLayout: null
   };
@@ -2638,17 +2700,25 @@ function updateRuntimeCameraFollowTarget(boundary: RuntimeSceneBoundary): void {
     return;
   }
 
-  const slot = boundary.actorSlots.get(boundary.cameraRig.followTarget);
+  const followTarget = boundary.cameraRig.followTarget;
+  const slot = boundary.actorSlots.get(followTarget);
   if (!slot) {
     return;
   }
 
   const viewportHeight = boundary.fixedClientLayout?.viewport.rect.height ?? NH_CAMERA_DEFAULT_VIEWPORT_HEIGHT;
-  const targetY = slot.group.position.y + nhCameraFollowHeightSceneUnits(boundary.cameraRig.zoom, viewportHeight);
+  // Source: class4.method66()/Client normal camera follow read localPlayer.x/y
+  // after class329's visible actor movement pass. The logical/minimap stall
+  // track can move ahead, but camera follow stays on the visible actor track.
+  const visibleTile = boundary.cameraFollowTileOverrides.get(followTarget);
+  const targetX = visibleTile?.x ?? slot.group.position.x;
+  const targetZ = visibleTile?.z ?? slot.group.position.z;
+  const groundY = boundary.cameraFollowGroundHeightOverrides.get(followTarget) ?? slot.group.position.y;
+  const targetY = groundY + nhCameraFollowHeightSceneUnits(boundary.cameraRig.zoom, viewportHeight);
   boundary.cameraRig.target.set(
-    smoothNhCameraFocusAxis(boundary.cameraRig.target.x, slot.group.position.x),
+    smoothNhCameraFocusAxis(boundary.cameraRig.target.x, targetX),
     targetY,
-    smoothNhCameraFocusAxis(boundary.cameraRig.target.z, slot.group.position.z)
+    smoothNhCameraFocusAxis(boundary.cameraRig.target.z, targetZ)
   );
 }
 
@@ -2657,7 +2727,7 @@ function resizeRuntimeBoundary(boundary: RuntimeSceneBoundary, canvas: HTMLCanva
   const height = Math.max(1, canvas.clientHeight);
 
   boundary.renderer.setSize(width, height, false);
-  const fixedLayout = boundary.fixedClientLayout;
+  const fixedLayout = resolveRuntimeClientLayoutForBoundary(boundary, { width, height });
   boundary.fixedClientCssLayout = fixedLayout ? scaleNhFixedClientLayout(fixedLayout, { width, height }) : null;
   if (!fixedLayout || !boundary.fixedClientCssLayout) {
     return null;
@@ -2668,6 +2738,23 @@ function resizeRuntimeBoundary(boundary: RuntimeSceneBoundary, canvas: HTMLCanva
   boundary.camera.fov = nhViewportZoomToFovDegrees(fixedLayout.viewport.rect.height, fixedLayout.viewport.zoom);
   applyNhCameraProjection(boundary.camera);
   return boundary.fixedClientCssLayout;
+}
+
+function resolveRuntimeClientLayoutForBoundary(
+  boundary: RuntimeSceneBoundary,
+  rootSize: { readonly width: number; readonly height: number }
+): NhFixedClientLayout | null {
+  if (!boundary.clientWidgetDefinitions || !boundary.clientSpellbookDefinitions) {
+    return boundary.fixedClientLayout;
+  }
+
+  const displayMode = boundary.clientDisplayMode;
+  const nextLayout = resolveNhFixedClientLayout(boundary.clientWidgetDefinitions, boundary.clientSpellbookDefinitions, {
+    displayMode,
+    rootSize: displayMode === "resizable" ? rootSize : undefined
+  });
+  boundary.fixedClientLayout = nextLayout;
+  return nextLayout;
 }
 
 function renderRuntimeBoundary(boundary: RuntimeSceneBoundary): void {
@@ -2705,8 +2792,13 @@ function manualActorFromSnapshot(
     routeTraversalModes: [],
     serverRouteWaypoints: [],
     serverRouteTraversalModes: [],
+    serverRouteVisualQueued: false,
     clientPosition: null,
+    logicalClientPosition: null,
+    logicalRouteWaypoints: [],
+    logicalRouteTraversalModes: [],
     lastMovementClientCycle: null,
+    clientTargetIndexUntilClientCycle: 0,
     movementStallTicks: 0,
     sequencePathLengthAtStart: 0,
     activeSequenceKey: null,
@@ -2715,6 +2807,7 @@ function manualActorFromSnapshot(
     primaryFrameCycle: 0,
     primarySequenceLoops: 0,
     primarySequenceCycle: 0,
+    primarySequenceDelayCycles: 0,
     movementBlockedBySequence: false,
     movementFrame: 0,
     movementFrameCycle: 0,
@@ -2738,10 +2831,15 @@ function snapManualActorToCollision(actor: ManualActorState, collision: NhSceneC
     tile,
     renderTile: tile,
     clientPosition: nhClientPositionFromRuntimeTile(tile),
+    logicalClientPosition: nhClientPositionFromRuntimeTile(tile),
+    logicalRouteWaypoints: [],
+    logicalRouteTraversalModes: [],
     routeWaypoints: [],
     routeTraversalModes: [],
     serverRouteWaypoints: [],
     serverRouteTraversalModes: [],
+    serverRouteVisualQueued: false,
+    clientTargetIndexUntilClientCycle: 0,
     movementBlockedBySequence: false
   };
 }
@@ -2752,14 +2850,41 @@ function teleportManualActorToTile(actor: ManualActorState, tile: RuntimeTile): 
     tile,
     renderTile: tile,
     clientPosition: nhClientPositionFromRuntimeTile(tile),
+    logicalClientPosition: nhClientPositionFromRuntimeTile(tile),
+    logicalRouteWaypoints: [],
+    logicalRouteTraversalModes: [],
     routeWaypoints: [],
     routeTraversalModes: [],
     serverRouteWaypoints: [],
     serverRouteTraversalModes: [],
+    serverRouteVisualQueued: false,
+    clientTargetIndexUntilClientCycle: 0,
     movementBlockedBySequence: false,
     movementStallTicks: 0,
     sequenceName: "idle"
   };
+}
+
+function manualActorHeldClientRouteStartTile(
+  actor: ManualActorState,
+  fallbackStartTile: RuntimeTile,
+  collision: NhSceneCollision
+): RuntimeTile {
+  const tailTile = actor.routeWaypoints.length > 0
+    ? actor.routeWaypoints[actor.routeWaypoints.length - 1]
+    : null;
+  return collision.snapTile(tailTile ?? fallbackStartTile);
+}
+
+function manualActorHeldLogicalRouteStartTile(
+  actor: ManualActorState,
+  fallbackStartTile: RuntimeTile,
+  collision: NhSceneCollision
+): RuntimeTile {
+  const tailTile = actor.logicalRouteWaypoints.length > 0
+    ? actor.logicalRouteWaypoints[actor.logicalRouteWaypoints.length - 1]
+    : null;
+  return collision.snapTile(tailTile ?? fallbackStartTile);
 }
 
 function routeManualActor(
@@ -2767,7 +2892,9 @@ function routeManualActor(
   destinationTile: RuntimeTile,
   collision: NhSceneCollision,
   objectPlacement: NhArenaObjectPlacement | undefined,
-  now: number
+  now: number,
+  preserveClientPath = false,
+  deferClientPathUntilServerTick = false
 ): ManualActorRouteResult {
   const startTile = collision.snapTile(actor.tile);
   const destination = collision.snapTile(destinationTile);
@@ -2776,31 +2903,103 @@ function routeManualActor(
     : findNhTileRouteWaypoints(startTile, destination, collision);
   const routePath = expandNhManualRoutePath(startTile, routeSegment, collision);
   const serverRoute = setNhManualServerRoutePath(routePath);
+  const deferredPreservedServerRoute =
+    preserveClientPath && deferClientPathUntilServerTick
+      ? (() => {
+          const heldStartTile = manualActorHeldLogicalRouteStartTile(actor, startTile, collision);
+          const heldRouteSegment = objectPlacement
+            ? findNhObjectRouteWaypoints(heldStartTile, objectPlacement, collision)
+            : findNhTileRouteWaypoints(heldStartTile, destination, collision);
+          const heldRoutePath = expandNhManualRoutePath(heldStartTile, heldRouteSegment, collision);
+          return setNhManualServerRoutePath(heldRoutePath);
+        })()
+      : null;
+  const heldClientRoute =
+    preserveClientPath && !deferClientPathUntilServerTick
+      ? (() => {
+          const heldStartTile = manualActorHeldClientRouteStartTile(actor, startTile, collision);
+          const heldRouteSegment = objectPlacement
+            ? findNhObjectRouteWaypoints(heldStartTile, objectPlacement, collision)
+            : findNhTileRouteWaypoints(heldStartTile, destination, collision);
+          const heldRoutePath = expandNhManualRoutePath(heldStartTile, heldRouteSegment, collision);
+          return enqueueManualActorClientPathSteps(actor, heldRoutePath, actor.running ? 2 : 1);
+        })()
+      : null;
+  const heldLogicalRoute =
+    preserveClientPath && !deferClientPathUntilServerTick
+      ? (() => {
+          const heldStartTile = manualActorHeldLogicalRouteStartTile(actor, startTile, collision);
+          const heldRouteSegment = objectPlacement
+            ? findNhObjectRouteWaypoints(heldStartTile, objectPlacement, collision)
+            : findNhTileRouteWaypoints(heldStartTile, destination, collision);
+          const heldRoutePath = expandNhManualRoutePath(heldStartTile, heldRouteSegment, collision);
+          return enqueueManualActorLogicalClientPathSteps(actor, heldRoutePath, actor.running ? 2 : 1);
+        })()
+      : null;
   const reached = objectPlacement
     ? nhSceneObjectRouteReached(startTile, objectPlacement, collision)
     : sameNhTile(startTile, destination);
   const clientPosition = manualActorRouteClientPosition(actor, startTile);
-  const lastMovementClientCycle = Math.floor(now / NH_CLIENT_CYCLE_MS);
+  const lastMovementClientCycle = deferClientPathUntilServerTick && !preserveClientPath
+    ? actor.lastMovementClientCycle
+    : preserveClientPath
+      ? actor.lastMovementClientCycle ?? Math.floor(now / NH_CLIENT_CYCLE_MS)
+      : Math.floor(now / NH_CLIENT_CYCLE_MS);
   const settlementWaypoints = nhClientSettlementWaypoints(clientPosition, startTile);
-  // Source: TargetRoute.beforeMovement() recomputes the entity route from the
-  // current server tile each tick before Movement.process() consumes steps.
-  // Do not carry an older visual target-route tail into the new route.
-  const routeWaypoints = settlementWaypoints;
-  const routeTraversalModes = settlementWaypoints.map(() => actor.running ? 2 : 1);
-  if (serverRoute.serverRouteWaypoints.length === 0) {
+  // Source: Player.method1100() adds new path steps without class329 consuming
+  // the held path while sequence priority/precedence stalls movement.
+  const routeWaypoints = heldClientRoute?.routeWaypoints ?? (
+    deferClientPathUntilServerTick ? actor.routeWaypoints : settlementWaypoints
+  );
+  const routeTraversalModes = heldClientRoute?.routeTraversalModes ?? (
+    deferClientPathUntilServerTick
+      ? actor.routeTraversalModes
+      : settlementWaypoints.map(() => actor.running ? 2 : 1)
+  );
+  const logicalClientPosition = manualActorRouteLogicalClientPosition(actor, startTile);
+  const logicalSettlementWaypoints = nhClientSettlementWaypoints(logicalClientPosition, startTile);
+  const logicalSettlementTraversalModes = logicalSettlementWaypoints.map(() => actor.running ? 2 : 1);
+  const logicalRouteWaypoints = heldLogicalRoute?.logicalRouteWaypoints ?? (
+    deferClientPathUntilServerTick ? actor.logicalRouteWaypoints : logicalSettlementWaypoints
+  );
+  const logicalRouteTraversalModes = heldLogicalRoute?.logicalRouteTraversalModes ?? (
+    deferClientPathUntilServerTick ? actor.logicalRouteTraversalModes : logicalSettlementTraversalModes
+  );
+  // Source: Player.method1100() preserves the local client's path queue even
+  // when a held action sequence keeps the visible model on its old x/y. The
+  // trainer has a split client/server loop, so same-tile return clicks must
+  // carry the preserved path into the next local server tick instead of
+  // collapsing to an empty route from the stale authoritative tile.
+  const preservedServerRoute = preserveClientPath && heldLogicalRoute
+    ? setNhManualServerRouteFromPreservedClientPath(
+        actor,
+        heldLogicalRoute.logicalRouteWaypoints
+      )
+    : null;
+  const nextServerRoute =
+    deferredPreservedServerRoute && deferredPreservedServerRoute.serverRouteWaypoints.length > 0
+      ? deferredPreservedServerRoute
+      : preservedServerRoute && preservedServerRoute.serverRouteWaypoints.length > 0
+      ? preservedServerRoute
+      : serverRoute;
+  if (nextServerRoute.serverRouteWaypoints.length === 0) {
     return {
       actor: {
         ...actor,
         tile: startTile,
         renderTile: actor.renderTile,
         clientPosition,
+        logicalClientPosition,
+        logicalRouteWaypoints,
+        logicalRouteTraversalModes,
         lastMovementClientCycle,
         routeWaypoints,
         routeTraversalModes,
         serverRouteWaypoints: [],
         serverRouteTraversalModes: [],
+        serverRouteVisualQueued: false,
         movementStallTicks: actor.movementStallTicks,
-        sequenceName: routeWaypoints.length > 0 ? actor.sequenceName : "idle"
+        sequenceName: routeWaypoints.length > 0 || deferClientPathUntilServerTick ? actor.sequenceName : "idle"
       },
       reached
     };
@@ -2812,11 +3011,15 @@ function routeManualActor(
       tile: startTile,
       renderTile: actor.renderTile,
       clientPosition,
+      logicalClientPosition,
+      logicalRouteWaypoints,
+      logicalRouteTraversalModes,
       lastMovementClientCycle,
       routeWaypoints,
       routeTraversalModes,
-      serverRouteWaypoints: serverRoute.serverRouteWaypoints,
-      serverRouteTraversalModes: serverRoute.serverRouteTraversalModes,
+      serverRouteWaypoints: nextServerRoute.serverRouteWaypoints,
+      serverRouteTraversalModes: nextServerRoute.serverRouteTraversalModes,
+      serverRouteVisualQueued: preserveClientPath && !deferClientPathUntilServerTick,
       movementStallTicks: actor.movementStallTicks,
       sequenceName: actor.sequenceName
     },
@@ -2830,35 +3033,71 @@ function routeManualActorToTarget(
   attackRange: number,
   collision: NhSceneCollision,
   now: number,
-  preserveVisualSettlement = true
+  preserveVisualSettlement = true,
+  preserveClientPath = false
 ): ManualActorRouteResult {
   const startTile = collision.snapTile(actor.tile);
   const routeSegment = findNhTargetRouteWaypoints(startTile, targetTile, attackRange, collision);
   const routePath = expandNhManualRoutePath(startTile, routeSegment, collision);
   const serverRoute = setNhManualServerRoutePath(routePath);
+  // Source: TargetRoute.beforeMovement() rewrites the server Movement path; the
+  // client still only receives accepted movement updates through Player.method1111().
+  // While an action sequence is holding class329, keep the already-held client
+  // buffer instead of preloading the whole recomputed route into the visual path.
+  const heldClientRoute =
+    preserveClientPath
+      ? {
+          routeWaypoints: actor.routeWaypoints,
+          routeTraversalModes: actor.routeTraversalModes
+        }
+      : null;
+  const heldLogicalRoute =
+    preserveClientPath
+      ? {
+          logicalRouteWaypoints: actor.logicalRouteWaypoints,
+          logicalRouteTraversalModes: actor.logicalRouteTraversalModes
+        }
+      : null;
   const reached = nhSceneTargetRouteReached(startTile, targetTile, attackRange, collision);
   const clientPosition = manualActorRouteClientPosition(actor, startTile);
-  const lastMovementClientCycle = Math.floor(now / NH_CLIENT_CYCLE_MS);
+  const lastMovementClientCycle = preserveClientPath
+    ? actor.lastMovementClientCycle
+    : Math.floor(now / NH_CLIENT_CYCLE_MS);
   const settlementWaypoints = nhClientSettlementWaypoints(clientPosition, startTile);
   // Source: RouteFinder.route() rewrites Movement.readOffset/writeOffset from
   // the actor's current server tile on each TargetRoute.beforeMovement() pass.
   // TargetRoute-driven melee/range/mage routes consume their first server step
   // before PlayerCombat.attack(); when that caller immediately advances the
   // server route, do not visually settle back to the previous tile first.
-  const routeWaypoints = preserveVisualSettlement ? settlementWaypoints : [];
-  const routeTraversalModes = routeWaypoints.map(() => actor.running ? 2 : 1);
-  if (serverRoute.serverRouteWaypoints.length === 0) {
+  const routeWaypoints = heldClientRoute?.routeWaypoints ?? (
+    preserveVisualSettlement
+      ? settlementWaypoints
+      : []
+  );
+  const routeTraversalModes = heldClientRoute?.routeTraversalModes ??
+    routeWaypoints.map(() => actor.running ? 2 : 1);
+  const logicalClientPosition = manualActorRouteLogicalClientPosition(actor, startTile);
+  const logicalSettlementWaypoints = nhClientSettlementWaypoints(logicalClientPosition, startTile);
+  const logicalSettlementTraversalModes = logicalSettlementWaypoints.map(() => actor.running ? 2 : 1);
+  const logicalRouteWaypoints = heldLogicalRoute?.logicalRouteWaypoints ?? logicalSettlementWaypoints;
+  const logicalRouteTraversalModes = heldLogicalRoute?.logicalRouteTraversalModes ?? logicalSettlementTraversalModes;
+  const nextServerRoute = serverRoute;
+  if (nextServerRoute.serverRouteWaypoints.length === 0) {
     return {
       actor: {
         ...actor,
         tile: startTile,
         renderTile: actor.renderTile,
         clientPosition,
+        logicalClientPosition,
+        logicalRouteWaypoints,
+        logicalRouteTraversalModes,
         lastMovementClientCycle,
         routeWaypoints,
         routeTraversalModes,
         serverRouteWaypoints: [],
         serverRouteTraversalModes: [],
+        serverRouteVisualQueued: false,
         movementStallTicks: actor.movementStallTicks,
         sequenceName: routeWaypoints.length > 0 ? actor.sequenceName : "idle"
       },
@@ -2872,11 +3111,15 @@ function routeManualActorToTarget(
       tile: startTile,
       renderTile: actor.renderTile,
       clientPosition,
+      logicalClientPosition,
+      logicalRouteWaypoints,
+      logicalRouteTraversalModes,
       lastMovementClientCycle,
       routeWaypoints,
       routeTraversalModes,
-      serverRouteWaypoints: serverRoute.serverRouteWaypoints,
-      serverRouteTraversalModes: serverRoute.serverRouteTraversalModes,
+      serverRouteWaypoints: nextServerRoute.serverRouteWaypoints,
+      serverRouteTraversalModes: nextServerRoute.serverRouteTraversalModes,
+      serverRouteVisualQueued: false,
       movementStallTicks: actor.movementStallTicks,
       sequenceName: actor.sequenceName
     },
@@ -2886,6 +3129,12 @@ function routeManualActorToTarget(
 
 function manualActorRouteClientPosition(actor: ManualActorState, startTile: RuntimeTile): RuntimeClientPosition {
   return actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile ?? startTile);
+}
+
+function manualActorRouteLogicalClientPosition(actor: ManualActorState, startTile: RuntimeTile): RuntimeClientPosition {
+  return actor.logicalClientPosition ??
+    actor.clientPosition ??
+    nhClientPositionFromRuntimeTile(actor.renderTile ?? startTile);
 }
 
 function nhClientSettlementWaypoints(
@@ -2900,7 +3149,7 @@ function nhClientSettlementWaypoints(
   const waypoints: RuntimeTile[] = [];
   let x = clientPosition.x;
   let z = clientPosition.z;
-  while ((x !== targetPosition.x || z !== targetPosition.z) && waypoints.length < 9) {
+  while ((x !== targetPosition.x || z !== targetPosition.z) && waypoints.length < NH_CLIENT_ROUTE_BUFFER_LIMIT) {
     x = nhMoveClientAxis(x, targetPosition.x, NH_ACTOR_TILE_CLIENT_UNITS);
     z = nhMoveClientAxis(z, targetPosition.z, NH_ACTOR_TILE_CLIENT_UNITS);
     waypoints.push(runtimeTileFromNhClientPosition({ x, z }));
@@ -2944,31 +3193,90 @@ function setNhManualServerRoutePath(
   };
 }
 
-function advanceManualActorServerRouteTick(actor: ManualActorState): ManualActorState {
-  if (actor.serverRouteWaypoints.length === 0) {
-    return actor;
+function nhClientPathUpdateFromAcceptedServerSteps(
+  enqueuedWaypoints: readonly RuntimeTile[],
+  traversalMode: number
+): Pick<ManualActorState, "routeWaypoints" | "routeTraversalModes"> {
+  if (enqueuedWaypoints.length === 0) {
+    return {
+      routeWaypoints: [],
+      routeTraversalModes: []
+    };
   }
-  const sourceTickStepCount = actor.running && actor.serverRouteWaypoints.length > 1 ? 2 : 1;
-  const enqueueCount = Math.min(sourceTickStepCount, actor.serverRouteWaypoints.length);
-  const enqueuedWaypoints = actor.serverRouteWaypoints.slice(0, enqueueCount);
-  const traversalMode = sourceTickStepCount > 1 ? 2 : 1;
-  const routeWaypoints = enqueueManualActorClientPathSteps(actor.routeWaypoints, enqueuedWaypoints);
-  const routeTraversalModes = enqueueManualActorClientTraversalModes(
-    actor.routeTraversalModes,
-    enqueueCount,
-    traversalMode
-  );
+  // Source: Player.method1111() handles a run update by calling class4.method65()
+  // before method1100(). That resolves and queues the intermediate path tile, then
+  // queues the final run tile, with pathTraversed set to 2 for both entries.
   return {
-    ...actor,
-    tile: enqueuedWaypoints[enqueuedWaypoints.length - 1] ?? actor.tile,
-    routeWaypoints,
-    routeTraversalModes,
-    serverRouteWaypoints: actor.serverRouteWaypoints.slice(enqueueCount),
-    serverRouteTraversalModes: actor.serverRouteTraversalModes.slice(enqueueCount)
+    routeWaypoints: enqueuedWaypoints,
+    routeTraversalModes: enqueuedWaypoints.map(() => traversalMode)
   };
 }
 
-function advanceManualActorTargetRouteTick(actor: ManualActorState): ManualActorState {
+function setNhManualServerRouteFromPreservedClientPath(
+  actor: ManualActorState,
+  preservedWaypoints: readonly RuntimeTile[]
+): Pick<ManualActorState, "serverRouteWaypoints" | "serverRouteTraversalModes"> {
+  const routePath = preservedWaypoints.filter((waypoint, index) =>
+    index > 0 || !sameNhTile(waypoint, actor.tile)
+  );
+  return setNhManualServerRoutePath(routePath);
+}
+
+function advanceManualActorServerRouteTick(
+  actor: ManualActorState,
+  acceptedClientCycle: number | null = null
+): ManualActorState {
+  if (actor.serverRouteWaypoints.length === 0) {
+    return actor.serverRouteVisualQueued ? { ...actor, serverRouteVisualQueued: false } : actor;
+  }
+  const sourceTickStepCount = actor.running && actor.serverRouteWaypoints.length > 1 ? 2 : 1;
+  const enqueueCount = Math.min(sourceTickStepCount, actor.serverRouteWaypoints.length);
+  const enqueuedWaypoints = actor.serverRouteWaypoints.slice(0, enqueueCount);
+  const traversalMode = sourceTickStepCount > 1 ? 2 : 1;
+  const clientUpdate = nhClientPathUpdateFromAcceptedServerSteps(enqueuedWaypoints, traversalMode);
+  const route = actor.serverRouteVisualQueued
+    ? {
+      routeWaypoints: actor.routeWaypoints,
+      routeTraversalModes: actor.routeTraversalModes
+    }
+    : enqueueManualActorClientPathSteps(actor, clientUpdate.routeWaypoints, traversalMode);
+  const logicalRoute = actor.serverRouteVisualQueued
+    ? {
+      logicalRouteWaypoints: actor.logicalRouteWaypoints,
+      logicalRouteTraversalModes: actor.logicalRouteTraversalModes
+    }
+    : enqueueManualActorLogicalClientPathSteps(actor, clientUpdate.routeWaypoints, traversalMode);
+  const remainingServerRouteWaypoints = actor.serverRouteWaypoints.slice(enqueueCount);
+  const acceptedMovementCursor =
+    acceptedClientCycle === null ? null : Math.max(0, acceptedClientCycle - 1);
+  const lastMovementClientCycle =
+    acceptedMovementCursor === null
+      ? actor.lastMovementClientCycle
+      : Math.max(actor.lastMovementClientCycle ?? acceptedMovementCursor, acceptedMovementCursor);
+  return {
+    ...actor,
+    tile: enqueuedWaypoints[enqueuedWaypoints.length - 1] ?? actor.tile,
+    routeWaypoints: route.routeWaypoints,
+    routeTraversalModes: route.routeTraversalModes,
+    logicalRouteWaypoints: logicalRoute.logicalRouteWaypoints,
+    logicalRouteTraversalModes: logicalRoute.logicalRouteTraversalModes,
+    serverRouteWaypoints: remainingServerRouteWaypoints,
+    serverRouteTraversalModes: actor.serverRouteTraversalModes.slice(enqueueCount),
+    serverRouteVisualQueued: actor.serverRouteVisualQueued && remainingServerRouteWaypoints.length > 0,
+    // Source: Player.method1100() writes path steps during the player update,
+    // before class329.method6315() processes actors for that Client.cycle. Stamp
+    // the cursor to the cycle immediately before the update so the accepted
+    // cycle can either stall into field687 or consume normally. Newly accepted
+    // steps must not spend pre-update client-cycle backlog.
+    // this cursor mirrors Client.cycle and must never move backwards.
+    lastMovementClientCycle
+  };
+}
+
+function advanceManualActorTargetRouteTick(
+  actor: ManualActorState,
+  acceptedClientCycle: number | null = null
+): ManualActorState {
   if (actor.serverRouteWaypoints.length === 0) {
     return actor;
   }
@@ -2976,13 +3284,14 @@ function advanceManualActorTargetRouteTick(actor: ManualActorState): ManualActor
   const enqueueCount = Math.min(sourceTickStepCount, actor.serverRouteWaypoints.length);
   const enqueuedWaypoints = actor.serverRouteWaypoints.slice(0, enqueueCount);
   const traversalMode = sourceTickStepCount > 1 ? 2 : 1;
+  const clientUpdate = nhClientPathUpdateFromAcceptedServerSteps(enqueuedWaypoints, traversalMode);
   const clientPosition = actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile ?? actor.tile);
   const settlementWaypoints = nhClientSettlementWaypoints(clientPosition, actor.tile);
   const settlementTraversalModes = settlementWaypoints.map(() => actor.running ? 2 : 1);
-  const targetRouteWaypoints = [...settlementWaypoints, ...enqueuedWaypoints];
+  const targetRouteWaypoints = [...settlementWaypoints, ...clientUpdate.routeWaypoints];
   const targetRouteTraversalModes = [
     ...settlementTraversalModes,
-    ...Array.from({ length: enqueueCount }, () => traversalMode)
+    ...clientUpdate.routeTraversalModes
   ];
   // Source: TargetRoute.beforeMovement() rewrites Movement steps before each
   // movement pass. The source client then receives the fresh accepted movement
@@ -2993,13 +3302,40 @@ function advanceManualActorTargetRouteTick(actor: ManualActorState): ManualActor
     targetRouteTraversalModes,
     enqueueCount
   );
+  const logicalClientPosition = manualActorRouteLogicalClientPosition(actor, actor.tile);
+  const logicalSettlementWaypoints = nhClientSettlementWaypoints(logicalClientPosition, actor.tile);
+  const logicalTargetRouteWaypoints = [...logicalSettlementWaypoints, ...clientUpdate.routeWaypoints];
+  const logicalTargetRouteTraversalModes = [
+    ...logicalSettlementWaypoints.map(() => actor.running ? 2 : 1),
+    ...clientUpdate.routeTraversalModes
+  ];
+  const logicalRoute = setManualActorLogicalClientPath(
+    logicalClientPosition,
+    logicalTargetRouteWaypoints,
+    logicalTargetRouteTraversalModes,
+    enqueueCount
+  );
+  const acceptedMovementCursor =
+    acceptedClientCycle === null ? null : Math.max(0, acceptedClientCycle - 1);
+  const lastMovementClientCycle =
+    acceptedMovementCursor === null
+      ? actor.lastMovementClientCycle
+      : Math.max(actor.lastMovementClientCycle ?? acceptedMovementCursor, acceptedMovementCursor);
   return {
     ...actor,
     tile: enqueuedWaypoints[enqueuedWaypoints.length - 1] ?? actor.tile,
     routeWaypoints: compressedRoute.routeWaypoints,
     routeTraversalModes: compressedRoute.routeTraversalModes,
+    logicalClientPosition,
+    logicalRouteWaypoints: logicalRoute.logicalRouteWaypoints,
+    logicalRouteTraversalModes: logicalRoute.logicalRouteTraversalModes,
     serverRouteWaypoints: [],
-    serverRouteTraversalModes: []
+    serverRouteTraversalModes: [],
+    serverRouteVisualQueued: false,
+    // Source: TargetRoute.beforeMovement() still reaches the client as a
+    // player-update path write before class329's actor pass on that same client
+    // cycle; avoid pre-update backlog while still allowing the accepted cycle.
+    lastMovementClientCycle
   };
 }
 
@@ -3009,72 +3345,74 @@ function compressManualActorTargetRouteClientPath(
   routeTraversalModes: readonly number[],
   preservedTailCount = 0
 ): Pick<ManualActorState, "routeWaypoints" | "routeTraversalModes"> {
-  if (routeWaypoints.length <= 9) {
+  void clientPosition;
+  void preservedTailCount;
+  if (routeWaypoints.length <= NH_CLIENT_ROUTE_BUFFER_LIMIT) {
     return { routeWaypoints, routeTraversalModes };
   }
 
-  const tailCount = Math.min(Math.max(0, Math.trunc(preservedTailCount)), 9, routeWaypoints.length);
-  const tailStart = routeWaypoints.length - tailCount;
-  const prefixWaypoints = routeWaypoints.slice(0, tailStart);
-  const prefixTraversalModes = routeTraversalModes.slice(0, tailStart);
-  const prefixLimit = 9 - tailCount;
-  const compressedWaypoints: RuntimeTile[] = [];
-  const compressedTraversalModes: number[] = [];
-  let currentPosition = clientPosition;
-  let nextIndex = 0;
-  while (nextIndex < prefixWaypoints.length && compressedWaypoints.length < prefixLimit) {
-    let bestIndex = nextIndex;
-    for (let index = nextIndex; index < prefixWaypoints.length; index += 1) {
-      const candidatePosition = nhClientPositionFromRuntimeTile(prefixWaypoints[index]);
-      if (
-        Math.abs(candidatePosition.x - currentPosition.x) > 2 * NH_ACTOR_TILE_CLIENT_UNITS ||
-        Math.abs(candidatePosition.z - currentPosition.z) > 2 * NH_ACTOR_TILE_CLIENT_UNITS
-      ) {
-        break;
-      }
-      bestIndex = index;
-    }
-
-    const waypoint = prefixWaypoints[bestIndex];
-    compressedWaypoints.push(waypoint);
-    compressedTraversalModes.push(prefixTraversalModes[bestIndex] ?? 1);
-    currentPosition = nhClientPositionFromRuntimeTile(waypoint);
-    nextIndex = bestIndex + 1;
-  }
-
+  // Source: Player.method1100() keeps a fixed pathX/pathY buffer by shifting in
+  // the newest step at index 0. It does not geometry-compress loops, so a
+  // forward/back click sequence during a held action must survive exactly.
+  const startIndex = routeWaypoints.length - NH_CLIENT_ROUTE_BUFFER_LIMIT;
   return {
-    routeWaypoints: [...compressedWaypoints, ...routeWaypoints.slice(tailStart)],
-    routeTraversalModes: [...compressedTraversalModes, ...routeTraversalModes.slice(tailStart)]
+    routeWaypoints: routeWaypoints.slice(startIndex),
+    routeTraversalModes: routeTraversalModes.slice(startIndex)
   };
 }
 
 function enqueueManualActorClientPathSteps(
-  current: readonly RuntimeTile[],
-  nextSteps: readonly RuntimeTile[]
-): readonly RuntimeTile[] {
-  let queued = [...current];
-  for (const step of nextSteps) {
-    if (queued.length >= 9) {
-      queued = queued.slice(1);
-    }
-    queued.push(step);
-  }
-  return queued;
+  actor: ManualActorState,
+  nextSteps: readonly RuntimeTile[],
+  traversalMode: number
+): Pick<ManualActorState, "routeWaypoints" | "routeTraversalModes"> {
+  const clientPosition = actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile ?? actor.tile);
+  const routeWaypoints = [...actor.routeWaypoints, ...nextSteps];
+  const routeTraversalModes = [
+    ...actor.routeTraversalModes,
+    ...Array.from({ length: nextSteps.length }, () => traversalMode)
+  ];
+  return compressManualActorTargetRouteClientPath(
+    clientPosition,
+    routeWaypoints,
+    routeTraversalModes,
+    nextSteps.length
+  );
 }
 
-function enqueueManualActorClientTraversalModes(
-  current: readonly number[],
-  nextStepCount: number,
+function setManualActorLogicalClientPath(
+  logicalClientPosition: RuntimeClientPosition,
+  nextSteps: readonly RuntimeTile[],
+  traversalModes: readonly number[],
+  preservedTailCount = 0
+): Pick<ManualActorState, "logicalRouteWaypoints" | "logicalRouteTraversalModes"> {
+  const route = compressManualActorTargetRouteClientPath(
+    logicalClientPosition,
+    nextSteps,
+    traversalModes,
+    preservedTailCount
+  );
+  return {
+    logicalRouteWaypoints: route.routeWaypoints,
+    logicalRouteTraversalModes: route.routeTraversalModes
+  };
+}
+
+function enqueueManualActorLogicalClientPathSteps(
+  actor: ManualActorState,
+  nextSteps: readonly RuntimeTile[],
   traversalMode: number
-): readonly number[] {
-  let queued = [...current];
-  for (let index = 0; index < nextStepCount; index += 1) {
-    if (queued.length >= 9) {
-      queued = queued.slice(1);
-    }
-    queued.push(traversalMode);
-  }
-  return queued;
+): Pick<ManualActorState, "logicalRouteWaypoints" | "logicalRouteTraversalModes"> {
+  const logicalClientPosition = manualActorRouteLogicalClientPosition(actor, actor.tile);
+  return setManualActorLogicalClientPath(
+    logicalClientPosition,
+    [...actor.logicalRouteWaypoints, ...nextSteps],
+    [
+      ...actor.logicalRouteTraversalModes,
+      ...Array.from({ length: nextSteps.length }, () => traversalMode)
+    ],
+    nextSteps.length
+  );
 }
 
 function nhStepTowardWaypoint(fromTile: RuntimeTile, waypoint: RuntimeTile): RuntimeTile {
@@ -3113,6 +3451,15 @@ function manualActorHasPendingMovement(actor: ManualActorState): boolean {
   return actor.routeWaypoints.length > 0 || actor.serverRouteWaypoints.length > 0;
 }
 
+function manualActorHasHeldActionMovement(actor: ManualActorState): boolean {
+  return actor.activeSequenceKey !== null ||
+    actor.movementBlockedBySequence ||
+    actor.movementStallTicks > 0 ||
+    manualActorHasPendingMovement(actor) ||
+    actor.logicalRouteWaypoints.length > 0 ||
+    actor.serverRouteVisualQueued;
+}
+
 function clearManualActorMovementRoute(actor: ManualActorState): ManualActorState {
   // Source: Entity.freeze() calls Movement.reset(), which clears queued steps without rewriting Position.
   // The client still has to settle smoothly to
@@ -3120,13 +3467,19 @@ function clearManualActorMovementRoute(actor: ManualActorState): ManualActorStat
   // from a hidden authoritative tile and visibly snaps.
   const clientPosition = actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile);
   const settlementWaypoints = nhClientSettlementWaypoints(clientPosition, actor.tile);
+  const logicalClientPosition = manualActorRouteLogicalClientPosition(actor, actor.tile);
+  const logicalSettlementWaypoints = nhClientSettlementWaypoints(logicalClientPosition, actor.tile);
   return {
     ...actor,
     renderTile: runtimeTileFromNhClientPosition(clientPosition),
     routeWaypoints: settlementWaypoints,
     routeTraversalModes: settlementWaypoints.map(() => actor.running ? 2 : 1),
+    logicalClientPosition,
+    logicalRouteWaypoints: logicalSettlementWaypoints,
+    logicalRouteTraversalModes: logicalSettlementWaypoints.map(() => actor.running ? 2 : 1),
     serverRouteWaypoints: [],
     serverRouteTraversalModes: [],
+    serverRouteVisualQueued: false,
     clientPosition,
     movementStallTicks: 0,
     sequencePathLengthAtStart: 0,
@@ -3184,6 +3537,7 @@ function preAttackRouteManualActorToCombatTarget(input: {
   readonly collision: NhSceneCollision;
   readonly tick: number;
   readonly now: number;
+  readonly acceptedClientCycle: number;
   readonly movedThisTick: boolean;
 }): ManualActorState {
   if (
@@ -3202,7 +3556,8 @@ function preAttackRouteManualActorToCombatTarget(input: {
     return {
       ...input.actor,
       serverRouteWaypoints: [],
-      serverRouteTraversalModes: []
+      serverRouteTraversalModes: [],
+      serverRouteVisualQueued: false
     };
   }
 
@@ -3213,7 +3568,7 @@ function preAttackRouteManualActorToCombatTarget(input: {
   // Source: TargetRoute.beforeMovement() recomputes RouteFinder.routeEntity() each tick before Movement.process().
   // Only this tick's walk/run step survives; carrying the remaining target-route tail into the next tick makes
   // melee pathing use stale waypoints instead of the freshly recomputed entity route.
-  return advanceManualActorTargetRouteTick(routed.actor);
+  return advanceManualActorTargetRouteTick(routed.actor, input.acceptedClientCycle);
 }
 
 function runtimeCombatProjectileLineOfSight(input: {
@@ -3475,25 +3830,69 @@ function nhManualMovementSpeed(
   traversalMode: number,
   hasCombatTarget: boolean
 ): { readonly speed: number; readonly movementStallTicks: number } {
+  return nhManualMovementSpeedForPath(
+    actor,
+    actor.routeWaypoints.length,
+    traversalMode,
+    hasCombatTarget,
+    actor.movementStallTicks
+  );
+}
+
+function nhManualMovementSpeedForPath(
+  actor: Pick<ManualActorState, "rotationUnits" | "orientationUnits">,
+  pathLength: number,
+  traversalMode: number,
+  hasCombatTarget: boolean,
+  movementStallTicks: number
+): { readonly speed: number; readonly movementStallTicks: number } {
   let speed = 4;
   if (actor.rotationUnits !== actor.orientationUnits && !hasCombatTarget) {
     speed = 2;
   }
-  if (actor.routeWaypoints.length > 2) {
+  if (pathLength > 2) {
     speed = 6;
   }
-  if (actor.routeWaypoints.length > 3) {
+  if (pathLength > 3) {
     speed = 8;
   }
-  let movementStallTicks = actor.movementStallTicks;
-  if (movementStallTicks > 0 && actor.routeWaypoints.length > 1) {
+  let nextMovementStallTicks = movementStallTicks;
+  if (nextMovementStallTicks > 0 && pathLength > 1) {
     speed = 8;
-    movementStallTicks -= 1;
+    nextMovementStallTicks -= 1;
   }
   if (traversalMode === 2) {
     speed <<= 1;
   }
-  return { speed, movementStallTicks };
+  return { speed, movementStallTicks: nextMovementStallTicks };
+}
+
+function manualActorHasClientTargetIndex(
+  actor: ManualActorState,
+  combatActor: RuntimePlayerCombatActorState | null,
+  clientCycle: number
+): boolean {
+  // Source: PlayerCombat.reset() clears the server target immediately, but
+  // faceNone(true) removes the client targetIndex through EntityDirectionUpdate's
+  // delayed stage/reset path. Keep this as an explicit client-side hold, not the
+  // trainer's broader last-target combat memory.
+  return Boolean(
+    (combatActor !== null && combatActor.targetId !== null) ||
+      actor.clientTargetIndexUntilClientCycle >= clientCycle
+  );
+}
+
+function manualActorWithClientTargetIndexHold(
+  actor: ManualActorState,
+  untilClientCycle: number
+): ManualActorState {
+  return {
+    ...actor,
+    clientTargetIndexUntilClientCycle: Math.max(
+      actor.clientTargetIndexUntilClientCycle,
+      untilClientCycle
+    )
+  };
 }
 
 function nhMovementSequenceNameFromOrientation(actor: ManualActorState): RuntimeSequenceName {
@@ -3597,6 +3996,52 @@ function manualActorActionSequenceKey(
   return `${combatActor.actionSequenceName}:${actionStartClientCycle}`;
 }
 
+function manualActorSequenceNameFromKey(sequenceKey: string | null): RuntimeSequenceName | null {
+  if (!sequenceKey) {
+    return null;
+  }
+  const separatorIndex = sequenceKey.lastIndexOf(":");
+  if (separatorIndex <= 0) {
+    return null;
+  }
+  return sequenceKey.slice(0, separatorIndex) as RuntimeSequenceName;
+}
+
+function manualActorSequenceStartClientCycle(sequenceKey: string | null): number | null {
+  if (!sequenceKey) {
+    return null;
+  }
+  const separatorIndex = sequenceKey.lastIndexOf(":");
+  if (separatorIndex <= 0 || separatorIndex >= sequenceKey.length - 1) {
+    return null;
+  }
+  const cycle = Number.parseInt(sequenceKey.slice(separatorIndex + 1), 10);
+  return Number.isFinite(cycle) ? cycle : null;
+}
+
+function manualActorActiveSequenceContext(
+  actor: ManualActorState,
+  combatActor: RuntimePlayerCombatActorState | null,
+  combatState: RuntimePlayerCombatState
+): { readonly key: string; readonly sequenceName: RuntimeSequenceName } | null {
+  if (!actor.activeSequenceKey) {
+    return null;
+  }
+  const activeCombatSequenceKey =
+    combatActor ? manualActorActionSequenceKey(combatActor, combatState) : null;
+  if (
+    activeCombatSequenceKey === actor.activeSequenceKey &&
+    combatActor?.actionSequenceName
+  ) {
+    return {
+      key: actor.activeSequenceKey,
+      sequenceName: combatActor.actionSequenceName
+    };
+  }
+  const sequenceName = manualActorSequenceNameFromKey(actor.activeSequenceKey);
+  return sequenceName ? { key: actor.activeSequenceKey, sequenceName } : null;
+}
+
 function syncManualActorActionSequence(
   actor: ManualActorState,
   combatActor: RuntimePlayerCombatActorState,
@@ -3604,13 +4049,21 @@ function syncManualActorActionSequence(
 ): ManualActorState {
   const activeSequenceKey = manualActorActionSequenceKey(combatActor, combatState);
   if (activeSequenceKey === null) {
+    // Source: once LoginPacket.method3722 accepts a primary sequence, class329
+    // advances that client sequence until its frame table finishes. Server-side
+    // combat action bookkeeping expiring must not cancel the visible sequence or
+    // unblock movement early.
+    if (actor.activeSequenceKey !== null) {
+      return actor;
+    }
     return actor.activeSequenceKey === null &&
       actor.completedSequenceKey === null &&
       actor.sequencePathLengthAtStart === 0 &&
       actor.primaryFrame === 0 &&
       actor.primaryFrameCycle === 0 &&
       actor.primarySequenceLoops === 0 &&
-      actor.primarySequenceCycle === 0
+      actor.primarySequenceCycle === 0 &&
+      actor.primarySequenceDelayCycles === 0
       ? actor
       : {
         ...actor,
@@ -3620,7 +4073,8 @@ function syncManualActorActionSequence(
         primaryFrame: 0,
         primaryFrameCycle: 0,
         primarySequenceLoops: 0,
-        primarySequenceCycle: 0
+        primarySequenceCycle: 0,
+        primarySequenceDelayCycles: 0
       };
   }
   if (actor.completedSequenceKey === activeSequenceKey) {
@@ -3639,7 +4093,123 @@ function syncManualActorActionSequence(
     primaryFrame: 0,
     primaryFrameCycle: 0,
     primarySequenceLoops: 0,
-    primarySequenceCycle: 0
+    primarySequenceCycle: 0,
+    primarySequenceDelayCycles: 0
+  };
+}
+
+function sameManualActorTilePath(
+  left: readonly RuntimeTile[],
+  right: readonly RuntimeTile[]
+): boolean {
+  return left.length === right.length && left.every((tile, index) => sameNhTile(tile, right[index]));
+}
+
+function sameManualActorTraversalPath(
+  left: readonly number[],
+  right: readonly number[]
+): boolean {
+  return left.length === right.length && left.every((mode, index) => mode === right[index]);
+}
+
+function sameManualActorClientPosition(
+  left: RuntimeClientPosition | null,
+  right: RuntimeClientPosition | null
+): boolean {
+  return left === right || (
+    left !== null &&
+    right !== null &&
+    left.x === right.x &&
+    left.z === right.z
+  );
+}
+
+function manualActorMovementStateDiffers(
+  current: ManualActorState,
+  incoming: ManualActorState
+): boolean {
+  return (
+    !sameNhTile(current.tile, incoming.tile) ||
+    !sameNhTile(current.renderTile, incoming.renderTile) ||
+    !sameManualActorClientPosition(current.clientPosition, incoming.clientPosition) ||
+    !sameManualActorClientPosition(current.logicalClientPosition, incoming.logicalClientPosition) ||
+    !sameManualActorTilePath(current.routeWaypoints, incoming.routeWaypoints) ||
+    !sameManualActorTraversalPath(current.routeTraversalModes, incoming.routeTraversalModes) ||
+    !sameManualActorTilePath(current.logicalRouteWaypoints, incoming.logicalRouteWaypoints) ||
+    !sameManualActorTraversalPath(current.logicalRouteTraversalModes, incoming.logicalRouteTraversalModes) ||
+    !sameManualActorTilePath(current.serverRouteWaypoints, incoming.serverRouteWaypoints) ||
+    !sameManualActorTraversalPath(current.serverRouteTraversalModes, incoming.serverRouteTraversalModes) ||
+    current.serverRouteVisualQueued !== incoming.serverRouteVisualQueued ||
+    current.lastMovementClientCycle !== incoming.lastMovementClientCycle ||
+    current.movementStallTicks !== incoming.movementStallTicks ||
+    current.movementBlockedBySequence !== incoming.movementBlockedBySequence
+  );
+}
+
+function manualActorWithMovementState(
+  incoming: ManualActorState,
+  current: ManualActorState,
+  sequenceState: Pick<
+    ManualActorState,
+    | "activeSequenceKey"
+    | "completedSequenceKey"
+    | "sequencePathLengthAtStart"
+    | "primaryFrame"
+    | "primaryFrameCycle"
+    | "primarySequenceLoops"
+    | "primarySequenceCycle"
+    | "primarySequenceDelayCycles"
+  >
+): ManualActorState {
+  return {
+    ...incoming,
+    tile: current.tile,
+    renderTile: current.renderTile,
+    clientPosition: current.clientPosition,
+    routeWaypoints: current.routeWaypoints,
+    routeTraversalModes: current.routeTraversalModes,
+    logicalClientPosition: current.logicalClientPosition,
+    logicalRouteWaypoints: current.logicalRouteWaypoints,
+    logicalRouteTraversalModes: current.logicalRouteTraversalModes,
+    serverRouteWaypoints: current.serverRouteWaypoints,
+    serverRouteTraversalModes: current.serverRouteTraversalModes,
+    serverRouteVisualQueued: current.serverRouteVisualQueued,
+    clientTargetIndexUntilClientCycle: current.clientTargetIndexUntilClientCycle,
+    movementStallTicks: current.movementStallTicks,
+    movementBlockedBySequence: current.movementBlockedBySequence,
+    movementFrame: current.movementFrame,
+    movementFrameCycle: current.movementFrameCycle,
+    orientationUnits: current.orientationUnits,
+    rotationUnits: current.rotationUnits,
+    turnTicks: current.turnTicks,
+    sequenceName: current.sequenceName,
+    facingDegrees: current.facingDegrees,
+    animationCycle: current.animationCycle,
+    lastMovementClientCycle: current.lastMovementClientCycle,
+    ...sequenceState
+  };
+}
+
+function manualActorSequenceCursorState(actor: ManualActorState): Pick<
+  ManualActorState,
+  | "activeSequenceKey"
+  | "completedSequenceKey"
+  | "sequencePathLengthAtStart"
+  | "primaryFrame"
+  | "primaryFrameCycle"
+  | "primarySequenceLoops"
+  | "primarySequenceCycle"
+  | "primarySequenceDelayCycles"
+> {
+  return {
+    activeSequenceKey: actor.activeSequenceKey,
+    completedSequenceKey: actor.completedSequenceKey,
+    sequencePathLengthAtStart: actor.sequencePathLengthAtStart,
+    primaryFrame: actor.primaryFrame,
+    primaryFrameCycle: actor.primaryFrameCycle,
+    primarySequenceLoops: actor.primarySequenceLoops,
+    primarySequenceCycle: actor.primarySequenceCycle,
+    primarySequenceDelayCycles: actor.primarySequenceDelayCycles
   };
 }
 
@@ -3647,27 +4217,63 @@ function manualActorWithAuthoritativeSequenceCursor(
   incoming: ManualActorState,
   current: ManualActorState
 ): ManualActorState {
+  const incomingMovementCursor = incoming.lastMovementClientCycle ?? -1;
+  const currentMovementCursor = current.lastMovementClientCycle ?? -1;
+  const currentPathCursorAhead =
+    current.primarySequenceCycle > incoming.primarySequenceCycle ||
+    current.movementStallTicks > incoming.movementStallTicks ||
+    current.routeWaypoints.length > incoming.routeWaypoints.length ||
+    current.logicalRouteWaypoints.length > incoming.logicalRouteWaypoints.length ||
+    current.serverRouteWaypoints.length > incoming.serverRouteWaypoints.length ||
+    currentMovementCursor > incomingMovementCursor;
+  const currentMovementStateDiffers = manualActorMovementStateDiffers(current, incoming);
+  const currentHasPendingMovement =
+    current.routeWaypoints.length > 0 ||
+    current.logicalRouteWaypoints.length > 0 ||
+    current.serverRouteWaypoints.length > 0 ||
+    current.serverRouteVisualQueued ||
+    current.movementBlockedBySequence ||
+    current.movementStallTicks > 0;
+  const incomingLooksLikeStaleActorState =
+    currentMovementStateDiffers &&
+    currentHasPendingMovement &&
+    currentMovementCursor >= incomingMovementCursor;
   if (
     current.activeSequenceKey &&
     current.activeSequenceKey === incoming.activeSequenceKey &&
-    current.primarySequenceCycle > incoming.primarySequenceCycle
+    (currentPathCursorAhead || currentMovementStateDiffers)
   ) {
-    return {
-      ...incoming,
-      activeSequenceKey: current.activeSequenceKey,
-      completedSequenceKey: current.completedSequenceKey,
-      sequencePathLengthAtStart: current.sequencePathLengthAtStart,
-      primaryFrame: current.primaryFrame,
-      primaryFrameCycle: current.primaryFrameCycle,
-      primarySequenceLoops: current.primarySequenceLoops,
-      primarySequenceCycle: current.primarySequenceCycle,
-      lastMovementClientCycle: current.lastMovementClientCycle
-    };
+    // Source: equipment updates only rebuild PlayerAppearance. They do not
+    // reset LoginPacket.method3722's primary sequence cursor or class329's
+    // held path cursor, so same-sequence stale React state must also preserve
+    // the newer client movement cursor.
+    return manualActorWithMovementState(incoming, current, manualActorSequenceCursorState(current));
   }
 
-  if (current.completedSequenceKey && current.completedSequenceKey === incoming.activeSequenceKey) {
-    return {
-      ...incoming,
+  if (
+    current.activeSequenceKey &&
+    incoming.activeSequenceKey === null &&
+    current.completedSequenceKey === null &&
+    (currentPathCursorAhead || currentMovementStateDiffers)
+  ) {
+    // Source: equipment/appearance packets do not cancel an accepted primary
+    // sequence; class329 keeps sequenceFrame/sequenceFrameCycle plus the held
+    // path/field687 cursor advancing until the frame table finishes. Stale
+    // React state must not erase that client cursor.
+    return manualActorWithMovementState(incoming, current, manualActorSequenceCursorState(current));
+  }
+
+  if (
+    current.completedSequenceKey &&
+    (
+      current.completedSequenceKey === incoming.activeSequenceKey ||
+      (incoming.activeSequenceKey === null && currentMovementStateDiffers)
+    )
+  ) {
+    // Source: Equipment.equip() sends an appearance update without resetting
+    // class329's path or field687 catch-up state. If that appearance state lands
+    // after the primary sequence ended, it must still not roll back the slingshot.
+    return manualActorWithMovementState(incoming, current, {
       activeSequenceKey: null,
       completedSequenceKey: current.completedSequenceKey,
       sequencePathLengthAtStart: 0,
@@ -3675,8 +4281,32 @@ function manualActorWithAuthoritativeSequenceCursor(
       primaryFrameCycle: 0,
       primarySequenceLoops: 0,
       primarySequenceCycle: current.primarySequenceCycle,
-      lastMovementClientCycle: current.lastMovementClientCycle
-    };
+      primarySequenceDelayCycles: 0
+    });
+  }
+
+  if (
+    incoming.activeSequenceKey === null &&
+    incoming.completedSequenceKey === null &&
+    current.activeSequenceKey === null &&
+    current.completedSequenceKey === null &&
+    incomingLooksLikeStaleActorState
+  ) {
+    // Source: appearance/equipment packets do not clear Player.pathX/pathY or
+    // class329.field687 after the primary sequence has finished either. React
+    // state from that appearance update can land after the local render cursor
+    // has already consumed more held path; keep the source movement cursor and
+    // apply only the non-movement appearance/loadout fields from the incoming state.
+    return manualActorWithMovementState(incoming, current, {
+      activeSequenceKey: null,
+      completedSequenceKey: null,
+      sequencePathLengthAtStart: 0,
+      primaryFrame: 0,
+      primaryFrameCycle: 0,
+      primarySequenceLoops: 0,
+      primarySequenceCycle: current.primarySequenceCycle,
+      primarySequenceDelayCycles: 0
+    });
   }
 
   return incoming;
@@ -3699,16 +4329,34 @@ function nhAdvancePrimarySequenceCursor(
     return actor;
   }
 
-  const activeSequenceKey = manualActorActionSequenceKey(combatActor, combatState);
-  if (activeSequenceKey !== actor.activeSequenceKey || !combatActor.actionSequenceName) {
+  const activeSequence = manualActorActiveSequenceContext(actor, combatActor, combatState);
+  if (!activeSequence) {
     return actor;
   }
 
-  const sequence = animationFixtures?.sequences.get(combatActor.actionSequenceName);
+  const sequence = animationFixtures?.sequences.get(activeSequence.sequenceName);
   if (!sequence || sequence.frames.length === 0) {
     return {
       ...actor,
-      primarySequenceCycle: actor.primarySequenceCycle + 1
+      primarySequenceCycle: actor.primarySequenceCycle + 1,
+      primarySequenceDelayCycles: 0
+    };
+  }
+
+  const primarySequenceDelayCycles = Math.max(0, Math.trunc(actor.primarySequenceDelayCycles));
+  if (actor.sequencePathLengthAtStart > 0 && nhSequencePrecedenceAnimating(sequence) === 1) {
+    // Source: class329.method6315 sets sequenceDelay = 1 and returns when a
+    // precedenceAnimating=1 primary sequence was accepted with field726 > 0.
+    // The visible actor keeps consuming movement; the primary frame table waits.
+    return {
+      ...actor,
+      primarySequenceDelayCycles: 1
+    };
+  }
+  if (primarySequenceDelayCycles > 0) {
+    return {
+      ...actor,
+      primarySequenceDelayCycles: primarySequenceDelayCycles - 1
     };
   }
 
@@ -3738,7 +4386,8 @@ function nhAdvancePrimarySequenceCursor(
         primaryFrame: 0,
         primaryFrameCycle: 0,
         primarySequenceLoops: 0,
-        primarySequenceCycle
+        primarySequenceCycle,
+        primarySequenceDelayCycles: 0
       };
     }
 
@@ -3757,7 +4406,8 @@ function nhAdvancePrimarySequenceCursor(
         primaryFrame: 0,
         primaryFrameCycle: 0,
         primarySequenceLoops: 0,
-        primarySequenceCycle
+        primarySequenceCycle,
+        primarySequenceDelayCycles: 0
       };
     }
   }
@@ -3767,7 +4417,8 @@ function nhAdvancePrimarySequenceCursor(
     primaryFrame,
     primaryFrameCycle,
     primarySequenceLoops,
-    primarySequenceCycle
+    primarySequenceCycle,
+    primarySequenceDelayCycles: 0
   };
 }
 
@@ -3777,16 +4428,12 @@ function manualActorMovementBlockedByNhSequence(
   combatState: RuntimePlayerCombatState,
   animationFixtures: NhAnimationFixtures | null,
 ): boolean {
-  if (!combatActor || !runtimePlayerCombatActionActive(combatActor, combatState) || !combatActor.actionSequenceName) {
-    return false;
-  }
-
-  const sequence = animationFixtures?.sequences.get(combatActor.actionSequenceName);
-  if (!sequence) {
+  const activeSequence = manualActorActiveSequenceContext(actor, combatActor, combatState);
+  const sequence = activeSequence ? animationFixtures?.sequences.get(activeSequence.sequenceName) : null;
+  if (!activeSequence || !sequence) {
     return false;
   }
   if (
-    actor.activeSequenceKey !== manualActorActionSequenceKey(combatActor, combatState) ||
     actor.primaryFrame < 0 ||
     actor.primaryFrame >= sequence.frames.length
   ) {
@@ -3801,17 +4448,78 @@ function manualActorMovementBlockedByNhSequence(
     : nhSequencePriority(sequence) === 0;
 }
 
+function manualActorClientPathHeldByNhSequence(
+  actor: ManualActorState,
+  combatActor: RuntimePlayerCombatActorState | null,
+  combatState: RuntimePlayerCombatState,
+  animationFixtures: NhAnimationFixtures | null
+): boolean {
+  const activeSequence = manualActorActiveSequenceContext(actor, combatActor, combatState);
+  if (!activeSequence || actor.completedSequenceKey === activeSequence.key) {
+    return false;
+  }
+
+  const sequence = animationFixtures?.sequences.get(activeSequence.sequenceName);
+  if (!sequence) {
+    return false;
+  }
+
+  // Source: client class329 stalls path consumption with field726 > 0 using
+  // precedenceAnimating, otherwise priority. New movement packets should be
+  // appended to the held client path, not replace that path from the latest click.
+  return actor.sequencePathLengthAtStart > 0
+    ? nhSequencePrecedenceAnimating(sequence) === 0
+    : nhSequencePriority(sequence) === 0;
+}
+
+function advanceManualActorLogicalClientCycle(
+  actor: ManualActorState,
+  hasCombatTarget: boolean
+): ManualActorState {
+  const logicalClientPosition = manualActorRouteLogicalClientPosition(actor, actor.tile);
+  if (actor.logicalRouteWaypoints.length === 0) {
+    return {
+      ...actor,
+      logicalClientPosition
+    };
+  }
+
+  const targetTile = actor.logicalRouteWaypoints[0];
+  const targetPosition = nhClientPositionFromRuntimeTile(targetTile);
+  const traversalMode = actor.logicalRouteTraversalModes[0] ?? (actor.running ? 2 : 1);
+  const { speed } = nhManualMovementSpeedForPath(
+    actor,
+    actor.logicalRouteWaypoints.length,
+    traversalMode,
+    hasCombatTarget,
+    0
+  );
+  const nextPosition = {
+    x: nhMoveClientAxis(logicalClientPosition.x, targetPosition.x, speed),
+    z: nhMoveClientAxis(logicalClientPosition.z, targetPosition.z, speed)
+  };
+  const reached = nextPosition.x === targetPosition.x && nextPosition.z === targetPosition.z;
+  return {
+    ...actor,
+    logicalClientPosition: nextPosition,
+    logicalRouteWaypoints: reached ? actor.logicalRouteWaypoints.slice(1) : actor.logicalRouteWaypoints,
+    logicalRouteTraversalModes: reached ? actor.logicalRouteTraversalModes.slice(1) : actor.logicalRouteTraversalModes
+  };
+}
+
 function advanceManualActorClientCycle(
   actor: ManualActorState,
   _collision: NhSceneCollision,
   movementBlocked: boolean,
   targetActor: ManualActorState | null,
   hasCombatTarget: boolean,
-  animationFixtures: NhAnimationFixtures | null
+  animationFixtures: NhAnimationFixtures | null,
+  advanceLogical = true
 ): ManualActorState {
   const clientPosition = actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile);
+  const logicalActor = advanceLogical ? advanceManualActorLogicalClientCycle(actor, hasCombatTarget) : actor;
   let currentActor: ManualActorState = {
-    ...actor,
+    ...logicalActor,
     clientPosition,
     sequenceName: "idle"
   };
@@ -3837,7 +4545,8 @@ function advanceManualActorClientCycle(
       ...currentActor,
       clientPosition,
       movementBlockedBySequence: true,
-      movementStallTicks: Math.min(actor.movementStallTicks + 1, 100)
+      // Source: class329.field687 is not capped; each blocked client cycle is drained by the catch-up speed rule.
+      movementStallTicks: actor.movementStallTicks + 1
     };
     const rotatedActor = rotateManualActorTowardNhOrientation(currentActor, targetActor, hasCombatTarget);
     return nhAdvanceMovementFrameCursor(rotatedActor, rotatedActor.sequenceName, animationFixtures);
@@ -3857,6 +4566,35 @@ function advanceManualActorClientCycle(
     Math.abs(targetPosition.x - clientPosition.x) > 256 ||
     Math.abs(targetPosition.z - clientPosition.z) > 256
   ) {
+    const settlementWaypoints = nhClientSettlementWaypoints(clientPosition, targetTile);
+    if (settlementWaypoints.length > 0) {
+      // Source: client class329 only takes this snap branch when its path target is impossible.
+      // Real server route packets keep the next path tile inside that window; if the trainer's
+      // JS queue ever violates it, repair the generated route instead of presenting a teleport.
+      const settlementTraversalMode = actor.routeTraversalModes[0] ?? (actor.running ? 2 : 1);
+      const repairedRoute = compressManualActorTargetRouteClientPath(
+        clientPosition,
+        [...settlementWaypoints, ...actor.routeWaypoints.slice(1)],
+        [
+          ...Array.from({ length: settlementWaypoints.length }, () => settlementTraversalMode),
+          ...actor.routeTraversalModes.slice(1)
+        ]
+      );
+      return advanceManualActorClientCycle(
+        {
+          ...currentActor,
+          clientPosition,
+          routeWaypoints: repairedRoute.routeWaypoints,
+          routeTraversalModes: repairedRoute.routeTraversalModes
+        },
+        _collision,
+        movementBlocked,
+        targetActor,
+        hasCombatTarget,
+        animationFixtures,
+        false
+      );
+    }
     const routeWaypoints = actor.routeWaypoints.slice(1);
     const routeTraversalModes = actor.routeTraversalModes.slice(1);
     const renderTile = runtimeTileFromNhClientPosition(targetPosition);
@@ -3923,12 +4661,21 @@ function advanceManualActor(
     combatActor && combatState
       ? syncManualActorActionSequence({ ...actor, clientPosition }, combatActor, combatState)
       : { ...actor, clientPosition };
-  const sequenceJustAccepted =
-    currentActor.activeSequenceKey !== null && currentActor.activeSequenceKey !== actor.activeSequenceKey;
-  // Source: Nh LoginPacket.method3722 resets sequenceFrame and sequenceFrameCycle when a new
-  // primary sequence is accepted. Do not spend an old movement catch-up backlog on the first
-  // rendered frame of the newly accepted action sequence.
-  const previousCycle = sequenceJustAccepted ? animationCycle : actor.lastMovementClientCycle ?? animationCycle;
+  if (actor.lastMovementClientCycle !== null && actor.lastMovementClientCycle > animationCycle) {
+    // Source: scene clicks only send a movement packet; Player.method1100()
+    // cannot expose the accepted path to class329 until the later player update.
+    // Keep the future client-cycle gate even if only this actor has pending movement.
+    return {
+      ...currentActor,
+      animationCycle,
+      lastMovementClientCycle: actor.lastMovementClientCycle
+    };
+  }
+  // Source: Client.vmethod1937() parses player updates before class329.method6315()
+  // in the same Client.cycle. A newly accepted primary sequence can therefore
+  // block or consume movement on that cycle; do not skip the class329 pass just
+  // because LoginPacket.method3722 reset the sequence frame cursor.
+  const previousCycle = actor.lastMovementClientCycle ?? animationCycle;
   const maxCycleCatchUp = Math.max(0, Math.trunc(maxClientCyclesToAdvance));
   const targetMovementCycle = Math.min(
     animationCycle,
@@ -3936,8 +4683,12 @@ function advanceManualActor(
   );
 
   for (let cycle = previousCycle + 1; cycle <= targetMovementCycle; cycle += 1) {
+    const activeSequenceStartClientCycle = manualActorSequenceStartClientCycle(currentActor.activeSequenceKey);
+    const sequenceAcceptedForCycle =
+      activeSequenceStartClientCycle === null || cycle >= activeSequenceStartClientCycle;
+    const hasClientTargetIndex = manualActorHasClientTargetIndex(currentActor, combatActor, cycle);
     const movementBlocked =
-      combatActor && combatState
+      sequenceAcceptedForCycle && combatActor && combatState
         ? manualActorMovementBlockedByNhSequence(currentActor, combatActor, combatState, animationFixtures)
         : false;
     currentActor = advanceManualActorClientCycle(
@@ -3945,17 +4696,95 @@ function advanceManualActor(
       collision,
       movementBlocked,
       targetActor,
-      combatActor?.targetId != null,
+      hasClientTargetIndex,
       animationFixtures
     );
-    currentActor = nhAdvancePrimarySequenceCursor(currentActor, combatActor, combatState, animationFixtures);
+    if (sequenceAcceptedForCycle) {
+      currentActor = nhAdvancePrimarySequenceCursor(currentActor, combatActor, combatState, animationFixtures);
+    }
   }
 
   return {
     ...currentActor,
     animationCycle,
-    lastMovementClientCycle:
-      animationCycle - targetMovementCycle > maxCycleCatchUp ? animationCycle : targetMovementCycle
+    lastMovementClientCycle: targetMovementCycle
+  };
+}
+
+function advanceManualActorBeforeAcceptedPlayerUpdate(input: {
+  readonly actor: ManualActorState;
+  readonly acceptedClientCycle: number;
+  readonly collision: NhSceneCollision;
+  readonly combatActor: RuntimePlayerCombatActorState | null;
+  readonly combatState: RuntimePlayerCombatState | null;
+  readonly animationFixtures: NhAnimationFixtures | null;
+  readonly targetActor: ManualActorState | null;
+}): ManualActorState {
+  const updatePreviousCycle = Math.max(0, input.acceptedClientCycle - 1);
+  const actorMovementCycle = input.actor.lastMovementClientCycle ?? updatePreviousCycle;
+  if (actorMovementCycle >= updatePreviousCycle) {
+    return input.actor;
+  }
+
+  let currentActor = input.combatActor && input.combatState
+    ? syncManualActorActionSequence(
+        {
+          ...input.actor,
+          clientPosition: input.actor.clientPosition ?? nhClientPositionFromRuntimeTile(input.actor.renderTile)
+        },
+        input.combatActor,
+        input.combatState
+      )
+    : input.actor;
+
+  // Source: Client.vmethod1937() receives the player update after earlier
+  // client cycles have already run class329.method6315(). That pass increments
+  // field687 while a sequence blocks movement, but once the sequence no longer
+  // blocks it consumes the same path before the next packet is accepted. Keep
+  // the TypeScript pre-update catch-up as a full class329-style pass; equipment
+  // appearance packets are handled separately and must not rewrite this cursor.
+  for (let cycle = actorMovementCycle + 1; cycle <= updatePreviousCycle; cycle += 1) {
+    const activeSequenceStartClientCycle = manualActorSequenceStartClientCycle(currentActor.activeSequenceKey);
+    const sequenceAcceptedForCycle =
+      activeSequenceStartClientCycle === null || cycle >= activeSequenceStartClientCycle;
+    const hasClientTargetIndex = manualActorHasClientTargetIndex(
+      currentActor,
+      input.combatActor,
+      cycle
+    );
+    const movementBlocked =
+      sequenceAcceptedForCycle &&
+      input.combatActor !== null &&
+      input.combatState !== null
+        ? manualActorMovementBlockedByNhSequence(
+            currentActor,
+            input.combatActor,
+            input.combatState,
+            input.animationFixtures
+          )
+        : false;
+    currentActor = advanceManualActorClientCycle(
+      currentActor,
+      input.collision,
+      movementBlocked,
+      input.targetActor,
+      hasClientTargetIndex,
+      input.animationFixtures
+    );
+    if (sequenceAcceptedForCycle) {
+      currentActor = nhAdvancePrimarySequenceCursor(
+        currentActor,
+        input.combatActor,
+        input.combatState,
+        input.animationFixtures
+      );
+    }
+  }
+
+  return {
+    ...currentActor,
+    animationCycle: updatePreviousCycle,
+    lastMovementClientCycle: updatePreviousCycle
   };
 }
 
@@ -4072,11 +4901,11 @@ function manualCombatActorPose(
   actorSequenceDefinitions: NhActorSequenceDefinitionStore,
   animationFixtures: NhAnimationFixtures | null
 ): RuntimeActorPose {
-  const actionSequenceKey = manualActorActionSequenceKey(combatActor, combatState);
-  const actionWindowActive = actionSequenceKey !== null && actor.activeSequenceKey === actionSequenceKey;
+  const activeSequence = manualActorActiveSequenceContext(actor, combatActor, combatState);
+  const actionWindowActive = activeSequence !== null;
   const actionAnimationCycle = actor.primarySequenceCycle;
   const actionSequence =
-    combatActor.actionSequenceName === null ? null : animationFixtures?.sequences.get(combatActor.actionSequenceName) ?? null;
+    activeSequence === null ? null : animationFixtures?.sequences.get(activeSequence.sequenceName) ?? null;
   const primaryFrameCursor =
     actionWindowActive && actionSequence && actor.primaryFrame >= 0 && actor.primaryFrame < actionSequence.frames.length
       ? nhPrimaryFrameCursor(actor)
@@ -4103,10 +4932,10 @@ function manualCombatActorPose(
     renderTile: actor.renderTile,
     loadoutId: combatActor.loadoutId,
     appearance: actor.appearance ?? manualSourceAppearance(combatActor.loadoutId, sourcePose),
-    sequenceName: actionFrameActive ? runtimePlayerCombatActorSequence(combatActor, combatState.tick, baseSequenceName) : baseSequenceName,
+    sequenceName: actionFrameActive && activeSequence ? activeSequence.sequenceName : baseSequenceName,
     sequenceMode: actionFrameActive ? "primary" : undefined,
     movementSequenceName,
-    actionSequenceKey: actionFrameActive ? actionSequenceKey ?? undefined : undefined,
+    actionSequenceKey: actionFrameActive ? activeSequence?.key : undefined,
     facingDegrees: actor.facingDegrees,
     orientationUnits: actor.orientationUnits,
     rotationUnits: actor.rotationUnits,
@@ -4169,6 +4998,148 @@ function runtimeAnimationSmoothingFrameSnapshot(
     actorSequenceDefinitions,
     animationFixtures
   );
+}
+
+function manualActorVisibleCameraTile(
+  boundary: RuntimeSceneBoundary,
+  actorId: RuntimeActorId,
+  actor: ManualActorState,
+  pose: RuntimeActorPose | null = null
+): RuntimeTile {
+  // Source: Client normal camera follow reads localPlayer.x/y after class329 has
+  // applied the visible actor movement pass. In the trainer, the rendered Three
+  // actor group is that final visual track for this draw; logicalClientPosition
+  // is only the true/minimap track while primary sequences hold the model.
+  const slot = boundary.actorSlots.get(actorId);
+  if (slot) {
+    return {
+      x: slot.group.position.x,
+      z: slot.group.position.z
+    };
+  }
+  if (actor.renderTile) {
+    return actor.renderTile;
+  }
+  if (pose?.renderTile) {
+    return pose.renderTile;
+  }
+  if (actor.clientPosition) {
+    return runtimeTileFromNhClientPosition(actor.clientPosition);
+  }
+  return runtimeTileFromNhClientPosition(
+    actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile ?? actor.tile)
+  );
+}
+
+function manualActorVisibleCameraGroundHeight(
+  boundary: RuntimeSceneBoundary,
+  actorId: RuntimeActorId,
+  tile: RuntimeTile,
+  collision: NhSceneCollision | null
+): number {
+  if (collision) {
+    return collision.sampleHeight(tile);
+  }
+  const slot = boundary.actorSlots.get(actorId);
+  if (slot) {
+    return slot.group.position.y;
+  }
+  return 0;
+}
+
+function runtimeMinimapFrameSnapshotFromManualActors(
+  snapshot: RuntimeSceneSnapshot,
+  manualControl: boolean,
+  localActor: ManualActorState,
+  opponentActor: ManualActorState
+): RuntimeSceneSnapshot {
+  if (!manualControl) {
+    return snapshot;
+  }
+  // Source: minimap dots are drawn from the same client actor x/y that the
+  // current scene draw exposes. During a primary-sequence stall, that means the
+  // minimap stays with the rendered actor track, not the trainer's logical route
+  // cursor used for server/path decisions.
+  const renderedTiles: Record<RuntimeActorId, RuntimeTile> = {
+    "local-player": localActor.renderTile,
+    opponent: opponentActor.renderTile
+  };
+  return {
+    ...snapshot,
+    actors: snapshot.actors.map((actor) => ({
+      ...actor,
+      renderTile: renderedTiles[actor.actorId] ?? actor.renderTile
+    }))
+  };
+}
+
+function syncRuntimeCameraFollowTileOverrides(
+  boundary: RuntimeSceneBoundary,
+  manualControl: boolean,
+  localActor: ManualActorState,
+  opponentActor: ManualActorState,
+  frameSnapshot: RuntimeSceneSnapshot,
+  collision: NhSceneCollision | null
+): void {
+  boundary.cameraFollowTileOverrides.clear();
+  boundary.cameraFollowGroundHeightOverrides.clear();
+  if (!manualControl) {
+    return;
+  }
+  const localPose = frameSnapshot.actors.find((actor) => actor.actorId === "local-player") ?? null;
+  const opponentPose = frameSnapshot.actors.find((actor) => actor.actorId === "opponent") ?? null;
+  const localTile = manualActorVisibleCameraTile(boundary, "local-player", localActor, localPose);
+  const opponentTile = manualActorVisibleCameraTile(boundary, "opponent", opponentActor, opponentPose);
+  boundary.cameraFollowTileOverrides.set("local-player", localTile);
+  boundary.cameraFollowTileOverrides.set("opponent", opponentTile);
+  boundary.cameraFollowGroundHeightOverrides.set(
+    "local-player",
+    manualActorVisibleCameraGroundHeight(boundary, "local-player", localTile, collision)
+  );
+  boundary.cameraFollowGroundHeightOverrides.set(
+    "opponent",
+    manualActorVisibleCameraGroundHeight(boundary, "opponent", opponentTile, collision)
+  );
+}
+
+function runtimeMinimapTileSignature(tile: RuntimeTile | null | undefined): string {
+  return tile ? `${tile.x},${tile.z}` : "";
+}
+
+function runtimeMinimapFrameSnapshotSignature(
+  snapshot: RuntimeSceneSnapshot,
+  cameraYaw: number,
+  destinationTile: RuntimeTile | null
+): string {
+  const actors = snapshot.actors
+    .map((actor) => {
+      const renderTile = actor.renderTile ?? actor.tile;
+      return [
+        actor.actorId,
+        runtimeMinimapTileSignature(actor.tile),
+        runtimeMinimapTileSignature(renderTile),
+        actor.minimapDotKind ?? ""
+      ].join(":");
+    })
+    .join("|");
+  const entities = (snapshot.minimapEntities ?? [])
+    .map((entity) => `${entity.id}:${entity.kind}:${runtimeMinimapTileSignature(entity.tile)}`)
+    .join("|");
+  const mapIcons = snapshot.minimapMapIcons
+    .map((icon) => `${icon.id}:${icon.mapIconId}:${runtimeMinimapTileSignature(icon.tile)}`)
+    .join("|");
+  const hints = snapshot.minimapHints
+    .map((hint) => `${hint.id}:${runtimeMinimapTileSignature(hint.tile)}`)
+    .join("|");
+  return [
+    Math.trunc(cameraYaw),
+    snapshot.minimapState ?? "",
+    runtimeMinimapTileSignature(destinationTile ?? snapshot.minimapDestination),
+    actors,
+    entities,
+    mapIcons,
+    hints
+  ].join(";");
 }
 
 function manualActorFacingTarget(actor: ManualActorState, target: ManualActorState): ManualActorState {
@@ -4273,6 +5244,134 @@ function runtimeItemIdsBySlotFromVisibleEquipment(equipment: VisibleEquipment): 
   return itemIdsBySlot;
 }
 
+function runtimeEquipmentItemsSignature(equipmentItems: RuntimeEquipmentItemIdsBySlot): string {
+  return [...equipmentItems.entries()]
+    .sort((left, right) => left[0] - right[0])
+    .map(([slot, itemId]) => `${slot}:${itemId}`)
+    .join("|");
+}
+
+function runtimeSwitchableEquipmentModelSignature(
+  equipmentItems: RuntimeEquipmentItemIdsBySlot,
+  inventorySlots: readonly (RuntimeInventorySlot | null)[]
+): string {
+  const itemIds = new Set<number>(equipmentItems.values());
+  for (const slot of inventorySlots) {
+    if (slot && slot.itemId > 0) {
+      itemIds.add(slot.itemId);
+    }
+  }
+  return [...itemIds].sort((left, right) => left - right).join(",");
+}
+
+function runtimeSwitchableEquipmentModelStates(
+  baseEquipment: RuntimeEquipmentItemIdsBySlot,
+  inventorySlots: readonly (RuntimeInventorySlot | null)[],
+  equipmentDefinitions: NhInventoryEquipmentDefinitionStore,
+  limit = 96
+): readonly RuntimeEquipmentItemIdsBySlot[] {
+  const optionsBySlot = new Map<number, Set<number>>();
+  for (const [slot, itemId] of baseEquipment) {
+    optionsBySlot.set(slot, new Set([itemId]));
+  }
+  for (const slot of inventorySlots) {
+    if (!slot) {
+      continue;
+    }
+    const definition = equipmentDefinitions.get(slot.itemId);
+    if (!definition || definition.equipSlot === null || definition.equipSlot < 0) {
+      continue;
+    }
+    const options = optionsBySlot.get(definition.equipSlot) ?? new Set<number>();
+    options.add(slot.itemId);
+    optionsBySlot.set(definition.equipSlot, options);
+  }
+
+  const switchSlots = [...optionsBySlot.entries()]
+    .filter(([, options]) => options.size > 1)
+    .map(([slot]) => slot)
+    .sort((left, right) => left - right);
+  const states: Map<number, number>[] = [];
+  const seen = new Set<string>();
+  const pushState = (state: Map<number, number>): void => {
+    const weaponId = state.get(3);
+    if (weaponId !== undefined && equipmentDefinitions.get(weaponId)?.twoHanded) {
+      state.delete(5);
+    }
+    const signature = runtimeEquipmentItemsSignature(state);
+    if (!seen.has(signature)) {
+      seen.add(signature);
+      states.push(state);
+    }
+  };
+
+  const visit = (index: number, current: Map<number, number>): void => {
+    if (states.length >= limit) {
+      return;
+    }
+    if (index >= switchSlots.length) {
+      pushState(new Map(current));
+      return;
+    }
+    const equipSlot = switchSlots[index];
+    const options = optionsBySlot.get(equipSlot);
+    if (!options) {
+      visit(index + 1, current);
+      return;
+    }
+    for (const itemId of options) {
+      const next = new Map(current);
+      const definition = equipmentDefinitions.get(itemId);
+      if (equipSlot === 3 && definition?.twoHanded) {
+        next.delete(5);
+      }
+      if (equipSlot === 5) {
+        const weaponId = next.get(3);
+        if (weaponId !== undefined && equipmentDefinitions.get(weaponId)?.twoHanded) {
+          next.delete(3);
+        }
+      }
+      next.set(equipSlot, itemId);
+      visit(index + 1, next);
+      if (states.length >= limit) {
+        return;
+      }
+    }
+  };
+
+  pushState(new Map(baseEquipment));
+  // Web-port optimization: Kronos resolves common PlayerAppearance swaps from
+  // its model cache. Warm every single-slot switch before the broader capped
+  // combination walk so a body/legs/weapon click during a held action cannot
+  // miss the cache and steal time from class329's held-path release.
+  for (const equipSlot of switchSlots) {
+    const options = optionsBySlot.get(equipSlot);
+    if (!options) {
+      continue;
+    }
+    for (const itemId of options) {
+      const singleSwitch = new Map(baseEquipment);
+      const definition = equipmentDefinitions.get(itemId);
+      if (equipSlot === 3 && definition?.twoHanded) {
+        singleSwitch.delete(5);
+      }
+      if (equipSlot === 5) {
+        const weaponId = singleSwitch.get(3);
+        if (weaponId !== undefined && equipmentDefinitions.get(weaponId)?.twoHanded) {
+          singleSwitch.delete(3);
+        }
+      }
+      singleSwitch.set(equipSlot, itemId);
+      pushState(singleSwitch);
+      if (states.length >= limit) {
+        return states;
+      }
+    }
+  }
+  visit(0, new Map(baseEquipment));
+  return states;
+}
+
 function visibleEquipmentItemsFromRuntimeInventory(
   slots: readonly (RuntimeInventorySlot | null)[] | null | undefined,
   itemDefinitions: NhInventoryItemDefinitionStore
@@ -4304,6 +5403,17 @@ const manualPolicyStationaryMovementView: ManualPolicyActorMovementView = {
   lastMoveDx: 0,
   lastMoveDy: 0
 };
+
+const RUNTIME_EQUIPMENT_MODEL_PREWARM_SEQUENCE_NAMES: readonly RuntimeSequenceName[] = [
+  "idle",
+  "whip_attack",
+  "godsword_attack",
+  "ags_special",
+  "gmaul_special",
+  "crossbow_attack",
+  "blitz_cast",
+  "barrage_cast"
+];
 
 function nhClientVisibleOpponentHp(hitpoints: number): number {
   const hp = Math.max(0, Math.min(99, Math.trunc(Number.isFinite(hitpoints) ? hitpoints : 99)));
@@ -5390,6 +6500,23 @@ function readStoredAutoRetaliate(): boolean | null {
 function writeStoredAutoRetaliate(enabled: boolean): void {
   try {
     window.localStorage.setItem(NH_AUTO_RETALIATE_STORAGE_KEY, String(enabled));
+  } catch {
+    // Non-fatal in restricted browser contexts.
+  }
+}
+
+function readStoredClientDisplayMode(): NhClientDisplayMode {
+  try {
+    const raw = window.localStorage.getItem(NH_TRAINER_CLIENT_DISPLAY_MODE_STORAGE_KEY);
+    return raw === "resizable" ? "resizable" : "fixed";
+  } catch {
+    return "fixed";
+  }
+}
+
+function writeStoredClientDisplayMode(displayMode: NhClientDisplayMode): void {
+  try {
+    window.localStorage.setItem(NH_TRAINER_CLIENT_DISPLAY_MODE_STORAGE_KEY, displayMode);
   } catch {
     // Non-fatal in restricted browser contexts.
   }
@@ -6746,12 +7873,17 @@ async function loadSpotanimDefinitions(): Promise<ReadonlyMap<number, NhSpotanim
   );
 }
 
-async function loadFixedClientLayout(): Promise<NhFixedClientLayout> {
+interface NhClientLayoutAssets {
+  readonly widgets: NhClientWidgetDefinitions;
+  readonly spellbooks: NhSpellbookDefinitions;
+}
+
+async function loadClientLayoutAssets(): Promise<NhClientLayoutAssets> {
   const [widgets, spellbooks] = await Promise.all([
     loadJson<NhClientWidgetDefinitions>("assets/defs/client-widgets.json"),
     loadJson<NhSpellbookDefinitions>("assets/defs/spellbooks.json")
   ]);
-  return resolveNhFixedClientLayout(widgets, spellbooks);
+  return { widgets, spellbooks };
 }
 
 async function loadFloorDefinitions(): Promise<NhFloorDefinitionStore> {
@@ -7575,6 +8707,21 @@ function clearActorSlot(slot: ActorRenderSlot): void {
   }
 }
 
+const actorDefaultHeightBoundsScratch = new Box3();
+
+function updateActorSlotDefaultHeight(slot: ActorRenderSlot): void {
+  slot.group.updateMatrixWorld(true);
+  actorDefaultHeightBoundsScratch.setFromObject(slot.group);
+  const heightWorldUnits = actorDefaultHeightBoundsScratch.isEmpty()
+    ? nhClientUnitsToWorldUnits(NH_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS)
+    : actorDefaultHeightBoundsScratch.max.y - slot.group.position.y;
+  const heightClientUnits = Math.trunc(nhWorldUnitsToClientUnits(heightWorldUnits));
+  slot.currentDefaultHeightClientUnits =
+    Number.isFinite(heightClientUnits) && heightClientUnits > 0
+      ? heightClientUnits
+      : NH_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS;
+}
+
 function eventModelKey(event: RuntimeRenderEvent): string | null {
   return event.artifactUrl ?? null;
 }
@@ -8123,7 +9270,8 @@ function buildRuntimeDomOverlays(
       event,
       overlayEventsByActor.get(event.actorId) ?? [],
       domLayout.placementSprite,
-      stackIndex
+      stackIndex,
+      slot.currentDefaultHeightClientUnits
     );
     if (!placement) {
       continue;
@@ -8743,6 +9891,29 @@ function runeliteXpDropDamageDomOverlaySignature(overlay: RuneliteXpDropDamageDo
   return `${overlay.id}:${overlay.damage}:${overlay.actorId}:${overlay.width}:${overlay.height}:${overlay.color}:${overlay.tickShow}`;
 }
 
+function runeliteXpDropPanelCssRect(
+  fixedLayout: NhFixedClientLayout,
+  cssLayout: NhFixedClientCssLayout
+): { readonly x: number; readonly y: number; readonly width: number; readonly height: number } {
+  // Source: WidgetOverlay maps EXPERIENCE_TRACKER_WIDGET to OverlayPosition.TOP_RIGHT;
+  // OverlayRenderer then anchors that position against client.getViewportWidget().getBounds().
+  const sourceRect =
+    fixedLayout.displayMode === "resizable"
+      ? fixedLayout.widgets.find(
+          (entry) =>
+            entry.widget.groupId === fixedLayout.rootGroupId &&
+            entry.widget.childId === RUNELITE_RESIZABLE_VIEWPORT_WIDGET_CHILD_ID
+        )?.rect ?? fixedLayout.viewport.rect
+      : fixedLayout.viewport.rect;
+
+  return {
+    x: cssLayout.surfaceRect.x + sourceRect.x * cssLayout.scale,
+    y: cssLayout.surfaceRect.y + sourceRect.y * cssLayout.scale,
+    width: sourceRect.width * cssLayout.scale,
+    height: sourceRect.height * cssLayout.scale
+  };
+}
+
 function syncRuneliteXpDropDomOverlays(
   boundary: RuntimeSceneBoundary,
   combatState: RuntimePlayerCombatState,
@@ -8830,14 +10001,15 @@ function syncRuneliteXpDropDomOverlays(
     const font = nhClientFontDefinition(clientFonts, fontSpec.fontKey);
     const textWidth = font ? nhClientFontStringWidth(font, text) : Math.max(10, text.length * 7);
     const width = runeliteXpDropSourceWidth(textWidth, skillIcons.length, textSizeSpec.textHeight);
-    const right = cssLayout.viewportRect.x + (fixedLayout.viewport.rect.width - RUNELITE_XP_DROP_PANEL_RIGHT) * cssLayout.scale;
+    const panelRect = runeliteXpDropPanelCssRect(fixedLayout, cssLayout);
+    const right = panelRect.x + panelRect.width - RUNELITE_XP_DROP_PANEL_RIGHT * cssLayout.scale;
     return [
       {
         ...droplet,
         text,
         left: right - width * textScale * cssLayout.scale,
         top:
-          cssLayout.viewportRect.y +
+          panelRect.y +
           (RUNELITE_XP_DROP_PANEL_TOP + RUNELITE_XP_DROP_STACK_MIN_PANEL_HEIGHT - textSizeSpec.textHeight * textScale) *
             cssLayout.scale,
         width,
@@ -9539,11 +10711,13 @@ function writeRuntimeDebugSnapshot(cycle: number, overlays: readonly NhRuntimeOv
 function writeRuntimeMotionDebugSnapshot(
   boundary: RuntimeSceneBoundary,
   snapshot: RuntimeSceneSnapshot,
-  now: number
+  now: number,
+  manualActors: ReadonlyMap<RuntimeActorId, ManualActorState> = new Map()
 ): void {
   const viewport = runtimeOverlayViewport(boundary);
   const actors = snapshot.actors.map((pose) => {
     const slot = boundary.actorSlots.get(pose.actorId);
+    const manualActor = manualActors.get(pose.actorId);
     const position = slot?.group.position;
     const renderTile = pose.renderTile ?? pose.tile;
     const projection = position
@@ -9572,18 +10746,26 @@ function writeRuntimeMotionDebugSnapshot(
         }
         : null,
       movementFrame: pose.movementFrame,
-      movementFrameCycle: pose.movementFrameCycle
+      movementFrameCycle: pose.movementFrameCycle,
+      routeCount: manualActor?.routeWaypoints.length,
+      serverRouteCount: manualActor?.serverRouteWaypoints.length,
+      movementStallTicks: manualActor?.movementStallTicks,
+      clientTargetIndexUntilClientCycle: manualActor?.clientTargetIndexUntilClientCycle,
+      lastMovementClientCycle: manualActor?.lastMovementClientCycle
     };
   });
+  const motion: NhRuntimeMotionDebugSnapshot = {
+    timeMs: now,
+    clientCycle: Math.floor(now / NH_CLIENT_CYCLE_MS),
+    actors,
+    inventory: snapshot.inventory.map((slot) => slot?.itemId ?? null)
+  };
   window.__nhRuntimeDebug = {
     ...window.__nhRuntimeDebug,
     cycle: snapshot.cycle,
     overlays: window.__nhRuntimeDebug?.overlays ?? [],
-    motion: {
-      timeMs: now,
-      clientCycle: Math.floor(now / NH_CLIENT_CYCLE_MS),
-      actors
-    }
+    motion,
+    motionHistory: [...(window.__nhRuntimeDebug?.motionHistory ?? []), motion].slice(-160)
   };
 }
 
@@ -9616,6 +10798,8 @@ function compactManualOpponentRouteRequests(
     targetId: request.targetId,
     reason: request.reason,
     attackRange: request.attackRange,
+    tick: request.tick,
+    movementBlockedReason: request.movementBlockedReason ?? null,
     targetTile: request.targetTile
   }));
 }
@@ -9624,7 +10808,9 @@ function formatManualOpponentRouteRequestsForDataset(
   routeRequests: readonly RuntimePlayerCombatRouteRequest[]
 ): string {
   return routeRequests
-    .map((request) => `${request.actorId}:${request.reason}:r${request.attackRange}->${formatRuntimeTileForDataset(request.targetTile)}`)
+    .map((request) =>
+      `${request.actorId}:t${request.tick}:${request.reason}${request.movementBlockedReason ? `:${request.movementBlockedReason}` : ""}:r${request.attackRange}->${formatRuntimeTileForDataset(request.targetTile)}`
+    )
     .join("|");
 }
 
@@ -9689,6 +10875,7 @@ function compactManualCombatActorTickLog(
     routeTraversalModes: actor.routeTraversalModes,
     serverRouteWaypoints: actor.serverRouteWaypoints,
     serverRouteTraversalModes: actor.serverRouteTraversalModes,
+    serverRouteVisualQueued: actor.serverRouteVisualQueued,
     sequenceName: actor.sequenceName,
     activeSequenceKey: actor.activeSequenceKey,
     movementBlockedBySequence: actor.movementBlockedBySequence,
@@ -9943,6 +11130,9 @@ function applySnapshot(
         movementFrameCursor
       }
     );
+    // Source: Player.getModel() calls Model.method2359() after sequence transforms,
+    // then stores Model.height in Actor.defaultHeight for overhead projection.
+    updateActorSlotDefaultHeight(slot);
   }
 }
 
@@ -10007,7 +11197,8 @@ function applyRuntimeEvents(
           event,
           overlayEventsByActor.get(event.actorId) ?? [],
           placementSprite,
-          stackIndex
+          stackIndex,
+          slot.currentDefaultHeightClientUnits
         );
         if (!placement) {
           disposeObject(overlay);
@@ -10301,6 +11492,14 @@ function isNhInventoryEquipEntry(entry: NhInventoryContextMenuEntry): boolean {
 function nextNhGameTickAt(originMs: number, nowMs: number): number {
   const elapsed = Math.max(0, nowMs - originMs);
   return originMs + (Math.floor(elapsed / NH_GAME_TICK_MS) + 1) * NH_GAME_TICK_MS;
+}
+
+function nhAcceptedPlayerUpdateClientCycle(originMs: number, processedTick: number): number {
+  // Source: the client receives the movement path on the player update for the
+  // completed server tick. Stamp it to the game-cycle boundary, not the browser
+  // callback time, so a late timer cannot create movement backlog/catch-up speed.
+  const acceptedAtMs = originMs + (Math.max(0, Math.trunc(processedTick)) + 1) * NH_GAME_TICK_MS;
+  return Math.floor(acceptedAtMs / NH_CLIENT_CYCLE_MS);
 }
 
 function currentNhGameTickAt(originMs: number, nowMs: number): number {
@@ -11005,7 +12204,7 @@ function formatRuntimeTileForDataset(tile: RuntimeTile): string {
 function applyManualOpponentPolicyActorResult(
   actor: ManualActorState,
   result: RuntimePolicyOpponentResult,
-  now: number
+  acceptedClientCycle: number
 ): ManualActorState {
   const appearance = runtimeAppearanceFromEquipmentItems(
     runtimeItemIdsBySlotFromVisibleEquipment(result.state.actors.opponent.equipment),
@@ -11021,17 +12220,36 @@ function applyManualOpponentPolicyActorResult(
   }
 
   const clientPosition = actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile ?? actor.tile);
+  const logicalClientPosition = manualActorRouteLogicalClientPosition(actor, actor.tile);
+  const logicalRoute = enqueueManualActorLogicalClientPathSteps(
+    {
+      ...actor,
+      logicalClientPosition
+    },
+    [result.opponentTile],
+    1
+  );
   return {
     ...actor,
     tile: result.opponentTile,
     loadoutId: result.opponentLoadoutId,
     appearance,
     clientPosition,
-    lastMovementClientCycle: Math.floor(now / NH_CLIENT_CYCLE_MS),
-    routeWaypoints: enqueueManualActorClientPathSteps(actor.routeWaypoints, [result.opponentTile]),
-    routeTraversalModes: enqueueManualActorClientTraversalModes(actor.routeTraversalModes, 1, 1),
+    logicalClientPosition,
+    logicalRouteWaypoints: logicalRoute.logicalRouteWaypoints,
+    logicalRouteTraversalModes: logicalRoute.logicalRouteTraversalModes,
+    lastMovementClientCycle: acceptedClientCycle,
+    ...enqueueManualActorClientPathSteps(
+      {
+        ...actor,
+        clientPosition
+      },
+      [result.opponentTile],
+      1
+    ),
     serverRouteWaypoints: [],
-    serverRouteTraversalModes: []
+    serverRouteTraversalModes: [],
+    serverRouteVisualQueued: false
   };
 }
 
@@ -11062,11 +12280,48 @@ function nhKeyboardEventIdentity(event: KeyboardEvent): string {
   return `${event.code}:${event.key}`;
 }
 
-function nhWheelEventRotation(event: WheelEvent): number {
+const NH_BROWSER_WHEEL_PIXELS_PER_SOURCE_ROTATION = 100;
+const NH_BROWSER_WHEEL_LINES_PER_SOURCE_ROTATION = 3;
+
+function nhWheelEventSourceDeltaPixels(event: WheelEvent): number {
   if (!Number.isFinite(event.deltaY) || event.deltaY === 0) {
     return 0;
   }
-  return event.deltaY > 0 ? -1 : 1;
+  if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) {
+    return event.deltaY * (NH_BROWSER_WHEEL_PIXELS_PER_SOURCE_ROTATION / NH_BROWSER_WHEEL_LINES_PER_SOURCE_ROTATION);
+  }
+  if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
+    return event.deltaY * NH_BROWSER_WHEEL_PIXELS_PER_SOURCE_ROTATION;
+  }
+  return event.deltaY;
+}
+
+function nhWheelEventRotation(
+  event: WheelEvent,
+  accumulatedDelta: number
+): { readonly rotation: number; readonly accumulatedDelta: number } {
+  const deltaPixels = nhWheelEventSourceDeltaPixels(event);
+  if (deltaPixels === 0) {
+    return { rotation: 0, accumulatedDelta };
+  }
+  // Source: MouseWheelHandler.copy$mouseWheelMoved() accumulates integer
+  // MouseWheelEvent.getWheelRotation() notches before ScrollWheelZoomHandler
+  // applies the 25-unit zoom step. Browser pixel/trackpad deltas must therefore
+  // be accumulated into source-style notches instead of every nonzero delta
+  // causing a full zoom step.
+  const nextDelta =
+    accumulatedDelta !== 0 && Math.sign(accumulatedDelta) !== Math.sign(deltaPixels)
+      ? deltaPixels
+      : accumulatedDelta + deltaPixels;
+  const sourceRotations =
+    Math.trunc(Math.abs(nextDelta) / NH_BROWSER_WHEEL_PIXELS_PER_SOURCE_ROTATION) * Math.sign(nextDelta);
+  if (sourceRotations === 0) {
+    return { rotation: 0, accumulatedDelta: nextDelta };
+  }
+  return {
+    rotation: -sourceRotations,
+    accumulatedDelta: nextDelta - sourceRotations * NH_BROWSER_WHEEL_PIXELS_PER_SOURCE_ROTATION
+  };
 }
 
 function writeManualOpponentPolicyDataset(
@@ -11140,6 +12395,7 @@ export function RuntimeSceneViewer({
   const cameraKeysRef = useRef<NhCameraKeyState>({ left: false, right: false, up: false, down: false });
   const cameraRemappedKeysRef = useRef(new Map<string, RuneliteKeyRemappingCameraDirection>());
   const mouseCameraDragRef = useRef<RuntimeMouseCameraDragState | null>(null);
+  const cameraWheelDeltaAccumulatorRef = useRef(0);
   const suppressNextCanvasContextMenuRef = useRef(false);
   const suppressCanvasContextMenuUntilRef = useRef(0);
   const [cycle, setCycle] = useState(0);
@@ -11220,6 +12476,8 @@ export function RuntimeSceneViewer({
   const [pendingEquipmentRemoveSlotIds, setPendingEquipmentRemoveSlotIds] = useState<ReadonlySet<string>>(() => new Set());
   const [minimapDestinationTile, setMinimapDestinationTile] = useState<RuntimeTile | null>(null);
   const minimapDestinationTileRef = useRef<RuntimeTile | null>(null);
+  const [minimapFrameSnapshot, setMinimapFrameSnapshot] = useState<RuntimeSceneSnapshot | null>(null);
+  const minimapFrameSnapshotSignatureRef = useRef("");
   const hoveredSceneTileRef = useRef<RuntimeTile | null>(null);
   const [runtimeReplays, setRuntimeReplays] = useState<readonly RuntimeReplay[]>([]);
   const [selectedReplayId, setSelectedReplayId] = useState<string | null>(null);
@@ -11248,6 +12506,10 @@ export function RuntimeSceneViewer({
   const clientFontsRef = useRef<NhClientFontStore>(new Map());
   const [collisionMap, setCollisionMap] = useState<NhSceneCollision | null>(null);
   const collisionMapRef = useRef<NhSceneCollision | null>(null);
+  const [clientDisplayMode, setClientDisplayMode] = useState<NhClientDisplayMode>(() =>
+    typeof window === "undefined" ? "fixed" : readStoredClientDisplayMode()
+  );
+  const clientDisplayModeRef = useRef<NhClientDisplayMode>(clientDisplayMode);
   const [fixedClientLayout, setFixedClientLayout] = useState<NhFixedClientLayout | null>(null);
   const [fixedClientCssLayout, setFixedClientCssLayout] = useState<NhFixedClientCssLayout | null>(null);
   const [activeSideTabId, setActiveSideTabId] = useState<NhFixedSideTabId>("inventory");
@@ -11268,6 +12530,7 @@ export function RuntimeSceneViewer({
   const inventoryItemDefinitionsRef = useRef<NhInventoryItemDefinitionStore>(inventoryItemDefinitions);
   const inventoryEquipmentDefinitionsRef = useRef<NhInventoryEquipmentDefinitionStore>(inventoryEquipmentDefinitions);
   const weaponTypeDefinitionsRef = useRef<NhWeaponTypeDefinitionStore>(weaponTypeDefinitions);
+  const switchableEquipmentModelPrewarmSignatureRef = useRef("");
   const [hitsplatDefinitions, setHitsplatDefinitions] = useState<NhHitsplatDefinitionStore>(
     defaultNhHitsplatDefinitions
   );
@@ -11392,12 +12655,13 @@ export function RuntimeSceneViewer({
     ]
   );
   const visibleSnapshot = useMemo(() => {
-    const committedEquipmentOverride = equipmentOverride ?? equipmentOverrideRef.current;
+    const committedEquipmentOverride = equipmentOverrideRef.current;
     const equipmentSnapshot = committedEquipmentOverride
       ? snapshotWithLocalPlayerEquipmentItems(baseVisibleSnapshot, committedEquipmentOverride)
       : baseVisibleSnapshot;
-    const inventorySnapshot = inventoryOverride
-      ? { ...equipmentSnapshot, inventory: inventoryOverride }
+    const committedInventoryOverride = inventoryOverrideRef.current;
+    const inventorySnapshot = committedInventoryOverride
+      ? { ...equipmentSnapshot, inventory: committedInventoryOverride }
       : equipmentSnapshot;
     if (!hudOverride) {
       return inventorySnapshot;
@@ -11570,7 +12834,10 @@ export function RuntimeSceneViewer({
     () => runelitePvpToolsSnapshotFromCombatState(manualCombatState, visibleSnapshot, spriteAtlases),
     [manualCombatState, spriteAtlases, visibleSnapshot]
   );
-  const ensureRuntimeActorModelsForSnapshot = (renderSnapshot: RuntimeSceneSnapshot): ReadonlyMap<string, RuntimeActorModelAsset> => {
+  const cacheRuntimeActorModels = (
+    poses: readonly RuntimeActorPose[],
+    commitReactState = !manualControlRef.current
+  ): ReadonlyMap<string, RuntimeActorModelAsset> => {
     const playerSources = playerModelSourcesRef.current;
     const animations = animationFixturesRef.current;
     let currentModels = modelsRef.current;
@@ -11579,7 +12846,7 @@ export function RuntimeSceneViewer({
     }
 
     let nextModels: Map<string, RuntimeActorModelAsset> | null = null;
-    for (const pose of renderSnapshot.actors) {
+    for (const pose of poses) {
       const modelKey = runtimeActorModelKey(pose, animations);
       if (currentModels.has(modelKey) || nextModels?.has(modelKey)) {
         continue;
@@ -11597,9 +12864,79 @@ export function RuntimeSceneViewer({
 
     currentModels = nextModels;
     modelsRef.current = currentModels;
-    setModels(currentModels);
+    // Source: PlayerAppearance_cachedModels is a client cache, not a server tick
+    // side effect. During manual runtime play, keep cache misses ref-local so a
+    // gear swap cannot schedule React work that retimes class329 movement.
+    if (commitReactState) {
+      setModels(currentModels);
+    }
     return currentModels;
   };
+  const ensureRuntimeActorModelsForSnapshot = (renderSnapshot: RuntimeSceneSnapshot): ReadonlyMap<string, RuntimeActorModelAsset> =>
+    cacheRuntimeActorModels(renderSnapshot.actors, false);
+  useEffect(() => {
+    if (!playerModelSources || !animationFixtures || inventoryEquipmentDefinitions.size === 0) {
+      return;
+    }
+
+    const inventorySlots = inventoryOverrideRef.current ?? RUNTIME_NH_STAKE_INVENTORY_SLOTS;
+    const equipmentItems = equipmentOverrideRef.current ?? RUNTIME_NH_STAKE_EQUIPMENT_ITEMS;
+    const localPose = visibleSnapshotRef.current.actors.find((pose) => pose.actorId === "local-player");
+    if (!localPose) {
+      return;
+    }
+
+    const signature = [
+      runtimeSwitchableEquipmentModelSignature(equipmentItems, inventorySlots),
+      RUNTIME_EQUIPMENT_MODEL_PREWARM_SEQUENCE_NAMES.join(",")
+    ].join(";");
+    if (switchableEquipmentModelPrewarmSignatureRef.current === signature) {
+      return;
+    }
+    if (
+      manualControlRef.current &&
+      manualActorHasHeldActionMovement(manualActorRef.current)
+    ) {
+      // Source: PlayerAppearance_cachedModels is only a client cache. Defer
+      // cache misses while class329 is holding a path so an equipment packet
+      // cannot steal the input/frame budget from movement clicks in the stall.
+      return;
+    }
+    switchableEquipmentModelPrewarmSignatureRef.current = signature;
+
+    const switchableStates = runtimeSwitchableEquipmentModelStates(
+      equipmentItems,
+      inventorySlots,
+      inventoryEquipmentDefinitions
+    );
+    // Source: PlayerAppearance_cachedModels keeps equipment appearance swaps
+    // available by hash. This prewarms the trainer's equivalent cache for the
+    // current setup so switching gear during a held primary sequence does not
+    // spend a frame composing a new model and make class329-style catch-up feel
+    // slower than the same movement with no gear swap.
+    cacheRuntimeActorModels(
+      switchableStates.flatMap((state) =>
+        RUNTIME_EQUIPMENT_MODEL_PREWARM_SEQUENCE_NAMES.map((sequenceName) =>
+          runtimeActorPoseWithEquipmentItems(
+            {
+              ...localPose,
+              sequenceName,
+              sequenceMode: sequenceName === "idle" ? "loop" : "primary"
+            },
+            state,
+            localPose.loadoutId
+          )
+        )
+      ),
+      false
+    );
+  }, [
+    animationFixtures,
+    equipmentOverride,
+    inventoryEquipmentDefinitions,
+    inventoryOverride,
+    playerModelSources
+  ]);
   const todoGates = useMemo(() => getRuntimeSceneTodoGates(), []);
   const actorPlayerContextEntries = (
     actor: RuntimeActorPose,
@@ -11729,6 +13066,12 @@ export function RuntimeSceneViewer({
 
   useEffect(() => {
     visibleSnapshotRef.current = visibleSnapshot;
+    if (
+      manualControlRef.current &&
+      manualActorHasHeldActionMovement(manualActorRef.current)
+    ) {
+      return;
+    }
     runtimeInteractionSnapshotRef.current = visibleSnapshot;
   }, [visibleSnapshot]);
 
@@ -11873,6 +13216,20 @@ export function RuntimeSceneViewer({
   }, [gameKeybinds]);
 
   useEffect(() => {
+    clientDisplayModeRef.current = clientDisplayMode;
+    writeStoredClientDisplayMode(clientDisplayMode);
+    const boundary = boundaryRef.current;
+    const canvas = canvasRef.current;
+    if (!boundary || !canvas) {
+      return;
+    }
+    boundary.clientDisplayMode = clientDisplayMode;
+    const cssLayout = resizeRuntimeBoundary(boundary, canvas);
+    setFixedClientLayout(boundary.fixedClientLayout);
+    setFixedClientCssLayout(cssLayout);
+  }, [clientDisplayMode]);
+
+  useEffect(() => {
     if (activeSideTabId !== "equipment") {
       setEquipmentUtilityPanelMode(null);
     }
@@ -12003,6 +13360,12 @@ export function RuntimeSceneViewer({
   }, [manualOpponent]);
 
   useEffect(() => {
+    if (manualControlRef.current) {
+      const current = manualCombatStateRef.current;
+      if (manualCombatState === current || manualCombatState.tick <= current.tick) {
+        return;
+      }
+    }
     manualCombatStateRef.current = manualCombatState;
   }, [manualCombatState]);
 
@@ -12023,7 +13386,13 @@ export function RuntimeSceneViewer({
   }, [actorSequenceDefinitions]);
 
   useEffect(() => {
-    inventoryOverrideRef.current = inventoryOverride;
+    if (inventoryOverride === null) {
+      inventoryOverrideRef.current = null;
+      return;
+    }
+    if (inventoryOverrideRef.current === null || inventoryOverrideRef.current === inventoryOverride) {
+      inventoryOverrideRef.current = inventoryOverride;
+    }
   }, [inventoryOverride]);
 
   useEffect(() => {
@@ -12039,10 +13408,27 @@ export function RuntimeSceneViewer({
   }, [weaponTypeDefinitions]);
 
   useEffect(() => {
-    if (equipmentOverride !== null || equipmentOverrideRef.current === null) {
+    if (equipmentOverride === null) {
+      equipmentOverrideRef.current = null;
+      return;
+    }
+    if (equipmentOverrideRef.current === null || equipmentOverrideRef.current === equipmentOverride) {
       equipmentOverrideRef.current = equipmentOverride;
     }
   }, [equipmentOverride]);
+
+  const pendingEquipmentRemoveSlotIdsFromQueue = (): ReadonlySet<string> => {
+    const pendingRemoveSlotIds = new Set<string>();
+    for (const action of itemActionQueueRef.current.snapshot()) {
+      if (action.kind === "unequip") {
+        const context = action.contextEntry as QueuedEquipmentRemoveContext | undefined;
+        if (context?.slotId) {
+          pendingRemoveSlotIds.add(context.slotId);
+        }
+      }
+    }
+    return pendingRemoveSlotIds;
+  };
 
   useEffect(() => {
     const onRuntimeTickOriginReset = (): void => {
@@ -12077,6 +13463,7 @@ export function RuntimeSceneViewer({
     }
 
     const boundary = createRuntimeBoundary(canvas);
+    boundary.clientDisplayMode = clientDisplayModeRef.current;
     boundaryRef.current = boundary;
     applyRuntimeCameraMode(boundary, cameraMode);
     applyRuneliteGpuPluginConfig(boundary, runeliteClientConfigRef.current.gpu);
@@ -12103,13 +13490,20 @@ export function RuntimeSceneViewer({
     applyRuneliteXpDropConfig(canvas, runeliteClientConfigRef.current.xpDrop);
     applyNhGameKeybindConfig(canvas, gameKeybindsRef.current);
 
-    const resizeObserver = new ResizeObserver(() => setFixedClientCssLayout(resizeRuntimeBoundary(boundary, canvas)));
+    const syncClientLayout = (): void => {
+      const cssLayout = resizeRuntimeBoundary(boundary, canvas);
+      setFixedClientLayout(boundary.fixedClientLayout);
+      setFixedClientCssLayout(cssLayout);
+    };
+    const resizeObserver = new ResizeObserver(syncClientLayout);
     resizeObserver.observe(canvas);
-    setFixedClientCssLayout(resizeRuntimeBoundary(boundary, canvas));
+    syncClientLayout();
 
     let animationFrame = 0;
     let lastCameraClientCycleMs = performance.now();
+    let lastCameraFollowClientCycle = -1;
     let lastManualActorReactSyncClientCycle = -NH_CLIENT_CYCLES_PER_GAME_TICK;
+    let lastManualActorRenderClientCycle = -1;
     const advanceManualActorsForRenderFrame = (now: number): void => {
       const collision = collisionMapRef.current;
       if (!manualControlRef.current || !collision) {
@@ -12117,6 +13511,10 @@ export function RuntimeSceneViewer({
       }
 
       const clientCycle = Math.floor(now / NH_CLIENT_CYCLE_MS);
+      if (clientCycle <= lastManualActorRenderClientCycle) {
+        return;
+      }
+      lastManualActorRenderClientCycle = clientCycle;
       const localActor = manualActorRef.current;
       const opponentActor = manualOpponentRef.current;
       if (
@@ -12138,7 +13536,7 @@ export function RuntimeSceneViewer({
         combatState,
         animationFixtures,
         opponentActor,
-        NH_CLIENT_MAX_CYCLES_PER_RENDER_FRAME
+        NH_CLIENT_MAX_MOVEMENT_CYCLES_PER_RENDER_FRAME
       );
       const nextOpponentActor = advanceManualActor(
         opponentActor,
@@ -12148,7 +13546,7 @@ export function RuntimeSceneViewer({
         combatState,
         animationFixtures,
         nextLocalActor,
-        NH_CLIENT_MAX_CYCLES_PER_RENDER_FRAME
+        NH_CLIENT_MAX_MOVEMENT_CYCLES_PER_RENDER_FRAME
       );
 
       manualActorRef.current = nextLocalActor;
@@ -12226,6 +13624,21 @@ export function RuntimeSceneViewer({
         now
       );
       runtimeInteractionSnapshotRef.current = frameSnapshot;
+      const minimapFrameSnapshot = runtimeMinimapFrameSnapshotFromManualActors(
+        frameSnapshot,
+        manualControlRef.current,
+        manualActorRef.current,
+        manualOpponentRef.current
+      );
+      const minimapFrameSnapshotSignature = runtimeMinimapFrameSnapshotSignature(
+        minimapFrameSnapshot,
+        boundary.cameraRig.clientAngles.yaw,
+        minimapDestinationTileRef.current
+      );
+      if (minimapFrameSnapshotSignatureRef.current !== minimapFrameSnapshotSignature) {
+        minimapFrameSnapshotSignatureRef.current = minimapFrameSnapshotSignature;
+        setMinimapFrameSnapshot(minimapFrameSnapshot);
+      }
       const frameModels = ensureRuntimeActorModelsForSnapshot(frameSnapshot);
       if (
         (manualControlRef.current || runeliteAnimationSmoothingRuntimeReapplyEnabled(runeliteClientConfigRef.current.animationSmoothing)) &&
@@ -12244,7 +13657,21 @@ export function RuntimeSceneViewer({
           runeliteClientConfigRef.current.animationSmoothing
         );
       }
-      for (let step = 0; step < cameraClientStepCount; step += 1) {
+      syncRuntimeCameraFollowTileOverrides(
+        boundary,
+        manualControlRef.current,
+        manualActorRef.current,
+        manualOpponentRef.current,
+        frameSnapshot,
+        collisionMapRef.current
+      );
+      // Source: Client's normal camera follow block uses the same 20ms client
+      // cadence as class329 actor movement. Browser refresh can be higher than
+      // that; applying the /16 focus easing on every rAF makes the camera settle
+      // too abruptly after movement stops.
+      const cameraFollowClientCycle = Math.floor(now / NH_CLIENT_CYCLE_MS);
+      if (cameraFollowClientCycle > lastCameraFollowClientCycle) {
+        lastCameraFollowClientCycle = cameraFollowClientCycle;
         updateRuntimeCameraFollowTarget(boundary);
       }
       updateRuntimeCamera(boundary);
@@ -12257,7 +13684,15 @@ export function RuntimeSceneViewer({
         projectileDefinitionsRef.current
       );
       reprojectRuntimeOverlaySprites(boundary, frameSnapshot);
-      writeRuntimeMotionDebugSnapshot(boundary, frameSnapshot, now);
+      writeRuntimeMotionDebugSnapshot(
+        boundary,
+        frameSnapshot,
+        now,
+        new Map<RuntimeActorId, ManualActorState>([
+          ["local-player", manualActorRef.current],
+          ["opponent", manualOpponentRef.current]
+        ])
+      );
       const nextDomOverlays = buildRuntimeDomOverlays(
         boundary,
         frameSnapshot,
@@ -12463,6 +13898,8 @@ export function RuntimeSceneViewer({
       setFixedClientLayout(null);
       setFixedClientCssLayout(null);
       setMinimapSceneSprite(null);
+      setMinimapFrameSnapshot(null);
+      minimapFrameSnapshotSignatureRef.current = "";
       setSceneObjectPlacements([]);
       setRuntimeDomOverlays([]);
       runtimeDomOverlaySignatureRef.current = "";
@@ -12511,7 +13948,7 @@ export function RuntimeSceneViewer({
     const loadProjectiles = loadProjectileDefinitions();
     const loadSpotanims = loadSpotanimDefinitions();
     const loadSprites = loadSpriteAtlases();
-    const loadFixedLayout = loadFixedClientLayout();
+    const loadClientLayout = loadClientLayoutAssets();
     const loadFloors = loadFloorDefinitions();
     const loadTerrainTextures = loadTerrainTextureDefinitions();
     const loadInventoryItems = loadInventoryItemDefinitions();
@@ -12547,7 +13984,7 @@ export function RuntimeSceneViewer({
       loadProjectiles,
       loadSpotanims,
       loadSprites,
-      loadFixedLayout,
+      loadClientLayout,
       loadFloors,
       loadTerrainTextures,
       loadInventoryItems,
@@ -12567,7 +14004,7 @@ export function RuntimeSceneViewer({
           projectiles,
           spotanims,
           sprites,
-          fixedLayout,
+          clientLayout,
           floors,
           terrainTextures,
           inventoryItems,
@@ -12658,9 +14095,11 @@ export function RuntimeSceneViewer({
           const boundary = boundaryRef.current;
           if (boundary) {
             const [terrainPart, objectPart, arenaMetadata, objectPlacements] = arenaParts;
-            boundary.fixedClientLayout = fixedLayout;
-            setFixedClientLayout(fixedLayout);
+            boundary.clientWidgetDefinitions = clientLayout.widgets;
+            boundary.clientSpellbookDefinitions = clientLayout.spellbooks;
+            boundary.clientDisplayMode = clientDisplayModeRef.current;
             setFixedClientCssLayout(resizeRuntimeBoundary(boundary, boundary.renderer.domElement));
+            setFixedClientLayout(boundary.fixedClientLayout);
             configureNhSceneObjectMaterials(objectPart.scene);
             const centeredArena = buildCenteredSceneModels([terrainPart.scene, objectPart.scene]);
             boundary.arenaRoot.add(centeredArena.group);
@@ -12731,22 +14170,19 @@ export function RuntimeSceneViewer({
     if (!equipmentOverride || !playerModelSources || !animationFixtures) {
       return;
     }
+    if (
+      manualControlRef.current &&
+      manualActorHasHeldActionMovement(manualActorRef.current)
+    ) {
+      return;
+    }
 
     const localPose = visibleSnapshot.actors.find((pose) => pose.actorId === "local-player");
     if (!localPose) {
       return;
     }
 
-    const modelKey = runtimeActorModelKey(localPose, animationFixtures);
-    const modelInput = runtimeActorModelInput(localPose, animationFixtures);
-    setModels((current) => {
-      if (current.has(modelKey)) {
-        return current;
-      }
-      const next = new Map(current);
-      next.set(modelKey, composeNhPlayerModel(playerModelSources, modelInput));
-      return next;
-    });
+    cacheRuntimeActorModels([localPose]);
   }, [animationFixtures, equipmentOverride, playerModelSources, visibleSnapshot]);
 
   useEffect(() => {
@@ -12842,6 +14278,11 @@ export function RuntimeSceneViewer({
       }
 
       const targetTick = currentNhGameTickAt(runtimeTickOriginMsRef.current, performance.now());
+      if (manualCombatStateRef.current.tick >= targetTick) {
+        const now = performance.now();
+        timeoutId = window.setTimeout(runCombatTick, nhGameTickDelay(runtimeTickOriginMsRef.current, now));
+        return;
+      }
       let ticksProcessed = 0;
       do {
         processReadyItemActions();
@@ -12908,8 +14349,18 @@ export function RuntimeSceneViewer({
         let combatStateForTick = manualCombatStateRef.current;
         const policyTickGate = resolveManualOpponentPolicyTick(combatStateForTick);
         combatStateForTick = policyTickGate.combatState;
+        const acceptedClientCycle = nhAcceptedPlayerUpdateClientCycle(
+          runtimeTickOriginMsRef.current,
+          combatStateForTick.tick
+        );
         if (policyTickGate.shouldRun) {
-          policyResponse = queueManualOpponentCombatResponse(combatStateForTick, local, opponent, opponentPolicySelfMovement);
+          policyResponse = queueManualOpponentCombatResponse(
+            combatStateForTick,
+            local,
+            opponent,
+            opponentPolicySelfMovement,
+            acceptedClientCycle
+          );
           combatStateForTick = policyResponse.combatState;
           opponent = manualActorFacingTarget(policyResponse.opponentActor, local);
           opponentMovedThisTick = opponentMovedThisTick || policyResponse.policyMovedThisTick;
@@ -12926,6 +14377,31 @@ export function RuntimeSceneViewer({
         const opponentProcessIndex = processOrderForTick.indexOf("opponent");
         const tickNow = performance.now();
         if (collisionMap) {
+          // Source: the client applies all earlier class329 cycles before the
+          // player-update packet for this game tick. Do that catch-up before
+          // accepting new route steps so held action movement stores every
+          // blocked cycle in field687; equipment packets must not make us skip
+          // those cycles and weaken the slingshot release.
+          local = advanceManualActorBeforeAcceptedPlayerUpdate({
+            actor: local,
+            acceptedClientCycle,
+            collision: collisionMap,
+            combatActor: combatStateForTick.actors["local-player"],
+            combatState: combatStateForTick,
+            animationFixtures: animationFixturesRef.current,
+            targetActor: opponent
+          });
+          opponent = advanceManualActorBeforeAcceptedPlayerUpdate({
+            actor: opponent,
+            acceptedClientCycle,
+            collision: collisionMap,
+            combatActor: combatStateForTick.actors.opponent,
+            combatState: combatStateForTick,
+            animationFixtures: animationFixturesRef.current,
+            targetActor: local
+          });
+          manualActorRef.current = local;
+          manualOpponentRef.current = opponent;
           // Source: each Nh Player.process() runs its own TargetRoute.beforeMovement()
           // and Movement.process() in CoreWorker PID order, so an earlier freeze
           // cancels a later player's queued movement before it can be consumed.
@@ -12950,11 +14426,12 @@ export function RuntimeSceneViewer({
                     collision: collisionMap,
                     tick: combatStateForTick.tick,
                     now: tickNow,
+                    acceptedClientCycle,
                     movedThisTick: localMovedThisTick
                   })
                 : localMovedThisTick
                   ? local
-                  : advanceManualActorServerRouteTick(local);
+                  : advanceManualActorServerRouteTick(local, acceptedClientCycle);
               const localPidMovementMoved = !sameNhTile(localBeforePidMovement.tile, local.tile);
               localMovedThisTick = localMovedThisTick || localPidMovementMoved;
               preAttackRouteMoved = preAttackRouteMoved || localPidMovementMoved;
@@ -12981,11 +14458,12 @@ export function RuntimeSceneViewer({
                     collision: collisionMap,
                     tick: combatStateForTick.tick,
                     now: tickNow,
+                    acceptedClientCycle,
                     movedThisTick: opponentMovedThisTick
                   })
                 : opponentMovedThisTick
                   ? opponent
-                  : advanceManualActorServerRouteTick(opponent);
+                  : advanceManualActorServerRouteTick(opponent, acceptedClientCycle);
               const opponentPidMovementMoved = !sameNhTile(opponentBeforePidMovement.tile, opponent.tile);
               opponentMovedThisTick = opponentMovedThisTick || opponentPidMovementMoved;
               preAttackRouteMoved = preAttackRouteMoved || opponentPidMovementMoved;
@@ -12996,8 +14474,10 @@ export function RuntimeSceneViewer({
           manualActorRef.current = local;
           manualOpponentRef.current = opponent;
         } else {
-          local = advanceManualActorServerRouteTick(local);
-          opponent = opponentMovedThisTick ? opponent : advanceManualActorServerRouteTick(opponent);
+          local = advanceManualActorServerRouteTick(local, acceptedClientCycle);
+          opponent = opponentMovedThisTick
+            ? opponent
+            : advanceManualActorServerRouteTick(opponent, acceptedClientCycle);
           processPendingGroundItemPickup(local.tile);
           localMovedThisTick = !sameNhTile(localBeforeMovement.tile, local.tile);
           opponentMovedThisTick = opponentMovedThisTick || !sameNhTile(opponentBeforeMovement.tile, opponent.tile);
@@ -13070,6 +14550,25 @@ export function RuntimeSceneViewer({
           tileScale: NH_TILE_WORLD_UNITS,
           clientCycle: Math.floor(tickNow / NH_CLIENT_CYCLE_MS)
         });
+        const targetIndexResetHoldUntilClientCycle =
+          acceptedClientCycle + NH_CLIENT_TARGET_INDEX_RESET_HOLD_CYCLES;
+        for (const event of result.state.events) {
+          if (event.tick !== combatStateForTick.tick) {
+            continue;
+          }
+          if (event.kind !== "attack" || event.spellId === undefined || event.autocast === true) {
+            continue;
+          }
+          // Source: PlayerCombat.attackWithMagic() calls reset() after a manual
+          // TargetSpell cast, and reset() clears target through faceNone(true).
+          // EntityDirectionUpdate delays the targetIndex remove mask, so the
+          // local class329 movement pass still sees a client target briefly.
+          if (event.attackerId === "local-player") {
+            local = manualActorWithClientTargetIndexHold(local, targetIndexResetHoldUntilClientCycle);
+          } else if (event.attackerId === "opponent") {
+            opponent = manualActorWithClientTargetIndexHold(opponent, targetIndexResetHoldUntilClientCycle);
+          }
+        }
         let nextTickCombatState = localFreezeBypassRef.current
           ? runtimePlayerCombatStateWithLocalFreezeBypass(result.state)
           : result.state;
@@ -13215,9 +14714,17 @@ export function RuntimeSceneViewer({
         ticksProcessed += 1;
       } while (
         !cancelled &&
-        ticksProcessed < NH_GAME_TICK_CATCH_UP_LIMIT &&
+        ticksProcessed < NH_GAME_TICK_PROCESS_LIMIT_PER_CALLBACK &&
         manualCombatStateRef.current.tick < targetTick
       );
+      if (!cancelled && manualCombatStateRef.current.tick < targetTick) {
+        // Source behavior to preserve: one server tick accepts at most one walk
+        // step or one run pair. If the browser callback arrives late, hitch and
+        // resume from the current sim tick instead of batching several movement
+        // acceptances into one frame and making running look faster than class329.
+        runtimeTickOriginMsRef.current =
+          performance.now() - manualCombatStateRef.current.tick * NH_GAME_TICK_MS;
+      }
       const now = performance.now();
       timeoutId = window.setTimeout(runCombatTick, nhGameTickDelay(runtimeTickOriginMsRef.current, now));
     };
@@ -13694,10 +15201,12 @@ export function RuntimeSceneViewer({
   ): void => {
     const combatActor = manualCombatStateRef.current.actors[request.actorId];
     const movementStatus = movementGate(combatActor.locks, manualCombatStateRef.current.tick);
-    if (movementStatus.blocked) {
-      // Source: TargetRoute.afterMovement() resets combat when route movement
-      // cannot establish withinDistance; a frozen melee step-in attempt must not
-      // leave a stale target that fires after the freeze block.
+    const sourceMovementBlockedReason = request.movementBlockedReason ?? null;
+    if (sourceMovementBlockedReason || movementStatus.blocked) {
+      // Source: RouteFinder.route() resets Movement when Entity.isMovementBlocked()
+      // catches freeze/root/lock, then TargetRoute.afterMovement() clears combat
+      // because withinDistance was not established. Use the request's source tick
+      // gate so a frozen melee step-in attempt must not execute when the freeze expires.
       const nextCombatState = resetRuntimePlayerCombatActorTarget(manualCombatStateRef.current, request.actorId);
       manualCombatStateRef.current = nextCombatState;
       setManualCombatState(nextCombatState);
@@ -13713,7 +15222,9 @@ export function RuntimeSceneViewer({
       const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
       if (viewport) {
         viewport.dataset.lastRuntimeCombatRouteBlockedActor = request.actorId;
-        viewport.dataset.lastRuntimeCombatRouteBlockedReason = movementStatus.reason;
+        viewport.dataset.lastRuntimeCombatRouteBlockedReason = sourceMovementBlockedReason ?? movementStatus.reason;
+        viewport.dataset.lastRuntimeCombatRouteBlockedRequestTick = String(request.tick);
+        viewport.dataset.lastRuntimeCombatRouteBlockedCurrentTick = String(manualCombatStateRef.current.tick);
       }
       return;
     }
@@ -13721,7 +15232,20 @@ export function RuntimeSceneViewer({
     const targetActor = request.targetId === "local-player" ? manualActorRef.current : manualOpponentRef.current;
     const targetTile = targetActor?.tile ?? request.targetTile;
     const route = (current: ManualActorState): ManualActorState =>
-      routeManualActorToTarget(current, targetTile, request.attackRange, collision, performance.now(), false).actor;
+      routeManualActorToTarget(
+        current,
+        targetTile,
+        request.attackRange,
+        collision,
+        performance.now(),
+        false,
+        manualActorClientPathHeldByNhSequence(
+          current,
+          manualCombatStateRef.current.actors[request.actorId],
+          manualCombatStateRef.current,
+          animationFixturesRef.current
+        )
+      ).actor;
     if (request.actorId === "local-player") {
       const nextActor = route(manualActorRef.current);
       manualActorRef.current = nextActor;
@@ -14113,7 +15637,8 @@ export function RuntimeSceneViewer({
     combatState: RuntimePlayerCombatState,
     localActor: ManualActorState,
     opponentActor: ManualActorState,
-    opponentSelfMovement: ManualPolicyActorMovementView = manualOpponentObservedSelfMovementRef.current
+    opponentSelfMovement: ManualPolicyActorMovementView = manualOpponentObservedSelfMovementRef.current,
+    acceptedClientCycle: number = nhAcceptedPlayerUpdateClientCycle(runtimeTickOriginMsRef.current, combatState.tick)
   ): ManualOpponentCombatResponse => {
     const observedLocalAppearance = manualOpponentObservedLocalAppearanceRef.current;
     const policyMovementCollision = collisionMapRef.current;
@@ -14222,7 +15747,7 @@ export function RuntimeSceneViewer({
     });
     manualOpponentNextPolicyRepositionTickRef.current =
       result.nextRepositionTick ?? manualOpponentNextPolicyRepositionTickRef.current;
-    let nextOpponentActor = applyManualOpponentPolicyActorResult(opponentActor, result, performance.now());
+    let nextOpponentActor = applyManualOpponentPolicyActorResult(opponentActor, result, acceptedClientCycle);
     if (result.movementBlockedReason === "left-pvp" && policyMovementCollision) {
       const leftPvpMovementStatus = movementGate(result.state.actors.opponent.locks, result.state.tick);
       const opponentSpawn = initialManualOpponentSpawnRef.current;
@@ -14607,7 +16132,29 @@ export function RuntimeSceneViewer({
     setFollowTarget("local-player");
     setManualCombatState(nextCombatState);
     const actorSource = manualControlRef.current ? manualActorRef.current : manualScene.localActor;
-    const routed = routeManualActor(actorSource, targetTile, collisionMap, objectPlacement, performance.now());
+    const preserveHeldStallPath =
+      (actorSource.activeSequenceKey !== null ||
+        actorSource.movementBlockedBySequence ||
+        actorSource.movementStallTicks > 0) &&
+      (
+        actorSource.routeWaypoints.length > 0 ||
+        actorSource.logicalRouteWaypoints.length > 0 ||
+        actorSource.serverRouteWaypoints.length > 0
+      );
+    // Source: Scene.method3151()/Client scene-click handling only sends the
+    // movement packet and destination cross; Player.method1111()/method1100()
+    // receive the accepted route on the next server player update. If class329
+    // is holding a path under a primary sequence, the next accepted route is
+    // calculated from that held path cursor, not from the stale rendered tile.
+    const routed = routeManualActor(
+      actorSource,
+      targetTile,
+      collisionMap,
+      objectPlacement,
+      performance.now(),
+      preserveHeldStallPath,
+      true
+    );
     manualActorRef.current = routed.actor;
     setManualActor(routed.actor);
     if (!routed.reached) {
@@ -14618,6 +16165,44 @@ export function RuntimeSceneViewer({
     setMinimapDestinationTile(minimapDestinationTileFromCommand(targetTile));
     showClickCross(position, color);
   };
+
+  const issueTileCommandRef = useRef(issueTileCommand);
+  issueTileCommandRef.current = issueTileCommand;
+
+  useEffect(() => {
+    const onInternalTileCommand = (event: Event): void => {
+      if (window.__NH_TRAINER_ENABLE_INTERNAL_TEST_COMMANDS !== true) {
+        return;
+      }
+      const detail = (event as CustomEvent<{
+        readonly tile?: unknown;
+        readonly position?: unknown;
+        readonly color?: unknown;
+      }>).detail;
+      if (!isRuntimeTile(detail?.tile)) {
+        return;
+      }
+      const rawPosition = detail?.position;
+      const position =
+        rawPosition &&
+        typeof rawPosition === "object" &&
+        "x" in rawPosition &&
+        "y" in rawPosition &&
+        typeof rawPosition.x === "number" &&
+        typeof rawPosition.y === "number"
+          ? { x: rawPosition.x, y: rawPosition.y }
+          : { x: 0, y: 0 };
+      issueTileCommandRef.current(
+        detail.tile,
+        position,
+        detail.color === "red" ? "red" : "yellow",
+        "scene-tile"
+      );
+    };
+
+    window.addEventListener("nh-runtime-internal-tile-command", onInternalTileCommand);
+    return () => window.removeEventListener("nh-runtime-internal-tile-command", onInternalTileCommand);
+  }, []);
 
   const recordSceneObjectCommand = (entry: NhSceneObjectContextMenuEntry<RuntimeTile>): void => {
     const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
@@ -16360,9 +17945,10 @@ export function RuntimeSceneViewer({
   const ensureLocalActorEquipmentModel = (
     equipmentItems: RuntimeEquipmentItemIdsBySlot,
     loadoutId: RuntimeLoadoutId,
-    actorId: RuntimeActorId = "local-player"
+    actorId: RuntimeActorId = "local-player",
+    includePrimarySequenceWarmup = false
   ): void => {
-    if (!playerModelSources || !animationFixtures) {
+    if (!playerModelSourcesRef.current || !animationFixturesRef.current) {
       return;
     }
 
@@ -16372,22 +17958,32 @@ export function RuntimeSceneViewer({
     }
 
     const pose = runtimeActorPoseWithEquipmentItems(localPose, equipmentItems, loadoutId);
-    const modelKey = runtimeActorModelKey(pose, animationFixtures);
-    const modelInput = runtimeActorModelInput(pose, animationFixtures);
-    setModels((current) => {
-      if (current.has(modelKey)) {
-        return current;
-      }
-      const next = new Map(current);
-      next.set(modelKey, composeNhPlayerModel(playerModelSources, modelInput));
-      return next;
-    });
+    const poses = includePrimarySequenceWarmup
+      ? [
+          pose,
+          ...RUNTIME_EQUIPMENT_MODEL_PREWARM_SEQUENCE_NAMES.map((sequenceName) =>
+            runtimeActorPoseWithEquipmentItems(
+              {
+                ...localPose,
+                sequenceName,
+                sequenceMode: sequenceName === "idle" ? "loop" : "primary"
+              },
+              equipmentItems,
+              loadoutId
+            )
+          )
+        ]
+      : [pose];
+    cacheRuntimeActorModels(poses, false);
   };
 
   const applyInventoryActorLoadoutMutation = (
     loadoutId: RuntimeLoadoutId,
     appearance?: RuntimePlayerAppearance,
-    equipmentItems?: RuntimeEquipmentItemIdsBySlot
+    equipmentItems?: RuntimeEquipmentItemIdsBySlot,
+    options: {
+      readonly updateWeaponHud: boolean;
+    } = { updateWeaponHud: true }
   ): void => {
     const nextEquipment = equipmentItems
       ? visibleEquipmentFromRuntimeItemIdsBySlot(equipmentItems, inventoryItemDefinitionsRef.current)
@@ -16402,8 +17998,10 @@ export function RuntimeSceneViewer({
     const snapshotActor = collisionMap
       ? snapManualActorToCollision(manualActorFromSnapshot(visibleSnapshotRef.current), collisionMap)
       : manualActorFromSnapshot(visibleSnapshotRef.current);
+    const wasManualControl = manualControlRef.current;
+    const sourceActor = wasManualControl ? manualActorRef.current : snapshotActor;
     const nextActor = {
-      ...(manualControlRef.current ? manualActorRef.current : snapshotActor),
+      ...sourceActor,
       loadoutId,
       appearance
     };
@@ -16414,14 +18012,26 @@ export function RuntimeSceneViewer({
     setPlaying(false);
     setFollowLive(false);
     setFollowTarget("local-player");
+    manualControlRef.current = true;
     setManualControl(true);
-    setManualActor(nextActor);
-    setHudOverride((current) => ({
-      ...(current ?? {}),
-      attackSet: nextAttackSetIndex,
-      autocast: 0,
-      defensiveCast: false
-    }));
+    // Source: Equipment.equip() marks an appearance update; it does not resend
+    // or rewind Player.pathX/pathY/class329.field687. During active manual play,
+    // keep the appearance packet ref-local so a delayed React state commit cannot
+    // replace the held movement path while the stall is releasing.
+    if (!wasManualControl) {
+      setManualActor(nextActor);
+    }
+    if (options.updateWeaponHud) {
+      // Source: Equipment.sendUpdates() calls PlayerCombat.updateWeapon(false)
+      // for SLOT_WEAPON. Pure appearance slots should not churn combat HUD state
+      // while class329 is releasing a held movement path.
+      setHudOverride((current) => ({
+        ...(current ?? {}),
+        attackSet: nextAttackSetIndex,
+        autocast: 0,
+        defensiveCast: false
+      }));
+    }
   };
 
   const emptyInventoryMutationResolution = (blockedReason: string | null = null): RuntimeInventoryMutationResolution => ({
@@ -16566,6 +18176,53 @@ export function RuntimeSceneViewer({
     }
   };
 
+  const commitVisibleInventoryEquipmentSnapshotRef = (
+    inventorySlots: readonly (RuntimeInventorySlot | null)[] | null,
+    equipmentItems: RuntimeEquipmentItemIdsBySlot | null,
+    hudPatch: Partial<RuntimeHudState> | null = null
+  ): void => {
+    const applyInventoryEquipmentPatch = (snapshot: RuntimeSceneSnapshot): RuntimeSceneSnapshot => {
+      let nextSnapshot = snapshot;
+      if (equipmentItems) {
+        nextSnapshot = snapshotWithLocalPlayerEquipmentItems(nextSnapshot, equipmentItems);
+      }
+      if (inventorySlots) {
+        nextSnapshot = {
+          ...nextSnapshot,
+          inventory: inventorySlots
+        };
+      }
+      if (hudPatch) {
+        const patchedHud = {
+          ...nextSnapshot.hud,
+          ...hudPatch
+        };
+        nextSnapshot = {
+          ...nextSnapshot,
+          hud: manualControlRef.current
+            ? runtimeManualCombatAuthoritativeHud(patchedHud, nextSnapshot.hud)
+            : patchedHud
+        };
+      }
+      return nextSnapshot;
+    };
+
+    const nextSnapshot = applyInventoryEquipmentPatch(visibleSnapshotRef.current);
+    let nextInteractionSnapshot = nextSnapshot;
+    if (
+      manualControlRef.current &&
+      manualActorHasHeldActionMovement(manualActorRef.current)
+    ) {
+      // Source: equipment/appearance packets update widgets and the model but
+      // do not rebuild Player.pathX/pathY. Keep the interaction frame's actor
+      // positions from the current draw snapshot while applying the new
+      // inventory/equipment packet payload.
+      nextInteractionSnapshot = applyInventoryEquipmentPatch(runtimeInteractionSnapshotRef.current);
+    }
+    visibleSnapshotRef.current = nextSnapshot;
+    runtimeInteractionSnapshotRef.current = nextInteractionSnapshot;
+  };
+
   const drainReadyPlayerCombatPackets = (nowMs: number): readonly QueuedPlayerCombatPacket[] => {
     if (queuedPlayerCombatPacketsRef.current.length === 0) {
       return [];
@@ -16613,6 +18270,9 @@ export function RuntimeSceneViewer({
     }
     itemActionProcessingTimerRef.current = window.setTimeout(() => {
       itemActionProcessingTimerRef.current = null;
+      if (manualControlRef.current) {
+        return;
+      }
       processReadyItemActions();
     }, Math.max(1, nextReadyAtMs - nowMs + 1));
   };
@@ -16621,6 +18281,12 @@ export function RuntimeSceneViewer({
     const nowMs = performance.now();
     const queuedActions = itemActionQueueRef.current.drainReady(nowMs, NH_GAME_TICK_MS);
     const readyPlayerPackets = drainReadyPlayerCombatPackets(nowMs);
+    const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
+    if (viewport && (queuedActions.length > 0 || readyPlayerPackets.length > 0)) {
+      viewport.dataset.lastReadyItemActionCount = String(queuedActions.length);
+      viewport.dataset.lastReadyPlayerPacketCount = String(readyPlayerPackets.length);
+      viewport.dataset.lastReadyItemActionTick = String(manualCombatStateRef.current.tick);
+    }
     if (queuedActions.length === 0 && readyPlayerPackets.length === 0) {
       scheduleReadyItemActionProcessing();
       return;
@@ -16635,6 +18301,7 @@ export function RuntimeSceneViewer({
     let inventoryChanged = false;
     let equipmentChanged = false;
     let actorLoadoutChanged = false;
+    let weaponSlotEquipmentChanged = false;
     let inventoryEquipResetActions = false;
     let nextCombatState = manualCombatStateRef.current;
     let nextSupplyDelays = supplyDelaysRef.current;
@@ -16643,11 +18310,13 @@ export function RuntimeSceneViewer({
     let finalConsumableSourceActor: ManualActorState | null = null;
     let finalConsumableItem: ConsumableId | null = null;
     let finalConsumableResult: ReturnType<typeof applyConsumable> | null = null;
+    let preAppearanceMovementActor: ManualActorState | null = null;
 
     for (const action of queuedActions) {
       if (action.kind === "equip") {
         const context = action.contextEntry as QueuedInventoryEquipContext | undefined;
         if (context?.entry) {
+          const sourceSlotItem = nextInventorySlots[action.slotIndex]?.itemId ?? null;
           const resolution = resolveInventoryMutationFromState(
             context.entry,
             nextInventorySlots,
@@ -16655,6 +18324,14 @@ export function RuntimeSceneViewer({
             nextActorLoadoutId,
             true
           );
+          if (viewport) {
+            viewport.dataset.lastProcessedEquipItemId = String(action.itemId);
+            viewport.dataset.lastProcessedEquipSlot = String(action.slotIndex);
+            viewport.dataset.lastProcessedEquipSourceSlotItemId = sourceSlotItem === null ? "" : String(sourceSlotItem);
+            viewport.dataset.lastProcessedEquipBlockedReason = resolution.blockedReason ?? "";
+            viewport.dataset.lastProcessedEquipMutation = resolution.inventoryMutation?.kind ?? "";
+            viewport.dataset.lastProcessedEquipTick = String(manualCombatStateRef.current.tick);
+          }
           if (resolution.inventorySlots) {
             nextInventorySlots = resolution.inventorySlots;
             inventoryChanged = true;
@@ -16675,6 +18352,9 @@ export function RuntimeSceneViewer({
           }
           if (resolution.equipmentMutation) {
             inventoryEquipResetActions = true;
+            if (resolution.equipmentMutation.equipSlot === 3) {
+              weaponSlotEquipmentChanged = true;
+            }
           }
         }
         continue;
@@ -16691,7 +18371,6 @@ export function RuntimeSceneViewer({
           nextActorLoadoutId,
           true
         );
-        const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
         if (!resolution.inventoryMutation || !resolution.inventorySlots) {
           if (viewport) {
             viewport.dataset.lastInventoryConsumableId = context.item;
@@ -16735,8 +18414,7 @@ export function RuntimeSceneViewer({
           : {
             ...sourceActor,
             tile: localActor.tile,
-            renderTile: localActor.tile,
-            clientPosition: nhClientPositionFromRuntimeTile(localActor.tile)
+            logicalClientPosition: manualActorRouteLogicalClientPosition(sourceActor, localActor.tile)
           };
         const actionDurationTicks = 3;
         const nextLocalActor: RuntimePlayerCombatActorState = {
@@ -16799,7 +18477,21 @@ export function RuntimeSceneViewer({
     }
     if (inventoryEquipResetActions) {
       // Source: TabInventory.click -> Equipment.equip(item); player.resetActions(false, following != null, true).
+      const preResetCombatActor = nextCombatState.actors["local-player"];
+      if (preResetCombatActor.targetId !== null) {
+        const retainedUntilClientCycle =
+          nhAcceptedPlayerUpdateClientCycle(runtimeTickOriginMsRef.current, nextCombatState.tick) +
+          NH_CLIENT_TARGET_INDEX_EQUIP_RESET_HOLD_CYCLES;
+        manualActorRef.current = manualActorWithClientTargetIndexHold(manualActorRef.current, retainedUntilClientCycle);
+      }
       nextCombatState = resetRuntimePlayerCombatActorTarget(nextCombatState, "local-player");
+    }
+    if (equipmentChanged && !inventoryConsumableApplied && manualControlRef.current) {
+      // Source: the appearance/equipment mask is independent of Player.pathX,
+      // pathY, field726, field687, and sequenceFrame. Keep an exact movement
+      // cursor snapshot through the appearance mutation so equipping during a
+      // stall cannot change the no-gear slingshot path.
+      preAppearanceMovementActor = manualActorRef.current;
     }
     if (inventoryConsumableApplied) {
       // Source: Consumable.eat/drink runs from queued inventory packets during the server tick.
@@ -16811,11 +18503,29 @@ export function RuntimeSceneViewer({
     const nextActorAppearance = equipmentChanged
       ? runtimeAppearanceFromEquipmentItems(nextEquipmentItems, runtimeLoadoutAppearance(nextActorLoadoutId))
       : undefined;
+    if (inventoryChanged || equipmentChanged || nextHud) {
+      // Source: accepted inventory/equipment packets update the local client
+      // state before the next draw. Keep the runtime snapshot ref in step with
+      // the packet result so React scheduling cannot make gear swaps use a
+      // different held-path release than no-gear movement.
+      commitVisibleInventoryEquipmentSnapshotRef(
+        inventoryChanged ? nextInventorySlots : null,
+        equipmentChanged ? nextEquipmentItems : null,
+        nextHud
+      );
+    }
+
+    const heldAppearanceMovementActive =
+      preAppearanceMovementActor !== null &&
+      manualActorHasHeldActionMovement(preAppearanceMovementActor);
 
     // Source-backed parity: Nh marks one Appearance update mask for the tick after Equipment.equip()
     // has handled the queued packets, so React and Three receive one final local-player appearance too.
     unstable_batchedUpdates(() => {
-      if (equipmentChanged) {
+      if (equipmentChanged && !heldAppearanceMovementActive) {
+        // Web-port optimization: Kronos has PlayerAppearance models available from
+        // its client cache. The trainer prewarms those states, so avoid doing a
+        // synchronous model-compose pass while class329 is releasing a held path.
         ensureLocalActorEquipmentModel(nextEquipmentItems, nextActorLoadoutId);
       }
       if (inventoryChanged) {
@@ -16834,7 +18544,10 @@ export function RuntimeSceneViewer({
         applyInventoryActorLoadoutMutation(
           nextActorLoadoutId,
           nextActorAppearance,
-          equipmentChanged ? nextEquipmentItems : undefined
+          equipmentChanged ? nextEquipmentItems : undefined,
+          {
+            updateWeaponHud: actorLoadoutChanged || weaponSlotEquipmentChanged
+          }
         );
       }
       if (inventoryConsumableApplied && finalConsumableStats && finalConsumableSourceActor && finalConsumableItem && finalConsumableResult) {
@@ -16872,17 +18585,23 @@ export function RuntimeSceneViewer({
       }
 
       setPendingEquipSlotIndices(itemActionQueueRef.current.pendingEquipSlotIndices());
-      const pendingRemoveSlotIds = new Set<string>();
-      for (const action of itemActionQueueRef.current.snapshot()) {
-        if (action.kind === "unequip") {
-          const context = action.contextEntry as QueuedEquipmentRemoveContext | undefined;
-          if (context?.slotId) {
-            pendingRemoveSlotIds.add(context.slotId);
-          }
-        }
-      }
-      setPendingEquipmentRemoveSlotIds(pendingRemoveSlotIds);
+      setPendingEquipmentRemoveSlotIds(pendingEquipmentRemoveSlotIdsFromQueue());
     });
+    if (preAppearanceMovementActor !== null) {
+      const restoredActor = manualActorWithMovementState(
+        manualActorRef.current,
+        preAppearanceMovementActor,
+        manualActorSequenceCursorState(preAppearanceMovementActor)
+      );
+      manualActorRef.current = restoredActor;
+      const heldPathActive = manualActorHasHeldActionMovement(preAppearanceMovementActor);
+      // Source: equipment appearance masks update the player model without
+      // resetting class329 path/sequence fields. While a held path is active,
+      // the render loop owns the live cursor and publishes it once it settles.
+      if (!heldPathActive) {
+        setManualActor(restoredActor);
+      }
+    }
     processReadyPlayerCombatPackets(readyPlayerPackets);
     scheduleReadyItemActionProcessing();
   };
@@ -16893,6 +18612,19 @@ export function RuntimeSceneViewer({
   ): boolean => {
     if (!resolution.equipmentMutation) {
       return false;
+    }
+    if (
+      resolution.equipmentItems &&
+      !(
+        manualControlRef.current &&
+        manualActorHasHeldActionMovement(manualActorRef.current)
+      )
+    ) {
+      ensureLocalActorEquipmentModel(
+        resolution.equipmentItems,
+        resolution.actorLoadoutId ?? manualCombatStateRef.current.actors["local-player"].loadoutId,
+        "local-player"
+      );
     }
     const queuedAtMs = performance.now();
     const readyAtMs = nextNhGameTickAt(runtimeTickOriginMsRef.current, queuedAtMs);
@@ -16912,7 +18644,18 @@ export function RuntimeSceneViewer({
       },
       contextEntry: { entry } satisfies QueuedInventoryEquipContext
     });
-    setPendingEquipSlotIndices(itemActionQueueRef.current.pendingEquipSlotIndices());
+    if (
+      !(
+        manualControlRef.current &&
+        manualActorHasHeldActionMovement(manualActorRef.current)
+      )
+    ) {
+      // Source: an inventory equip click sends a packet; the widget/equipment
+      // mutation is not applied until the accepted update. Avoid a custom
+      // pending-state React commit while class329 is storing held movement
+      // clicks, because that makes gear swaps retime the no-gear slingshot.
+      setPendingEquipSlotIndices(itemActionQueueRef.current.pendingEquipSlotIndices());
+    }
     scheduleReadyItemActionProcessing();
     return true;
   };
@@ -17326,12 +19069,19 @@ export function RuntimeSceneViewer({
     setContextMenu(null);
   };
 
+  const closeContextMenuImmediately = (): void => {
+    // Source: Client.method1661 handles the chosen row from the pressed mouse
+    // state and closes isMenuOpen before the next draw. A plain React state
+    // update can leave one browser paint with a focused/hovered menu row.
+    flushSync(() => setContextMenu(null));
+  };
+
   const dispatchVisibleContextMenuEntry = (
     entry: NhContextMenuEntry,
     menu: NhContextMenuState,
     clickCrossPosition: { readonly x: number; readonly y: number } = { x: menu.x, y: menu.y }
   ): void => {
-    closeContextMenu();
+    closeContextMenuImmediately();
     if (isNhCancelContextMenuEntry(entry)) {
       return;
     }
@@ -17846,7 +19596,9 @@ export function RuntimeSceneViewer({
               if (!boundary) {
                 return;
               }
-              const wheelRotation = nhWheelEventRotation(event.nativeEvent);
+              const wheelUpdate = nhWheelEventRotation(event.nativeEvent, cameraWheelDeltaAccumulatorRef.current);
+              cameraWheelDeltaAccumulatorRef.current = wheelUpdate.accumulatedDelta;
+              const wheelRotation = wheelUpdate.rotation;
               if (wheelRotation === 0) {
                 return;
               }
@@ -17859,6 +19611,7 @@ export function RuntimeSceneViewer({
                 "canvas wheel"
               );
               boundary.renderer.domElement.dataset.lastCameraWheelRotation = String(wheelRotation);
+              boundary.renderer.domElement.dataset.lastCameraWheelAccumulatedDelta = String(wheelUpdate.accumulatedDelta);
             }}
             onContextMenu={(event) => {
               event.preventDefault();
@@ -17874,12 +19627,18 @@ export function RuntimeSceneViewer({
             layout={fixedClientCssLayout}
             sourceLayout={fixedClientLayout}
             snapshot={visibleSnapshot}
+            minimapSnapshot={minimapFrameSnapshot ?? visibleSnapshot}
             minimapDestinationTile={minimapDestinationTile}
             minimapCameraYaw={visibleMinimapCameraYaw}
             minimapSceneSprite={minimapSceneSprite}
             cameraZoom={cameraZoom}
             onCameraZoomChange={(zoom) => setRuntimeCameraZoom(zoom, "options zoom slider")}
             onCameraZoomReset={() => setRuntimeCameraZoom(NH_CAMERA_DEFAULT_ZOOM, "options zoom reset")}
+            clientDisplayMode={clientDisplayMode}
+            onClientDisplayModeChange={(displayMode) => {
+              closeContextMenu();
+              setClientDisplayMode(displayMode);
+            }}
             onMinimapTileCommand={(command) => {
               closeContextMenu();
               issueTileCommand(command.tile, command.position, "yellow", "minimap");
@@ -18470,7 +20229,7 @@ export function RuntimeSceneViewer({
                 data-source-combat-xp="CombatUtils.addXp damage*4 attackType split; TargetSpell.addMagicXp baseXp + damage*2; Hitpoints damage*1.33"
                 data-source-damage-ratio="XpDropPlugin HITPOINT_RATIO = 1.33"
                 data-source-droplet-move="xpdrops_dropletmove interpolate(0, elapsed, 0, enum_1171(varbit4722), 16384)"
-                data-source-panel-position="xpdrops_setposition right:2 top:2 when varbit4692=0"
+                data-source-panel-position="WidgetOverlay EXPERIENCE_TRACKER_WIDGET TOP_RIGHT over client.getViewportWidget; xpdrops_setposition right:2 top:2 when varbit4692=0"
                 data-source-setdropsize={`xpdrops_setdropsize varbit4693=${overlay.textSizeVarbit4693} ${overlay.fontArchiveName} height=${overlay.height}`}
                 data-text-size={overlay.textSize}
                 data-text-size-varbit4693={overlay.textSizeVarbit4693}
@@ -18877,6 +20636,7 @@ export function RuntimeSceneViewer({
           {visibleContextMenu ? (
             <div
               className="nhContextMenu"
+              role="menu"
               data-menu-source={visibleContextMenu.source ?? ""}
               data-source-frame-color={NH_CONTEXT_MENU_FRAME_COLOR}
               data-source-outline-color={NH_CONTEXT_MENU_OUTLINE_COLOR}
@@ -18893,6 +20653,18 @@ export function RuntimeSceneViewer({
               data-source-runelite-overlay-menu-click="ConfigPlugin.onOverlayMenuClicked RUNELITE_OVERLAY_CONFIG opens plugin configuration panel"
               data-runelite-overlay-menu-count={visibleContextMenu.entries.filter(isRuneliteOverlayConfigContextMenuEntry).length}
               style={contextMenuStyleWithFont(visibleContextMenu, fixedClientCssLayout, contextMenuFont, contextMenuFontAtlas)}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+                if (event.button !== 0) {
+                  return;
+                }
+                event.preventDefault();
+                const target = event.target instanceof Element ? event.target : null;
+                if (target?.closest(".nhContextMenuOption")) {
+                  return;
+                }
+                closeContextMenuImmediately();
+              }}
             >
               <div className="nhContextMenuTitle">
                 <NhContextMenuText
@@ -18905,10 +20677,11 @@ export function RuntimeSceneViewer({
                 />
               </div>
               {visibleNhMenuEntries(visibleContextMenu.entries).map((entry, index) => (
-                <button
+                <div
                   key={`${entry.action}-${entry.actionText}-${entry.targetText}-${entry.opcode}-${"sourceIndex" in entry ? entry.sourceIndex : index}`}
                   className="nhContextMenuOption"
-                  type="button"
+                  role="menuitem"
+                  aria-label={nhMenuEntryText(entry)}
                   data-menu-action={entry.actionText}
                   data-menu-action-kind={entry.action}
                   data-menu-opcode={entry.opcode}
@@ -18938,7 +20711,6 @@ export function RuntimeSceneViewer({
                         : { x: visibleContextMenu.x, y: visibleContextMenu.y }
                     );
                   }}
-                  onClick={(event) => event.preventDefault()}
                 >
                   <span
                     className="nhContextMenuHover"
@@ -18960,7 +20732,7 @@ export function RuntimeSceneViewer({
                     baseline={NH_CONTEXT_MENU_OPTION_BASELINE_OFFSET - NH_CONTEXT_MENU_HEADER_AND_PADDING_HEIGHT}
                     color={NH_CONTEXT_MENU_TEXT_COLOR}
                   />
-                </button>
+                </div>
               ))}
             </div>
           ) : null}

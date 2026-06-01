@@ -100,6 +100,8 @@ export interface NhViewport {
   readonly zoom: number;
 }
 
+export type NhClientDisplayMode = "fixed" | "resizable";
+
 export interface NhInventoryGridLayout {
   readonly groupId: number;
   readonly widgetId: number;
@@ -532,6 +534,8 @@ export interface NhFixedSidePanelLayout {
 }
 
 export interface NhFixedClientLayout {
+  readonly displayMode: NhClientDisplayMode;
+  readonly rootGroupId: number;
   readonly fixedCanvas: NhSize;
   readonly widgets: readonly NhResolvedWidget[];
   readonly viewportWidget: NhResolvedWidget;
@@ -562,7 +566,9 @@ export interface NhFixedClientCssLayout {
 }
 
 export const NH_FIXED_ROOT_GROUP_ID = 548;
+export const NH_RESIZABLE_ROOT_GROUP_ID = 161;
 export const NH_FIXED_VIEWPORT_INTERFACE_CONTAINER_CHILD_ID = 65;
+export const NH_RESIZABLE_VIEWPORT_INTERFACE_CONTAINER_CHILD_ID = 65;
 export const NH_GAME_VIEWPORT_CONTENT_TYPE = 1337;
 export const NH_MINIMAP_CONTENT_TYPE = 1338;
 export const NH_COMPASS_CONTENT_TYPE = 1339;
@@ -586,6 +592,7 @@ export const NH_MUSIC_GROUP_ID = 239;
 const viewportBaseHeight = 334;
 const viewportBaseZoom = 512;
 const fixedModeSidePanelSpriteId = 1031;
+const resizableModeSidePanelSpriteId = 897;
 const minimapOrbFrameSpriteId = 1071;
 const minimapOrbEmptySpriteId = 1059;
 const inventoryClientDrawSlotSize = 32;
@@ -808,21 +815,41 @@ const fixedSideTabSpecs: readonly {
   { id: "emotes", childId: 36, iconChildId: 43, containerChildId: 78, row: "bottom", slotIndex: 5 },
   { id: "music", childId: 37, iconChildId: 44, containerChildId: 79, row: "bottom", slotIndex: 6 }
 ];
+const resizableSideTabSpecs: typeof fixedSideTabSpecs = [
+  { id: "combat", childId: 51, iconChildId: 58, containerChildId: 68, row: "top", slotIndex: 0 },
+  { id: "stats", childId: 52, iconChildId: 59, containerChildId: 69, row: "top", slotIndex: 1 },
+  { id: "quests", childId: 53, iconChildId: 60, containerChildId: 70, row: "top", slotIndex: 2 },
+  { id: "inventory", childId: 54, iconChildId: 61, containerChildId: 71, row: "top", slotIndex: 3 },
+  { id: "equipment", childId: 55, iconChildId: 62, containerChildId: 72, row: "top", slotIndex: 4 },
+  { id: "prayer", childId: 56, iconChildId: 63, containerChildId: 73, row: "top", slotIndex: 5 },
+  { id: "magic", childId: 57, iconChildId: 64, containerChildId: 74, row: "top", slotIndex: 6 },
+  { id: "clan-chat", childId: 35, iconChildId: 42, containerChildId: 75, row: "bottom", slotIndex: 0 },
+  { id: "friends", childId: 37, iconChildId: 44, containerChildId: 76, row: "bottom", slotIndex: 1 },
+  { id: "ignores", childId: 36, iconChildId: 43, containerChildId: 77, row: "bottom", slotIndex: 2 },
+  { id: "logout", childId: 38, iconChildId: 45, containerChildId: 78, row: "bottom", slotIndex: 3 },
+  { id: "options", childId: 39, iconChildId: 46, containerChildId: 79, row: "bottom", slotIndex: 4 },
+  { id: "emotes", childId: 40, iconChildId: 47, containerChildId: 80, row: "bottom", slotIndex: 5 },
+  { id: "music", childId: 41, iconChildId: 48, containerChildId: 81, row: "bottom", slotIndex: 6 }
+];
 
 export function resolveNhFixedClientLayout(
   definitions: NhClientWidgetDefinitions,
-  spellbooks: NhSpellbookDefinitions | null = null
+  spellbooks: NhSpellbookDefinitions | null = null,
+  options: { readonly displayMode?: NhClientDisplayMode; readonly rootSize?: NhSize } = {}
 ): NhFixedClientLayout {
-  const rootGroup = definitions.groups.find((group) => group.groupId === NH_FIXED_ROOT_GROUP_ID);
+  const displayMode = options.displayMode ?? "fixed";
+  const rootGroupId = displayMode === "resizable" ? NH_RESIZABLE_ROOT_GROUP_ID : NH_FIXED_ROOT_GROUP_ID;
+  const rootSize = displayMode === "resizable" ? options.rootSize ?? definitions.fixedCanvas : definitions.fixedCanvas;
+  const rootGroup = definitions.groups.find((group) => group.groupId === rootGroupId);
   if (!rootGroup) {
-    throw new Error(`missing Nh fixed root interface group ${NH_FIXED_ROOT_GROUP_ID}`);
+    throw new Error(`missing Nh ${displayMode} root interface group ${rootGroupId}`);
   }
 
   const resolvedWidgets = resolveInterfaceGroupWidgets(rootGroup, {
     x: 0,
     y: 0,
-    width: definitions.fixedCanvas.width,
-    height: definitions.fixedCanvas.height
+    width: rootSize.width,
+    height: rootSize.height
   });
 
   const viewportWidget = findWidgetByContentType(resolvedWidgets, NH_GAME_VIEWPORT_CONTENT_TYPE);
@@ -830,20 +857,26 @@ export function resolveNhFixedClientLayout(
     throw new Error(`missing Nh game viewport widget content type ${NH_GAME_VIEWPORT_CONTENT_TYPE}`);
   }
 
-  const sidePanel = resolveNhFixedSidePanel(resolvedWidgets);
+  const sidePanel = resolveNhFixedSidePanel(resolvedWidgets, displayMode);
   const sidePanelInterfaces = resolveNhSidePanelInterfaces(definitions, sidePanel);
   const spellbookPanels = resolveNhSpellbookPanels(sidePanelInterfaces.magic ?? null, spellbooks);
 
   return {
-    fixedCanvas: definitions.fixedCanvas,
+    displayMode,
+    rootGroupId,
+    fixedCanvas: rootSize,
     widgets: resolvedWidgets,
     viewportWidget,
     fixedViewportInterfaceContainer:
-      findFixedWidgetByChildId(resolvedWidgets, NH_FIXED_VIEWPORT_INTERFACE_CONTAINER_CHILD_ID) ?? null,
+      findRootWidgetByChildId(
+        resolvedWidgets,
+        rootGroupId,
+        displayMode === "resizable" ? NH_RESIZABLE_VIEWPORT_INTERFACE_CONTAINER_CHILD_ID : NH_FIXED_VIEWPORT_INTERFACE_CONTAINER_CHILD_ID
+      ) ?? null,
     viewport: resolveNhViewport(viewportWidget.rect),
     minimapWidget: findWidgetByContentType(resolvedWidgets, NH_MINIMAP_CONTENT_TYPE),
     compassWidget: findWidgetByContentType(resolvedWidgets, NH_COMPASS_CONTENT_TYPE),
-    chatbox: resolveNhChatbox(definitions, resolvedWidgets),
+    chatbox: resolveNhChatbox(definitions, resolvedWidgets, displayMode, rootGroupId),
     sidePanel,
     sidePanelInterfaces,
     combatPanel: resolveNhCombatPanel(sidePanelInterfaces.combat ?? null),
@@ -862,6 +895,22 @@ export function scaleNhFixedClientLayout(
   layout: NhFixedClientLayout,
   container: NhSize
 ): NhFixedClientCssLayout {
+  if (layout.displayMode === "resizable") {
+    const surfaceRect = {
+      x: 0,
+      y: 0,
+      width: Math.max(1, Math.round(container.width)),
+      height: Math.max(1, Math.round(container.height))
+    };
+    return {
+      scale: 1,
+      surfaceRect,
+      viewportRect: layout.viewport.rect,
+      minimapRect: layout.minimapWidget?.rect ?? null,
+      compassRect: layout.compassWidget?.rect ?? null
+    };
+  }
+
   const scale = Math.max(
     0.01,
     Math.min(1, container.width / layout.fixedCanvas.width, container.height / layout.fixedCanvas.height)
@@ -1038,18 +1087,23 @@ function findWidgetByContentType(
 
 function resolveNhChatbox(
   definitions: NhClientWidgetDefinitions,
-  fixedWidgets: readonly NhResolvedWidget[]
+  fixedWidgets: readonly NhResolvedWidget[],
+  displayMode: NhClientDisplayMode = "fixed",
+  rootGroupId = NH_FIXED_ROOT_GROUP_ID
 ): NhMountedInterfaceLayout | null {
   const chatboxGroup = definitions.groups.find((group) => group.groupId === NH_CHATBOX_GROUP_ID);
-  const chatboxMount = fixedWidgets.find(
-    (entry) =>
-      entry.widget.parentId === -1 &&
-      entry.widget.type === 0 &&
-      entry.rect.x === 0 &&
-      entry.rect.y === 338 &&
-      entry.rect.width === 519 &&
-      entry.rect.height === 165
-  );
+  const chatboxMount =
+    displayMode === "resizable"
+      ? findRootWidgetByChildId(fixedWidgets, rootGroupId, 29)
+      : fixedWidgets.find(
+          (entry) =>
+            entry.widget.parentId === -1 &&
+            entry.widget.type === 0 &&
+            entry.rect.x === 0 &&
+            entry.rect.y === 338 &&
+            entry.rect.width === 519 &&
+            entry.rect.height === 165
+        );
   if (!chatboxGroup || !chatboxMount) {
     return null;
   }
@@ -1685,17 +1739,22 @@ function clampInt(value: number, min: number, max: number): number {
 }
 
 function resolveNhFixedSidePanel(
-  fixedWidgets: readonly NhResolvedWidget[]
+  fixedWidgets: readonly NhResolvedWidget[],
+  displayMode: NhClientDisplayMode = "fixed"
 ): NhFixedSidePanelLayout | null {
-  const background = fixedWidgets.find((entry) => entry.widget.spriteId === fixedModeSidePanelSpriteId);
+  const rootGroupId = displayMode === "resizable" ? NH_RESIZABLE_ROOT_GROUP_ID : NH_FIXED_ROOT_GROUP_ID;
+  const tabSpecs = displayMode === "resizable" ? resizableSideTabSpecs : fixedSideTabSpecs;
+  const backgroundSpriteId =
+    displayMode === "resizable" ? resizableModeSidePanelSpriteId : fixedModeSidePanelSpriteId;
+  const background = fixedWidgets.find((entry) => entry.widget.spriteId === backgroundSpriteId);
   if (!background) {
     return null;
   }
 
-  const tabs = fixedSideTabSpecs.flatMap((spec) => {
-    const tab = findFixedWidgetByChildId(fixedWidgets, spec.childId);
-    const icon = findFixedWidgetByChildId(fixedWidgets, spec.iconChildId);
-    const container = findFixedWidgetByChildId(fixedWidgets, spec.containerChildId);
+  const tabs = tabSpecs.flatMap((spec) => {
+    const tab = findRootWidgetByChildId(fixedWidgets, rootGroupId, spec.childId);
+    const icon = findRootWidgetByChildId(fixedWidgets, rootGroupId, spec.iconChildId);
+    const container = findRootWidgetByChildId(fixedWidgets, rootGroupId, spec.containerChildId);
     if (
       !tab ||
       !icon ||
@@ -1712,7 +1771,7 @@ function resolveNhFixedSidePanel(
     return [
       {
         id: spec.id,
-        groupId: NH_FIXED_ROOT_GROUP_ID,
+        groupId: rootGroupId,
         widgetId: tab.widget.id,
         childId: tab.widget.childId,
         rect: tab.rect,
@@ -1724,7 +1783,7 @@ function resolveNhFixedSidePanel(
         iconSpriteId: icon.widget.spriteId,
         iconRect: icon.rect,
         container: {
-          groupId: NH_FIXED_ROOT_GROUP_ID,
+          groupId: rootGroupId,
           widgetId: container.widget.id,
           childId: container.widget.childId,
           rect: container.rect,
@@ -1736,7 +1795,7 @@ function resolveNhFixedSidePanel(
   });
 
   return {
-    groupId: NH_FIXED_ROOT_GROUP_ID,
+    groupId: rootGroupId,
     rect: background.rect,
     backgroundSpriteId: background.widget.spriteId,
     defaultTabId: fixedSideTabDefaultId,
@@ -1744,11 +1803,12 @@ function resolveNhFixedSidePanel(
   };
 }
 
-function findFixedWidgetByChildId(
+function findRootWidgetByChildId(
   fixedWidgets: readonly NhResolvedWidget[],
+  rootGroupId: number,
   childId: number
 ): NhResolvedWidget | undefined {
-  return fixedWidgets.find((entry) => entry.widget.groupId === NH_FIXED_ROOT_GROUP_ID && entry.widget.childId === childId);
+  return fixedWidgets.find((entry) => entry.widget.groupId === rootGroupId && entry.widget.childId === childId);
 }
 
 function resolveNhFixedOrbs(

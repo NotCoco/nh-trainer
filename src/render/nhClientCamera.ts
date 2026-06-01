@@ -45,7 +45,13 @@ export const NH_CAMERA_DEFAULT_FOV_DEGREES = nhViewportZoomToFovDegrees(
   NH_CAMERA_DEFAULT_VIEWPORT_HEIGHT,
   NH_CAMERA_DEFAULT_VIEWPORT_ZOOM
 );
-export const NH_CAMERA_OUTER_ZOOM_LIMIT = 128;
+export const NH_CAMERA_SOURCE_OUTER_ZOOM_LIMIT = 128;
+// Source: ZoomPlugin.outerZoomLimit applies as 128 - outerLimit. The trainer
+// opts into a small RuneLite-style extension so close zoom is useful without
+// dropping to the foot-level orbit caused by more aggressive values.
+export const NH_CAMERA_ZOOM_PLUGIN_OUTER_LIMIT = 32;
+export const NH_CAMERA_OUTER_ZOOM_LIMIT =
+  NH_CAMERA_SOURCE_OUTER_ZOOM_LIMIT - NH_CAMERA_ZOOM_PLUGIN_OUTER_LIMIT;
 export const NH_CAMERA_INNER_ZOOM_LIMIT = 896;
 export const NH_CAMERA_SCROLL_WHEEL_INCREMENT = 25;
 export const NH_CAMERA_DEFAULT_ZOOM_HEIGHT = 512;
@@ -180,8 +186,9 @@ export function nhCameraFollowHeightUnits(
   zoom: NhCameraZoom = NH_CAMERA_DEFAULT_ZOOM,
   viewportHeight: number = NH_CAMERA_DEFAULT_VIEWPORT_HEIGHT
 ): number {
-  const zoomScale = nhCameraZoomScale(viewportHeight, zoom);
-  return 25 + Math.trunc((25 * zoomScale) / 256);
+  // Source: ZoomHandler.rs2asm script 42 computes the follow height as
+  // 25 + (25 * effectiveZoom / 256) after viewport_setfov.
+  return 25 + truncateClientInt((25 * nhCameraZoomScale(viewportHeight, zoom)) / 256);
 }
 
 export function nhCameraFollowHeightSceneUnits(

@@ -635,6 +635,12 @@ assert(
   "PlayerMovement source no longer matches two-step run movement assumptions"
 );
 assert(
+  clientPlayerSource.includes("if(var3 == 2)") &&
+    clientPlayerSource.includes("class4.method65(this, var1, var2, (byte)2);") &&
+    clientPlayerSource.includes("this.method1100(var1, var2, var3);"),
+  "Player.method1111 source no longer inserts the intermediate run path before the final run tile"
+);
+assert(
   sceneSource.includes("Scene_selectedScreenX = var10 - ViewportMouse.client.getViewportXOffset();") &&
     sceneSource.includes("if(checkClick && containsBounds(Scene_selectedScreenX, Scene_selectedScreenY") &&
     sceneSource.includes("Scene_selectedX = var7;") &&
@@ -675,15 +681,22 @@ assert(
     runtimeSceneViewerSource.includes("advanceManualActorServerRouteTick") &&
     runtimeSceneViewerSource.includes("const localHasTargetRoute = manualActorHasActiveCombatTargetRoute") &&
     runtimeSceneViewerSource.includes("const opponentHasTargetRoute = manualActorHasActiveCombatTargetRoute") &&
-    runtimeSceneViewerSource.includes(": advanceManualActorServerRouteTick(local)") &&
-    runtimeSceneViewerSource.includes(": advanceManualActorServerRouteTick(opponent)") &&
+    runtimeSceneViewerSource.includes("const acceptedClientCycle = nhAcceptedPlayerUpdateClientCycle(") &&
+    runtimeSceneViewerSource.includes(": advanceManualActorServerRouteTick(local, acceptedClientCycle)") &&
+    runtimeSceneViewerSource.includes(": advanceManualActorServerRouteTick(opponent, acceptedClientCycle)") &&
     runtimeSceneViewerSource.includes("and Movement.process() in CoreWorker PID order") &&
     runtimeSceneViewerSource.includes("cancels a later player's queued movement before it can be consumed") &&
     runtimeSceneViewerSource.includes("advanceManualActorTargetRouteTick") &&
+    runtimeSceneViewerSource.includes("const NH_CLIENT_ROUTE_BUFFER_LIMIT = 9;") &&
     runtimeSceneViewerSource.includes("actor.running && actor.serverRouteWaypoints.length > 1 ? 2 : 1") &&
     runtimeSceneViewerSource.includes("const enqueuedWaypoints = actor.serverRouteWaypoints.slice(0, enqueueCount)") &&
-    runtimeSceneViewerSource.includes("enqueueManualActorClientPathSteps(actor.routeWaypoints, enqueuedWaypoints)") &&
-    runtimeSceneViewerSource.includes("queued = queued.slice(1)") &&
+    runtimeSceneViewerSource.includes("const clientUpdate = nhClientPathUpdateFromAcceptedServerSteps(enqueuedWaypoints, traversalMode)") &&
+    runtimeSceneViewerSource.includes("enqueueManualActorClientPathSteps(actor, clientUpdate.routeWaypoints, traversalMode)") &&
+    runtimeSceneViewerSource.includes("...clientUpdate.routeTraversalModes") &&
+    !runtimeSceneViewerSource.includes("enqueueManualActorClientPathSteps(actor, enqueuedWaypoints, traversalMode)") &&
+    !runtimeSceneViewerSource.includes("...Array.from({ length: enqueueCount }, () => traversalMode)") &&
+    runtimeSceneViewerSource.includes("NH_CLIENT_ROUTE_BUFFER_LIMIT") &&
+    runtimeSceneViewerSource.includes("client class329 only snaps when an impossible next path tile is fed in") &&
     runtimeSceneViewerSource.includes("tile: enqueuedWaypoints[enqueuedWaypoints.length - 1] ?? actor.tile") &&
     runtimeSceneViewerSource.includes("const traversalMode = sourceTickStepCount > 1 ? 2 : 1") &&
     runtimeSceneViewerSource.includes("serverRouteWaypoints") &&
@@ -693,6 +706,8 @@ assert(
     runtimeSceneViewerSource.includes("movementFrameCycle > frameLength") &&
     runtimeSceneViewerSource.includes("movementFrameCycle = 1") &&
     runtimeSceneViewerSource.includes("movementFrame = 0") &&
+    runtimeSceneViewerSource.includes("deferClientPathUntilServerTick") &&
+    runtimeSceneViewerSource.includes("Scene.method3151()/Client scene-click handling only sends the") &&
     runtimeSceneViewerSource.includes("nhMovementFrameCursor(actor)") &&
     runtimeSceneViewerSource.includes("movementBlockedBySequence") &&
     runtimeSceneViewerSource.includes("advanceManualActorClientCycle") &&
@@ -701,8 +716,19 @@ assert(
     runtimeSceneViewerSource.includes("rotateManualActorTowardNhOrientation") &&
     runtimeSceneViewerSource.includes("rotationUnits += NH_ACTOR_TURN_SPEED_UNITS") &&
     runtimeSceneViewerSource.includes("NH_ACTOR_TURN_ANIMATION_DELAY_TICKS") &&
-    runtimeSceneViewerSource.includes("NH_CLIENT_MAX_CYCLES_PER_RENDER_FRAME") &&
-    runtimeSceneViewerSource.includes("animationCycle - targetMovementCycle > maxCycleCatchUp ? animationCycle : targetMovementCycle") &&
+    runtimeSceneViewerSource.includes("const NH_CLIENT_MAX_MOVEMENT_CYCLES_PER_RENDER_FRAME = NH_CLIENT_MAX_CYCLES_PER_RENDER_FRAME;") &&
+    runtimeSceneViewerSource.includes("GameShell runs at most NanoClock.vmethod3511() cycles before one draw") &&
+    runtimeSceneViewerSource.includes("NanoClock caps that loop at 10") &&
+    runtimeSceneViewerSource.includes("Movement must share that draw cadence") &&
+    runtimeSceneViewerSource.includes("manualActorSequenceStartClientCycle") &&
+    runtimeSceneViewerSource.includes("const sequenceAcceptedForCycle") &&
+    runtimeSceneViewerSource.includes("cycle >= activeSequenceStartClientCycle") &&
+    runtimeSceneViewerSource.includes("NH_CLIENT_MAX_MOVEMENT_CYCLES_PER_RENDER_FRAME") &&
+    runtimeSceneViewerSource.includes("let lastManualActorRenderClientCycle = -1;") &&
+    runtimeSceneViewerSource.includes("clientCycle <= lastManualActorRenderClientCycle") &&
+    runtimeSceneViewerSource.includes("lastManualActorRenderClientCycle = clientCycle") &&
+    runtimeSceneViewerSource.includes("lastMovementClientCycle: targetMovementCycle") &&
+    !runtimeSceneViewerSource.includes("animationCycle - targetMovementCycle > maxCycleCatchUp ? animationCycle : targetMovementCycle") &&
     runtimeSceneViewerSource.includes("nhTurnSequenceForReadyMovement(actor.sequenceName, turnTicks, stillTurning)") &&
     runtimeSceneViewerSource.includes('return sequenceName === "idle" || runtimeSequenceIsWeaponReady(sequenceName);') &&
     runtimeSceneViewerSource.includes("tile: actor.tile") &&
@@ -710,6 +736,20 @@ assert(
     runtimeSceneViewerSource.includes('hitActor?.actorId === "local-player" ? null : hitActor') &&
     runtimeSceneViewerSource.includes("advanceManualActorsForRenderFrame(now)") &&
     runtimeSceneViewerSource.includes("clientCycle <= localActor.lastMovementClientCycle") &&
+    runtimeSceneViewerSource.includes("NH_GAME_TICK_PROCESS_LIMIT_PER_CALLBACK = 1") &&
+    runtimeSceneViewerSource.includes("batching several movement") &&
+    runtimeSceneViewerSource.includes("manualCombatStateRef.current.tick >= targetTick") &&
+    runtimeSceneViewerSource.includes("deferClientPathUntilServerTick && !preserveClientPath") &&
+    runtimeSceneViewerSource.includes("acceptedClientCycle") &&
+    runtimeSceneViewerSource.includes("newly accepted") &&
+    runtimeSceneViewerSource.includes("steps must not spend pre-update client-cycle backlog") &&
+    runtimeSceneViewerSource.includes("this cursor mirrors Client.cycle and must never move backwards") &&
+    runtimeSceneViewerSource.includes("const acceptedMovementCursor =") &&
+    runtimeSceneViewerSource.includes("Math.max(0, acceptedClientCycle - 1)") &&
+    runtimeSceneViewerSource.includes("Math.max(actor.lastMovementClientCycle ?? acceptedMovementCursor, acceptedMovementCursor)") &&
+    runtimeSceneViewerSource.includes("actor.lastMovementClientCycle !== null && actor.lastMovementClientCycle > animationCycle") &&
+    runtimeSceneViewerSource.includes("Keep the future client-cycle gate even if only this actor has pending movement") &&
+    runtimeSceneViewerSource.includes("not the browser") &&
     runtimeSceneViewerSource.includes("animationCycle: clientCycle + frameCycleOffset") &&
     !runtimeSceneViewerSource.includes("runtimeAnimationSmoothingManualActorFramePose") &&
     !runtimeSceneViewerSource.includes("renderTile: runtimeTileFromNhClientPosition(smoothedPosition)") &&
@@ -725,6 +765,15 @@ assert(
     !runtimeSceneViewerSource.includes("tile: nextLogicalTile") &&
     !runtimeSceneViewerSource.includes("collision.snapTile(actor.stepTo ?? actor.tile)"),
   "RuntimeSceneViewer should keep logical tiles snapped, face the active visual movement segment, and avoid spam-click step acceleration"
+);
+assert(
+  runtimeSceneViewerSource.includes("function nhClientPathUpdateFromAcceptedServerSteps(") &&
+    runtimeSceneViewerSource.includes("Player.method1111() handles a run update by calling class4.method65()") &&
+    runtimeSceneViewerSource.includes("queues the intermediate path tile") &&
+    runtimeSceneViewerSource.includes("queues the final run tile") &&
+    runtimeSceneViewerSource.includes("routeWaypoints: enqueuedWaypoints") &&
+    runtimeSceneViewerSource.includes("routeTraversalModes: enqueuedWaypoints.map(() => traversalMode)"),
+  "RuntimeSceneViewer should mirror Player.method1111 by preserving the intermediate run path tile before the final run tile"
 );
 assert(
   /const nextCombatState = resetRuntimePlayerCombatActorTarget\(manualScene\.combatState, "local-player"\);\s+const movementStatus = movementGate\(/.test(runtimeSceneViewerSource) &&

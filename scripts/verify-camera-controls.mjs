@@ -8,7 +8,10 @@ import { nhClientCameraPresets } from "./render-reference-targets.mjs";
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sourcePath = path.join(projectRoot, "src", "render", "nhClientCamera.ts");
 const runtimeViewerPath = path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx");
-const clientRoot = path.resolve(projectRoot, "..", "Nh184-Client");
+const clientRoot = path.resolve(projectRoot, "..", "Kronos184-Client");
+const EXPECTED_SOURCE_OUTER_ZOOM_LIMIT = 128;
+const EXPECTED_ZOOM_PLUGIN_OUTER_LIMIT = 32;
+const EXPECTED_ACTIVE_OUTER_ZOOM_LIMIT = EXPECTED_SOURCE_OUTER_ZOOM_LIMIT - EXPECTED_ZOOM_PLUGIN_OUTER_LIMIT;
 const clientCameraSourcePath = path.join(
   clientRoot,
   "runelite-client",
@@ -42,6 +45,17 @@ const clientKeyHandlerSourcePath = path.join(
   "standalone",
   "KeyHandler.java"
 );
+const clientMouseWheelHandlerSourcePath = path.join(
+  clientRoot,
+  "runelite-client",
+  "src",
+  "main",
+  "java",
+  "net",
+  "runelite",
+  "standalone",
+  "MouseWheelHandler.java"
+);
 const clientScrollWheelZoomScriptPath = path.join(
   clientRoot,
   "runelite-client",
@@ -66,15 +80,44 @@ const clientOptionsZoomUpdaterScriptPath = path.join(
   "scripts",
   "OptionsPanelZoomUpdater.rs2asm"
 );
+const clientZoomPluginSourcePath = path.join(
+  clientRoot,
+  "runelite-client",
+  "src",
+  "main",
+  "java",
+  "net",
+  "runelite",
+  "client",
+  "plugins",
+  "zoom",
+  "ZoomPlugin.java"
+);
+const clientZoomConfigSourcePath = path.join(
+  clientRoot,
+  "runelite-client",
+  "src",
+  "main",
+  "java",
+  "net",
+  "runelite",
+  "client",
+  "plugins",
+  "zoom",
+  "ZoomConfig.java"
+);
 
 const source = await readFile(sourcePath, "utf8");
 const runtimeViewerSource = await readFile(runtimeViewerPath, "utf8");
 const clientCameraSource = await readFile(clientCameraSourcePath, "utf8");
 const clientRasterizerSource = await readFile(clientRasterizerSourcePath, "utf8");
 const clientKeyHandlerSource = await readFile(clientKeyHandlerSourcePath, "utf8");
+const clientMouseWheelHandlerSource = await readFile(clientMouseWheelHandlerSourcePath, "utf8");
 const clientScrollWheelZoomScript = await readFile(clientScrollWheelZoomScriptPath, "utf8");
 const clientZoomHandlerScript = await readFile(clientZoomHandlerScriptPath, "utf8");
 const clientOptionsZoomUpdaterScript = await readFile(clientOptionsZoomUpdaterScriptPath, "utf8");
+const clientZoomPluginSource = await readFile(clientZoomPluginSourcePath, "utf8");
+const clientZoomConfigSource = await readFile(clientZoomConfigSourcePath, "utf8");
 if (
   runtimeViewerSource.includes("Math.hypot(5.8, 6.4, 7.4)") ||
   runtimeViewerSource.includes("Math.atan2(4.8, 9)") ||
@@ -112,6 +155,8 @@ const {
   NH_CAMERA_DEFAULT_VIEWPORT_HEIGHT,
   NH_CAMERA_DEFAULT_VIEWPORT_ZOOM,
   NH_CAMERA_DEFAULT_ZOOM,
+  NH_CAMERA_SOURCE_OUTER_ZOOM_LIMIT,
+  NH_CAMERA_ZOOM_PLUGIN_OUTER_LIMIT,
   NH_CAMERA_OUTER_ZOOM_LIMIT,
   NH_CAMERA_INNER_ZOOM_LIMIT,
   NH_CAMERA_SCROLL_WHEEL_INCREMENT,
@@ -165,8 +210,8 @@ function referenceCameraOffset(angles, viewportHeight, zoom = { zoomHeight: 512,
   const pitch = clampPitch(angles.pitch);
   const yaw = wrap(angles.yaw);
   const heightDelta = Math.max(0, Math.min(100, Math.trunc(viewportHeight) - 334));
-  const zoomHeight = Math.max(128, Math.min(896, Math.trunc(zoom.zoomHeight)));
-  const zoomWidth = Math.max(128, Math.min(896, Math.trunc(zoom.zoomWidth)));
+  const zoomHeight = Math.max(EXPECTED_ACTIVE_OUTER_ZOOM_LIMIT, Math.min(896, Math.trunc(zoom.zoomHeight)));
+  const zoomWidth = Math.max(EXPECTED_ACTIVE_OUTER_ZOOM_LIMIT, Math.min(896, Math.trunc(zoom.zoomWidth)));
   const zoomScale = Math.trunc(((zoomWidth - zoomHeight) * heightDelta) / 100 + zoomHeight);
   const distance = Math.trunc(((pitch * 3 + 600) * zoomScale) / 256);
   const pitchRotation = wrap(2048 - pitch);
@@ -198,28 +243,35 @@ function referenceWheelZoom(current, wheelRotation) {
   }
   const delta = -rotation * 25;
   return {
-    zoomHeight: Math.max(128, Math.min(896, javaTrunc(current.zoomHeight + delta))),
-    zoomWidth: Math.max(128, Math.min(896, javaTrunc(current.zoomWidth + delta)))
+    zoomHeight: Math.max(EXPECTED_ACTIVE_OUTER_ZOOM_LIMIT, Math.min(896, javaTrunc(current.zoomHeight + delta))),
+    zoomWidth: Math.max(EXPECTED_ACTIVE_OUTER_ZOOM_LIMIT, Math.min(896, javaTrunc(current.zoomWidth + delta)))
   };
 }
 
 function referenceSliderZoom(offset, sliderRange) {
   const range = Math.max(1, javaTrunc(sliderRange));
   const clampedOffset = Math.max(0, Math.min(range, javaTrunc(offset)));
-  const value = Math.trunc((clampedOffset * (896 - 128)) / range) + 128;
+  const value =
+    Math.trunc((clampedOffset * (896 - EXPECTED_ACTIVE_OUTER_ZOOM_LIMIT)) / range) +
+    EXPECTED_ACTIVE_OUTER_ZOOM_LIMIT;
   return { zoomHeight: value, zoomWidth: value };
 }
 
 function referenceSliderOffset(zoom, viewportHeight, sliderRange) {
   const range = Math.max(1, javaTrunc(sliderRange));
   const value = viewportHeight > 334 ? zoom.zoomWidth : zoom.zoomHeight;
-  return Math.trunc(((Math.max(128, Math.min(896, javaTrunc(value))) - 128) * range) / (896 - 128));
+  return Math.trunc(
+    ((Math.max(EXPECTED_ACTIVE_OUTER_ZOOM_LIMIT, Math.min(896, javaTrunc(value))) -
+      EXPECTED_ACTIVE_OUTER_ZOOM_LIMIT) *
+      range) /
+      (896 - EXPECTED_ACTIVE_OUTER_ZOOM_LIMIT)
+  );
 }
 
 function referenceFollowHeight(zoom, viewportHeight) {
-  const heightDelta = Math.max(0, Math.min(100, Math.trunc(viewportHeight) - 334));
-  const zoomScale = Math.trunc(((zoom.zoomWidth - zoom.zoomHeight) * heightDelta) / 100 + zoom.zoomHeight);
-  return 25 + Math.trunc((25 * zoomScale) / 256);
+  const heightDelta = Math.max(0, Math.min(100, javaTrunc(viewportHeight) - 334));
+  const zoomScale = javaTrunc(((zoom.zoomWidth - zoom.zoomHeight) * heightDelta) / 100 + zoom.zoomHeight);
+  return 25 + javaTrunc((25 * zoomScale) / 256);
 }
 
 function referenceStep(current, keys) {
@@ -356,13 +408,17 @@ const tallCameraOffset = nhClientCameraOffset({ yaw: 640, pitch: 383 }, 434);
 assertSame("tall viewport camera orbit offset", tallCameraOffset, referenceCameraOffset({ yaw: 640, pitch: 383 }, 434));
 
 const zoomedCameraOffset = nhClientCameraOffset({ yaw: 256, pitch: NH_CAMERA_DEFAULT_PITCH_UNITS }, 334, {
-  zoomHeight: 128,
-  zoomWidth: 128
+  zoomHeight: EXPECTED_ACTIVE_OUTER_ZOOM_LIMIT,
+  zoomWidth: EXPECTED_ACTIVE_OUTER_ZOOM_LIMIT
 });
 assertSame(
-  "inner scroll zoom camera orbit offset",
+  "outer scroll zoom camera orbit offset",
   zoomedCameraOffset,
-  referenceCameraOffset({ yaw: 256, pitch: NH_CAMERA_DEFAULT_PITCH_UNITS }, 334, { zoomHeight: 128, zoomWidth: 128 })
+  referenceCameraOffset(
+    { yaw: 256, pitch: NH_CAMERA_DEFAULT_PITCH_UNITS },
+    334,
+    { zoomHeight: EXPECTED_ACTIVE_OUTER_ZOOM_LIMIT, zoomWidth: EXPECTED_ACTIVE_OUTER_ZOOM_LIMIT }
+  )
 );
 
 const sceneOffset = nhClientSceneCameraOffset({ yaw: 256, pitch: NH_CAMERA_DEFAULT_PITCH_UNITS }, 334);
@@ -376,8 +432,14 @@ assertSame("scene camera offset scaling", sceneOffset, {
 
 const wheelZoomIn = updateNhCameraZoomFromScrollWheel({ zoomHeight: 512, zoomWidth: 512 }, 1);
 assertSame("scroll wheel zoom step", wheelZoomIn, referenceWheelZoom({ zoomHeight: 512, zoomWidth: 512 }, 1));
-const wheelZoomClamp = updateNhCameraZoomFromScrollWheel({ zoomHeight: 138, zoomWidth: 138 }, 1);
-assertSame("scroll wheel zoom outer clamp", wheelZoomClamp, { zoomHeight: 128, zoomWidth: 128 });
+const wheelZoomClamp = updateNhCameraZoomFromScrollWheel(
+  { zoomHeight: EXPECTED_ACTIVE_OUTER_ZOOM_LIMIT + 10, zoomWidth: EXPECTED_ACTIVE_OUTER_ZOOM_LIMIT + 10 },
+  1
+);
+assertSame("scroll wheel zoom outer clamp", wheelZoomClamp, {
+  zoomHeight: EXPECTED_ACTIVE_OUTER_ZOOM_LIMIT,
+  zoomWidth: EXPECTED_ACTIVE_OUTER_ZOOM_LIMIT
+});
 const wheelZoomOut = updateNhCameraZoomFromScrollWheel({ zoomHeight: 512, zoomWidth: 512 }, -1);
 assertSame("scroll wheel zoom out step", wheelZoomOut, { zoomHeight: 537, zoomWidth: 537 });
 const wheelZoomInnerClamp = updateNhCameraZoomFromScrollWheel({ zoomHeight: 886, zoomWidth: 886 }, -1);
@@ -388,6 +450,9 @@ if (nhCameraZoomSliderOffset({ zoomHeight: 512, zoomWidth: 512 }, 334, 96) !== r
 }
 if (nhCameraFollowHeightUnits({ zoomHeight: 512, zoomWidth: 512 }, 334) !== referenceFollowHeight({ zoomHeight: 512, zoomWidth: 512 }, 334)) {
   throw new Error("camera follow height should be derived from ZoomHandler.rs2asm cam_setfollowheight formula");
+}
+if (nhCameraFollowHeightUnits({ zoomHeight: 128, zoomWidth: 896 }, 434) !== referenceFollowHeight({ zoomHeight: 128, zoomWidth: 896 }, 434)) {
+  throw new Error("camera follow height should use the source effective zoom interpolation for tall viewports");
 }
 
 for (const [name, expected] of Object.entries(nhClientCameraPresets)) {
@@ -439,6 +504,15 @@ assertIncludes("client zoom handler source fov clamp", clientZoomHandlerScript, 
 assertIncludes("client zoom handler source varc height", clientZoomHandlerScript, "set_varc_int           74");
 assertIncludes("client zoom handler source varc width", clientZoomHandlerScript, "set_varc_int           73");
 assertIncludes("client options zoom updater source varc", clientOptionsZoomUpdaterScript, "get_varc_int           74");
+assertIncludes("client zoom plugin source outer callback", clientZoomPluginSource, "\"outerZoomLimit\".equals(event.getEventName())");
+assertIncludes("client zoom plugin source outer formula", clientZoomPluginSource, "int outerZoomLimit = 128 - outerLimit;");
+assertIncludes("client zoom config source outer max", clientZoomConfigSource, "int OUTER_LIMIT_MAX = 400;");
+assertIncludes("client zoom config source outer default", clientZoomConfigSource, "default int outerLimit()");
+assertIncludes("client zoom config source outer default value", clientZoomConfigSource, "return 0;");
+assertIncludes("client zoom plugin disabled by default", clientZoomPluginSource, "enabledByDefault = false");
+assertIncludes("trainer active close zoom source callback", source, "NH_CAMERA_ZOOM_PLUGIN_OUTER_LIMIT = 32");
+assertIncludes("trainer zoom plugin source callback formula", source, "128 - outerLimit");
+assertIncludes("trainer zoom plugin source close guard", source, "foot-level orbit");
 assertIncludes("runtime default camera fov", runtimeViewerSource, "new PerspectiveCamera(NH_CAMERA_DEFAULT_FOV_DEGREES");
 assertIncludes("runtime default camera viewport height", runtimeViewerSource, "NH_CAMERA_DEFAULT_VIEWPORT_HEIGHT");
 assertIncludes(
@@ -482,19 +556,89 @@ assertIncludes("runtime middle mouse capture", runtimeViewerSource, "if (event.b
 assertIncludes("runtime mouse camera drag state", runtimeViewerSource, "mouseCameraDragRef.current");
 assertIncludes("runtime mouse camera source update", source, "updateNhCameraAnglesFromMouseDrag");
 assertIncludes("runtime wheel camera zoom source update", runtimeViewerSource, "updateNhCameraZoomFromScrollWheel");
-assertIncludes("runtime browser wheel zoom direction", runtimeViewerSource, "return event.deltaY > 0 ? -1 : 1;");
+assertIncludes("client mouse wheel integer notch source", clientMouseWheelHandlerSource, "this.rotation += var1.getWheelRotation();");
+assertIncludes("runtime browser wheel source accumulator", runtimeViewerSource, "NH_BROWSER_WHEEL_PIXELS_PER_SOURCE_ROTATION");
+assertIncludes("runtime browser wheel source line mode", runtimeViewerSource, "WheelEvent.DOM_DELTA_LINE");
+assertIncludes("runtime browser wheel source page mode", runtimeViewerSource, "WheelEvent.DOM_DELTA_PAGE");
+assertIncludes("runtime browser wheel source notches", runtimeViewerSource, "Math.trunc(Math.abs(nextDelta) / NH_BROWSER_WHEEL_PIXELS_PER_SOURCE_ROTATION)");
+assertIncludes("runtime browser wheel source direction", runtimeViewerSource, "rotation: -sourceRotations");
+assertIncludes("runtime browser wheel accumulator ref", runtimeViewerSource, "cameraWheelDeltaAccumulatorRef.current = wheelUpdate.accumulatedDelta");
+if (runtimeViewerSource.includes("return event.deltaY > 0 ? -1 : 1;")) {
+  throw new Error("runtime wheel zoom should accumulate browser pixel deltas into source wheel notches instead of treating every nonzero delta as one notch");
+}
 assertIncludes("runtime camera zoom dataset", runtimeViewerSource, "canvas.dataset.cameraZoomHeight");
 assertIncludes("runtime options camera zoom slider", runtimeViewerSource, "onCameraZoomChange={(zoom) => setRuntimeCameraZoom(zoom, \"options zoom slider\")}");
 assertIncludes(
   "runtime normal follow x smoothing",
   runtimeViewerSource,
-  "smoothNhCameraFocusAxis(boundary.cameraRig.target.x, slot.group.position.x)"
+  "smoothNhCameraFocusAxis(boundary.cameraRig.target.x, targetX)"
 );
 assertIncludes(
   "runtime normal follow z smoothing",
   runtimeViewerSource,
-  "smoothNhCameraFocusAxis(boundary.cameraRig.target.z, slot.group.position.z)"
+  "smoothNhCameraFocusAxis(boundary.cameraRig.target.z, targetZ)"
 );
+assertIncludes(
+  "runtime normal follow visible actor x",
+  runtimeViewerSource,
+  "const targetX = visibleTile?.x ?? slot.group.position.x"
+);
+assertIncludes(
+  "runtime normal follow visible actor z",
+  runtimeViewerSource,
+  "const targetZ = visibleTile?.z ?? slot.group.position.z"
+);
+assertIncludes(
+  "runtime camera stays on rendered actor during action stall",
+  runtimeViewerSource,
+  "the rendered Three"
+);
+assertIncludes(
+  "runtime zoom follow-height source formula",
+  source,
+  "25 + truncateClientInt((25 * nhCameraZoomScale(viewportHeight, zoom)) / 256)"
+);
+const visibleCameraFunction =
+  runtimeViewerSource.match(/function manualActorVisibleCameraTile\([\s\S]*?\n\}/)?.[0] ?? "";
+if (
+  !runtimeViewerSource.includes("const visibleTile = boundary.cameraFollowTileOverrides.get(followTarget)") ||
+  !runtimeViewerSource.includes("const targetX = visibleTile?.x ?? slot.group.position.x") ||
+  !runtimeViewerSource.includes("const targetZ = visibleTile?.z ?? slot.group.position.z") ||
+  !runtimeViewerSource.includes("boundary.cameraFollowGroundHeightOverrides.get(followTarget) ?? slot.group.position.y") ||
+  !visibleCameraFunction.includes("Client normal camera follow reads localPlayer.x/y") ||
+  !visibleCameraFunction.includes("the rendered Three") ||
+  !visibleCameraFunction.includes("logicalClientPosition") ||
+  !visibleCameraFunction.includes("const slot = boundary.actorSlots.get(actorId)") ||
+  !visibleCameraFunction.includes("if (slot) {\n    return {\n      x: slot.group.position.x,\n      z: slot.group.position.z\n    }") ||
+  !visibleCameraFunction.includes("if (actor.renderTile)") ||
+  !visibleCameraFunction.includes("return actor.renderTile;") ||
+  !visibleCameraFunction.includes("if (pose?.renderTile)") ||
+  !visibleCameraFunction.includes("return pose.renderTile") ||
+  !visibleCameraFunction.includes("if (actor.clientPosition)") ||
+  !visibleCameraFunction.includes("return runtimeTileFromNhClientPosition(actor.clientPosition);") ||
+  visibleCameraFunction.includes("return actor.logicalClientPosition") ||
+  visibleCameraFunction.includes("actor.logicalClientPosition ??")
+) {
+  throw new Error("camera follow must use the rendered actor track override, not the logical/minimap stall track.");
+}
+if (
+  visibleCameraFunction.indexOf("const slot = boundary.actorSlots.get(actorId)") >
+    visibleCameraFunction.indexOf("if (actor.renderTile)") ||
+  visibleCameraFunction.indexOf("if (actor.renderTile)") >
+    visibleCameraFunction.indexOf("if (pose?.renderTile)") ||
+  visibleCameraFunction.indexOf("if (pose?.renderTile)") >
+    visibleCameraFunction.indexOf("if (actor.clientPosition)")
+) {
+  throw new Error("camera follow should prefer the rendered actor slot, then manual visible track, then current frame pose.");
+}
+if (
+  !runtimeViewerSource.includes("same 20ms client") ||
+  !runtimeViewerSource.includes("Math.floor(now / NH_CLIENT_CYCLE_MS)") ||
+  !runtimeViewerSource.includes("if (cameraFollowClientCycle > lastCameraFollowClientCycle)") ||
+  runtimeViewerSource.includes("for (let step = 0; step < cameraClientStepCount; step += 1) {\n        updateRuntimeCameraFollowTarget(boundary);\n      }")
+) {
+  throw new Error("camera follow target should update on source client-cycle cadence, not every browser rAF or every processed catch-up cycle.");
+}
 
 if (nhCameraFollowHeightSceneUnits() !== NH_CAMERA_DEFAULT_FOLLOW_HEIGHT_UNITS * NH_CLIENT_TO_SCENE_UNITS) {
   throw new Error("camera follow height scene conversion drifted from the client default follow-height constant");
@@ -502,8 +646,14 @@ if (nhCameraFollowHeightSceneUnits() !== NH_CAMERA_DEFAULT_FOLLOW_HEIGHT_UNITS *
 if (NH_CAMERA_DEFAULT_VIEWPORT_HEIGHT !== 334 || NH_CAMERA_DEFAULT_VIEWPORT_ZOOM !== 256 || NH_CAMERA_DEFAULT_ZOOM.zoomHeight !== 512 || NH_CAMERA_DEFAULT_ZOOM.zoomWidth !== 512) {
   throw new Error("default runtime camera constants should match fixed viewport projection plus camera_do_zoom fallback");
 }
-if (NH_CAMERA_OUTER_ZOOM_LIMIT !== 128 || NH_CAMERA_INNER_ZOOM_LIMIT !== 896 || NH_CAMERA_SCROLL_WHEEL_INCREMENT !== 25) {
-  throw new Error("camera zoom limits and wheel increment should match the source client scripts");
+if (
+  NH_CAMERA_SOURCE_OUTER_ZOOM_LIMIT !== EXPECTED_SOURCE_OUTER_ZOOM_LIMIT ||
+  NH_CAMERA_ZOOM_PLUGIN_OUTER_LIMIT !== EXPECTED_ZOOM_PLUGIN_OUTER_LIMIT ||
+  NH_CAMERA_OUTER_ZOOM_LIMIT !== EXPECTED_ACTIVE_OUTER_ZOOM_LIMIT ||
+  NH_CAMERA_INNER_ZOOM_LIMIT !== 896 ||
+  NH_CAMERA_SCROLL_WHEEL_INCREMENT !== 25
+) {
+  throw new Error("camera zoom limits should match the source scripts plus the source ZoomPlugin outer-limit callback");
 }
 if (NH_CAMERA_DEFAULT_PITCH_UNITS !== 128 || NH_CAMERA_DEFAULT_YAW_UNITS !== 0) {
   throw new Error("default runtime camera angle constants should match Client.java camAngleX/camAngleY initialization");

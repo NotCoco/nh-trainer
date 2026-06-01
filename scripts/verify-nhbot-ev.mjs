@@ -11,10 +11,10 @@ const moduleCache = new Map();
 const serverRoot = path.resolve(
   projectRoot,
   "..",
-  "nh-osrs-184-master",
-  "nh-osrs-184-master",
-  "Nh-master",
-  "nh-server",
+  "kronos-osrs-184-master",
+  "kronos-osrs-184-master",
+  "Kronos-master",
+  "kronos-server",
   "src",
   "main",
   "java",
@@ -316,7 +316,6 @@ function policyStyleScore(context, style) {
     policyFeaturesForContext,
     policyBridge.nhPolicyActionCount,
     context,
-    [],
     () => false
   );
   const matching = rankings.filter(

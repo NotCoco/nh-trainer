@@ -597,6 +597,20 @@ assert(runtimeViewerSource.includes("visibleContextMenu"), "RuntimeSceneViewer s
 assert(runtimeViewerSource.includes("data-menu-source-index"), "RuntimeSceneViewer should expose source menu entry indices for validation");
 assert(runtimeViewerSource.includes("nhContextMenuHover"), "RuntimeSceneViewer should render source-shaped hover highlight rectangles");
 assert(runtimeViewerSource.includes("data-source-hover-fill-alpha"), "RuntimeSceneViewer should expose source hover alpha for validation");
+assert(runtimeViewerSource.includes('role="menu"'), "RuntimeSceneViewer context menu should be a drawn non-native menu surface");
+assert(runtimeViewerSource.includes('role="menuitem"'), "RuntimeSceneViewer context menu rows should be non-focusable drawn menu items");
+assert(
+  !runtimeViewerSource.includes('<button\n                  key={`${entry.action}-${entry.actionText}-${entry.targetText}-${entry.opcode}') &&
+    !runtimeViewerSource.includes("event.currentTarget.blur()"),
+  "RuntimeSceneViewer context menu rows should not use native buttons or browser focus workarounds"
+);
+assert(
+  runtimeViewerSource.includes("event.preventDefault();\n                const target = event.target instanceof Element ? event.target : null;") &&
+    runtimeViewerSource.includes("closeContextMenuImmediately();") &&
+    runtimeViewerSource.includes('import { flushSync, unstable_batchedUpdates } from "react-dom";') &&
+    runtimeViewerSource.includes("flushSync(() => setContextMenu(null));"),
+  "RuntimeSceneViewer should synchronously close the source-shaped menu on left pointer-down outside option rows"
+);
 assert(
   !runtimeViewerSource.includes("return <span>{text}</span>;"),
   "RuntimeSceneViewer should not fall back to browser text when the exported context-menu glyph atlas is missing"
@@ -637,6 +651,8 @@ for (const snippet of [
   "#524a3d",
   "#2b271c",
   "#c6b895",
+  ".nhContextMenu *:focus-visible",
+  "-webkit-tap-highlight-color: transparent",
   ".nhContextMenuOption:hover .nhContextMenuHover"
 ]) {
   assert(stylesSource.includes(snippet), `styles.css should include source-backed context menu style ${snippet}`);
@@ -646,7 +662,7 @@ const clientContextMenuSource = readFileSync(
   path.resolve(
     projectRoot,
     "..",
-    "Nh184-Client",
+    "Kronos184-Client",
     "runelite-client",
     "src",
     "main",
@@ -698,7 +714,7 @@ for (const snippet of [
 }
 
 const objectMenuSource = readFileSync(
-  path.resolve(projectRoot, "..", "Nh184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "class19.java"),
+  path.resolve(projectRoot, "..", "Kronos184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "class19.java"),
   "utf8"
 );
 for (const snippet of [
@@ -718,7 +734,7 @@ for (const snippet of [
   assert(objectMenuSource.includes(snippet), `client object menu source should include ${snippet}`);
 }
 const clientMenuActionSource = readFileSync(
-  path.resolve(projectRoot, "..", "Nh184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "Client.java"),
+  path.resolve(projectRoot, "..", "Kronos184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "Client.java"),
   "utf8"
 );
 for (const snippet of [
@@ -758,7 +774,7 @@ for (const snippet of [
   assert(clientMenuActionSource.includes(snippet), `client selected-spell action source should include ${snippet}`);
 }
 const clientPacketSource = readFileSync(
-  path.resolve(projectRoot, "..", "Nh184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "ClientPacket.java"),
+  path.resolve(projectRoot, "..", "Kronos184-Client", "runelite-client", "src", "main", "java", "net", "runelite", "standalone", "ClientPacket.java"),
   "utf8"
 );
 for (const snippet of [
@@ -779,9 +795,9 @@ const assetExportSource = readFileSync(
   path.resolve(
     projectRoot,
     "..",
-    "nh-osrs-184-master",
-    "nh-osrs-184-master",
-    "Nh-master",
+    "kronos-osrs-184-master",
+    "kronos-osrs-184-master",
+    "Kronos-master",
     "runelite",
     "cache",
     "src",
@@ -791,7 +807,7 @@ const assetExportSource = readFileSync(
     "runelite",
     "cache",
     "tools",
-    "NhNhTrainerAssetExport.java"
+    "KronosNhTrainerAssetExport.java"
   ),
   "utf8"
 );

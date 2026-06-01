@@ -558,7 +558,7 @@ assert(
     viewerSource.includes("preAttackRouteManualActorToCombatTarget") &&
     viewerSource.includes("TargetRoute.beforeMovement()") &&
     viewerSource.includes("and Movement.process() in CoreWorker PID order") &&
-    viewerSource.includes("advanceManualActorTargetRouteTick(routed.actor)") &&
+    viewerSource.includes("advanceManualActorTargetRouteTick(routed.actor, input.acceptedClientCycle)") &&
     viewerSource.includes("Only this tick's walk/run step survives") &&
     viewerSource.includes("const localHasTargetRoute = manualActorHasActiveCombatTargetRoute") &&
     viewerSource.includes("const opponentHasTargetRoute = manualActorHasActiveCombatTargetRoute") &&
@@ -3917,8 +3917,13 @@ assert(
     viewerSource.includes("const resolveManualOpponentPolicyTick = (combatState: RuntimePlayerCombatState): ManualOpponentPolicyTickGate =>") &&
     viewerSource.includes("const policyTickGate = resolveManualOpponentPolicyTick(combatStateForTick)") &&
     viewerSource.includes("combatStateForTick = policyTickGate.combatState") &&
+    viewerSource.includes("const acceptedClientCycle = nhAcceptedPlayerUpdateClientCycle(") &&
     viewerSource.includes("if (policyTickGate.shouldRun)") &&
-    viewerSource.includes("queueManualOpponentCombatResponse(combatStateForTick, local, opponent") &&
+    viewerSource.includes("policyResponse = queueManualOpponentCombatResponse(") &&
+    viewerSource.includes("combatStateForTick,\n            local,\n            opponent,") &&
+    viewerSource.includes("opponentPolicySelfMovement,\n            acceptedClientCycle") &&
+    viewerSource.includes("applyManualOpponentPolicyActorResult(opponentActor, result, acceptedClientCycle)") &&
+    viewerSource.includes("lastMovementClientCycle: acceptedClientCycle") &&
     viewerSource.includes("const result = advanceRuntimePlayerCombat(combatStateForTick, {") &&
     viewerSource.includes('viewport.dataset.lastManualOpponentPolicyTickSource = "manual-combat-game-tick"') &&
     viewerSource.includes("manualOpponentFightEngagedRef") &&
@@ -4069,17 +4074,21 @@ assert(
     viewerSource.includes("nhAdvancePrimarySequenceCursor") &&
     viewerSource.includes("manualActorWithAuthoritativeSequenceCursor") &&
     viewerSource.includes("current.primarySequenceCycle > incoming.primarySequenceCycle") &&
-    viewerSource.includes("current.completedSequenceKey && current.completedSequenceKey === incoming.activeSequenceKey") &&
+    viewerSource.includes("incomingLooksLikeStaleActorState") &&
+    viewerSource.includes("current.completedSequenceKey === incoming.activeSequenceKey") &&
     viewerSource.includes("actor.completedSequenceKey === activeSequenceKey") &&
-    viewerSource.includes("const sequenceJustAccepted =") &&
-    viewerSource.includes("currentActor.activeSequenceKey !== null && currentActor.activeSequenceKey !== actor.activeSequenceKey") &&
-    viewerSource.includes("const previousCycle = sequenceJustAccepted ? animationCycle : actor.lastMovementClientCycle ?? animationCycle") &&
+    viewerSource.includes("Client.vmethod1937() parses player updates before class329.method6315()") &&
+    viewerSource.includes("const previousCycle = actor.lastMovementClientCycle ?? animationCycle") &&
+    viewerSource.includes("manualActorSequenceStartClientCycle") &&
+    viewerSource.includes("const sequenceAcceptedForCycle") &&
+    viewerSource.includes("cycle >= activeSequenceStartClientCycle") &&
+    !viewerSource.includes("const sequenceJustAccepted =") &&
     viewerSource.includes("slot.currentActionSequenceKey !== actionSequenceKey") &&
     viewerSource.includes("animationCycle = 0") &&
     viewerSource.includes("resolvedPrimaryFrameCursor = { frameIndex: 0, frameCycle: 0 }") &&
     viewerSource.includes("primaryFrameCycle > frameLength") &&
     viewerSource.includes("completedSequenceKey: actor.activeSequenceKey") &&
-    viewerSource.includes("movementStallTicks: Math.min(actor.movementStallTicks + 1, 100)") &&
+    viewerSource.includes("movementStallTicks: actor.movementStallTicks + 1") &&
     viewerSource.includes("syncManualActorActionSequence") &&
     viewerSource.includes("sequencePathLengthAtStart: actor.routeWaypoints.length") &&
     viewerSource.includes("snapManualActorToCollision") &&
@@ -4096,24 +4105,29 @@ assert(
     viewerSource.includes("advanceManualActorServerRouteTick") &&
     viewerSource.includes("const localHasTargetRoute = manualActorHasActiveCombatTargetRoute") &&
     viewerSource.includes("const opponentHasTargetRoute = manualActorHasActiveCombatTargetRoute") &&
-    viewerSource.includes(": advanceManualActorServerRouteTick(local)") &&
-    viewerSource.includes(": advanceManualActorServerRouteTick(opponent)") &&
+    viewerSource.includes("const acceptedClientCycle = nhAcceptedPlayerUpdateClientCycle(") &&
+    viewerSource.includes(": advanceManualActorServerRouteTick(local, acceptedClientCycle)") &&
+    viewerSource.includes(": advanceManualActorServerRouteTick(opponent, acceptedClientCycle)") &&
     viewerSource.includes("cancels a later player's queued movement before it can be consumed") &&
     viewerSource.includes("advanceManualActorTargetRouteTick") &&
     viewerSource.includes("actor.running && actor.serverRouteWaypoints.length > 1 ? 2 : 1") &&
     viewerSource.includes("const enqueuedWaypoints = actor.serverRouteWaypoints.slice(0, enqueueCount)") &&
-    viewerSource.includes("enqueueManualActorClientPathSteps(actor.routeWaypoints, enqueuedWaypoints)") &&
-    viewerSource.includes("queued = queued.slice(1)") &&
+    viewerSource.includes("manualActorHeldClientRouteStartTile") &&
+    viewerSource.includes("const heldStartTile = manualActorHeldClientRouteStartTile(actor, startTile, collision)") &&
+    viewerSource.includes("return enqueueManualActorClientPathSteps(actor, heldRoutePath, actor.running ? 2 : 1)") &&
+    viewerSource.includes("enqueueManualActorClientPathSteps(actor, clientUpdate.routeWaypoints, traversalMode)") &&
     viewerSource.includes("tile: enqueuedWaypoints[enqueuedWaypoints.length - 1] ?? actor.tile") &&
     viewerSource.includes("const traversalMode = sourceTickStepCount > 1 ? 2 : 1") &&
     viewerSource.includes("serverRouteWaypoints") &&
     viewerSource.includes("routeTraversalModes") &&
     viewerSource.includes("lastMovementClientCycle") &&
+    viewerSource.includes("deferClientPathUntilServerTick && !preserveClientPath") &&
+    viewerSource.includes("acceptedClientCycle") &&
     viewerSource.includes("movementStallTicks: actor.movementStallTicks") &&
     viewerSource.includes("advanceManualActorClientCycle") &&
     viewerSource.includes("nhManualMovementSpeed(currentActor, traversalMode, hasCombatTarget)") &&
     viewerSource.includes("NH_CLIENT_MAX_CYCLES_PER_RENDER_FRAME") &&
-    viewerSource.includes("animationCycle - targetMovementCycle > maxCycleCatchUp ? animationCycle : targetMovementCycle") &&
+    viewerSource.includes("lastMovementClientCycle: targetMovementCycle") &&
     viewerSource.includes("tile: actor.tile") &&
     viewerSource.includes("renderTile: runtimeTileFromNhClientPosition(clientPosition)") &&
     !viewerSource.includes("tile: collision.snapTile(renderTile)") &&
@@ -4130,11 +4144,12 @@ assert(
     viewerSource.includes("const sourceActor = manualControlRef.current") &&
     viewerSource.includes("const consumeActor = sameNhTile(sourceActor.tile, localActor.tile)") &&
     viewerSource.includes("tile: localActor.tile") &&
-    viewerSource.includes("renderTile: localActor.tile") &&
+    viewerSource.includes("logicalClientPosition: manualActorRouteLogicalClientPosition(sourceActor, localActor.tile)") &&
     viewerSource.includes("manualControlRef.current = true;") &&
     viewerSource.includes("...finalConsumableSourceActor,") &&
-    !viewerSource.includes("tile: sourceActor.tile"),
-  "manual consumable actions should mirror Nh eat/drink reset semantics without writing stale render tiles back into combat state"
+    !viewerSource.includes("tile: sourceActor.tile") &&
+    !viewerSource.includes("renderTile: localActor.tile"),
+  "manual consumable actions should mirror Nh eat/drink reset semantics without snapping the visible actor to the authoritative server tile"
 );
 assert(
   consumableSource.includes('ItemAction.registerInventory(id, "eat"') &&
@@ -4143,6 +4158,7 @@ assert(
     viewerSource.includes("queueInventoryConsumableAction") &&
     viewerSource.includes('if (action.kind === "eat" || action.kind === "drink")') &&
     viewerSource.includes("itemActionQueueRef.current.drainReady(nowMs, NH_GAME_TICK_MS)") &&
+    viewerSource.includes("if (manualControlRef.current) {\n        return;\n      }\n      processReadyItemActions();") &&
     viewerSource.includes("runtimeSimStatsFromActorAndHud(localActor, visibleSnapshotRef.current.hud)") &&
     viewerSource.includes("supplyDelays: result.delays") &&
     !viewerSource.includes("previewInventoryConsumableAction(") &&

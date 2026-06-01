@@ -635,6 +635,7 @@ function applyNhFrameTransformLists(
     writeSourcePositionsToGeometry(sourcePositions, animation.metadata, position);
     restoreNhColorAlphas(mesh, animation.baseColors);
     applyNhFrameAlphaTransforms(mesh, animation.metadata, animation.baseColors, transformLists.flat());
+    refreshNhAnimatedMeshGeometryBounds(mesh.geometry);
   });
 }
 
@@ -655,7 +656,16 @@ export function restoreNhActorBasePose(actorRoot: Object3D): void {
     output.set(animation.basePositions);
     position.needsUpdate = true;
     restoreNhColorAlphas(mesh, animation.baseColors);
+    refreshNhAnimatedMeshGeometryBounds(mesh.geometry);
   });
+}
+
+function refreshNhAnimatedMeshGeometryBounds(geometry: BufferGeometry): void {
+  // Source: Player.getModel() applies sequence transforms, then Model.method2359()
+  // refreshes Model.height before Scene.copy$drawActor2d projects overhead icons.
+  // Three keeps BufferGeometry bounds cached, so recompute after every pose write.
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
 }
 
 function baseNhColorAlphas(

@@ -17,7 +17,15 @@ import {
 import type { AttackTimerState } from "./combat/timers";
 import { consumeExpiredAttackDelay, createAttackTimerState } from "./combat/timers";
 import type { EntityLockState } from "./entity/locks";
-import { applyFreeze, canAttackThroughLock, createEntityLockState, isFrozen, resetFreeze, tickLocks } from "./entity/locks";
+import {
+  applyFreeze,
+  canAttackThroughLock,
+  createEntityLockState,
+  isFrozen,
+  movementGate,
+  resetFreeze,
+  tickLocks
+} from "./entity/locks";
 import type { VisibleEquipment } from "./clientView";
 import type { EquipmentBonusRow } from "./equipment/equipment";
 import { estimateVisibleStyleEvs } from "./equipment/equipment";
@@ -358,6 +366,8 @@ export interface RuntimePlayerCombatRouteRequest {
   readonly targetTile: RuntimeTile;
   readonly attackRange: number;
   readonly reason: RuntimePlayerCombatAttackReason;
+  readonly tick: number;
+  readonly movementBlockedReason?: "lock" | "teleport" | "freeze" | "stun" | "root";
 }
 
 export interface RuntimePlayerCombatTargetRouteProfile {
@@ -1977,6 +1987,31 @@ function canRuntimePlayerGraniteMaulAutoAttackLastTarget(
   return dx + dy === 1;
 }
 
+function runtimePlayerCombatTargetRouteRequest(input: {
+  readonly actor: RuntimePlayerCombatActorState;
+  readonly target: RuntimePlayerCombatActorState;
+  readonly tick: number;
+  readonly attackRange: number;
+  readonly reason: RuntimePlayerCombatAttackReason;
+}): RuntimePlayerCombatRouteRequest {
+  // Source: RouteFinder.route() writes Movement offsets, then Entity.isMovementBlocked()
+  // resets them when frozen/rooted/locked; TargetRoute.afterMovement() then clears combat
+  // because withinDistance was never established.
+  const movementStatus = movementGate(input.actor.locks, input.tick);
+  const movementBlockedReason = movementStatus.blocked && movementStatus.reason !== "none"
+    ? movementStatus.reason
+    : undefined;
+  return {
+    actorId: input.actor.id,
+    targetId: input.target.id,
+    targetTile: input.target.tile,
+    attackRange: input.attackRange,
+    reason: input.reason,
+    tick: input.tick,
+    ...(movementBlockedReason ? { movementBlockedReason } : {})
+  };
+}
+
 function tryRuntimePlayerAttack(
   actors: Readonly<Record<RuntimeActorId, RuntimePlayerCombatActorState>>,
   attackerId: RuntimeActorId,
@@ -2046,13 +2081,13 @@ function tryRuntimePlayerAttack(
     // If a policy/manual step already consumed movement this tick, Nh leaves the target
     // route pending instead of immediately counter-routing the actor back out.
     const routeRequest = gate.requiresMovement && !targetRouteMovementConsumed
-      ? {
-          actorId: attackerId,
-          targetId: defenderId,
-          targetTile: defender.tile,
+      ? runtimePlayerCombatTargetRouteRequest({
+          actor: attacker,
+          target: defender,
+          tick,
           attackRange: profile.attackRange,
           reason: gate.reason
-        }
+        })
       : undefined;
     return {
       actors,
@@ -2072,13 +2107,13 @@ function tryRuntimePlayerAttack(
       queuedHits: [],
       events: [],
       randomSeed: seed,
-      routeRequest: {
-        actorId: attackerId,
-        targetId: defenderId,
-        targetTile: defender.tile,
+      routeRequest: runtimePlayerCombatTargetRouteRequest({
+        actor: attacker,
+        target: defender,
+        tick,
         attackRange: profile.attackRange,
         reason: "ready"
-      }
+      })
     };
   }
 
@@ -2236,13 +2271,13 @@ function tryRuntimePlayerAttack(
     events,
     randomSeed: damageRoll.seed,
     routeRequest: attack.requiresMovement
-      ? {
-          actorId: attackerId,
-          targetId: defenderId,
-          targetTile: defender.tile,
+      ? runtimePlayerCombatTargetRouteRequest({
+          actor: attacker,
+          target: defender,
+          tick,
           attackRange: profile.attackRange,
           reason: "ready"
-        }
+        })
       : undefined
   };
 }
@@ -2332,13 +2367,13 @@ function tryRuntimePlayerGmaulSpecial(
       randomSeed: seed,
       routeRequest: targetRouteMovementConsumed
         ? undefined
-        : {
-            actorId: attackerId,
-            targetId: defenderId,
-            targetTile: defender.tile,
+        : runtimePlayerCombatTargetRouteRequest({
+            actor: attacker,
+            target: defender,
+            tick,
             attackRange: 1,
             reason: "out-of-range"
-          }
+          })
     };
   }
 
@@ -2352,13 +2387,13 @@ function tryRuntimePlayerGmaulSpecial(
       queuedHits: [],
       events: [],
       randomSeed: seed,
-      routeRequest: {
-        actorId: attackerId,
-        targetId: defenderId,
-        targetTile: defender.tile,
+      routeRequest: runtimePlayerCombatTargetRouteRequest({
+        actor: attacker,
+        target: defender,
+        tick,
         attackRange: 1,
         reason: "ready"
-      }
+      })
     };
   }
 
@@ -2468,13 +2503,13 @@ function tryRuntimePlayerGmaulSpecial(
     ],
     randomSeed,
     routeRequest: reach.requiresMovement
-      ? {
-          actorId: attackerId,
-          targetId: defenderId,
-          targetTile: defender.tile,
+      ? runtimePlayerCombatTargetRouteRequest({
+          actor: attacker,
+          target: defender,
+          tick,
           attackRange: 1,
           reason: "ready"
-        }
+        })
       : undefined
   };
 }
