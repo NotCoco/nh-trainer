@@ -335,12 +335,20 @@ assertOrderedSnippets(
     "input[i++] = clamp01(obs.gmaulSingleKoChance);",
     "input[i++] = clamp01(obs.gmaulDoubleKoChance);",
     "input[i++] = clamp01(obs.gmaulSingleSetupScore);",
-    "input[i] = clamp01(obs.gmaulDoubleSetupScore);"
+    "input[i++] = clamp01(obs.gmaulDoubleSetupScore);",
+    "input[i++] = clampSigned(obs.selfMagicDefenceScore);",
+    "input[i++] = clamp01(obs.selfMagicDefenceGain);",
+    "input[i++] = clampSigned(obs.opponentMagicWeaknessDelayed);",
+    "input[i++] = clampSigned(obs.opponentMeleeWeaknessDelayed);",
+    "input[i++] = clamp01(obs.visibleStyleMatchRate);",
+    "input[i++] = clamp01(obs.visibleStyleMismatchRate);",
+    "input[i++] = clamp01(obs.visibleStyleSampleConfidence);",
+    "input[i] = clampSigned(obs.visibleStyleLastOutcome);"
   ],
   "Java policy input layout"
 );
 assertOrderedSnippets(
-  extractBlockAfter(policyFeaturesSource, "export function encodeNhPolicyInput(context: NhDuelControllerContext): number[]"),
+  extractBlockAfter(policyFeaturesSource, "export function encodeNhPolicyInput(context: NhDuelControllerContext, state?: NhPolicyFeatureState): number[]"),
   [
     "const relDx = opponentInfoKnown ? opponent.tile.x - self.tile.x : -1 - self.tile.x;",
     "const relDy = opponentInfoKnown ? opponent.tile.y - self.tile.y : -1 - self.tile.y;",
@@ -396,7 +404,15 @@ assertOrderedSnippets(
     "input.push(gmaulFeatures.singleKoChance);",
     "input.push(gmaulFeatures.doubleKoChance);",
     "input.push(gmaulFeatures.singleSetupScore);",
-    "input.push(gmaulFeatures.doubleSetupScore);"
+    "input.push(gmaulFeatures.doubleSetupScore);",
+    "input.push(defensiveGearFeatures.selfMagicDefenceScore);",
+    "input.push(defensiveGearFeatures.selfMagicDefenceGain);",
+    "input.push(defensiveGearFeatures.opponentMagicWeakness);",
+    "input.push(defensiveGearFeatures.opponentMeleeWeakness);",
+    "input.push(visibleStyleReliability.matchRate);",
+    "input.push(visibleStyleReliability.mismatchRate);",
+    "input.push(visibleStyleReliability.confidence);",
+    "input.push(visibleStyleReliability.lastOutcome);"
   ],
   "TypeScript policy input layout"
 );
@@ -473,7 +489,7 @@ for (const snippet of [
   "private void rebalanceLoadedActionBiases()",
   "weights[i] = clampDouble(weights[i] * scale, -WEIGHT_CLAMP, WEIGHT_CLAMP);",
   "actionVisits[action] = Math.max(0L, Math.round(actionVisits[action] * (scale * scale)));",
-  "if (version != STORE_VERSION)",
+  "if (!isLoadableStoreVersion(version))",
   "long activeDecisions = Math.min(Math.max(0L, loadedDecisions), EXPLORATION_REHEAT_DECISIONS_CAP);",
   "actionVisits[action] = Math.max(0L, Math.round(actionVisits[action] * reheatScale));"
 ]) {
@@ -608,7 +624,7 @@ for (const snippet of [
   "OpponentInfoSnapshot live = captureLiveOpponentInfo(opponent, tick);",
   "private static final double REWARD_OFFENCE_STRIP_GAIN_SCALE = 0.00D;",
   "private static final double REWARD_OFFENCE_STRIP_FAIL_PENALTY = 0.00D;",
-  "private static final double REWARD_REGEAR_STYLE_BONUS = 0.00D;",
+  "private static final double REWARD_REGEAR_STYLE_BONUS = 0.18D;",
   "boolean safeStripWindow = !underPressure && !offenceStyleProtectedAtUse && hpBefore >= 72;",
   "delta += Math.min(0.55D, effectiveGain * REWARD_OFFENCE_STRIP_GAIN_SCALE);",
   "delta += underPressure ? REWARD_REGEAR_STYLE_BONUS : REWARD_REGEAR_STYLE_BONUS * 0.45D;",
@@ -919,7 +935,8 @@ for (const snippet of [
     [43, 48, "delayed opponent style channels"],
     [52, 54, "delayed opponent prayer mask"],
     [57, 58, "delayed opponent weapon embedding"],
-    [71, 76, "melee reach and gmaul windows"]
+    [71, 76, "melee reach and gmaul windows"],
+    [86, 89, "visible style reliability inputs"]
   ];
   assert(input[0] === 0, `unknown delayed opponent distance should encode as 0, got ${input[0]}`);
   assert(input[2] === 0, `unknown delayed opponent hp should encode as 0, got ${input[2]}`);
@@ -1073,7 +1090,7 @@ for (const snippet of [
   "event.tick >= earliestLikelyOffenceTick",
   "runtimePolicyStyleForCombatStyle(event.style)",
   "const reward = runtimePolicyActorRewardSnapshot(state.events, actorId, previousTick, rewardEpisodeStartTick);",
-  "runtimePolicyRewardDamageTakenWeight = 0.7",
+  "runtimePolicyRewardDamageTakenWeight = 1",
   "runtimePolicyRewardRollingWindowTicks = 8",
   "runtimePolicyRewardDeathPenalty = 50",
   "runtimePolicySpecKoWindowScale = 4.25",
@@ -1887,7 +1904,9 @@ assert(
 
 const botPolicySource = readProject("src/bot/policy.ts");
 for (const snippet of [
-  "const nhPolicyStoreVersion = 11;",
+  "const nhPolicyStoreVersion = 13;",
+  "const previousNhPolicyStoreVersion = 12;",
+  "const legacyNhPolicyStoreVersion = 11;",
   "const explorationReheatDecisionsCap = 350_000;",
   "resetNhPolicyFeatureState(featureState);",
   "context.rewardEpisodeActive ?? true",
@@ -1922,7 +1941,8 @@ for (const snippet of [
   "const effectiveBaseHit = baseHit * Math.min(1.08, Math.max(0, statFactor));",
   "const koPressure = opponentHp > 0 && effectiveBaseHit / 99 >= opponentHp ? 1.1 : 1;",
   "return (baseHit / 42) * defenceFactor * prayerFactor * rangeFactor * statFactor * koPressure;",
-  "return -0.35;",
+  "const regearStyleDefenceGainPriorScale = 0.55;",
+  "return defenceGainCredit - regearStyleIdlePriorPenalty;",
   "function movementControlPrior(",
   "const supportSupply = isHealingSupplyIntent(action.supplyIntent) ||",
   "function underControlValue("
@@ -1930,8 +1950,9 @@ for (const snippet of [
   assert(botPolicySource.includes(snippet), `bot policy source missing history prior snippet ${snippet}`);
 }
 for (const snippet of [
-  "private static final double REGEAR_STYLE_IDLE_PRIOR_PENALTY = 0.35D;",
-  "return -REGEAR_STYLE_IDLE_PRIOR_PENALTY;"
+  "private static final double REGEAR_STYLE_IDLE_PRIOR_PENALTY = 0.20D;",
+  "private static final double REGEAR_STYLE_DEFENCE_GAIN_PRIOR_SCALE = 0.55D;",
+  "return defenceGainCredit - REGEAR_STYLE_IDLE_PRIOR_PENALTY;"
 ]) {
   assert(serverBridgeSource.includes(snippet), `server policy bridge source missing regear prior snippet ${snippet}`);
 }
@@ -1988,11 +2009,21 @@ assertOrderedSnippets(
   [
     "let equipment = applyJavaStyleLoadout(input.currentEquipment, input.profile, { ...input.action, specIntent: \"none\" });",
     "if (input.allowFlexibleGear ?? true) {",
-    "if (input.action.offenceStyle === \"magic\") {",
     "if (input.action.specIntent !== \"none\" && nhGearProfileCanEquipGraniteMaul(input.profile)) {",
     "weapon: weaponItemById.granite_maul"
   ],
   "gear profile Java style loadout before weapon-only Gmaul spec"
+);
+assertOrderedSnippets(
+  extractBlockAfter(gearProfileSource, "function applyJavaStyleLoadout("),
+  [
+    "if (action.offenceStyle === \"magic\") {",
+    "weapon: weaponItemById[profile.magicWeaponId]",
+    "shield: profile.magicShieldItem",
+    "body: profile.magicChestItem",
+    "legs: profile.magicLegsItem"
+  ],
+  "gear profile Java MAGIC loadout helper"
 );
 
 for (const snippet of [
@@ -7205,7 +7236,7 @@ assert(
   `policy should regen observed opponent special estimate by 10 after 50 ticks, got ${observedRegeneratedOpponentSpec}`
 );
 
-const gmaulFeatureStart = bridge.nhPolicyInputSize - 4;
+const gmaulFeatureStart = 73;
 function capturePolicyContext(state, episode = {}) {
   let capturedContext = null;
   runtimePolicy.applyRuntimeOpponentPolicyAction({
@@ -7268,8 +7299,8 @@ const gmaulHp57Input = capturePolicyInput(
   withRecentOpponentHit(setActorHitpoints(visibleHpBucketStateBase, "local-player", 57), 32)
 );
 assertArrayEquals(
-  gmaulHp55Input.slice(gmaulFeatureStart),
-  gmaulHp57Input.slice(gmaulFeatureStart),
+  gmaulHp55Input.slice(gmaulFeatureStart, gmaulFeatureStart + 4),
+  gmaulHp57Input.slice(gmaulFeatureStart, gmaulFeatureStart + 4),
   "Gmaul policy features should use the same client-visible HP bucket for exact HP values 55 and 57"
 );
 
@@ -7382,11 +7413,11 @@ const lockedSpecFeatureInput = capturePolicyInput(lockedSpecFeatureState);
 assert(
   lockedSpecFeatureInput[10] === 0 &&
     lockedSpecFeatureInput[11] === 0 &&
-    lockedSpecFeatureInput.slice(gmaulFeatureStart).every((value) => value === 0),
+    lockedSpecFeatureInput.slice(gmaulFeatureStart, gmaulFeatureStart + 4).every((value) => value === 0),
   `locked policy actor should expose Java canUseGraniteMaulSpecFromObserved false in canSpec inputs and setup windows: ${JSON.stringify({
     canSpecSingle: lockedSpecFeatureInput[10],
     canSpecDouble: lockedSpecFeatureInput[11],
-    gmaulWindow: lockedSpecFeatureInput.slice(gmaulFeatureStart)
+    gmaulWindow: lockedSpecFeatureInput.slice(gmaulFeatureStart, gmaulFeatureStart + 4)
   })}`
 );
 
@@ -8925,8 +8956,8 @@ assert(
 assert(
   hiddenGearStyleGmaulInput[gmaulFeatureStart + 1] > forcedRangedGearStyleGmaulInput[gmaulFeatureStart + 1],
   `Gmaul KO exposure should use Java delayed gear style, not TS loadout fallback weapon: ${JSON.stringify({
-    hidden: hiddenGearStyleGmaulInput.slice(gmaulFeatureStart),
-    forcedRanged: forcedRangedGearStyleGmaulInput.slice(gmaulFeatureStart)
+    hidden: hiddenGearStyleGmaulInput.slice(gmaulFeatureStart, gmaulFeatureStart + 4),
+    forcedRanged: forcedRangedGearStyleGmaulInput.slice(gmaulFeatureStart, gmaulFeatureStart + 4)
   })}`
 );
 
@@ -8972,7 +9003,7 @@ const frozenGmaulApproachInput = capturePolicyInput(
   )
 );
 assert(
-  frozenGmaulApproachInput.slice(gmaulFeatureStart).every((value) => value === 0),
+  frozenGmaulApproachInput.slice(gmaulFeatureStart, gmaulFeatureStart + 4).every((value) => value === 0),
   "Gmaul approach features should close when the policy actor is frozen out of melee reach"
 );
 
@@ -9187,7 +9218,7 @@ let rejectedStalePolicyVersion = false;
 try {
   botPolicy.parseNhPolicyTsv("version\t10\ncounters\t0\t0\t0", "test-stale-policy-version");
 } catch (error) {
-  rejectedStalePolicyVersion = String(error).includes("does not match expected version 11");
+  rejectedStalePolicyVersion = String(error).includes("does not match expected version 13");
 }
 assert(
   rejectedStalePolicyVersion,
@@ -9358,8 +9389,8 @@ const noneIdleScore = regearIdleRankings.find((ranking) => ranking.action === no
 assert(
   regearIdleScore !== undefined &&
     noneIdleScore !== undefined &&
-    Math.abs((regearIdleScore - noneIdleScore) + 0.35) < 1e-9,
-  `regear idle prior should match Java REGEAR_STYLE_IDLE_PRIOR_PENALTY=0.35, got regear=${regearIdleScore} none=${noneIdleScore}`
+    Math.abs((regearIdleScore - noneIdleScore) + 0.2) < 1e-9,
+  `regear idle prior should match Java REGEAR_STYLE_IDLE_PRIOR_PENALTY=0.20, got regear=${regearIdleScore} none=${noneIdleScore}`
 );
 
 console.log(

@@ -35,7 +35,8 @@ export interface NhPolicyAction {
   readonly extendedSupplyAction: boolean;
 }
 
-export const nhPolicyInputSize = 77;
+export const nhPolicyLegacyV12InputSize = 86;
+export const nhPolicyInputSize = 90;
 export const nhPolicyReservoirSize = 48;
 
 // Keep these arrays in lockstep with Java NhStakerSelfPlayPolicyBridge; trained policy action ids depend on the order.

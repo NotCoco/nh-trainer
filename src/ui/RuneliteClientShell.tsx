@@ -50,9 +50,6 @@ export const RUNELITE_CONFIG_BACK_BUTTON_WIDTH = 22;
 export const RUNELITE_CONFIG_SLIDER_WIDTH = 80;
 export const RUNELITE_CONFIG_SLIDER_ROW_WIDTH = 110;
 export const RUNELITE_PVP_TRACKER_VERSION = "1.7.1";
-export const RUNELITE_INFO_PANEL_PADDING = 10;
-export const RUNELITE_INFO_ACTION_ROWS = 5;
-export const RUNELITE_INFO_ACTION_GAP = 10;
 export const RUNELITE_OVERLAY_STANDARD_WIDTH = 129;
 export const RUNELITE_OVERLAY_BACKGROUND_RGBA = "rgba(70, 61, 50, 0.612)";
 export const RUNELITE_CLIENT_TICK_MS = 20;
@@ -93,7 +90,7 @@ const RUNELITE_CUSTOM_CURSOR_ASSETS = [
   { id: "SKILL_SPECS", name: "Skill Specs", fileName: "cursor-skill-specs.png" }
 ] as const;
 
-type RuneliteNavigationButtonId = "configuration" | "pvp-tools" | "supplies-tracker" | "pvp-fight-history" | "info";
+type RuneliteNavigationButtonId = "configuration" | "pvp-tools" | "supplies-tracker" | "pvp-fight-history";
 type RunelitePluginType = "important" | "external" | "pvm" | "skilling" | "pvp" | "utility" | "general-use";
 type RuneliteConfigValue = boolean | number | string;
 type RuneliteConfigControlType = "boolean" | "range" | "number" | "enum" | "text" | "color" | "modifierless-keybind";
@@ -968,10 +965,6 @@ const RUNELITE_OVERLAY_CONFIG_CLICK_SOURCE =
   "ConfigPlugin.onOverlayMenuClicked RUNELITE_OVERLAY_CONFIG opens configPanel.openConfigurationPanel(descriptor.name())";
 const RUNELITE_OVERLAY_DRAG_SOURCE =
   "OverlayRenderer Alt key inOverlayDraggingMode; left drag setPreferredLocation; right click resetOverlay; mouse release saveOverlay";
-const RUNELITE_INFO_PANEL_LINK_SOURCE =
-  "InfoPanel.buildLinkPanel MouseAdapter mousePressed/mouseReleased/mouseEntered/mouseExited callback";
-const RUNELITE_INFO_PANEL_ACTION_TARGET_SOURCE =
-  "InfoPanel actionsContainer.add buildLinkPanel(GITHUB/FOLDER/DISCORD/PATREON, LinkBrowser.browse/openLocalFile)";
 const RUNELITE_PVP_TRACKER_NAV_BUTTON_SOURCE =
   "PvpPerformanceTrackerPlugin adds nav button when showFightHistoryPanel && (!restrictToLms || isAtLMS())";
 const RUNELITE_PVP_TRACKER_OVERLAY_RENDER_SOURCE =
@@ -1126,16 +1119,6 @@ interface RuneliteConfigDescriptorModel {
   readonly items: readonly RuneliteConfigItemModel[];
 }
 
-interface RuneliteInfoActionModel {
-  readonly id: string;
-  readonly iconPath: string;
-  readonly topText: string;
-  readonly bottomText: string;
-  readonly sourceTarget: string;
-  readonly targetKind: "url" | "local-file";
-  readonly resolvedTarget?: string;
-}
-
 const runeliteNavigationButtons: readonly RuneliteNavigationButtonModel[] = [
   {
     id: "configuration",
@@ -1168,14 +1151,6 @@ const runeliteNavigationButtons: readonly RuneliteNavigationButtonModel[] = [
     priority: 5,
     tab: true,
     sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/suppliestracker/SuppliesTrackerPlugin.java"
-  },
-  {
-    id: "info",
-    tooltip: "Info",
-    iconPath: "runelite-ui/info_icon.png",
-    priority: 9,
-    tab: true,
-    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/info/InfoPlugin.java"
   }
 ];
 
@@ -1230,44 +1205,6 @@ function runelitePvpPerformanceTrackerNavigationButtonVisible(
 function runeliteTrainerAvailablePluginListItems(): readonly RuneliteConfigPluginListItemModel[] {
   return runeliteConfigPluginListItems.filter((item) => !RUNELITE_TRAINER_DISABLED_PLUGIN_IDS.has(item.id));
 }
-
-const runeliteInfoActions: readonly RuneliteInfoActionModel[] = [
-  {
-    id: "license",
-    iconPath: "runelite-ui/github_icon.png",
-    topText: "License info",
-    bottomText: "for distribution",
-    sourceTarget: "https://github.com/runelite-extended/runelite/blob/master/LICENSE",
-    targetKind: "url",
-    resolvedTarget: "https://github.com/runelite-extended/runelite/blob/master/LICENSE"
-  },
-  {
-    id: "logs",
-    iconPath: "runelite-ui/folder_icon.png",
-    topText: "Open logs directory",
-    bottomText: "(for bug reports)",
-    sourceTarget: "RuneLite.LOGS_DIR",
-    targetKind: "local-file"
-  },
-  {
-    id: "discord",
-    iconPath: "runelite-ui/discord_icon.png",
-    topText: "Talk to us on our",
-    bottomText: "discord server",
-    sourceTarget: "https://discord.gg/HN5gf3m",
-    targetKind: "url",
-    resolvedTarget: "https://discord.gg/HN5gf3m"
-  },
-  {
-    id: "patreon",
-    iconPath: "runelite-ui/patreon_icon.png",
-    topText: "Patreon to support",
-    bottomText: "the NH Trainer project",
-    sourceTarget: "RuneLiteProperties.getPatreonLink()",
-    targetKind: "url",
-    resolvedTarget: "about:blank"
-  }
-];
 
 const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[] = [
   {
@@ -1596,18 +1533,6 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     configurable: true,
     sourcePath:
       "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/pvpperformancetracker/PvpPerformanceTrackerPlugin.java"
-  },
-  {
-    id: "info-panel",
-    name: "Info Panel",
-    description: "Enable the Info panel",
-    pluginType: "utility",
-    tags: ["info"],
-    pinnedByDefault: false,
-    enabledByDefault: true,
-    pluginBacked: true,
-    configurable: false,
-    sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/info/InfoPlugin.java"
   },
   {
     id: "chat-color",
@@ -5147,10 +5072,6 @@ function RunelitePanelContent({
     return <RunelitePvpToolsPanel snapshot={pvpToolsSnapshot} config={pvpToolsConfig} />;
   }
 
-  if (panel.id === "info") {
-    return <RuneliteInfoPanel />;
-  }
-
   return (
     <div
       className="runelitePluginPanelTitle"
@@ -5158,40 +5079,6 @@ function RunelitePanelContent({
       data-source-panel="PluginPanel.getPreferredSize"
     >
       {panel.tooltip}
-    </div>
-  );
-}
-
-function RuneliteInfoPanel(): JSX.Element {
-  return (
-    <div
-      className="runeliteInfoPanel"
-      data-source-panel="InfoPanel extends PluginPanel"
-      data-source-layout="BorderLayout"
-      data-navigation-source="Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/info/InfoPanel.java"
-    >
-      <section className="runeliteInfoVersionPanel" data-source-border="new EmptyBorder(10, 10, 10, 10)">
-        <RuneliteInfoVersionLine label="RuneLite version:" value="@project.version@" />
-        <RuneliteInfoVersionLine label="Client version:" value="@open.osrs.version@" />
-        <RuneliteInfoVersionLine label="Oldschool revision:" value="Unknown" />
-      </section>
-      <div
-        className="runeliteInfoActionsContainer"
-        data-source-layout={`GridLayout(${RUNELITE_INFO_ACTION_ROWS}, 1, 0, ${RUNELITE_INFO_ACTION_GAP})`}
-      >
-        {runeliteInfoActions.map((action) => (
-          <RuneliteInfoAction key={action.id} action={action} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function RuneliteInfoVersionLine({ label, value }: { readonly label: string; readonly value: string }): JSX.Element {
-  return (
-    <div className="runeliteInfoVersionLine">
-      <span>{label} </span>
-      <strong>{value}</strong>
     </div>
   );
 }
@@ -5514,49 +5401,6 @@ function runeliteQuantityToRsDecimalStack(value: number): string {
 
 function runeliteFormatNumber(value: number): string {
   return Math.max(0, Math.trunc(value)).toLocaleString("en-US");
-}
-
-function dispatchRuneliteInfoAction(action: RuneliteInfoActionModel): void {
-  document.documentElement.dataset.runeliteLastInfoActionId = action.id;
-  document.documentElement.dataset.runeliteLastInfoActionTarget = action.resolvedTarget ?? action.sourceTarget;
-  document.documentElement.dataset.runeliteLastInfoActionKind = action.targetKind;
-  window.dispatchEvent(
-    new CustomEvent("runelite-info-action", {
-      detail: {
-        id: action.id,
-        sourceTarget: action.sourceTarget,
-        targetKind: action.targetKind,
-        resolvedTarget: action.resolvedTarget
-      }
-    })
-  );
-
-  if (action.targetKind === "url" && action.resolvedTarget) {
-    window.open(action.resolvedTarget, "_blank", "noopener,noreferrer");
-  }
-}
-
-function RuneliteInfoAction({ action }: { readonly action: RuneliteInfoActionModel }): JSX.Element {
-  return (
-    <button
-      className="runeliteInfoAction"
-      type="button"
-      data-info-action-id={action.id}
-      data-info-action-kind={action.targetKind}
-      data-info-resolved-target={action.resolvedTarget ?? ""}
-      data-source-target={action.sourceTarget}
-      data-source-link-panel={RUNELITE_INFO_PANEL_LINK_SOURCE}
-      data-source-action-targets={RUNELITE_INFO_PANEL_ACTION_TARGET_SOURCE}
-      onClick={() => dispatchRuneliteInfoAction(action)}
-    >
-      <img className="runeliteInfoActionIcon" src={action.iconPath} alt="" draggable={false} />
-      <span className="runeliteInfoActionText">
-        <span>{action.topText}</span>
-        <span>{action.bottomText}</span>
-      </span>
-      <img className="runeliteInfoActionArrow" src="runelite-ui/arrow_right.png" alt="" draggable={false} />
-    </button>
-  );
 }
 
 function RuneliteAntiDragOverlay({

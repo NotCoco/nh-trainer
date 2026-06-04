@@ -482,6 +482,8 @@ export function applyRuntimeOpponentPolicyAction(input: {
     opponentLoadoutId = state.actors.opponent.loadoutId;
   }
   if (effectiveAction.offenceStyle === "magic") {
+    // Source: MAGIC robe body is protected from flexible-gear swaps; keep the
+    // runtime synced if a copied layout drifted before this tick.
     state = runtimePolicyEnforceMagicCoreArmor(state, syncedOpponentGearProfile);
     // Source: NhStakerBot.castBarrage() calls ensureAutocast(iceBarrageSpell(),
     // ICE_BARRAGE_AUTOCAST_SLOT) before attackTarget(opponent).
@@ -509,7 +511,11 @@ export function applyRuntimeOpponentPolicyAction(input: {
   state = setRuntimePlayerCombatPrayers(
     state,
     "opponent",
-    runtimePolicyPrayersForAction(state.actors.opponent, effectiveAction, contextGuardedAction)
+    runtimePolicyPrayersForAction(
+      state.actors.opponent,
+      effectiveAction,
+      runtimePolicyOffencePrayerAction(contextGuardedAction, syncedOpponentGearProfile)
+    )
   );
   if (styleStall.recoveryAttempted) {
     state = runtimePolicyClearStyleStallIfReady(state, "opponent", effectiveAction.offenceStyle, context, syncedOpponentGearProfile);
@@ -1614,7 +1620,7 @@ function runtimePolicyObservedStyleInRange(
   if (style === "melee") {
     return runtimePolicyObservedOpponentMeleeReachable(context);
   }
-  return distance > 0 && distance <= runtimePolicyClientThreatRange;
+  return distance > 0 && distance <= runtimePolicyAttackRangeForThreat(context, style);
 }
 
 function runtimePolicyActualPrayerHitReward(
@@ -2624,7 +2630,6 @@ const runtimePolicyRedemptionHpTrigger = 42;
 const runtimePolicyRedemptionProcHpThreshold = 10;
 const runtimePolicySpecQueueCooldownTicks = 10;
 const runtimePolicySpecApproachWindowFloor = 0.2;
-const runtimePolicyClientThreatRange = 8;
 const runtimePolicySupplyGoodBonus = 0.48;
 const runtimePolicySupplyBadPenalty = 0.3;
 const runtimePolicySupplyUnneededRestorePenalty = 0.3;
@@ -2908,14 +2913,22 @@ function runtimePolicyShouldAllowSmite(
   if (!recentlyDefending && hp >= 78 && prayerPoints >= 22) {
     return true;
   }
-  if (distance < 0 || distance > runtimePolicyAttackRangeForThreat(resolvedThreatStyle)) {
+  if (distance < 0 || distance > runtimePolicyAttackRangeForThreat(context, resolvedThreatStyle)) {
     return true;
   }
   return hp >= 95 && prayerPoints >= 36 && !runtimePolicyActorWasDefendingRecently(state, actorId, opponentId, 1);
 }
 
-function runtimePolicyAttackRangeForThreat(style: NhOffenceStyle): number {
-  return style === "melee" ? 1 : runtimePolicyClientThreatRange;
+function runtimePolicyAttackRangeForThreat(context: NhDuelControllerContext, style: NhOffenceStyle): number {
+  if (style === "magic") {
+    return 10;
+  }
+  if (style === "ranged") {
+    const weaponId = context.opponent.gearProfile?.rangedWeaponId ?? context.opponent.weaponId;
+    const profile = nhWeaponProfiles[weaponId];
+    return profile.style === "ranged" ? Math.min(profile.attackRange + 2, 10) : 10;
+  }
+  return 1;
 }
 
 function runtimePolicyCounterPrayerStyle(style: NhOffenceStyle, wantsFreeze: boolean): NhOffenceStyle | null {
@@ -2982,7 +2995,7 @@ function runtimePolicyThreatInRange(context: NhDuelControllerContext, style: NhO
   if (distance < 0) {
     return false;
   }
-  return distance > 0 && distance <= runtimePolicyClientThreatRange;
+  return distance > 0 && distance <= runtimePolicyAttackRangeForThreat(context, style);
 }
 
 function runtimePolicyEstimatedThreatMaxHit(context: NhDuelControllerContext, style: NhOffenceStyle | null): number {
@@ -3517,33 +3530,6 @@ function setRuntimePolicyOpponentCurrentOffence(
   };
 }
 
-function runtimePolicyEnforceMagicCoreArmor(
-  state: RuntimePlayerCombatState,
-  gearProfile: NhSelectedGearProfile
-): RuntimePlayerCombatState {
-  const actor = state.actors.opponent;
-  if (
-    actor.equipment.body?.itemId === gearProfile.magicChestItem.itemId &&
-    actor.equipment.legs?.itemId === gearProfile.magicLegsItem.itemId
-  ) {
-    return state;
-  }
-  // Source: NhStakerBot.enforceMagicCoreArmor() runs after flexible gear and
-  // OFFENCE_STRIP suppression, so magic keeps its source-selected robe body/legs.
-  return syncRuntimePlayerCombatStateToInput(state, {
-    tiles: {
-      opponent: actor.tile
-    },
-    equipment: {
-      opponent: {
-        ...actor.equipment,
-        body: gearProfile.magicChestItem,
-        legs: gearProfile.magicLegsItem
-      }
-    }
-  });
-}
-
 function runtimePolicyRecoverStyleStall(
   state: RuntimePlayerCombatState,
   desiredStyle: NhOffenceStyle,
@@ -3622,16 +3608,44 @@ function runtimePolicyIsEquippedForStyle(
 ): boolean {
   const weaponId = runtimePolicyWeaponIdForEquipment(actor.equipment);
   if (style === "magic") {
-    return weaponId === gearProfile.magicWeaponId && actor.equipment.shield?.itemId === gearProfile.magicShieldItem.itemId;
+    // Source: NhStakerBot.applyLoadout(MAGIC) calls enforceMagicCoreArmor(),
+    // so the live trainer cannot treat magic as ready while still wearing a tank body.
+    return (
+      weaponId === gearProfile.magicWeaponId &&
+      actor.equipment.shield?.itemId === gearProfile.magicShieldItem.itemId &&
+      actor.equipment.body?.itemId === gearProfile.magicChestItem.itemId
+    );
   }
   if (style === "ranged") {
     return (
       weaponId === gearProfile.rangedWeaponId &&
       actor.equipment.shield?.itemId === gearProfile.rangedShieldItem.itemId &&
+      actor.equipment.body?.itemId === gearProfile.rangedChestItem.itemId &&
       actor.equipment.ammo?.itemId === gearProfile.rangedAmmoItem.itemId
     );
   }
   return weaponId === gearProfile.meleeWeaponId && actor.equipment.shield?.itemId === gearProfile.meleeShieldItem.itemId;
+}
+
+function runtimePolicyEnforceMagicCoreArmor(
+  state: RuntimePlayerCombatState,
+  gearProfile: NhSelectedGearProfile
+): RuntimePlayerCombatState {
+  const actor = state.actors.opponent;
+  if (actor.equipment.body?.itemId === gearProfile.magicChestItem.itemId) {
+    return state;
+  }
+  return syncRuntimePlayerCombatStateToInput(state, {
+    tiles: {
+      opponent: actor.tile
+    },
+    equipment: {
+      opponent: {
+        ...actor.equipment,
+        body: gearProfile.magicChestItem
+      }
+    }
+  });
 }
 
 function runtimePolicyIsDefencePrayerActive(
@@ -3803,9 +3817,9 @@ const runtimePolicyClientSpecGmaulSingleCost = 50;
 const runtimePolicyClientSpecRegenAmount = 10;
 const runtimePolicyClientSpecRegenTicks = 50;
 const runtimePolicyRewardDamageDealtWeight = 1;
-const runtimePolicyRewardDamageTakenWeight = 0.7;
+const runtimePolicyRewardDamageTakenWeight = 1;
 const runtimePolicyRewardDpsWeight = 0.2;
-const runtimePolicyRewardDtpsWeight = 0.1;
+const runtimePolicyRewardDtpsWeight = 0.2;
 const runtimePolicyRewardRollingWindowTicks = 8;
 const runtimePolicyRewardKillBonus = 50;
 const runtimePolicyRewardDeathPenalty = 50;
@@ -5041,6 +5055,16 @@ const equipmentRows = equipmentRowsJson as readonly EquipmentBonusRow[];
 const offenceStripSlots: readonly EquipmentSlot[] = ["shield", "body", "legs", "head", "cape", "amulet", "hands", "feet"];
 const offenceStripMinImprovement = 0.09;
 
+function runtimePolicyCoreOffenceSlot(style: NhOffenceStyle, slot: EquipmentSlot): boolean {
+  if (style === "magic") {
+    return slot === "weapon" || slot === "shield" || slot === "body";
+  }
+  if (style === "ranged") {
+    return slot === "weapon" || slot === "shield" || slot === "body" || slot === "ammo";
+  }
+  return slot === "weapon" || slot === "shield";
+}
+
 function stripRuntimePolicyEquipmentForOffence(input: RuntimePolicyEquipmentStripInput): {
   readonly equipment: VisibleEquipment;
   readonly netGain: number;
@@ -5093,6 +5117,9 @@ function bestRuntimePolicyOffenceStripCandidate(
   let best: { readonly slot: EquipmentSlot; readonly netGain: number; readonly offenceGain: number; readonly defenceLoss: number } | null = null;
 
   for (const slot of offenceStripSlots) {
+    if (runtimePolicyCoreOffenceSlot(style, slot)) {
+      continue;
+    }
     if (!equipment[slot]) {
       continue;
     }
@@ -6021,16 +6048,29 @@ function normalizedLevel(value: number): CombatLevels["attack"] {
 }
 
 function runtimeLoadoutForPolicyAction(action: NhPolicyAction, gearProfile: NhSelectedGearProfile): RuntimeLoadoutId {
+  if (action.specIntent === "use_special" && nhGearProfileAvailableSpecialWeaponKind(gearProfile) === "armadyl_godsword") {
+    return "ags-bandos";
+  }
   if (action.offenceStyle === "magic") {
     return "kodai-robes";
   }
   if (action.offenceStyle === "ranged") {
     return "acb-hides";
   }
-  if (action.specIntent === "use_special" && nhGearProfileAvailableSpecialWeaponKind(gearProfile) === "armadyl_godsword") {
-    return "ags-bandos";
-  }
   return "tentacle-bandos";
+}
+
+function runtimePolicyOffencePrayerAction(
+  action: NhPolicyAction,
+  gearProfile: NhSelectedGearProfile
+): NhPolicyAction {
+  if (action.specIntent !== "none" && nhGearProfileAvailableSpecialWeaponKind(gearProfile)) {
+    return {
+      ...action,
+      offenceStyle: "melee"
+    };
+  }
+  return action;
 }
 
 function runtimePolicyPrayersForAction(

@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,8 +9,34 @@ import ts from "typescript";
 const require = createRequire(import.meta.url);
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const moduleCache = new Map();
-
 const args = parseArgs(process.argv.slice(2));
+const engine = String(args.engine ?? "runtime").trim().toLowerCase();
+
+if (engine !== "standalone") {
+  const forwardedArgs = process.argv.slice(2).filter((arg, index, all) => {
+    if (arg === "--engine") {
+      return false;
+    }
+    return all[index - 1] !== "--engine";
+  });
+  const result = spawnSync(
+    process.execPath,
+    [path.join(projectRoot, "scripts", "evaluate-policy-head-to-head-runtime.mjs"), ...forwardedArgs],
+    {
+      cwd: projectRoot,
+      encoding: "utf8",
+      maxBuffer: 1024 * 1024 * 64
+    }
+  );
+  if (result.stdout) {
+    process.stdout.write(result.stdout);
+  }
+  if (result.stderr) {
+    process.stderr.write(result.stderr);
+  }
+  process.exit(result.status ?? (result.error ? 1 : 0));
+}
+
 const newPolicyPath = path.resolve(
   projectRoot,
   args.new ?? path.join("fixtures", "ai", "nhstaker-selfplay-policy-hard.tsv")
@@ -22,7 +49,9 @@ const fightCount = clampInt(Number(args.fights ?? 1200), 2, 20000);
 const maxTicks = clampInt(Number(args.ticks ?? 360), 24, 2000);
 const seedBase = Number(args.seed ?? 0x4e484d);
 const topCandidateCount = clampInt(Number(args.candidates ?? 600), 50, 4950);
-const includeBasicActions = args["include-basics"] === "true";
+const candidateMode = normalizeCandidateMode(
+  args["candidate-mode"] ?? (args["include-basics"] === "true" ? "full" : "visited")
+);
 
 const duel = loadTsModule("src/sim/nh/duel.ts");
 const botPolicy = loadTsModule("src/bot/policy.ts");
@@ -34,7 +63,7 @@ const previousPolicy = botPolicy.parseNhPolicyTsv(
   readFileSync(previousPolicyPath, "utf8"),
   path.basename(previousPolicyPath)
 );
-const candidateActions = buildCandidateActions(newPolicy, previousPolicy, topCandidateCount, includeBasicActions);
+const candidateActions = buildCandidateActions(newPolicy, previousPolicy, topCandidateCount, candidateMode);
 
 const aggregate = {
   fights: 0,
@@ -132,6 +161,9 @@ function printSummary() {
       new: relativeToProject(newPolicyPath),
       previous: relativeToProject(previousPolicyPath)
     },
+    engine: "standalone-duel",
+    note:
+      "Standalone evaluator: uses duel.runNhDuel and does not apply the live runtime policy action layer. Use --engine runtime or omit --engine for production decisions.",
     options: {
       fights: aggregate.fights,
       maxTicks,
@@ -139,7 +171,7 @@ function printSummary() {
       alternatedSides: true,
       candidateActions: candidateActions.length,
       topCandidateCount,
-      includeBasicActions
+      candidateMode
     },
     result: {
       newWins: aggregate.newWins,
@@ -260,24 +292,60 @@ function createCandidatePolicyController(policy, candidates) {
   };
 }
 
-function buildCandidateActions(newPolicy, previousPolicy, topCount, includeBasics) {
+function buildCandidateActions(newPolicy, previousPolicy, topCount, mode) {
   const actions = new Set();
   addTopVisitedActions(actions, newPolicy, topCount);
   addTopVisitedActions(actions, previousPolicy, topCount);
   actions.add(0);
-  if (includeBasics) {
+  if (mode === "hybrid") {
+    addHybridCoreActions(actions);
+  } else if (mode === "full") {
     for (let action = 0; action < policyBridge.nhPolicyActionCount; action += 1) {
-      const decoded = policyBridge.decodeNhPolicyAction(action);
-      if (
-        decoded.supplyIntent === "none" ||
-        decoded.supplyIntent === "restore_reboost" ||
-        decoded.supplyIntent === "regear_style"
-      ) {
-        actions.add(action);
-      }
+      actions.add(action);
     }
   }
   return [...actions].sort((left, right) => left - right);
+}
+
+function addHybridCoreActions(actions) {
+  const offenceStyles = ["magic", "ranged", "melee"];
+  const defencePrayers = ["protect_from_magic", "protect_from_missiles", "protect_from_melee", "smite", "redemption"];
+  const movementIntents = ["pressure", "stand_under", "step_out"];
+  const supplyIntents = ["none", "safe_eat", "double_eat", "triple_eat", "brew_only", "restore_reboost", "panic_full"];
+  for (const offenceStyle of offenceStyles) {
+    for (const defencePrayer of defencePrayers) {
+      for (const movementIntent of movementIntents) {
+        for (const supplyIntent of supplyIntents) {
+          actions.add(policyBridge.encodeNhPolicyAction({
+            offenceStyle,
+            defencePrayer,
+            movementIntent,
+            supplyIntent,
+            specIntent: "none",
+            extendedSupplyAction: false
+          }));
+        }
+        for (const specIntent of ["use_special", "use_special_double"]) {
+          actions.add(policyBridge.encodeNhPolicyAction({
+            offenceStyle,
+            defencePrayer,
+            movementIntent,
+            supplyIntent: "none",
+            specIntent,
+            extendedSupplyAction: false
+          }));
+        }
+        actions.add(policyBridge.encodeNhPolicyAction({
+          offenceStyle,
+          defencePrayer,
+          movementIntent,
+          supplyIntent: "regear_style",
+          specIntent: "none",
+          extendedSupplyAction: true
+        }));
+      }
+    }
+  }
 }
 
 function addTopVisitedActions(actions, policy, topCount) {
@@ -349,6 +417,20 @@ function resolveRelativeModule(parentPath, request) {
     }
   }
   return candidates[0];
+}
+
+function normalizeCandidateMode(raw) {
+  const mode = String(raw ?? "").trim().toLowerCase();
+  if (mode === "visited" || mode === "hybrid" || mode === "full") {
+    return mode;
+  }
+  if (mode === "false" || mode === "top") {
+    return "visited";
+  }
+  if (mode === "true" || mode === "all") {
+    return "full";
+  }
+  return "hybrid";
 }
 
 function parseArgs(rawArgs) {

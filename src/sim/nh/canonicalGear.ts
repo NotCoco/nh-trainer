@@ -3,10 +3,10 @@ import type { VisibleEquipment, VisibleEquipmentItem } from "../clientView";
 const item = (itemId: number, name: string): VisibleEquipmentItem => ({ itemId, name });
 
 export const canonicalNhGear = {
-  serpentineHelm: item(12929, "Serpentine helm (uncharged)"),
+  helmOfNeitiznot: item(10828, "Helm of neitiznot"),
   barrowsGloves: item(7462, "Barrows gloves"),
   dragonBoots: item(11840, "Dragon boots"),
-  ringOfSuffering: item(19710, "Ring of suffering (i)"),
+  seersRingI: item(11770, "Seers ring (i)"),
   dragonstoneDragonBolts: item(21948, "Dragonstone dragon bolts (e)"),
   opalDragonBolts: item(21932, "Opal dragon bolts (e)"),
 
@@ -14,8 +14,12 @@ export const canonicalNhGear = {
   ancientStaff: item(4675, "Ancient staff"),
   staffOfTheDead: item(11791, "Staff of the dead"),
   imbuedSaradominCape: item(21791, "Imbued saradomin cape"),
+  amuletOfFury: item(6585, "Amulet of fury"),
   occultNecklace: item(12002, "Occult necklace"),
+  mysticRobeTop: item(4091, "Mystic robe top"),
+  mysticRobeBottom: item(4093, "Mystic robe bottom"),
   ahrimsRobetop: item(4712, "Ahrim's robetop"),
+  blessedSpiritShield: item(12831, "Blessed spirit shield"),
   magesBook: item(6889, "Mage's book"),
   ahrimsRobeskirt: item(4714, "Ahrim's robeskirt"),
 
@@ -25,6 +29,8 @@ export const canonicalNhGear = {
   dragonCrossbow: item(21902, "Dragon crossbow"),
   avasAssembler: item(22109, "Ava's assembler"),
   necklaceOfAnguish: item(19547, "Necklace of anguish"),
+  karilsLeathertop: item(4736, "Karil's leathertop"),
+  veracsPlateskirt: item(4759, "Verac's plateskirt"),
   armadylChestplate: item(11828, "Armadyl chestplate"),
   armadylChainskirt: item(11830, "Armadyl chainskirt"),
 
@@ -41,96 +47,82 @@ export const canonicalNhGear = {
 } as const;
 
 const commonNhEquipment = {
-  head: canonicalNhGear.serpentineHelm,
+  head: canonicalNhGear.helmOfNeitiznot,
+  cape: canonicalNhGear.imbuedSaradominCape,
+  amulet: canonicalNhGear.amuletOfFury,
   hands: canonicalNhGear.barrowsGloves,
   feet: canonicalNhGear.dragonBoots,
-  ring: canonicalNhGear.ringOfSuffering,
-  ammo: canonicalNhGear.dragonstoneDragonBolts
+  ring: canonicalNhGear.seersRingI,
+  ammo: canonicalNhGear.opalDragonBolts
 } as const;
 
 export const canonicalNhLoadoutEquipment = {
   "kodai-robes": {
     ...commonNhEquipment,
-    cape: canonicalNhGear.imbuedSaradominCape,
-    amulet: canonicalNhGear.occultNecklace,
-    weapon: canonicalNhGear.kodaiWand,
-    body: canonicalNhGear.ahrimsRobetop,
-    shield: canonicalNhGear.magesBook,
-    legs: canonicalNhGear.ahrimsRobeskirt
+    weapon: canonicalNhGear.staffOfTheDead,
+    body: canonicalNhGear.mysticRobeTop,
+    shield: canonicalNhGear.blessedSpiritShield,
+    legs: canonicalNhGear.mysticRobeBottom
   },
   "acb-hides": {
     ...commonNhEquipment,
-    cape: canonicalNhGear.avasAssembler,
-    amulet: canonicalNhGear.necklaceOfAnguish,
-    weapon: canonicalNhGear.armadylCrossbow,
-    body: canonicalNhGear.armadylChestplate,
-    shield: canonicalNhGear.magesBook,
-    legs: canonicalNhGear.armadylChainskirt
+    weapon: canonicalNhGear.dragonCrossbow,
+    body: canonicalNhGear.karilsLeathertop,
+    shield: canonicalNhGear.blessedSpiritShield,
+    legs: canonicalNhGear.veracsPlateskirt
   },
   "tentacle-bandos": {
     ...commonNhEquipment,
-    cape: canonicalNhGear.fireCape,
-    amulet: canonicalNhGear.amuletOfTorture,
     weapon: canonicalNhGear.abyssalTentacle,
-    body: canonicalNhGear.bandosChestplate,
+    body: canonicalNhGear.karilsLeathertop,
     shield: canonicalNhGear.avernicDefender,
-    legs: canonicalNhGear.bandosTassets
+    legs: canonicalNhGear.veracsPlateskirt
   },
   "ags-bandos": {
     ...commonNhEquipment,
-    cape: canonicalNhGear.fireCape,
-    amulet: canonicalNhGear.amuletOfTorture,
     weapon: canonicalNhGear.armadylGodsword,
-    body: canonicalNhGear.bandosChestplate,
-    legs: canonicalNhGear.bandosTassets
+    body: canonicalNhGear.karilsLeathertop,
+    legs: canonicalNhGear.veracsPlateskirt
   },
   "gmaul-bandos": {
     ...commonNhEquipment,
-    cape: canonicalNhGear.fireCape,
-    amulet: canonicalNhGear.amuletOfTorture,
     weapon: canonicalNhGear.graniteMaul,
-    body: canonicalNhGear.bandosChestplate,
-    legs: canonicalNhGear.bandosTassets
+    body: canonicalNhGear.karilsLeathertop,
+    legs: canonicalNhGear.veracsPlateskirt
   }
 } as const satisfies Readonly<Record<string, VisibleEquipment>>;
 
 export const canonicalNhLoadoutItemIds = {
-  "kodai-robes": [12929, 21791, 12002, 21006, 4712, 6889, 4714, 7462, 11840, 19710, 21948],
-  "acb-hides": [12929, 22109, 19547, 11785, 11828, 6889, 11830, 7462, 11840, 19710, 21948],
-  "tentacle-bandos": [12929, 6570, 19553, 12006, 11832, 22322, 11834, 7462, 11840, 19710, 21948],
-  "ags-bandos": [12929, 6570, 19553, 11802, 11832, 11834, 7462, 11840, 19710, 21948],
-  "gmaul-bandos": [12929, 6570, 19553, 4153, 11832, 11834, 7462, 11840, 19710, 21948]
+  "kodai-robes": [10828, 21791, 6585, 11791, 4091, 12831, 4093, 7462, 11840, 11770, 21932],
+  "acb-hides": [10828, 21791, 6585, 21902, 4736, 12831, 4759, 7462, 11840, 11770, 21932],
+  "tentacle-bandos": [10828, 21791, 6585, 12006, 4736, 22322, 4759, 7462, 11840, 11770, 21932],
+  "ags-bandos": [10828, 21791, 6585, 11802, 4736, 4759, 7462, 11840, 11770, 21932],
+  "gmaul-bandos": [10828, 21791, 6585, 4153, 4736, 4759, 7462, 11840, 11770, 21932]
 } as const;
 
 export const canonicalNhSwitchItemIds = [
-  12929,
+  10828,
   21791,
-  12002,
-  21006,
+  6585,
   4675,
-  4712,
-  6889,
-  4714,
+  11791,
+  4091,
+  12831,
+  4093,
   7462,
   11840,
-  19710,
-  21948,
+  11770,
+  21932,
   11785,
   9185,
   861,
   21902,
-  22109,
-  19547,
-  11828,
-  11830,
+  4736,
+  4759,
   12006,
   4151,
   12954,
   22322,
-  6570,
-  19553,
-  11832,
-  11834,
   11802,
   4153
 ] as const;

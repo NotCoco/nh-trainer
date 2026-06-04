@@ -279,6 +279,7 @@ import {
   assertValidClientViewTrace,
   applyConsumable,
   consumableItemIdForDoseCount,
+  consumeRuntimePlayerCombatSupply,
   applyRuntimePlayerCombatPreMovementHits,
   clearRuntimePlayerCombatActorPolicyNoTargetGrace,
   consumableDefinitions,
@@ -314,6 +315,7 @@ import {
   runtimePlayerCombatXpDropsForDamage,
   runtimePlayerCombatIceBarrageAutocastSlot,
   runtimePlayerCombatTargetRouteProfile,
+  nhWeaponProfiles,
   isRuntimePlayerCombatActorDead,
   setRuntimePlayerCombatAutocast,
   setRuntimePlayerCombatAttackSet,
@@ -6921,6 +6923,20 @@ function BrowserClientWindow({ children }: { readonly children: JSX.Element }): 
     return () => window.removeEventListener("contextmenu", handleContextMenu, { capture: true });
   }, []);
 
+  useEffect(() => {
+    const element = windowRef.current;
+    if (!element) {
+      return;
+    }
+
+    const handleWheel = (event: WheelEvent): void => {
+      event.preventDefault();
+    };
+
+    element.addEventListener("wheel", handleWheel, { passive: false });
+    return () => element.removeEventListener("wheel", handleWheel);
+  }, []);
+
   const updateBounds = (nextBounds: BrowserClientWindowBounds): void => {
     const next = clampBrowserClientWindowBounds(nextBounds);
     setBounds(next);
@@ -8836,6 +8852,8 @@ function applyRuntimeEffectPlacement(
       object.position.set(sample.x, 0.35 + sample.z, sample.y);
       object.rotation.y = (sample.yaw * Math.PI * 2) / 2048;
       object.rotation.x = (sample.pitch * Math.PI * 2) / 2048;
+    } else if (definition) {
+      return false;
     } else {
       const progress = eventProgress(event, snapshot.cycle);
       object.position.set(
@@ -12395,6 +12413,343 @@ interface RuntimeSceneViewerProps {
   readonly onBotDifficultyChange?: (difficulty: "easy" | "medium" | "hard") => void;
 }
 
+type RuntimeBotWatchCohortPattern =
+  | "prayer-camp-melee"
+  | "one-tick-faker"
+  | "mage-range-alternate"
+  | "long-range-crossbow";
+type RuntimeBotWatchMode = "off" | RuntimeBotWatchCohortPattern;
+type RuntimeBotWatchCohortOffenceStyle = "magic" | "ranged";
+type RuntimeBotWatchObservedOffenceStyle = RuntimeBotWatchCohortOffenceStyle | "melee";
+type RuntimeBotWatchSupplyIntent = "none" | "safe_eat" | "double_eat";
+interface RuntimeBotWatchFightStats {
+  readonly startedTick: number | null;
+  readonly lastTick: number | null;
+  readonly policyDamage: number;
+  readonly cohortDamage: number;
+  readonly policyHealing: number;
+  readonly cohortHealing: number;
+  readonly policyFoodUses: number;
+  readonly cohortFoodUses: number;
+  readonly policyBrewUses: number;
+  readonly cohortBrewUses: number;
+  readonly policyRestoreReboostUses: number;
+  readonly cohortRestoreReboostUses: number;
+  readonly policyDeaths: number;
+  readonly cohortDeaths: number;
+  readonly policyPrayerChecks: number;
+  readonly policyPrayerMatches: number;
+  readonly lastWinner: "hard" | "cohort" | "draw" | null;
+}
+
+const RUNTIME_BOT_WATCH_QUERY_PARAM = "watch";
+const RUNTIME_BOT_WATCH_ENABLED = false;
+const RUNTIME_BOT_WATCH_COHORT_PATTERNS = [
+  "prayer-camp-melee",
+  "one-tick-faker",
+  "mage-range-alternate",
+  "long-range-crossbow"
+] as const satisfies readonly RuntimeBotWatchCohortPattern[];
+const RUNTIME_BOT_WATCH_COHORT_LABELS: Record<RuntimeBotWatchCohortPattern, string> = {
+  "prayer-camp-melee": "Melee pray",
+  "one-tick-faker": "1t faker",
+  "mage-range-alternate": "Mage/range",
+  "long-range-crossbow": "Long xbow"
+};
+const RUNTIME_BOT_WATCH_COHORT_EVAL_IDS: Record<RuntimeBotWatchCohortPattern, string> = {
+  "prayer-camp-melee": "PRAYER_CAMP_MELEE",
+  "one-tick-faker": "ONE_TICK_FAKER",
+  "mage-range-alternate": "MAGE_RANGE_ALTERNATE",
+  "long-range-crossbow": "LONG_RANGE_CROSSBOW"
+};
+
+function createRuntimeBotWatchFightStats(startedTick: number | null = null): RuntimeBotWatchFightStats {
+  return {
+    startedTick,
+    lastTick: null,
+    policyDamage: 0,
+    cohortDamage: 0,
+    policyHealing: 0,
+    cohortHealing: 0,
+    policyFoodUses: 0,
+    cohortFoodUses: 0,
+    policyBrewUses: 0,
+    cohortBrewUses: 0,
+    policyRestoreReboostUses: 0,
+    cohortRestoreReboostUses: 0,
+    policyDeaths: 0,
+    cohortDeaths: 0,
+    policyPrayerChecks: 0,
+    policyPrayerMatches: 0,
+    lastWinner: null
+  };
+}
+
+function initialRuntimeBotWatchMode(): RuntimeBotWatchMode {
+  if (!RUNTIME_BOT_WATCH_ENABLED || typeof window === "undefined") {
+    return "off";
+  }
+  const queryMode = new URLSearchParams(window.location.search).get(RUNTIME_BOT_WATCH_QUERY_PARAM);
+  return isRuntimeBotWatchCohortPattern(queryMode) ? queryMode : "off";
+}
+
+function isRuntimeBotWatchCohortPattern(value: string | null): value is RuntimeBotWatchCohortPattern {
+  if (value === null) {
+    return false;
+  }
+  return RUNTIME_BOT_WATCH_COHORT_PATTERNS.includes(value as RuntimeBotWatchCohortPattern);
+}
+
+function runtimeBotWatchMod(value: number, divisor: number): number {
+  return ((value % divisor) + divisor) % divisor;
+}
+
+function runtimeBotWatchAttackReady(actor: RuntimePlayerCombatActorState, tick: number): boolean {
+  const timer = actor.attackTimer;
+  return Math.max(0, timer.lastAttackTick + timer.weaponCooldownTicks + timer.additiveAttackDelayTicks - tick) === 0;
+}
+
+function runtimeBotWatchCohortStyle(
+  mode: RuntimeBotWatchCohortPattern,
+  state: RuntimePlayerCombatState,
+  lastOffenceStyle: RuntimeBotWatchCohortOffenceStyle | null
+): RuntimeBotWatchCohortOffenceStyle {
+  const tick = state.tick;
+  const phase = runtimeBotWatchMod(tick, 12);
+  if (mode === "mage-range-alternate") {
+    return (phase & 1) === 0 ? "magic" : "ranged";
+  }
+  if (mode === "one-tick-faker") {
+    if (!runtimeBotWatchAttackReady(state.actors["local-player"], tick)) {
+      return runtimeBotWatchMod(tick, 2) === 0 ? "magic" : "ranged";
+    }
+    return lastOffenceStyle === "ranged" ? "magic" : "ranged";
+  }
+  return phase % 5 === 4 ? "magic" : "ranged";
+}
+
+function runtimeBotWatchProtectionPrayerForStyle(style: RuntimeBotWatchObservedOffenceStyle): PrayerId {
+  if (style === "magic") {
+    return "protect_from_magic";
+  }
+  if (style === "ranged") {
+    return "protect_from_missiles";
+  }
+  return "protect_from_melee";
+}
+
+function runtimeBotWatchActiveProtectionPrayer(prayers: readonly PrayerId[]): PrayerId | null {
+  if (prayers.includes("protect_from_magic")) {
+    return "protect_from_magic";
+  }
+  if (prayers.includes("protect_from_missiles")) {
+    return "protect_from_missiles";
+  }
+  if (prayers.includes("protect_from_melee")) {
+    return "protect_from_melee";
+  }
+  return null;
+}
+
+function runtimeBotWatchDefencePrayer(
+  mode: RuntimeBotWatchCohortPattern,
+  tick: number,
+  activePrayers: readonly PrayerId[],
+  lastVisibleOpponentStyle: RuntimeBotWatchObservedOffenceStyle | null
+): PrayerId {
+  if (mode === "prayer-camp-melee") {
+    return "protect_from_melee";
+  }
+  if (mode === "mage-range-alternate") {
+    return (tick & 1) === 0 ? "protect_from_magic" : "protect_from_missiles";
+  }
+  return lastVisibleOpponentStyle
+    ? runtimeBotWatchProtectionPrayerForStyle(lastVisibleOpponentStyle)
+    : runtimeBotWatchActiveProtectionPrayer(activePrayers) ?? "protect_from_melee";
+}
+
+function runtimeBotWatchOffensivePrayerForStyle(style: RuntimeBotWatchCohortOffenceStyle): PrayerId {
+  return style === "magic" ? "augury" : "rigour";
+}
+
+function runtimeBotWatchPrayers(
+  mode: RuntimeBotWatchCohortPattern,
+  style: RuntimeBotWatchCohortOffenceStyle,
+  state: RuntimePlayerCombatState,
+  lastVisibleOpponentStyle: RuntimeBotWatchObservedOffenceStyle | null
+): readonly PrayerId[] {
+  return [
+    runtimeBotWatchDefencePrayer(
+      mode,
+      state.tick,
+      state.actors["local-player"].activePrayers,
+      lastVisibleOpponentStyle
+    ),
+    runtimeBotWatchOffensivePrayerForStyle(style)
+  ];
+}
+
+function runtimeBotWatchIsFrozen(actor: RuntimePlayerCombatActorState, tick: number): boolean {
+  return actor.locks.freezeUntilTick !== undefined && tick < actor.locks.freezeUntilTick;
+}
+
+function runtimeBotWatchStepAway(from: RuntimeTile, target: RuntimeTile): RuntimeTile {
+  const dx = from.x === target.x ? 1 : Math.sign(from.x - target.x);
+  const dz = from.z === target.z ? 0 : Math.sign(from.z - target.z);
+  return {
+    x: from.x + dx * NH_TILE_WORLD_UNITS,
+    z: from.z + dz * NH_TILE_WORLD_UNITS
+  };
+}
+
+function runtimeBotWatchMovementTarget(
+  mode: RuntimeBotWatchCohortPattern,
+  style: RuntimeBotWatchCohortOffenceStyle,
+  state: RuntimePlayerCombatState
+): RuntimeTile | null {
+  const local = state.actors["local-player"];
+  const opponent = state.actors.opponent;
+  const distance = runtimePlayerCombatDistance(local.tile, opponent.tile, NH_TILE_WORLD_UNITS);
+  if (
+    mode === "long-range-crossbow" &&
+    style === "ranged" &&
+    !runtimeBotWatchIsFrozen(local, state.tick) &&
+    distance >= 0 &&
+    distance < 9
+  ) {
+    return runtimeBotWatchStepAway(local.tile, opponent.tile);
+  }
+  return null;
+}
+
+function runtimeBotWatchPrayerStates(prayers: readonly PrayerId[]): NhPrayerStates {
+  return Object.fromEntries(prayers.map((prayer) => [prayer.split("_").join("-"), true])) as NhPrayerStates;
+}
+
+function runtimeBotWatchSupplyIntent(hitpoints: number): RuntimeBotWatchSupplyIntent {
+  if (hitpoints <= 38) {
+    return "double_eat";
+  }
+  if (hitpoints <= 58) {
+    return "safe_eat";
+  }
+  return "none";
+}
+
+function runtimeBotWatchSupplyItemGroups(intent: RuntimeBotWatchSupplyIntent): readonly (readonly ConsumableId[])[] {
+  if (intent === "safe_eat") {
+    return [["manta_ray", "shark"]];
+  }
+  if (intent === "double_eat") {
+    return [["manta_ray", "shark"], ["karambwan"]];
+  }
+  return [];
+}
+
+function runtimeBotWatchAttackSetIndex(
+  style: RuntimeBotWatchCohortOffenceStyle,
+  state: RuntimePlayerCombatState,
+  loadoutId: RuntimeLoadoutId
+): number {
+  if (style !== "ranged") {
+    return 0;
+  }
+  const weaponId = nhLoadouts[loadoutId].weaponId;
+  const baseRange = nhWeaponProfiles[weaponId].attackRange;
+  const longRange = Math.min(baseRange + 2, 10);
+  const distance = runtimePlayerCombatDistance(
+    state.actors["local-player"].tile,
+    state.actors.opponent.tile,
+    NH_TILE_WORLD_UNITS
+  );
+  return distance >= baseRange && distance <= longRange ? 3 : 1;
+}
+
+function runtimeBotWatchStatsWithEvents(
+  stats: RuntimeBotWatchFightStats,
+  events: readonly RuntimePlayerCombatEvent[],
+  tick: number
+): RuntimeBotWatchFightStats {
+  let next = {
+    ...stats,
+    startedTick: stats.startedTick ?? tick,
+    lastTick: tick
+  };
+  for (const event of events) {
+    if (event.kind === "hitsplat" && event.damage > 0) {
+      if (event.attackerId === "opponent") {
+        next = { ...next, policyDamage: next.policyDamage + event.damage };
+      } else if (event.attackerId === "local-player") {
+        next = { ...next, cohortDamage: next.cohortDamage + event.damage };
+      }
+    } else if (event.kind === "supply") {
+      const supplyKind = consumableDefinitions[event.item].kind;
+      const hardActor = event.actorId === "opponent";
+      next = hardActor
+        ? { ...next, policyHealing: next.policyHealing + event.healed }
+        : { ...next, cohortHealing: next.cohortHealing + event.healed };
+      if (supplyKind === "food" || supplyKind === "karambwan") {
+        next = hardActor
+          ? { ...next, policyFoodUses: next.policyFoodUses + 1 }
+          : { ...next, cohortFoodUses: next.cohortFoodUses + 1 };
+      } else if (supplyKind === "brew") {
+        next = hardActor
+          ? { ...next, policyBrewUses: next.policyBrewUses + 1 }
+          : { ...next, cohortBrewUses: next.cohortBrewUses + 1 };
+      } else if (supplyKind === "restore" || supplyKind === "reboost") {
+        next = hardActor
+          ? { ...next, policyRestoreReboostUses: next.policyRestoreReboostUses + 1 }
+          : { ...next, cohortRestoreReboostUses: next.cohortRestoreReboostUses + 1 };
+      }
+    } else if (event.kind === "death") {
+      if (event.actorId === "opponent") {
+        next = { ...next, policyDeaths: next.policyDeaths + 1, lastWinner: "cohort" };
+      } else if (event.actorId === "local-player") {
+        next = { ...next, cohortDeaths: next.cohortDeaths + 1, lastWinner: "hard" };
+      }
+    } else if (event.kind === "attack" && event.attackerId === "local-player") {
+      const expectedPrayer = protectPrayerForStyle(event.style);
+      next = {
+        ...next,
+        policyPrayerChecks: next.policyPrayerChecks + 1,
+        policyPrayerMatches:
+          event.defenderProtectionPrayer === expectedPrayer
+            ? next.policyPrayerMatches + 1
+            : next.policyPrayerMatches
+      };
+    }
+  }
+  if (next.policyDeaths > 0 && next.cohortDeaths > 0) {
+    next = { ...next, lastWinner: "draw" };
+  }
+  return next;
+}
+
+function runtimeBotWatchStatsSummary(stats: RuntimeBotWatchFightStats): string {
+  const prayerRate =
+    stats.policyPrayerChecks === 0
+      ? "n/a"
+      : `${Math.round((stats.policyPrayerMatches / stats.policyPrayerChecks) * 100)}%`;
+  const winner = stats.lastWinner ? `, winner ${stats.lastWinner}` : "";
+  return `Hard dmg ${stats.policyDamage}, cohort dmg ${stats.cohortDamage}; hard heals ${stats.policyHealing} (${stats.policyBrewUses} brew, ${stats.policyFoodUses} food), cohort heals ${stats.cohortHealing}; hard prayer ${prayerRate}${winner}`;
+}
+
+function writeRuntimeBotWatchStatsDataset(viewport: HTMLElement, stats: RuntimeBotWatchFightStats): void {
+  viewport.dataset.botWatchPolicyDamage = String(stats.policyDamage);
+  viewport.dataset.botWatchCohortDamage = String(stats.cohortDamage);
+  viewport.dataset.botWatchPolicyHealing = String(stats.policyHealing);
+  viewport.dataset.botWatchCohortHealing = String(stats.cohortHealing);
+  viewport.dataset.botWatchPolicyBrewUses = String(stats.policyBrewUses);
+  viewport.dataset.botWatchPolicyFoodUses = String(stats.policyFoodUses);
+  viewport.dataset.botWatchPolicyRestoreReboostUses = String(stats.policyRestoreReboostUses);
+  viewport.dataset.botWatchCohortFoodUses = String(stats.cohortFoodUses);
+  viewport.dataset.botWatchPolicyDeaths = String(stats.policyDeaths);
+  viewport.dataset.botWatchCohortDeaths = String(stats.cohortDeaths);
+  viewport.dataset.botWatchPolicyPrayerChecks = String(stats.policyPrayerChecks);
+  viewport.dataset.botWatchPolicyPrayerMatches = String(stats.policyPrayerMatches);
+  viewport.dataset.botWatchWinner = stats.lastWinner ?? "";
+}
+
 export function RuntimeSceneViewer({
   liveTrace,
   policy,
@@ -12438,7 +12793,15 @@ export function RuntimeSceneViewer({
   const [manualOpponent, setManualOpponent] = useState<ManualActorState>(initialManualOpponent);
   const [manualCombatState, setManualCombatState] = useState<RuntimePlayerCombatState>(initialRuntimePlayerCombatState);
   const [manualFightStartPending, setManualFightStartPending] = useState(true);
+  const [botWatchMode, setBotWatchMode] = useState<RuntimeBotWatchMode>(() => initialRuntimeBotWatchMode());
+  const [botWatchStats, setBotWatchStats] = useState<RuntimeBotWatchFightStats>(() => createRuntimeBotWatchFightStats());
   const manualFightStartPendingRef = useRef(true);
+  const botWatchModeRef = useRef<RuntimeBotWatchMode>(botWatchMode);
+  const botWatchStatsRef = useRef<RuntimeBotWatchFightStats>(createRuntimeBotWatchFightStats());
+  const botWatchLastLocalLoadoutRef = useRef<RuntimeLoadoutId | null>(null);
+  const botWatchLastPrayerSignatureRef = useRef("");
+  const botWatchLastOffenceStyleRef = useRef<RuntimeBotWatchCohortOffenceStyle | null>(null);
+  const botWatchLastVisibleOpponentStyleRef = useRef<RuntimeBotWatchObservedOffenceStyle | null>(null);
   const manualControlRef = useRef(manualControl);
   const manualActorRef = useRef(initialManualActor);
   const manualOpponentRef = useRef(initialManualOpponent);
@@ -13075,6 +13438,10 @@ export function RuntimeSceneViewer({
   useEffect(() => {
     manualFightStartPendingRef.current = manualFightStartPending;
   }, [manualFightStartPending]);
+
+  useEffect(() => {
+    botWatchModeRef.current = botWatchMode;
+  }, [botWatchMode]);
 
   useEffect(() => {
     visibleSnapshotRef.current = visibleSnapshot;
@@ -14298,6 +14665,7 @@ export function RuntimeSceneViewer({
       let ticksProcessed = 0;
       do {
         processReadyItemActions();
+        applyBotWatchLocalCohortAction();
         const localEquipmentBySlot =
           equipmentOverrideRef.current ??
           localPlayerEquipmentItemIdsBySlot(visibleSnapshotRef.current, inventoryEquipmentDefinitionsRef.current);
@@ -14374,6 +14742,9 @@ export function RuntimeSceneViewer({
             acceptedClientCycle
           );
           combatStateForTick = policyResponse.combatState;
+          if (RUNTIME_BOT_WATCH_ENABLED && botWatchModeRef.current !== "off" && policyResponse.policyEffectiveAction) {
+            botWatchLastVisibleOpponentStyleRef.current = policyResponse.policyEffectiveAction.offenceStyle;
+          }
           opponent = manualActorFacingTarget(policyResponse.opponentActor, local);
           opponentMovedThisTick = opponentMovedThisTick || policyResponse.policyMovedThisTick;
           manualOpponentRef.current = opponent;
@@ -14590,6 +14961,20 @@ export function RuntimeSceneViewer({
           local = freshFightReset.localActor;
           opponent = freshFightReset.opponentActor;
         }
+        const currentTickEvents = nextTickCombatState.events.filter((event) => event.tick === combatStateForTick.tick);
+        const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
+        if (RUNTIME_BOT_WATCH_ENABLED && botWatchModeRef.current !== "off") {
+          const nextStats = runtimeBotWatchStatsWithEvents(
+            botWatchStatsRef.current,
+            currentTickEvents,
+            combatStateForTick.tick
+          );
+          botWatchStatsRef.current = nextStats;
+          setBotWatchStats(nextStats);
+          if (viewport) {
+            writeRuntimeBotWatchStatsDataset(viewport, nextStats);
+          }
+        }
         manualCombatStateRef.current = nextTickCombatState;
         const localAuthoritativeTile = syncManualActorServerTileToCombatActor(
           local,
@@ -14657,7 +15042,6 @@ export function RuntimeSceneViewer({
             .filter((event) => event.tick >= combatStateForTick.tick)
             .map(compactRuntimeCombatEventForTickLog)
         });
-        const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
         if (viewport && policyResponse) {
           writeManualOpponentTickAuditSnapshot(viewport, {
             response: policyResponse,
@@ -15819,6 +16203,185 @@ export function RuntimeSceneViewer({
       policyStrippedEquipmentSlots: result.strippedEquipmentSlots,
       consumedSupplies: result.consumedSupplies
     };
+  };
+
+  const updateBotWatchMode = (mode: RuntimeBotWatchMode): void => {
+    if (!RUNTIME_BOT_WATCH_ENABLED) {
+      mode = "off";
+    }
+    botWatchModeRef.current = mode;
+    setBotWatchMode(mode);
+    botWatchLastOffenceStyleRef.current = null;
+    botWatchLastVisibleOpponentStyleRef.current = null;
+    botWatchLastLocalLoadoutRef.current = null;
+    botWatchLastPrayerSignatureRef.current = "";
+    const nextStats = createRuntimeBotWatchFightStats(mode === "off" ? null : manualCombatStateRef.current.tick);
+    botWatchStatsRef.current = nextStats;
+    setBotWatchStats(nextStats);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      if (mode === "off") {
+        url.searchParams.delete(RUNTIME_BOT_WATCH_QUERY_PARAM);
+      } else {
+        url.searchParams.set(RUNTIME_BOT_WATCH_QUERY_PARAM, mode);
+      }
+      window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+    const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
+    if (viewport) {
+      viewport.dataset.botWatchMode = mode;
+      writeRuntimeBotWatchStatsDataset(viewport, nextStats);
+    }
+  };
+
+  const applyBotWatchLocalCohortAction = (): void => {
+    if (!RUNTIME_BOT_WATCH_ENABLED) {
+      return;
+    }
+    const mode = botWatchModeRef.current;
+    if (mode === "off") {
+      return;
+    }
+    let combatState = manualCombatStateRef.current;
+    if (
+      manualFightStartPendingRef.current ||
+      runtimePlayerCombatIsFightCountdownActive(combatState) ||
+      isRuntimePlayerCombatActorDead(combatState.actors["local-player"], combatState.tick) ||
+      isRuntimePlayerCombatActorDead(combatState.actors.opponent, combatState.tick)
+    ) {
+      return;
+    }
+
+    const style = runtimeBotWatchCohortStyle(mode, combatState, botWatchLastOffenceStyleRef.current);
+    const loadoutId: RuntimeLoadoutId = style === "magic" ? "kodai-robes" : "acb-hides";
+    const equipment = nhLoadouts[loadoutId].equipment;
+    const equipmentItems = runtimeItemIdsBySlotFromVisibleEquipment(equipment);
+    const equipmentSignature = runtimeEquipmentItemsSignature(equipmentItems);
+    const loadoutChanged =
+      botWatchLastLocalLoadoutRef.current !== loadoutId ||
+      manualActorRef.current.loadoutId !== loadoutId ||
+      combatState.actors["local-player"].loadoutId !== loadoutId ||
+      runtimeEquipmentItemsSignature(equipmentOverrideRef.current ?? new Map()) !== equipmentSignature;
+
+    const supplyIntent = runtimeBotWatchSupplyIntent(combatState.actors["local-player"].hitpoints);
+    const consumedSupplies: ConsumableId[] = [];
+    let consumedInventorySlots: readonly (RuntimeInventorySlot | null)[] | null = null;
+    for (const group of runtimeBotWatchSupplyItemGroups(supplyIntent)) {
+      for (const item of group) {
+        const result = consumeRuntimePlayerCombatSupply(
+          combatState,
+          "local-player",
+          item,
+          Math.floor(performance.now() / NH_CLIENT_CYCLE_MS)
+        );
+        if (result.consumed) {
+          combatState = result.state;
+          consumedSupplies.push(item);
+          break;
+        }
+      }
+    }
+    if (consumedSupplies.length > 0) {
+      const inventorySlots = runtimeNhStakeInventorySlotsForSupplies(combatState.actors["local-player"].supplies);
+      consumedInventorySlots = inventorySlots;
+      inventoryOverrideRef.current = inventorySlots;
+      setInventoryOverride(inventorySlots);
+    }
+
+    combatState = setRuntimePlayerCombatLoadout(combatState, "local-player", loadoutId, equipment);
+    const attackSetIndex = runtimeBotWatchAttackSetIndex(style, combatState, loadoutId);
+    combatState = setRuntimePlayerCombatAttackSet(combatState, "local-player", attackSetIndex);
+    combatState = setRuntimePlayerCombatAutocast(combatState, "local-player", style === "magic" ? "ice-barrage" : null);
+    const prayers = runtimeBotWatchPrayers(mode, style, combatState, botWatchLastVisibleOpponentStyleRef.current);
+    combatState = setRuntimePlayerCombatPrayers(combatState, "local-player", prayers);
+    const movementTarget = runtimeBotWatchMovementTarget(mode, style, combatState);
+    if (movementTarget) {
+      combatState = syncRuntimePlayerCombatStateToInput(combatState, {
+        tiles: {
+          "local-player": movementTarget
+        }
+      });
+    }
+    combatState = style === "magic"
+      ? requestRuntimePlayerCombatSpell(combatState, "local-player", "opponent", "ice-barrage")
+      : requestRuntimePlayerCombatAttack(combatState, "local-player", "opponent");
+    botWatchLastOffenceStyleRef.current = style;
+
+    const prayerSignature = prayers.join(",");
+    const prayerStates = runtimeBotWatchPrayerStates(prayers);
+    hudPrayersRef.current = prayerStates;
+    if (
+      botWatchLastPrayerSignatureRef.current !== prayerSignature ||
+      consumedSupplies.length > 0 ||
+      visibleSnapshotRef.current.hud.attackSet !== attackSetIndex
+    ) {
+      const statsPatch =
+        consumedSupplies.length > 0
+          ? runtimeHudOverrideFromSimStats(
+              runtimeSimStatsFromActorAndHud(combatState.actors["local-player"], visibleSnapshotRef.current.hud),
+              visibleSnapshotRef.current.hud
+            )
+          : null;
+      setHudOverride((current) => ({
+        ...(current ?? {}),
+        ...(statsPatch ?? {}),
+        attackSet: attackSetIndex,
+        prayers: prayerStates
+      }));
+      botWatchLastPrayerSignatureRef.current = prayerSignature;
+    }
+
+    let localActor = manualActorRef.current;
+    if (loadoutChanged) {
+      const appearance = runtimeAppearanceFromEquipmentItems(equipmentItems, runtimeLoadoutAppearance(loadoutId));
+      localActor = {
+        ...localActor,
+        loadoutId,
+        appearance,
+        sequenceName: manualActorBaseSequenceName(
+          localActor.sequenceName,
+          loadoutId,
+          inventoryEquipmentDefinitionsRef.current,
+          weaponTypeDefinitionsRef.current,
+          actorSequenceDefinitionsRef.current
+        )
+      };
+      equipmentOverrideRef.current = equipmentItems;
+      botWatchLastLocalLoadoutRef.current = loadoutId;
+      commitVisibleInventoryEquipmentSnapshotRef(consumedInventorySlots, equipmentItems, {
+        attackSet: combatState.actors["local-player"].attackSetIndex,
+        autocast: style === "magic" ? runtimePlayerCombatIceBarrageAutocastSlot : 0,
+        defensiveCast: false
+      });
+      ensureLocalActorEquipmentModel(equipmentItems, loadoutId, "local-player");
+      setEquipmentOverride(() => equipmentItems);
+    }
+
+    const facedLocalActor = manualActorFacingTarget(localActor, manualOpponentRef.current);
+    manualCombatStateRef.current = combatState;
+    manualActorRef.current = facedLocalActor;
+    setManualOpponentFightEngaged(true, combatState.tick);
+    setManualCombatState(combatState);
+    if (loadoutChanged) {
+      setManualActor(facedLocalActor);
+    }
+
+    const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
+    if (viewport) {
+      viewport.dataset.botWatchMode = botWatchModeRef.current;
+      viewport.dataset.botWatchCohort = mode;
+      viewport.dataset.botWatchCohortEvalId = RUNTIME_BOT_WATCH_COHORT_EVAL_IDS[mode];
+      viewport.dataset.botWatchLocalStyle = style;
+      viewport.dataset.botWatchLocalLoadoutId = loadoutId;
+      viewport.dataset.botWatchLocalAttackSet = String(attackSetIndex);
+      viewport.dataset.botWatchLocalPrayers = prayerSignature;
+      viewport.dataset.botWatchLocalSupplyIntent = supplyIntent;
+      viewport.dataset.botWatchLocalConsumedSupplies = consumedSupplies.join(",");
+      viewport.dataset.botWatchLocalMovementTarget = movementTarget
+        ? `${movementTarget.x},${movementTarget.z}`
+        : "";
+      viewport.dataset.botWatchTick = String(combatState.tick);
+    }
   };
 
   const blockPlayerCombatCommandDuringCountdown = (

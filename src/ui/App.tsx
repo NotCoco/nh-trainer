@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { Analytics } from "@vercel/analytics/react";
 import { parseNhPolicyTsv, type ParsedNhPolicy } from "../bot";
 import type { DefaultPolicyReadResult } from "../client/bridge";
+import { NhAimTrainer } from "./NhAimTrainer";
 import "./styles.css";
 
 const RuntimeSceneViewer = lazy(() =>
@@ -139,11 +140,11 @@ export function App(): JSX.Element {
             </div>
           </div>
           <div className="nhSiteUpdates" aria-label="Recent updates">
-            <span>Updates</span>
+            <span>Updates - June 4, 2026</span>
             <ul>
-              <li>Hard mode updated with the latest trained policy.</li>
-              <li>Camera zoom focus adjusted for closer in-game framing.</li>
-              <li>Movement fixes for animation stalls, melee pull-in, and freeze/pathing teleports.</li>
+              <li>Hard mode updated with the latest cohort and self-play trained policy.</li>
+              <li>Future training keeps a smaller scripted cohort so hard mode is harder to cheese without overfitting to it.</li>
+              <li>Camera zoom focus, animation-stall movement, melee pull-in, and freeze/pathing teleports were tightened.</li>
             </ul>
           </div>
           <details className="nhSiteMoreInfo">
@@ -169,6 +170,8 @@ export function App(): JSX.Element {
           onBotDifficultyChange={setBotDifficulty}
         />
       </Suspense>
+      <div className="nhAimTrainerScrollHint">Scroll down to try the aim trainer</div>
+      <NhAimTrainer />
       <Analytics />
     </main>
   );
@@ -176,10 +179,15 @@ export function App(): JSX.Element {
 
 function readStoredBotDifficulty(): BotDifficulty {
   if (typeof window === "undefined") {
-    return "medium";
+    return "hard";
+  }
+  const params = new URLSearchParams(window.location.search);
+  const queryDifficulty = params.get("bot") ?? params.get("difficulty");
+  if (queryDifficulty === "easy" || queryDifficulty === "medium" || queryDifficulty === "hard") {
+    return queryDifficulty;
   }
   const stored = window.localStorage?.getItem(BOT_DIFFICULTY_STORAGE_KEY);
-  return stored === "easy" || stored === "hard" ? stored : "medium";
+  return stored === "easy" || stored === "medium" || stored === "hard" ? stored : "hard";
 }
 
 async function loadDifficultyPolicy(difficulty: BotDifficulty): Promise<DefaultPolicyReadResult> {

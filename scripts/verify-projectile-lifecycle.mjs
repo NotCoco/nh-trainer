@@ -212,7 +212,9 @@ assert(boltEvent.projectile.cycleEnd === boltEvent.projectile.packetCycle + 61, 
 const boltDef = definitionByGfx.get(27);
 const boltStart = sampleNhProjectileMotion(boltEvent, boltEvent.startCycle, boltDef);
 const boltEnd = sampleNhProjectileMotion(boltEvent, boltEvent.endCycle, boltDef);
-assert(boltStart.x < boltEnd.x, "bolt projectile should move toward its target over the render window");
+const boltPreEnd = sampleNhProjectileMotion(boltEvent, boltEvent.endCycle - 1, boltDef);
+assert(boltStart.x < boltPreEnd.x, "bolt projectile should move toward its target over the render window");
+assert(boltEnd === null, "bolt projectile should disappear at the render end instead of lingering on the target tile");
 assertAlmost("bolt start height", boltStart.z, (38 * 4) / 256);
 
 const spotanimTrace = {
@@ -258,7 +260,7 @@ console.log(
         skipTravel: magicPacket.skipTravel
       },
       barrageLifecycle: barrageEvent.projectile,
-      boltDeltaX: boltEnd.x - boltStart.x,
+      boltDeltaX: boltPreEnd.x - boltStart.x,
       artifacts: {
         barrage: barrageEvent.artifactUrl,
         bolt: boltEvent.artifactUrl,

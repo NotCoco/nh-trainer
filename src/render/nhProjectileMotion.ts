@@ -107,6 +107,9 @@ export function sampleNhProjectileMotion(
   if (!lifecycle) {
     return null;
   }
+  if (cycle >= event.endCycle) {
+    return null;
+  }
 
   return sampleNhProjectileLifecycle(
     lifecycle,

@@ -8,11 +8,18 @@ import { canMeleeReachThisTick, chebyshevDistance } from "../world/movement";
 import {
   isNhArmadylGodswordItemId,
   isNhGraniteMaulItemId,
+  nhGearProfileDefenceScoreAgainstThreat,
+  nhGearProfileOptimizeFlexibleEquipment,
   nhGearProfileAvailableSpecialWeaponKind,
   nhGearProfileCanEquipArmadylGodsword,
   nhGearProfileCanEquipGraniteMaul
 } from "./gearProfile";
-import { nhPolicyFeatureSize, nhPolicyInputSize, nhPolicyReservoirSize } from "./policy-bridge";
+import {
+  nhPolicyFeatureSize,
+  nhPolicyInputSize,
+  nhPolicyLegacyV12InputSize,
+  nhPolicyReservoirSize
+} from "./policy-bridge";
 import type { NhDuelActorState, NhDuelControllerContext } from "./duel";
 import type { NhOffenceStyle } from "./policy-bridge";
 import type { NhWeaponId } from "./loadouts";
@@ -20,6 +27,9 @@ import type { NhWeaponId } from "./loadouts";
 export interface NhPolicyFeatureState {
   hidden: number[];
   hiddenNext: number[];
+  visibleStyleReliabilityWindow: number[];
+  visibleStyleReliabilityLastTick: number | null;
+  visibleStyleReliabilityLastOutcome: number;
 }
 
 export const nhPolicyReservoirFeatureStart = 0;
@@ -37,12 +47,13 @@ const recurrentWeightScale = 0.16;
 const recurrentDensity = 0.2;
 const biasScale = 0.06;
 const reservoirSeed = 0x5eedb07a5a11n;
+const visibleStyleReliabilityWindowTicks = 16;
+const visibleStyleReliabilityConfidenceSamples = 12;
 const equipmentRows = equipmentRowsJson as readonly EquipmentBonusRow[];
 const clientThreatGmaulMax = 40;
 const clientThreatGmaulDoubleMax = 72;
 const clientThreatAgsMax = 74;
 const clientThreatPrayerReduction = 0.6;
-const policyThreatRange = 8;
 type NhSpecialWeaponKind = "granite_maul" | "armadyl_godsword";
 
 let reservoirCache: ReturnType<typeof createReservoir> | null = null;
@@ -50,20 +61,27 @@ let reservoirCache: ReturnType<typeof createReservoir> | null = null;
 export function createNhPolicyFeatureState(): NhPolicyFeatureState {
   return {
     hidden: Array<number>(nhPolicyReservoirSize).fill(0),
-    hiddenNext: Array<number>(nhPolicyReservoirSize).fill(0)
+    hiddenNext: Array<number>(nhPolicyReservoirSize).fill(0),
+    visibleStyleReliabilityWindow: [],
+    visibleStyleReliabilityLastTick: null,
+    visibleStyleReliabilityLastOutcome: 0
   };
 }
 
 export function resetNhPolicyFeatureState(state: NhPolicyFeatureState): void {
   state.hidden.fill(0);
   state.hiddenNext.fill(0);
+  state.visibleStyleReliabilityWindow.length = 0;
+  state.visibleStyleReliabilityLastTick = null;
+  state.visibleStyleReliabilityLastOutcome = 0;
 }
 
 export function encodeNhPolicyFeatures(
   context: NhDuelControllerContext,
   state?: NhPolicyFeatureState
 ): number[] {
-  const input = encodeNhPolicyInput(context);
+  updateVisibleStyleReliabilityState(context, state);
+  const input = encodeNhPolicyInput(context, state);
   const features = Array<number>(nhPolicyFeatureSize).fill(0);
   const hidden = state ? advanceStateHidden(state, input) : advanceHiddenFrom(Array<number>(nhPolicyReservoirSize).fill(0), input);
 
@@ -77,7 +95,7 @@ export function encodeNhPolicyFeatures(
   return features;
 }
 
-export function encodeNhPolicyInput(context: NhDuelControllerContext): number[] {
+export function encodeNhPolicyInput(context: NhDuelControllerContext, state?: NhPolicyFeatureState): number[] {
   const self = context.self;
   const opponent = context.opponent;
   const opponentInfoKnown = observedOpponentInfoKnown(context);
@@ -101,6 +119,8 @@ export function encodeNhPolicyInput(context: NhDuelControllerContext): number[] 
   const opponentStyle = opponentInfoKnown ? opponent.lastVisibleOpponentStyle : null;
   const scriptedOffenceStyle = context.scriptedOffenceStyle ?? styleBucket(context.bestVisibleStyle);
   const gmaulFeatures = gmaulFeatureWindow(context);
+  const defensiveGearFeatures = defensiveGearFeatureWindow(context);
+  const visibleStyleReliability = visibleStyleReliabilityFeatures(state);
   const selfCanSpecSingleNow = canUseSpecialSpecFromObserved(context, false);
   const selfCanSpecDoubleNow = canUseSpecialSpecFromObserved(context, true);
   const opponentVisibleHp = clientVisibleOpponentHp(context);
@@ -166,6 +186,19 @@ export function encodeNhPolicyInput(context: NhDuelControllerContext): number[] 
   input.push(gmaulFeatures.doubleKoChance);
   input.push(gmaulFeatures.singleSetupScore);
   input.push(gmaulFeatures.doubleSetupScore);
+  input.push(defensiveGearFeatures.selfMagicDefenceScore);
+  input.push(defensiveGearFeatures.selfRangedDefenceScore);
+  input.push(defensiveGearFeatures.selfMeleeDefenceScore);
+  input.push(defensiveGearFeatures.selfMagicDefenceGain);
+  input.push(defensiveGearFeatures.selfRangedDefenceGain);
+  input.push(defensiveGearFeatures.selfMeleeDefenceGain);
+  input.push(defensiveGearFeatures.opponentMagicWeakness);
+  input.push(defensiveGearFeatures.opponentRangedWeakness);
+  input.push(defensiveGearFeatures.opponentMeleeWeakness);
+  input.push(visibleStyleReliability.matchRate);
+  input.push(visibleStyleReliability.mismatchRate);
+  input.push(visibleStyleReliability.confidence);
+  input.push(visibleStyleReliability.lastOutcome);
 
   if (input.length !== nhPolicyInputSize) {
     throw new Error(`NH policy input encoder produced ${input.length} inputs, expected ${nhPolicyInputSize}.`);
@@ -223,8 +256,11 @@ function createReservoir(): {
     hiddenBias[row] = randomRange(rng, -biasScale, biasScale);
     inputWeights[row] = [];
     recurrentWeights[row] = [];
-    for (let col = 0; col < nhPolicyInputSize; col += 1) {
+    for (let col = 0; col < nhPolicyLegacyV12InputSize; col += 1) {
       inputWeights[row][col] = randomRange(rng, -inputWeightScale, inputWeightScale);
+    }
+    for (let col = nhPolicyLegacyV12InputSize; col < nhPolicyInputSize; col += 1) {
+      inputWeights[row][col] = 0;
     }
     for (let col = 0; col < nhPolicyReservoirSize; col += 1) {
       recurrentWeights[row][col] =
@@ -264,6 +300,64 @@ function policyPotionBottleCount(...remainingSips: readonly number[]): number {
 
 function observedOpponentInfoKnown(context: NhDuelControllerContext): boolean {
   return context.opponent.observedInfoKnown !== false;
+}
+
+function updateVisibleStyleReliabilityState(
+  context: NhDuelControllerContext,
+  state: NhPolicyFeatureState | undefined
+): void {
+  if (!state || state.visibleStyleReliabilityLastTick === context.tick || !observedOpponentInfoKnown(context)) {
+    return;
+  }
+  if (context.opponent.lastDealtHit <= 0) {
+    return;
+  }
+  const actualStyle = context.opponent.lastOffenceStyle;
+  const visibleStyle = context.opponent.lastVisibleOpponentStyle;
+  if (!actualStyle || !visibleStyle) {
+    return;
+  }
+  state.visibleStyleReliabilityLastTick = context.tick;
+  const outcome = actualStyle === visibleStyle ? 1 : -1;
+  state.visibleStyleReliabilityLastOutcome = outcome;
+  state.visibleStyleReliabilityWindow.push(outcome);
+  while (state.visibleStyleReliabilityWindow.length > visibleStyleReliabilityWindowTicks) {
+    state.visibleStyleReliabilityWindow.shift();
+  }
+}
+
+function visibleStyleReliabilityFeatures(
+  state: NhPolicyFeatureState | undefined
+): {
+  readonly matchRate: number;
+  readonly mismatchRate: number;
+  readonly confidence: number;
+  readonly lastOutcome: number;
+} {
+  const window = state?.visibleStyleReliabilityWindow ?? [];
+  if (window.length === 0) {
+    return {
+      matchRate: 0,
+      mismatchRate: 0,
+      confidence: 0,
+      lastOutcome: 0
+    };
+  }
+  let matches = 0;
+  let mismatches = 0;
+  for (const outcome of window) {
+    if (outcome > 0) {
+      matches += 1;
+    } else if (outcome < 0) {
+      mismatches += 1;
+    }
+  }
+  return {
+    matchRate: clamp01(matches / window.length),
+    mismatchRate: clamp01(mismatches / window.length),
+    confidence: clamp01(window.length / visibleStyleReliabilityConfidenceSamples),
+    lastOutcome: clampSigned(state?.visibleStyleReliabilityLastOutcome ?? 0)
+  };
 }
 
 function pushProtectionMask(output: number[], actor: NhDuelActorState | null): void {
@@ -389,10 +483,19 @@ function canAttackFromObservedFeature(context: NhDuelControllerContext, style: N
   if (style === "melee") {
     return context.meleeReachable;
   }
-  // Source: NhStakerBot.attackRangeForThreat() returns 8 for non-melee
-  // observation/risk features. The runtime combat spell route can still use the
-  // real TargetSpell range elsewhere.
-  return distance >= 1 && distance <= policyThreatRange;
+  return distance >= 1 && distance <= policyAttackRangeForObservedStyle(context, style);
+}
+
+function policyAttackRangeForObservedStyle(context: NhDuelControllerContext, style: NhOffenceStyle): number {
+  if (style === "magic") {
+    return 10;
+  }
+  if (style === "ranged") {
+    const weaponId = context.self.gearProfile?.rangedWeaponId ?? context.self.weaponId;
+    const profile = nhWeaponProfiles[weaponId];
+    return profile.style === "ranged" ? Math.min(profile.attackRange + 2, 10) : 10;
+  }
+  return 1;
 }
 
 interface GmaulFeatureWindow {
@@ -400,6 +503,66 @@ interface GmaulFeatureWindow {
   readonly doubleKoChance: number;
   readonly singleSetupScore: number;
   readonly doubleSetupScore: number;
+}
+
+interface DefensiveGearFeatureWindow {
+  readonly selfMagicDefenceScore: number;
+  readonly selfRangedDefenceScore: number;
+  readonly selfMeleeDefenceScore: number;
+  readonly selfMagicDefenceGain: number;
+  readonly selfRangedDefenceGain: number;
+  readonly selfMeleeDefenceGain: number;
+  readonly opponentMagicWeakness: number;
+  readonly opponentRangedWeakness: number;
+  readonly opponentMeleeWeakness: number;
+}
+
+function defensiveGearFeatureWindow(context: NhDuelControllerContext): DefensiveGearFeatureWindow {
+  const selfBonuses = aggregateVisibleEquipmentBonuses(context.self.equipment, equipmentRows);
+  const opponentKnown = observedOpponentInfoKnown(context);
+  const opponentBonuses = opponentKnown ? aggregateVisibleEquipmentBonuses(context.opponent.equipment, equipmentRows) : null;
+  const selfMagicRaw = nhGearProfileDefenceScoreAgainstThreat("magic", selfBonuses);
+  const selfRangedRaw = nhGearProfileDefenceScoreAgainstThreat("ranged", selfBonuses);
+  const selfMeleeRaw = nhGearProfileDefenceScoreAgainstThreat("melee", selfBonuses);
+
+  return {
+    selfMagicDefenceScore: normalizeDefenceBonus(selfMagicRaw),
+    selfRangedDefenceScore: normalizeDefenceBonus(selfRangedRaw),
+    selfMeleeDefenceScore: normalizeDefenceBonus(selfMeleeRaw),
+    selfMagicDefenceGain: flexibleDefenceGainFeature(context, "magic", selfMagicRaw),
+    selfRangedDefenceGain: flexibleDefenceGainFeature(context, "ranged", selfRangedRaw),
+    selfMeleeDefenceGain: flexibleDefenceGainFeature(context, "melee", selfMeleeRaw),
+    opponentMagicWeakness: opponentBonuses
+      ? weaknessFromDefenceBonus(nhGearProfileDefenceScoreAgainstThreat("magic", opponentBonuses))
+      : 0,
+    opponentRangedWeakness: opponentBonuses
+      ? weaknessFromDefenceBonus(nhGearProfileDefenceScoreAgainstThreat("ranged", opponentBonuses))
+      : 0,
+    opponentMeleeWeakness: opponentBonuses
+      ? weaknessFromDefenceBonus(nhGearProfileDefenceScoreAgainstThreat("melee", opponentBonuses))
+      : 0
+  };
+}
+
+function flexibleDefenceGainFeature(
+  context: NhDuelControllerContext,
+  threatStyle: NhOffenceStyle,
+  currentDefence: number
+): number {
+  if (!context.self.gearProfile) {
+    return 0;
+  }
+  const optimized = nhGearProfileOptimizeFlexibleEquipment({
+    equipment: context.self.equipment,
+    profile: context.self.gearProfile,
+    offenceStyle: context.self.lastOffenceStyle,
+    threatStyle,
+    underPressure: observedOpponentInfoKnown(context),
+    hitpoints: context.self.stats.hitpoints.current
+  });
+  const optimizedBonuses = aggregateVisibleEquipmentBonuses(optimized, equipmentRows);
+  const optimizedDefence = nhGearProfileDefenceScoreAgainstThreat(threatStyle, optimizedBonuses);
+  return clamp01((optimizedDefence - currentDefence) / 140);
 }
 
 function gmaulFeatureWindow(context: NhDuelControllerContext): GmaulFeatureWindow {
@@ -851,6 +1014,14 @@ function remainingTicks(untilTick: number, tick: number, scale: number): number 
 
 function boolFeature(value: boolean): number {
   return value ? 1 : 0;
+}
+
+function normalizeDefenceBonus(defenceBonus: number): number {
+  return clampSigned((defenceBonus - 70) / 140);
+}
+
+function weaknessFromDefenceBonus(defenceBonus: number): number {
+  return -normalizeDefenceBonus(defenceBonus);
 }
 
 function randomRange(rng: JavaRandom, min: number, max: number): number {

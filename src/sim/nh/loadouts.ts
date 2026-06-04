@@ -16,31 +16,31 @@ export interface NhLoadoutDefinition {
 export const nhLoadouts = {
   "kodai-robes": {
     id: "kodai-robes",
-    label: "Kodai Ahrim's",
-    weaponId: "kodai",
+    label: "Staff of the dead Mystic",
+    weaponId: "staff_of_the_dead",
     equipment: canonicalNhLoadoutEquipment["kodai-robes"]
   },
   "acb-hides": {
     id: "acb-hides",
-    label: "ACB Armadyl",
-    weaponId: "armadyl_crossbow",
+    label: "Dragon crossbow Karil's",
+    weaponId: "dragon_crossbow",
     equipment: canonicalNhLoadoutEquipment["acb-hides"]
   },
   "tentacle-bandos": {
     id: "tentacle-bandos",
-    label: "Tentacle Bandos",
+    label: "Tentacle NH stake",
     weaponId: "tentacle_whip",
     equipment: canonicalNhLoadoutEquipment["tentacle-bandos"]
   },
   "ags-bandos": {
     id: "ags-bandos",
-    label: "AGS Bandos",
+    label: "AGS NH stake",
     weaponId: "armadyl_godsword",
     equipment: canonicalNhLoadoutEquipment["ags-bandos"]
   },
   "gmaul-bandos": {
     id: "gmaul-bandos",
-    label: "Granite maul Bandos",
+    label: "Granite maul NH stake",
     weaponId: "granite_maul",
     equipment: canonicalNhLoadoutEquipment["gmaul-bandos"]
   }

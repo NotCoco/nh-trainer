@@ -64,16 +64,37 @@ export interface NhPolicyRuntimeController extends NhDuelController {
   readonly getLastRankings: () => readonly NhPolicyScoredAction[];
 }
 
-const nhPolicyStoreVersion = 11;
+const nhPolicyStoreVersion = 13;
+const previousNhPolicyStoreVersion = 12;
+const previousNhPolicyInputSize = 86;
+const previousNhPolicyBiasFeatureIndex = nhPolicyInputFeatureStart + previousNhPolicyInputSize;
+const legacyNhPolicyStoreVersion = 11;
+const legacyNhPolicyInputSize = 77;
+const legacyNhPolicyBiasFeatureIndex = nhPolicyInputFeatureStart + legacyNhPolicyInputSize;
 const explorationReheatDecisionsCap = 350_000;
 const loadedPolicyWeightClamp = 6;
 const loadRebalanceStripTwoScale = 0.7;
 const loadRebalanceStripOneScale = 0.86;
 const loadRebalanceSmiteScale = 0.92;
 const loadRebalanceRedemptionScale = 0.62;
-const loadRebalanceHealingSupplyScale = 0.66;
-const loadRebalanceTripleEatScale = 0.56;
+const loadRebalanceHealingSupplyScale = 0.82;
+const loadRebalanceTripleEatScale = 0.72;
+const loadRebalanceRestoreReboostScale = 0.72;
 const loadRebalanceDoubleSpecScale = 0.7;
+const regearStyleIdlePriorPenalty = 0.2;
+const regearStyleDefenceGainPriorScale = 0.55;
+const regearStyleDefenceGainPriorMax = 0.55;
+const offenceStripActionsEnabled = false;
+const opponentGearStyleInputIndex = 46;
+const opponentMeleeReachInputIndex = 72;
+const visibleStyleMatchRateInputIndex = 86;
+const visibleStyleMismatchRateInputIndex = 87;
+const visibleStyleConfidenceInputIndex = 88;
+const visibleStyleLastOutcomeInputIndex = 89;
+const defenceVisibleStyleTrustPriorScale = 2.6;
+const defenceVisibleStyleMismatchPriorScale = 1.6;
+const defenceVisibleStyleAlternativePenaltyScale = 0;
+const defenceVisibleStyleLastMatchPriorScale = 0.45;
 const equipmentRows = equipmentRowsJson as readonly EquipmentBonusRow[];
 const actionVisitMapCache = new WeakMap<ParsedNhPolicy, ReadonlyMap<number, number>>();
 
@@ -155,21 +176,22 @@ export function parseNhPolicyTsv(text: string, sourceLabel = "policy.tsv"): Pars
       const action = parseInteger(parts[1], -1);
       const featureIndex = parseInteger(parts[2], -1);
       const value = Number(parts[3]);
-      if (!isValidAction(action) || featureIndex < 0 || featureIndex >= nhPolicyFeatureSize || !Number.isFinite(value)) {
+      const mappedFeatureIndex = mapLoadedPolicyFeatureIndex(version, featureIndex);
+      if (!isValidAction(action) || mappedFeatureIndex < 0 || mappedFeatureIndex >= nhPolicyFeatureSize || !Number.isFinite(value)) {
         continue;
       }
       const weights = mutableWeights.get(action) ?? new Map<number, number>();
       if (!mutableWeights.has(action)) {
         mutableWeights.set(action, weights);
       }
-      weights.set(featureIndex, value);
+      weights.set(mappedFeatureIndex, value);
       weightEntryCount += 1;
     }
   }
 
-  if (version !== nhPolicyStoreVersion) {
-    // Source: NhStakerSelfPlayManager.loadFromDisk() refuses policy TSV files
-    // whose STORE_VERSION does not match the live bridge shape.
+  if (!isLoadablePolicyStoreVersion(version)) {
+    // Source: NhStakerSelfPlayManager.loadFromDisk() accepts the live store
+    // version and the directly migratable v11 shape, but skips other versions.
     throw new Error(`NH policy version ${version} does not match expected version ${nhPolicyStoreVersion}.`);
   }
 
@@ -184,6 +206,26 @@ export function parseNhPolicyTsv(text: string, sourceLabel = "policy.tsv"): Pars
     weightEntryCount,
     sourceLabel
   };
+}
+
+function isLoadablePolicyStoreVersion(version: number): boolean {
+  return version === nhPolicyStoreVersion || version === previousNhPolicyStoreVersion || version === legacyNhPolicyStoreVersion;
+}
+
+function mapLoadedPolicyFeatureIndex(version: number, featureIndex: number): number {
+  if (version === nhPolicyStoreVersion) {
+    return featureIndex;
+  }
+  if (version === previousNhPolicyStoreVersion) {
+    if (featureIndex < 0 || featureIndex > previousNhPolicyBiasFeatureIndex) {
+      return -1;
+    }
+    return featureIndex === previousNhPolicyBiasFeatureIndex ? nhPolicyFeatureSize - 1 : featureIndex;
+  }
+  if (version !== legacyNhPolicyStoreVersion || featureIndex < 0 || featureIndex > legacyNhPolicyBiasFeatureIndex) {
+    return -1;
+  }
+  return featureIndex === legacyNhPolicyBiasFeatureIndex ? nhPolicyFeatureSize - 1 : featureIndex;
 }
 
 function normalizeLoadedNhPolicyCounters(
@@ -256,6 +298,9 @@ function loadedPolicyActionScale(action: number): number {
   }
   if (decoded.supplyIntent === "triple_eat") {
     scale *= loadRebalanceTripleEatScale;
+  }
+  if (decoded.supplyIntent === "restore_reboost") {
+    scale *= loadRebalanceRestoreReboostScale;
   }
   if (decoded.specIntent === "use_special_double") {
     scale *= loadRebalanceDoubleSpecScale;
@@ -445,8 +490,40 @@ function actionPrior(
   return specOpportunityPrior(features, action) +
     specApproachPrior(features, action) +
     offenceGearWeaknessPrior(features, action, context) +
+    defencePrayerReliabilityPrior(features, action) +
     supplyIntentPrior(features, action, context) +
     movementControlPrior(features, action, context);
+}
+
+function defencePrayerReliabilityPrior(features: readonly number[], action: NhPolicyAction): number {
+  if (inputFeature(features, 33) <= 0.5) {
+    return 0;
+  }
+  const protectedStyle = protectedStyleForPrayer(action.defencePrayer);
+  const visibleStyle = readEncodedStyle(features, opponentGearStyleInputIndex);
+  if (!protectedStyle || !visibleStyle) {
+    return 0;
+  }
+  if (visibleStyle === "melee" && inputFeature(features, opponentMeleeReachInputIndex) <= 0.5) {
+    return 0;
+  }
+
+  const matchRate = clamp01(inputFeature(features, visibleStyleMatchRateInputIndex));
+  const mismatchRate = clamp01(inputFeature(features, visibleStyleMismatchRateInputIndex));
+  const confidence = clamp01(inputFeature(features, visibleStyleConfidenceInputIndex));
+  if (confidence <= 0) {
+    return 0;
+  }
+  const reliability = confidence * (matchRate - mismatchRate);
+  if (protectedStyle === visibleStyle) {
+    if (reliability >= 0) {
+      const lastMatch = Math.max(0, clampSigned(inputFeature(features, visibleStyleLastOutcomeInputIndex)));
+      return (defenceVisibleStyleTrustPriorScale * reliability) +
+        (defenceVisibleStyleLastMatchPriorScale * confidence * lastMatch);
+    }
+    return defenceVisibleStyleMismatchPriorScale * reliability;
+  }
+  return reliability > 0 ? -defenceVisibleStyleAlternativePenaltyScale * reliability : 0;
 }
 
 function specOpportunityPrior(features: readonly number[], action: NhPolicyAction): number {
@@ -580,10 +657,14 @@ function supplyIntentPrior(
     return -skipDangerSupplyPenalty(selfHp, risk, panicRisk);
   }
   if (action.supplyIntent === "regear_style") {
+    const defenceGainCredit = Math.min(
+      regearStyleDefenceGainPriorMax,
+      Math.max(0, regearDefenceGainForLikelyThreat(features)) * regearStyleDefenceGainPriorScale
+    );
     if (lastTaken > 0.05 || selfHp < 56 / 99) {
-      return -skipDangerSupplyPenalty(selfHp, risk, panicRisk) * 0.65;
+      return -skipDangerSupplyPenalty(selfHp, risk, panicRisk) * 0.65 + defenceGainCredit * 0.35;
     }
-    return -0.35;
+    return defenceGainCredit - regearStyleIdlePriorPenalty;
   }
   if (!isHealingSupplyIntent(action.supplyIntent)) {
     return 0;
@@ -627,6 +708,24 @@ function supplyIntentPrior(
       : -lowRiskSupplyPenalty(action.supplyIntent, selfHp, risk, panicRisk);
   }
   return 0;
+}
+
+function regearDefenceGainForLikelyThreat(features: readonly number[]): number {
+  const likely = readEncodedStyle(features, 43) ?? readEncodedStyle(features, 46);
+  if (likely === "magic") {
+    return clampSigned(inputFeature(features, 80));
+  }
+  if (likely === "ranged") {
+    return clampSigned(inputFeature(features, 81));
+  }
+  if (likely === "melee") {
+    return clampSigned(inputFeature(features, 82));
+  }
+  return Math.max(
+    clampSigned(inputFeature(features, 80)),
+    clampSigned(inputFeature(features, 81)),
+    clampSigned(inputFeature(features, 82))
+  );
 }
 
 function movementControlPrior(
@@ -1075,6 +1174,9 @@ function allowOffenceStrip(
   selfHp: number,
   selfFrozen: boolean
 ): boolean {
+  if (!offenceStripActionsEnabled) {
+    return false;
+  }
   return !selfFrozen &&
     selfHp >= 78 / 99 &&
     distance <= 1 &&

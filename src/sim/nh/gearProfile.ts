@@ -37,6 +37,9 @@ export interface NhSelectedGearProfile {
 
 const equipmentRows = equipmentRowsJson as readonly EquipmentBonusRow[];
 const equipmentRowByItemId = equipmentRowsByItemId(equipmentRows);
+const flexibleGearOffenceWeight = 1.15;
+const flexibleGearPrayerWeight = 0.08;
+const magicInterferenceItemPenalty = 56;
 
 const equipmentSlotByCacheSlot: Readonly<Record<number, EquipmentSlot | undefined>> = {
   0: "head",
@@ -64,10 +67,10 @@ const rangedWeaponCandidates: readonly NhWeaponId[] = javaBotRangedWeaponCandida
 const meleeWeaponCandidates: readonly NhWeaponId[] = javaBotMeleeWeaponCandidates;
 
 const weaponItemById = {
-  kodai: canonicalNhLoadoutEquipment["kodai-robes"].weapon,
+  kodai: canonicalNhGear.kodaiWand,
   ancient_staff: canonicalNhGear.ancientStaff,
   staff_of_the_dead: canonicalNhGear.staffOfTheDead,
-  armadyl_crossbow: canonicalNhLoadoutEquipment["acb-hides"].weapon,
+  armadyl_crossbow: canonicalNhGear.armadylCrossbow,
   rune_crossbow: canonicalNhGear.runeCrossbow,
   magic_shortbow: canonicalNhGear.magicShortbow,
   dragon_crossbow: canonicalNhGear.dragonCrossbow,
@@ -89,11 +92,15 @@ export function inferNhSelectedGearProfile(input: {
   const ownedItems = collectProfileOwnedItems(input.equipment, input.previousProfile, input.inventoryItems, effectiveStrictInventory);
   const styleSelectionItems = collectStyleSelectionItems(input.equipment, input.inventoryItems, ownedItems);
   const currentWeaponId = nhGearProfileWeaponIdForEquipment(input.equipment);
-  const magicWeaponId = pickOwnedWeapon(ownedItems, magicWeaponCandidates, effectiveStrictInventory ? currentWeaponId ?? "kodai" : "kodai");
+  const magicWeaponId = pickOwnedWeapon(
+    ownedItems,
+    magicWeaponCandidates,
+    effectiveStrictInventory ? currentWeaponId ?? "staff_of_the_dead" : "staff_of_the_dead"
+  );
   const rangedWeaponId = pickOwnedWeapon(
     ownedItems,
     rangedWeaponCandidates,
-    effectiveStrictInventory ? currentWeaponId ?? "armadyl_crossbow" : "armadyl_crossbow"
+    effectiveStrictInventory ? currentWeaponId ?? "dragon_crossbow" : "dragon_crossbow"
   );
   const meleeWeaponId = pickOwnedWeapon(
     ownedItems,
@@ -233,18 +240,12 @@ export function nhGearProfileActionEquipment(input: {
       equipment = optimizeFlexibleGear({
         equipment,
         profile: input.profile,
+        offenceStyle: input.action.offenceStyle,
         threatStyle: input.threatStyle,
         underPressure: input.underPressure,
         hitpoints: input.hitpoints
       });
     }
-  }
-  if (input.action.offenceStyle === "magic") {
-    equipment = {
-      ...equipment,
-      body: input.profile.magicChestItem,
-      legs: input.profile.magicLegsItem
-    };
   }
   if (input.action.specIntent !== "none" && nhGearProfileCanEquipGraniteMaul(input.profile)) {
     return {
@@ -552,6 +553,7 @@ function applyJavaStyleLoadout(
       ...currentEquipment,
       weapon: weaponItemById[profile.rangedWeaponId],
       shield: profile.rangedShieldItem,
+      body: profile.rangedChestItem,
       ammo: profile.rangedAmmoItem
     };
   }
@@ -563,28 +565,34 @@ function applyJavaStyleLoadout(
   };
 }
 
-function optimizeFlexibleGear(input: {
+export function nhGearProfileOptimizeFlexibleEquipment(input: {
   readonly equipment: VisibleEquipment;
   readonly profile: NhSelectedGearProfile;
+  readonly offenceStyle: NhOffenceStyle | null;
   readonly threatStyle: NhOffenceStyle | null;
   readonly underPressure: boolean;
   readonly hitpoints: number;
 }): VisibleEquipment {
-  let swaps = 0;
+  return optimizeFlexibleGear(input);
+}
+
+export function nhGearProfileDefenceScoreAgainstThreat(style: NhOffenceStyle | null, bonuses: BonusTable): number {
+  return defenceScoreAgainstThreat(style, bonuses);
+}
+
+function optimizeFlexibleGear(input: {
+  readonly equipment: VisibleEquipment;
+  readonly profile: NhSelectedGearProfile;
+  readonly offenceStyle: NhOffenceStyle | null;
+  readonly threatStyle: NhOffenceStyle | null;
+  readonly underPressure: boolean;
+  readonly hitpoints: number;
+}): VisibleEquipment {
   let equipment: Partial<Record<EquipmentSlot, VisibleEquipmentItem>> = { ...input.equipment };
-  for (const slot of flexibleGearSlots) {
-    const candidate = selectFlexibleItemForSlot({
-      slot,
-      profile: input.profile,
-      currentItem: equipment[slot],
-      threatStyle: input.threatStyle,
-      underPressure: input.underPressure,
-      hitpoints: input.hitpoints
-    });
-    if (!candidate || candidate.itemId === equipment[slot]?.itemId) {
-      continue;
-    }
-    equipment = { ...equipment, [slot]: candidate };
+  const candidates = collectFlexibleSwapCandidates(input).sort((left, right) => right.netGain - left.netGain);
+  let swaps = 0;
+  for (const candidate of candidates) {
+    equipment = { ...equipment, [candidate.slot]: candidate.item };
     swaps += 1;
     if (swaps >= 3) {
       break;
@@ -593,21 +601,72 @@ function optimizeFlexibleGear(input: {
   return equipment;
 }
 
+function collectFlexibleSwapCandidates(input: {
+  readonly equipment: VisibleEquipment;
+  readonly profile: NhSelectedGearProfile;
+  readonly offenceStyle: NhOffenceStyle | null;
+  readonly threatStyle: NhOffenceStyle | null;
+  readonly underPressure: boolean;
+  readonly hitpoints: number;
+}): Array<{ readonly slot: EquipmentSlot; readonly item: VisibleEquipmentItem; readonly netGain: number }> {
+  const candidates: Array<{ readonly slot: EquipmentSlot; readonly item: VisibleEquipmentItem; readonly netGain: number }> = [];
+  for (const slot of flexibleGearSlots) {
+    if (isCoreOffenceSlot(input.offenceStyle, slot)) {
+      continue;
+    }
+    const candidate = selectFlexibleItemForSlot({
+      slot,
+      profile: input.profile,
+      currentItem: input.equipment[slot],
+      offenceStyle: input.offenceStyle,
+      threatStyle: input.threatStyle,
+      underPressure: input.underPressure,
+      hitpoints: input.hitpoints
+    });
+    const currentItem = input.equipment[slot];
+    if (!candidate || candidate.itemId === currentItem?.itemId) {
+      continue;
+    }
+    const netGain =
+      flexibleItemUtility(candidate, input.offenceStyle, input.threatStyle, input.underPressure, input.hitpoints) -
+      (currentItem ? flexibleItemUtility(currentItem, input.offenceStyle, input.threatStyle, input.underPressure, input.hitpoints) : 0);
+    if (netGain > 0) {
+      candidates.push({ slot, item: candidate, netGain });
+    }
+  }
+  return candidates;
+}
+
 const flexibleGearSlots = [
   "head",
   "cape",
   "amulet",
   "body",
+  "shield",
   "legs",
   "hands",
   "feet",
   "ring"
 ] as const satisfies readonly EquipmentSlot[];
 
+function isCoreOffenceSlot(style: NhOffenceStyle | null, slot: EquipmentSlot): boolean {
+  if (style === null) {
+    return false;
+  }
+  if (style === "magic") {
+    return slot === "weapon" || slot === "shield" || slot === "body";
+  }
+  if (style === "ranged") {
+    return slot === "weapon" || slot === "shield" || slot === "body" || slot === "ammo";
+  }
+  return slot === "weapon" || slot === "shield";
+}
+
 function selectFlexibleItemForSlot(input: {
   readonly slot: EquipmentSlot;
   readonly profile: NhSelectedGearProfile;
   readonly currentItem: VisibleEquipmentItem | undefined;
+  readonly offenceStyle: NhOffenceStyle | null;
   readonly threatStyle: NhOffenceStyle | null;
   readonly underPressure: boolean;
   readonly hitpoints: number;
@@ -623,7 +682,7 @@ function selectFlexibleItemForSlot(input: {
   let best = candidates[0];
   let bestScore = Number.NEGATIVE_INFINITY;
   for (const candidate of candidates) {
-    const score = flexibleItemUtility(candidate, input.threatStyle, input.underPressure, input.hitpoints);
+    const score = flexibleItemUtility(candidate, input.offenceStyle, input.threatStyle, input.underPressure, input.hitpoints);
     if (score > bestScore) {
       best = candidate;
       bestScore = score;
@@ -634,6 +693,7 @@ function selectFlexibleItemForSlot(input: {
 
 function flexibleItemUtility(
   item: VisibleEquipmentItem,
+  offenceStyle: NhOffenceStyle | null,
   threatStyle: NhOffenceStyle | null,
   underPressure: boolean,
   hp: number
@@ -648,7 +708,39 @@ function flexibleItemUtility(
   } else if (hp <= 65) {
     defenceWeight *= 1.12;
   }
-  return defenceScoreAgainstThreat(threatStyle, bonuses) * defenceWeight + bonuses.prayer_bonus * 0.08;
+  return (
+    flexibleOffenceScore(item, offenceStyle, bonuses) * flexibleGearOffenceWeight +
+    defenceScoreAgainstThreat(threatStyle, bonuses) * defenceWeight +
+    bonuses.prayer_bonus * flexibleGearPrayerWeight
+  );
+}
+
+function flexibleOffenceScore(
+  item: VisibleEquipmentItem,
+  style: NhOffenceStyle | null,
+  bonuses: BonusTable
+): number {
+  if (style === null) {
+    return 0;
+  }
+  if (style === "magic") {
+    let score = bonuses.magic_attack_bonus + 2 * bonuses.magic_damage_bonus;
+    if (isMagicInterferenceSlot(item) && bonuses.magic_attack_bonus < 0) {
+      // Source: CombatUtils.getMagicInterference() applies one 0.45 effective-attack penalty per negative magic chest/legs piece.
+      score -= magicInterferenceItemPenalty;
+    }
+    return score;
+  }
+  if (style === "ranged") {
+    return bonuses.range_attack_bonus + 1.8 * bonuses.ranged_strength_bonus;
+  }
+  return Math.max(bonuses.stab_attack_bonus, bonuses.slash_attack_bonus, bonuses.crush_attack_bonus) +
+    1.8 * bonuses.melee_strength_bonus;
+}
+
+function isMagicInterferenceSlot(item: VisibleEquipmentItem): boolean {
+  const slot = slotForItem(item);
+  return slot === "body" || slot === "legs";
 }
 
 function styleScore(item: VisibleEquipmentItem, style: NhOffenceStyle): number {

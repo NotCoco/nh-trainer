@@ -470,16 +470,16 @@ export const runtimePlayerCombatDefaultLevels: CombatLevels = {
   magic: 99
 };
 export const runtimePlayerCombatDefaultSupplies: RuntimePlayerCombatSupplies = {
-  manta_ray: 4,
+  manta_ray: 13,
   shark: 0,
-  anglerfish: 0,
-  karambwan: 4,
-  saradomin_brew: 2,
-  super_restore: 2,
-  sanfew_serum: 0,
-  super_combat: 1,
+  anglerfish: 1,
+  karambwan: 0,
+  saradomin_brew: 12,
+  super_restore: 0,
+  sanfew_serum: 8,
+  super_combat: 4,
   ranging_potion: 0,
-  bastion: 1
+  bastion: 4
 };
 // Source: NhStakerBot's client-side opponent special estimate can need a full 0->100 spec regen window.
 const maxRetainedEventAgeTicks = 550;

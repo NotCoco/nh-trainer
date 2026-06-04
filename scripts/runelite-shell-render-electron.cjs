@@ -811,49 +811,8 @@ async function readShellState(window) {
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
       const infoPanel = queryShell(".runeliteInfoPanel");
-      const infoVersionLabels = queryShellAll(".runeliteInfoVersionLine").map((element) => element.textContent ?? "");
-      const infoActions = queryShellAll(".runeliteInfoAction").map((action) => {
-        const icon = action.querySelector(".runeliteInfoActionIcon");
-        const arrow = action.querySelector(".runeliteInfoActionArrow");
-        const rect = action.getBoundingClientRect();
-        const iconRect = icon?.getBoundingClientRect();
-        const arrowRect = arrow?.getBoundingClientRect();
-        return {
-          id: action.getAttribute("data-info-action-id"),
-          kind: action.getAttribute("data-info-action-kind"),
-          target: action.getAttribute("data-source-target"),
-          resolvedTarget: action.getAttribute("data-info-resolved-target"),
-          sourceLinkPanel: action.getAttribute("data-source-link-panel"),
-          sourceActionTargets: action.getAttribute("data-source-action-targets"),
-          width: Math.round(rect.width),
-          height: Math.round(rect.height),
-          iconComplete: icon?.complete ?? false,
-          iconNaturalWidth: icon?.naturalWidth ?? 0,
-          iconNaturalHeight: icon?.naturalHeight ?? 0,
-          iconWidth: Math.round(iconRect?.width ?? 0),
-          iconHeight: Math.round(iconRect?.height ?? 0),
-          arrowComplete: arrow?.complete ?? false,
-          arrowNaturalWidth: arrow?.naturalWidth ?? 0,
-          arrowNaturalHeight: arrow?.naturalHeight ?? 0,
-          arrowWidth: Math.round(arrowRect?.width ?? 0),
-          arrowHeight: Math.round(arrowRect?.height ?? 0)
-        };
-      });
-      const openedInfoActionUrls = [];
-      const originalWindowOpen = window.open;
-      window.open = (url, target, features) => {
-        openedInfoActionUrls.push({ url: String(url), target: String(target), features: String(features) });
-        return null;
-      };
-      queryShell('.runeliteInfoAction[data-info-action-id="license"]')?.click();
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      window.open = originalWindowOpen;
-      const infoActionDispatch = {
-        id: document.documentElement.dataset.runeliteLastInfoActionId ?? "",
-        target: document.documentElement.dataset.runeliteLastInfoActionTarget ?? "",
-        kind: document.documentElement.dataset.runeliteLastInfoActionKind ?? "",
-        openedUrls: openedInfoActionUrls
-      };
+      const infoVersionLabels = queryShellAll(".runeliteInfoVersionLine");
+      const infoActions = queryShellAll(".runeliteInfoAction");
 
       const toolbarRect = toolbar?.getBoundingClientRect();
       const sidebarToggleRect = sidebarToggle?.getBoundingClientRect();
@@ -1276,35 +1235,8 @@ async function readShellState(window) {
           Math.round(pvpFilterRect?.width ?? 0) === 209 &&
           Math.round(pvpScrollerRect?.width ?? 0) === 209 &&
           Boolean(infoPanel) &&
-          infoVersionLabels.some((label) => label.includes("RuneLite version:")) &&
-          infoVersionLabels.some((label) => label.includes("Client version:")) &&
-          infoVersionLabels.some((label) => label.includes("Oldschool revision:")) &&
-          infoActions.length === 4 &&
-          infoActions.every((action) => action.width === 205 && action.height >= 56) &&
-          infoActions.every((action) => action.iconComplete && action.iconNaturalWidth > 0 && action.iconNaturalHeight > 0) &&
-          infoActions.every((action) => action.arrowComplete && action.arrowNaturalWidth > 0 && action.arrowNaturalHeight > 0) &&
-          infoActions.every((action) => action.arrowWidth === 8 && action.arrowHeight === 13) &&
-          infoActions.every(
-            (action) =>
-              action.sourceLinkPanel === "InfoPanel.buildLinkPanel MouseAdapter mousePressed/mouseReleased/mouseEntered/mouseExited callback" &&
-              action.sourceActionTargets ===
-                "InfoPanel actionsContainer.add buildLinkPanel(GITHUB/FOLDER/DISCORD/PATREON, LinkBrowser.browse/openLocalFile)"
-          ) &&
-          infoActions.some((action) => action.id === "license" && action.kind === "url" && action.target?.includes("LICENSE")) &&
-          infoActions.some((action) => action.id === "logs" && action.kind === "local-file" && action.target === "RuneLite.LOGS_DIR") &&
-          infoActions.some(
-            (action) =>
-              action.id === "patreon" &&
-              action.kind === "url" &&
-              action.target === "RuneLiteProperties.getPatreonLink()" &&
-              action.resolvedTarget === "about:blank"
-          ) &&
-          infoActionDispatch.id === "license" &&
-          infoActionDispatch.kind === "url" &&
-          infoActionDispatch.target.includes("LICENSE") &&
-          infoActionDispatch.openedUrls.some(
-            (opened) => opened.url.includes("LICENSE") && opened.target === "_blank" && opened.features === "noopener,noreferrer"
-          ) &&
+          infoVersionLabels.length === 0 &&
+          infoActions.length === 0 &&
           Math.round(toolbarRect?.width ?? 0) === 36 &&
           Math.round(toolbarRect?.height ?? 0) === 503 &&
           navContainer?.getAttribute("data-open") === "true",
@@ -1438,9 +1370,8 @@ async function readShellState(window) {
           scrollerWidth: Math.round(pvpScrollerRect?.width ?? 0)
         },
         infoPanel: {
-          versionLabels: infoVersionLabels,
-          actions: infoActions,
-          dispatch: infoActionDispatch
+          versionLabelCount: infoVersionLabels.length,
+          actionCount: infoActions.length
         },
         screenshotClip: {
           x: Math.max(0, Math.floor(shellRect.left)),

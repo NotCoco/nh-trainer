@@ -811,13 +811,17 @@
   {
     "id": "server-nh-policy-bridge-contract",
     "area": "bot",
-    "title": "NH policy bridge has 77 inputs and action count derived from offence, defence, movement, supply, and spec intents.",
+    "title": "NH policy bridge has explicit input count/versioning and action count derived from offence, defence, movement, supply, and spec intents.",
     "sourcePath": "nh-osrs-184-master/nh-osrs-184-master/Nh-master/nh-server/src/main/java/io/ruin/model/entity/player/ai/NhStakerSelfPlayManager.java",
     "requiredSnippets": [
       "private static final int BASE_ACTION_COUNT = OFFENCE_STYLES.length",
       "private static final int LEGACY_ACTION_COUNT = BASE_ACTION_COUNT * SPEC_INTENTS.length;",
       "private static final int ACTION_COUNT = LEGACY_ACTION_COUNT + (EXTRA_BASE_ACTION_COUNT * SPEC_INTENTS.length);",
-      "private static final int INPUT_SIZE = 77;",
+      "private static final int V12_INPUT_SIZE = 86;",
+      "private static final int INPUT_SIZE = 90;",
+      "private static final int STORE_VERSION = 13;",
+      "private static final int V12_STORE_VERSION = 12;",
+      "private static final int LEGACY_STORE_VERSION = 11;",
       "public NhStakerBot.CombatDecision decide(AIPlayer self, Player opponent,"
     ],
     "implementationRule": "Policy loading must keep this bridge shape unless a new explicit compatibility version is introduced."

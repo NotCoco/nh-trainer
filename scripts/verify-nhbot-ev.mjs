@@ -264,7 +264,7 @@ assert(
   `TS runtime EV guard should override protected mage to ranged using candidate selected gear, got ${candidateGearEv.effectiveAction.offenceStyle}`
 );
 assert(
-  candidateGearEv.state.actors.opponent.equipment.weapon?.itemId === 11785,
+  candidateGearEv.state.actors.opponent.equipment.weapon?.itemId === 21902,
   `TS runtime EV guard should equip the selected ranged weapon after the EV override, got ${JSON.stringify(candidateGearEv.state.actors.opponent.equipment.weapon)}`
 );
 

@@ -967,9 +967,9 @@ function applyActorAction(
   let nextQueuedHits = [...queuedHits];
   let healed = 0;
 
-  actor = applyPrayerChoice(actor, action);
-  actor = applyMovement(actor, opponent, currentTick, action.movementIntent);
   const weaponId = weaponForAction(action, actor);
+  actor = applyPrayerChoice(actor, action);
+  actor = applyMovement(actor, opponent, currentTick, action, weaponId);
   actor = equipWeapon(actor, currentTick, weaponId, visibleEquipmentForAction(actor, action, weaponId));
   const supply = applySupplyIntent(actor, opponent, currentTick, action);
   actor = supply.actor;
@@ -982,7 +982,7 @@ function applyActorAction(
     attackerFrozen: isFrozen(actor.locks, currentTick),
     locks: actor.locks,
     attackTimer: actor.attackTimer,
-    weapon: nhWeaponProfiles[weaponId]
+    weapon: combatProfileForNhDuelAction(action, weaponId, actor.tile, opponent.tile)
   });
 
   actor = {
@@ -1068,7 +1068,8 @@ function applyMovement(
   actor: NhDuelActorState,
   opponent: NhDuelActorState,
   tick: number,
-  movement: NhMovementIntent
+  action: NhPolicyAction,
+  weaponId: NhWeaponId
 ): NhDuelActorState {
   if (!canMove(actor.locks, tick)) {
     return {
@@ -1078,7 +1079,7 @@ function applyMovement(
     };
   }
 
-  const tile = nextTileForMovement(actor.tile, opponent.tile, movement);
+  const tile = nextTileForMovement(actor.tile, opponent.tile, action, weaponId);
   const moved = tile.x !== actor.tile.x || tile.y !== actor.tile.y;
   return {
     ...actor,
@@ -1089,9 +1090,15 @@ function applyMovement(
   };
 }
 
-function nextTileForMovement(self: TilePosition, opponent: TilePosition, movement: NhMovementIntent): TilePosition {
+function nextTileForMovement(
+  self: TilePosition,
+  opponent: TilePosition,
+  action: NhPolicyAction,
+  weaponId: NhWeaponId
+): TilePosition {
+  const movement = action.movementIntent;
   if (movement === "pressure") {
-    return stepToward(self, opponent);
+    return pressureTileForAction(self, opponent, action, weaponId);
   }
   if (movement === "stand_under") {
     return { ...opponent };
@@ -1106,6 +1113,23 @@ function nextTileForMovement(self: TilePosition, opponent: TilePosition, movemen
     x: self.x + direction.dx,
     y: self.y + direction.dy
   };
+}
+
+function pressureTileForAction(
+  self: TilePosition,
+  opponent: TilePosition,
+  action: NhPolicyAction,
+  weaponId: NhWeaponId
+): TilePosition {
+  const distance = chebyshevDistance(self, opponent);
+  if (action.offenceStyle === "melee") {
+    return distance <= 1 ? self : stepToward(self, opponent);
+  }
+  const range = attackRangeForNhDuelAction(action, weaponId, distance);
+  if (distance >= 1 && distance <= range) {
+    return self;
+  }
+  return distance === 0 ? stepAway(self, opponent) : stepToward(self, opponent);
 }
 
 function directionForMovement(movement: NhMovementIntent): { readonly dx: number; readonly dy: number } {
@@ -1145,10 +1169,16 @@ function stepToward(self: TilePosition, target: TilePosition): TilePosition {
 }
 
 function stepAway(self: TilePosition, target: TilePosition): TilePosition {
+  if (self.x === target.x && self.y === target.y) {
+    return {
+      ...self,
+      x: self.x - 1
+    };
+  }
   return {
     ...self,
-    x: self.x - Math.sign(target.x - self.x),
-    y: self.y - Math.sign(target.y - self.y)
+    x: self.x + Math.sign(self.x - target.x),
+    y: self.y + Math.sign(self.y - target.y)
   };
 }
 
@@ -1785,6 +1815,51 @@ function weaponForAction(action: NhPolicyAction, actor: NhDuelActorState): NhWea
     return actor.gearProfile?.rangedWeaponId ?? "armadyl_crossbow";
   }
   return actor.gearProfile?.meleeWeaponId ?? "tentacle_whip";
+}
+
+function combatProfileForNhDuelAction(
+  action: NhPolicyAction,
+  weaponId: NhWeaponId,
+  attackerTile: TilePosition,
+  defenderTile: TilePosition
+) {
+  const base = nhWeaponProfiles[weaponId];
+  if (action.offenceStyle === "magic") {
+    return {
+      ...base,
+      style: "magic" as CombatStyle,
+      cooldownTicks: 5,
+      attackRange: 10
+    };
+  }
+  if (action.offenceStyle !== "ranged") {
+    return base;
+  }
+
+  const distance = chebyshevDistance(attackerTile, defenderTile);
+  const attackRange = attackRangeForNhDuelAction(action, weaponId, distance);
+  if (attackRange > base.attackRange) {
+    return {
+      ...base,
+      attackRange
+    };
+  }
+  return {
+    ...base,
+    cooldownTicks: Math.max(0, base.cooldownTicks - 1)
+  };
+}
+
+function attackRangeForNhDuelAction(action: NhPolicyAction, weaponId: NhWeaponId, distance: number): number {
+  if (action.offenceStyle === "melee") {
+    return 1;
+  }
+  if (action.offenceStyle === "magic") {
+    return 10;
+  }
+  const baseRange = nhWeaponProfiles[weaponId].attackRange;
+  const longRange = Math.min(baseRange + 2, 10);
+  return distance > baseRange && distance <= longRange ? longRange : baseRange;
 }
 
 function combatStyleForOffence(style: NhOffenceStyle): CombatStyle {

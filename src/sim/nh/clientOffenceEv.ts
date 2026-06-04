@@ -1,6 +1,7 @@
 import equipmentRowsJson from "../../generated/equipment-bonuses.json";
 import type { EquipmentSlot, VisibleEquipment, VisibleEquipmentItem } from "../clientView";
 import type { BonusTable, CombatStyle } from "../combat/formulas";
+import { nhWeaponProfiles } from "../combat/player-combat";
 import { aggregateVisibleEquipmentBonuses, type EquipmentBonusRow } from "../equipment/equipment";
 import type { SimStats } from "../items/consumables";
 import { activeProtectionPrayer, protectPrayerForStyle } from "../prayer/prayers";
@@ -11,7 +12,6 @@ import { nhLoadouts, type NhLoadoutId } from "./loadouts";
 import type { NhOffenceStyle } from "./policy-bridge";
 
 const equipmentRows = equipmentRowsJson as readonly EquipmentBonusRow[];
-const clientThreatRange = 8;
 const offensivePrayerBoost = 0.23;
 const candidateLoadoutForVisibleStyle = {
   magic: "kodai-robes",
@@ -25,7 +25,7 @@ export function nhClientOffenceEv(
   stats: SimStats = context.self.stats,
   actor: NhDuelActorState = context.self
 ): number {
-  if (!nhStyleInOffensiveRange(context, style)) {
+  if (!nhStyleInOffensiveRange(context, style, actor)) {
     return 0;
   }
   const expectedBonuses = aggregateVisibleEquipmentBonuses(nhCandidateEquipmentForStyle(actor, style), equipmentRows);
@@ -47,7 +47,11 @@ export function nhClientOffenceEv(
   return (baseHit / 42) * defenceFactor * prayerFactor * statFactor * accuracyFactor * tankFactor;
 }
 
-export function nhStyleInOffensiveRange(context: NhDuelControllerContext, style: NhOffenceStyle): boolean {
+export function nhStyleInOffensiveRange(
+  context: NhDuelControllerContext,
+  style: NhOffenceStyle,
+  actor: NhDuelActorState = context.self
+): boolean {
   if (context.opponent.observedInfoKnown === false) {
     return false;
   }
@@ -58,7 +62,19 @@ export function nhStyleInOffensiveRange(context: NhDuelControllerContext, style:
     return false;
   }
   const distance = chebyshevDistance(context.self.tile, context.opponent.tile);
-  return distance > 0 && distance <= clientThreatRange;
+  return distance > 0 && distance <= nhAttackRangeForOffenceStyle(actor, style);
+}
+
+function nhAttackRangeForOffenceStyle(actor: NhDuelActorState, style: NhOffenceStyle): number {
+  if (style === "magic") {
+    return 10;
+  }
+  if (style === "ranged") {
+    const weaponId = actor.gearProfile?.rangedWeaponId ?? actor.weaponId;
+    const profile = nhWeaponProfiles[weaponId];
+    return profile.style === "ranged" ? Math.min(profile.attackRange + 2, 10) : 10;
+  }
+  return 1;
 }
 
 export function nhCombatStyleForOffence(style: NhOffenceStyle): CombatStyle {
