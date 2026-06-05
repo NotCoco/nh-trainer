@@ -1,7 +1,8 @@
-import { useState, type CSSProperties, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from "react";
 
 type AimButton = "left" | "right";
 type AimShape = "rect";
+type AimFlowPhase = "ui" | "world";
 
 interface AimRect {
   readonly x: number;
@@ -23,9 +24,26 @@ interface QueuedAimTarget extends AimTarget {
 }
 
 interface AimTargetCursor {
-  readonly templateIndex: number;
-  readonly stepIndex: number;
-  readonly rightClickRound: number;
+  readonly phase: AimFlowPhase;
+  readonly uiGroup: readonly TargetId[];
+  readonly uiIndex: number;
+  readonly forceUiAfterWorld: boolean;
+  readonly rightClickCooldown: number;
+  readonly serial: number;
+}
+
+interface AimClientBounds {
+  readonly width: number;
+  readonly height: number;
+  readonly offsetX: number;
+}
+
+interface AimResizeDrag {
+  readonly side: "left" | "right";
+  readonly pointerId: number;
+  readonly startClientX: number;
+  readonly startClientY: number;
+  readonly startBounds: AimClientBounds;
 }
 
 interface AimStats {
@@ -34,9 +52,36 @@ interface AimStats {
   readonly streak: number;
 }
 
+type AimLeaderboardScope = "recent" | "week" | "all";
+
+interface AimCompletedRun {
+  readonly score: number;
+  readonly misses: number;
+  readonly streak: number;
+  readonly completedAtMs: number;
+}
+
+interface AimLeaderboardEntry extends AimCompletedRun {
+  readonly id: string;
+  readonly name: string;
+  readonly savedAtMs: number;
+}
+
 const aimClientWidth = 765;
 const aimClientHeight = 503;
-const visibleTargetCount = 6;
+const aimClientMinWidth = 420;
+const aimClientMinHeight = 276;
+const aimClientMaxWidth = 1000;
+const aimClientMaxHeight = 760;
+const aimRoundDurationMs = 30_000;
+const aimHighScoreStorageKey = "kronos-nh-aim-trainer-high-score";
+const aimLeaderboardStorageKey = "kronos-nh-aim-trainer-leaderboard";
+const aimPlayerNameStorageKey = "kronos-nh-aim-trainer-player-name";
+const aimLeaderboardMaxEntries = 80;
+const aimLeaderboardVisibleEntries = 8;
+const aimPlayerNameMaxLength = 18;
+const aimWeekMs = 7 * 24 * 60 * 60 * 1000;
+const visibleTargetCount = 2;
 const walkHereRow = { width: 92, height: 15, menuHeight: 37 } as const;
 
 const inventoryGrid = {
@@ -83,7 +128,7 @@ const baseTargets = {
 
 type TargetId = keyof typeof baseTargets;
 
-const drillTemplates: readonly (readonly TargetId[])[] = [
+const rawUiClickGroups = [
   ["tab-inventory", "inv-range-body", "inv-range-weapon", "tab-magic", "spell-ice-barrage", "player-center"],
   ["tab-inventory", "inv-mage-body", "inv-mage-legs", "tab-magic", "spell-blood-blitz", "player-west"],
   ["tab-inventory", "inv-ags", "tab-combat", "spec-bar", "player-east"],
@@ -91,6 +136,24 @@ const drillTemplates: readonly (readonly TargetId[])[] = [
   ["tab-equipment", "equip-helmet", "equip-shield", "equip-boots", "tab-inventory", "inv-rune-pouch"],
   ["scene-top-left", "tab-magic", "spell-ice-blitz", "player-north"],
   ["scene-east", "tab-magic", "spell-blood-barrage", "player-south"]
+] as const satisfies readonly (readonly TargetId[])[];
+
+const uiClickGroups: readonly (readonly TargetId[])[] = rawUiClickGroups.map(
+  (group) => group.filter((id) => !isWorldTargetId(id)) as readonly TargetId[]
+);
+
+const worldLeftTargetIds: readonly TargetId[] = [
+  "player-center",
+  "player-north",
+  "player-south",
+  "player-west",
+  "player-east",
+  "player-diagonal",
+  "scene-top-left",
+  "scene-top-right",
+  "scene-west",
+  "scene-east",
+  "scene-south"
 ];
 
 const rightClickTemplates: readonly TargetId[] = ["player-north", "player-diagonal", "scene-west", "scene-south"];
@@ -99,26 +162,110 @@ export function NhAimTrainer(): JSX.Element {
   const [running, setRunning] = useState(false);
   const [stats, setStats] = useState<AimStats>({ hits: 0, misses: 0, streak: 0 });
   const [targetQueue, setTargetQueue] = useState<readonly QueuedAimTarget[]>([]);
-  const [targetCursor, setTargetCursor] = useState<AimTargetCursor>({ templateIndex: 0, stepIndex: 0, rightClickRound: 0 });
+  const [targetCursor, setTargetCursor] = useState<AimTargetCursor>(() => randomAimCursor());
+  const [enteredTargetKeys, setEnteredTargetKeys] = useState<readonly string[]>([]);
+  const [timeRemainingMs, setTimeRemainingMs] = useState(aimRoundDurationMs);
+  const [highScore, setHighScore] = useState(readAimHighScore);
+  const [playerName, setPlayerName] = useState(readAimPlayerName);
+  const [leaderboardScope, setLeaderboardScope] = useState<AimLeaderboardScope>("recent");
+  const [leaderboardEntries, setLeaderboardEntries] = useState<readonly AimLeaderboardEntry[]>(
+    readAimLeaderboardEntries
+  );
+  const [lastCompletedRun, setLastCompletedRun] = useState<AimCompletedRun | null>(null);
+  const [savedRunId, setSavedRunId] = useState<string | null>(null);
+  const [clientBounds, setClientBounds] = useState<AimClientBounds>({
+    width: aimClientWidth,
+    height: aimClientHeight,
+    offsetX: 0
+  });
+  const hitsRef = useRef(0);
+  const statsRef = useRef<AimStats>({ hits: 0, misses: 0, streak: 0 });
+  const roundDeadlineRef = useRef<number | null>(null);
+  const resizeDragRef = useRef<AimResizeDrag | null>(null);
+  const leaderboardRows = aimLeaderboardRows(leaderboardEntries, leaderboardScope, Date.now());
 
   const start = (): void => {
-    const initialCursor = {
-      templateIndex: Math.trunc(Math.random() * drillTemplates.length),
-      stepIndex: 0,
-      rightClickRound: Math.trunc(Math.random() * 3)
-    };
+    const initialCursor = randomAimCursor();
     const initialTargets = fillVisibleTargets([], initialCursor);
+    const cleanStats = { hits: 0, misses: 0, streak: 0 };
+    hitsRef.current = 0;
+    statsRef.current = cleanStats;
+    roundDeadlineRef.current = performance.now() + aimRoundDurationMs;
     setRunning(true);
     setTargetQueue(initialTargets.targets);
+    setEnteredTargetKeys([]);
     setTargetCursor(initialTargets.cursor);
-    setStats({ hits: 0, misses: 0, streak: 0 });
+    setStats(cleanStats);
+    setTimeRemainingMs(aimRoundDurationMs);
+    setLastCompletedRun(null);
+    setSavedRunId(null);
   };
 
   const reset = (): void => {
+    const cleanStats = { hits: 0, misses: 0, streak: 0 };
+    hitsRef.current = 0;
+    statsRef.current = cleanStats;
+    roundDeadlineRef.current = null;
     setRunning(false);
     setTargetQueue([]);
-    setStats({ hits: 0, misses: 0, streak: 0 });
+    setEnteredTargetKeys([]);
+    setStats(cleanStats);
+    setTimeRemainingMs(aimRoundDurationMs);
+    setLastCompletedRun(null);
+    setSavedRunId(null);
   };
+
+  useEffect(() => {
+    if (!running) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      const deadline = roundDeadlineRef.current;
+      if (deadline === null) {
+        return;
+      }
+      const nextRemaining = Math.max(0, deadline - performance.now());
+      setTimeRemainingMs(nextRemaining);
+      if (nextRemaining > 0) {
+        return;
+      }
+      roundDeadlineRef.current = null;
+      setRunning(false);
+      setTargetQueue([]);
+      setEnteredTargetKeys([]);
+      setLastCompletedRun({
+        score: statsRef.current.hits,
+        misses: statsRef.current.misses,
+        streak: statsRef.current.streak,
+        completedAtMs: Date.now()
+      });
+      setSavedRunId(null);
+      setHighScore((current) => saveAimHighScore(Math.max(current, hitsRef.current)));
+    }, 100);
+
+    return () => window.clearInterval(timer);
+  }, [running]);
+
+  useEffect(() => {
+    if (!running || targetQueue.length === 0) {
+      setEnteredTargetKeys([]);
+      return undefined;
+    }
+
+    const currentKeys = targetQueue.map((target) => target.queueKey);
+    const currentKeySet = new Set(currentKeys);
+    setEnteredTargetKeys((keys) => keys.filter((key) => currentKeySet.has(key)));
+    const timer = window.setTimeout(() => {
+      setEnteredTargetKeys((keys) => {
+        const retainedKeys = keys.filter((key) => currentKeySet.has(key));
+        const nextKeys = currentKeys.filter((key) => !retainedKeys.includes(key));
+        return [...retainedKeys, ...nextKeys];
+      });
+    }, 20);
+
+    return () => window.clearTimeout(timer);
+  }, [running, targetQueue]);
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>): void => {
     if (!running || targetQueue.length === 0 || (event.button !== 0 && event.button !== 2)) {
@@ -131,16 +278,25 @@ export function NhAimTrainer(): JSX.Element {
       (target) => target.button === button && pointInTarget(sourcePoint.x, sourcePoint.y, target)
     );
     if (hitIndex < 0) {
-      setStats((current) => ({ ...current, misses: current.misses + 1, streak: 0 }));
+      setStats((current) => {
+        const nextStats = { ...current, misses: current.misses + 1, streak: 0 };
+        statsRef.current = nextStats;
+        return nextStats;
+      });
       return;
     }
     const hitTarget = targetQueue[hitIndex];
 
-    setStats((current) => ({
-      hits: current.hits + 1,
-      misses: current.misses,
-      streak: current.streak + 1
-    }));
+    setStats((current) => {
+      const nextStats = {
+        hits: current.hits + 1,
+        misses: current.misses,
+        streak: current.streak + 1
+      };
+      hitsRef.current = nextStats.hits;
+      statsRef.current = nextStats;
+      return nextStats;
+    });
 
     if (hitTarget.button === "right") {
       const walkTarget = queuedTarget(
@@ -155,6 +311,108 @@ export function NhAimTrainer(): JSX.Element {
     const filledTargets = fillVisibleTargets(remainingTargets, targetCursor);
     setTargetQueue(filledTargets.targets);
     setTargetCursor(filledTargets.cursor);
+  };
+
+  const startResize = (side: "left" | "right", event: PointerEvent<HTMLButtonElement>): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    resizeDragRef.current = {
+      side,
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startBounds: clientBounds
+    };
+  };
+
+  const applyResize = (clientX: number, clientY: number): void => {
+    const resizeDrag = resizeDragRef.current;
+    if (!resizeDrag) {
+      return;
+    }
+    const deltaX = clientX - resizeDrag.startClientX;
+    const deltaY = clientY - resizeDrag.startClientY;
+    const nextHeight = clamp(resizeDrag.startBounds.height + deltaY, aimClientMinHeight, aimClientMaxHeight);
+    if (resizeDrag.side === "right") {
+      setClientBounds({
+        width: clamp(resizeDrag.startBounds.width + deltaX, aimClientMinWidth, aimClientMaxWidth),
+        height: nextHeight,
+        offsetX: resizeDrag.startBounds.offsetX
+      });
+      return;
+    }
+    const nextWidth = clamp(resizeDrag.startBounds.width - deltaX, aimClientMinWidth, aimClientMaxWidth);
+    setClientBounds({
+      width: nextWidth,
+      height: nextHeight,
+      offsetX: resizeDrag.startBounds.offsetX + resizeDrag.startBounds.width - nextWidth
+    });
+  };
+
+  const moveResize = (event: PointerEvent<HTMLButtonElement>): void => {
+    const resizeDrag = resizeDragRef.current;
+    if (!resizeDrag || resizeDrag.pointerId !== event.pointerId) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    applyResize(event.clientX, event.clientY);
+  };
+
+  const stopResize = (event: PointerEvent<HTMLButtonElement>): void => {
+    if (resizeDragRef.current?.pointerId !== event.pointerId) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    resizeDragRef.current = null;
+  };
+
+  const startMouseResize = (side: "left" | "right", event: MouseEvent<HTMLButtonElement>): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    resizeDragRef.current = {
+      side,
+      pointerId: -1,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startBounds: clientBounds
+    };
+    const handleMouseMove = (nativeEvent: globalThis.MouseEvent): void => {
+      nativeEvent.preventDefault();
+      applyResize(nativeEvent.clientX, nativeEvent.clientY);
+    };
+    const handleMouseUp = (nativeEvent: globalThis.MouseEvent): void => {
+      nativeEvent.preventDefault();
+      resizeDragRef.current = null;
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+  };
+
+  const changePlayerName = (value: string): void => {
+    setPlayerName(cleanAimPlayerNameInput(value));
+  };
+
+  const saveCompletedRun = (): void => {
+    if (!lastCompletedRun || lastCompletedRun.score <= 0 || savedRunId) {
+      return;
+    }
+    const cleanName = normalizeAimPlayerName(playerName);
+    const entry = {
+      ...lastCompletedRun,
+      id: aimLeaderboardEntryId(),
+      name: cleanName,
+      savedAtMs: Date.now()
+    };
+    setPlayerName(cleanName);
+    saveAimPlayerName(cleanName);
+    setLeaderboardEntries((entries) => saveAimLeaderboardEntries([entry, ...entries]));
+    setSavedRunId(entry.id);
   };
 
   return (
@@ -175,33 +433,135 @@ export function NhAimTrainer(): JSX.Element {
           </div>
         </div>
         <div className="nhAimTrainerStats" aria-live="polite">
-          <span>{running ? `${targetQueue.length} shown` : "ready"}</span>
-          <span>{running ? "any order" : "start"}</span>
-          <span>{stats.hits} hits</span>
+          <span>{running ? `${formatAimTimer(timeRemainingMs)} left` : "30.0s timer"}</span>
+          <span>{targetQueue.length} shown</span>
+          <span>{stats.hits} score</span>
+          <span>{highScore} local best</span>
           <span>{stats.misses} misses</span>
           <span>{stats.streak} streak</span>
         </div>
-        <div
-          className="nhAimTrainerClient"
-          data-testid="nh-aim-trainer-client"
-          data-running={running}
-          onContextMenu={(event) => event.preventDefault()}
-          onPointerDown={handlePointerDown}
-        >
-          {running
-            ? targetQueue.map((target, index) => (
-                <span
-                  key={target.queueKey}
-                  className="nhAimTrainerTarget"
-                  data-queue-index={index}
-                  data-required-button={target.button}
-                  data-shape={target.shape}
-                  data-target-id={target.id}
-                  style={targetStyle(target)}
-                  aria-label={target.label}
+        <div className="nhAimTrainerStage">
+          <div className="nhAimTrainerSidebar">
+            <div className="nhAimTrainerLegend" aria-label="Aim trainer target colors">
+              <span className="nhAimTrainerLegendItem">
+                <span className="nhAimTrainerLegendSwatch" aria-hidden="true" />
+                <span>Black: left-click</span>
+              </span>
+              <span className="nhAimTrainerLegendItem">
+                <span className="nhAimTrainerLegendSwatch" data-required-button="right" aria-hidden="true" />
+                <span>Blue: right-click</span>
+              </span>
+            </div>
+            <div className="nhAimTrainerSave">
+              <label>
+                <span>Name</span>
+                <input
+                  value={playerName}
+                  maxLength={aimPlayerNameMaxLength}
+                  placeholder="Anonymous"
+                  onChange={(event) => changePlayerName(event.currentTarget.value)}
                 />
-              ))
-            : null}
+              </label>
+              <button
+                type="button"
+                onClick={saveCompletedRun}
+                disabled={!lastCompletedRun || lastCompletedRun.score <= 0 || savedRunId !== null}
+              >
+                {savedRunId ? "Saved" : "Save"}
+              </button>
+              <span>{lastCompletedRun ? `${lastCompletedRun.score} ready` : "Finish a run"}</span>
+            </div>
+            <div className="nhAimTrainerLeaderboard" aria-label="Aim trainer leaderboard">
+              <div className="nhAimTrainerLeaderboardTabs">
+                <button
+                  type="button"
+                  aria-pressed={leaderboardScope === "recent"}
+                  onClick={() => setLeaderboardScope("recent")}
+                >
+                  Recent
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={leaderboardScope === "week"}
+                  onClick={() => setLeaderboardScope("week")}
+                >
+                  Week
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={leaderboardScope === "all"}
+                  onClick={() => setLeaderboardScope("all")}
+                >
+                  All-time
+                </button>
+              </div>
+              <ol>
+                {leaderboardRows.length > 0 ? (
+                  leaderboardRows.map((entry) => (
+                    <li key={entry.id}>
+                      <span>{entry.name}</span>
+                      <strong>{entry.score}</strong>
+                      <small>{formatAimLeaderboardDate(entry.savedAtMs)}</small>
+                    </li>
+                  ))
+                ) : (
+                  <li className="nhAimTrainerLeaderboardEmpty">No saves</li>
+                )}
+              </ol>
+            </div>
+          </div>
+          <div
+            className="nhAimTrainerClient"
+            data-testid="nh-aim-trainer-client"
+            data-running={running}
+            style={clientBoundsStyle(clientBounds)}
+            onContextMenu={(event) => event.preventDefault()}
+            onPointerDown={handlePointerDown}
+          >
+            {running
+              ? targetQueue.map((target, index) => (
+                  <span
+                    key={target.queueKey}
+                    className="nhAimTrainerTarget"
+                    data-queue-index={index}
+                    data-required-button={target.button}
+                    data-shape={target.shape}
+                    data-target-id={target.id}
+                    data-entered={enteredTargetKeys.includes(target.queueKey)}
+                    style={targetStyle(target)}
+                    aria-label={target.label}
+                  />
+                ))
+              : null}
+            {!running && lastCompletedRun ? (
+              <div className="nhAimTrainerResult" aria-label={`Your score ${lastCompletedRun.score}`} aria-live="polite">
+                <span>Your score</span>
+                <strong>{lastCompletedRun.score}</strong>
+              </div>
+            ) : null}
+            <button
+              type="button"
+              className="nhAimTrainerResizeHandle"
+              data-resize-side="left"
+              aria-label="Resize aim trainer from bottom left"
+              onPointerDown={(event) => startResize("left", event)}
+              onPointerMove={moveResize}
+              onPointerUp={stopResize}
+              onPointerCancel={stopResize}
+              onMouseDown={(event) => startMouseResize("left", event)}
+            />
+            <button
+              type="button"
+              className="nhAimTrainerResizeHandle"
+              data-resize-side="right"
+              aria-label="Resize aim trainer from bottom right"
+              onPointerDown={(event) => startResize("right", event)}
+              onPointerMove={moveResize}
+              onPointerUp={stopResize}
+              onPointerCancel={stopResize}
+              onMouseDown={(event) => startMouseResize("right", event)}
+            />
+          </div>
         </div>
       </div>
     </section>
@@ -241,7 +601,7 @@ function fillVisibleTargets(
   const filledTargets = [...targets];
   let nextCursor = cursor;
   let attempts = 0;
-  while (filledTargets.length < visibleTargetCount && attempts < visibleTargetCount * drillTemplates.length * 4) {
+  while (filledTargets.length < visibleTargetCount && attempts < visibleTargetCount * 24) {
     const next = nextTargetFromCursor(nextCursor);
     if (!filledTargets.some((target) => sameClickTarget(target, next.target))) {
       filledTargets.push(next.target);
@@ -255,42 +615,74 @@ function fillVisibleTargets(
 function nextTargetFromCursor(
   cursor: AimTargetCursor
 ): { readonly target: QueuedAimTarget; readonly cursor: AimTargetCursor } {
-  const sequence = drillTemplates[cursor.templateIndex % drillTemplates.length];
-  if (cursor.stepIndex >= sequence.length) {
-    return nextTargetFromCursor(nextRoundCursor(cursor));
-  }
-  if (shouldUseRightClick(cursor.stepIndex, cursor.rightClickRound)) {
-    const id = rightClickTemplates[cursor.rightClickRound % rightClickTemplates.length];
+  if (cursor.phase === "ui") {
+    const uiGroup = cursor.uiGroup.length > 0 ? cursor.uiGroup : randomUiGroup();
+    const id = uiGroup[Math.min(cursor.uiIndex, uiGroup.length - 1)];
+    const nextIndex = cursor.uiIndex + 1;
     return {
-      target: queuedTarget({ ...baseTargets[id], button: "right" }, `round-${cursor.rightClickRound}-right-${id}`),
-      cursor: { ...cursor, stepIndex: 1 }
+      target: queuedTarget(baseTargets[id], `${cursor.serial}-ui-${nextIndex}-${id}`),
+      cursor:
+        nextIndex < uiGroup.length
+          ? { ...cursor, uiGroup, uiIndex: nextIndex, serial: cursor.serial + 1 }
+          : {
+              phase: "world",
+              uiGroup: [],
+              uiIndex: 0,
+              forceUiAfterWorld: false,
+              rightClickCooldown: cursor.rightClickCooldown,
+              serial: cursor.serial + 1
+            }
     };
   }
 
-  const id = sequence[cursor.stepIndex];
+  const shouldRightClick = cursor.rightClickCooldown <= 0 && Math.random() < 0.5;
+  const id = randomItem(shouldRightClick ? rightClickTemplates : worldLeftTargetIds);
+  const nextRightClickCooldown = shouldRightClick
+    ? randomInteger(2, 4)
+    : Math.max(0, cursor.rightClickCooldown - 1);
+  const continueWorld = !shouldRightClick && !cursor.forceUiAfterWorld && Math.random() < 0.12;
+
   return {
     target: queuedTarget(
-      baseTargets[id],
-      `round-${cursor.rightClickRound}-template-${cursor.templateIndex}-step-${cursor.stepIndex}-${id}`
+      shouldRightClick ? { ...baseTargets[id], button: "right" } : baseTargets[id],
+      `${cursor.serial}-${shouldRightClick ? "right" : "world"}-${id}`
     ),
-    cursor: nextStepCursor(cursor, sequence.length)
+    cursor: continueWorld
+      ? {
+          phase: "world",
+          uiGroup: [],
+          uiIndex: 0,
+          forceUiAfterWorld: true,
+          rightClickCooldown: nextRightClickCooldown,
+          serial: cursor.serial + 1
+        }
+      : {
+          phase: "ui",
+          uiGroup: randomUiGroup(),
+          uiIndex: 0,
+          forceUiAfterWorld: false,
+          rightClickCooldown: nextRightClickCooldown,
+          serial: cursor.serial + 1
+        }
   };
 }
 
-function nextStepCursor(cursor: AimTargetCursor, sequenceLength: number): AimTargetCursor {
-  const nextStepIndex = cursor.stepIndex + 1;
-  if (nextStepIndex < sequenceLength) {
-    return { ...cursor, stepIndex: nextStepIndex };
-  }
-  return nextRoundCursor(cursor);
-}
-
-function nextRoundCursor(cursor: AimTargetCursor): AimTargetCursor {
+function randomAimCursor(): AimTargetCursor {
   return {
-    templateIndex: randomFollowingTemplateIndex(cursor.templateIndex),
-    stepIndex: 0,
-    rightClickRound: cursor.rightClickRound + 1
+    phase: "ui",
+    uiGroup: randomUiGroup(),
+    uiIndex: 0,
+    forceUiAfterWorld: false,
+    rightClickCooldown: randomInteger(1, 3),
+    serial: randomInteger(0, 10_000)
   };
+}
+
+function randomUiGroup(): readonly TargetId[] {
+  const group = randomItem(uiClickGroups);
+  const maxLength = Math.min(5, group.length);
+  const length = randomInteger(Math.min(2, maxLength), maxLength);
+  return group.slice(0, length);
 }
 
 function queuedTarget(target: AimTarget, queueKey: string): QueuedAimTarget {
@@ -308,12 +700,24 @@ function sameClickTarget(left: AimTarget, right: AimTarget): boolean {
   );
 }
 
-function shouldUseRightClick(stepIndex: number, rightClickRound: number): boolean {
-  return stepIndex === 0 && rightClickRound % 3 === 2;
+function isWorldTargetId(id: TargetId): boolean {
+  return id.startsWith("player-") || id.startsWith("scene-");
 }
 
-function randomFollowingTemplateIndex(templateIndex: number): number {
-  return (templateIndex + 1 + Math.trunc(Math.random() * 2)) % drillTemplates.length;
+function randomItem<T>(items: readonly T[]): T {
+  return items[Math.trunc(Math.random() * items.length)];
+}
+
+function randomInteger(min: number, max: number): number {
+  return min + Math.trunc(Math.random() * (max - min + 1));
+}
+
+function clientBoundsStyle(bounds: AimClientBounds): CSSProperties {
+  return {
+    width: `${bounds.width}px`,
+    height: `${bounds.height}px`,
+    marginLeft: `${bounds.offsetX}px`
+  };
 }
 
 function targetStyle(target: AimTarget): CSSProperties {
@@ -340,6 +744,140 @@ function pointInTarget(x: number, y: number, target: AimTarget): boolean {
     y >= target.rect.y &&
     y <= target.rect.y + target.rect.height
   );
+}
+
+function formatAimTimer(milliseconds: number): string {
+  return `${(milliseconds / 1000).toFixed(1)}s`;
+}
+
+function readAimHighScore(): number {
+  try {
+    const storedScore = window.localStorage.getItem(aimHighScoreStorageKey);
+    const score = storedScore === null ? 0 : Number.parseInt(storedScore, 10);
+    return Number.isFinite(score) && score > 0 ? score : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function saveAimHighScore(score: number): number {
+  try {
+    window.localStorage.setItem(aimHighScoreStorageKey, String(score));
+  } catch {
+    return score;
+  }
+  return score;
+}
+
+function readAimPlayerName(): string {
+  try {
+    return cleanAimPlayerNameInput(window.localStorage.getItem(aimPlayerNameStorageKey) ?? "");
+  } catch {
+    return "";
+  }
+}
+
+function saveAimPlayerName(name: string): void {
+  try {
+    window.localStorage.setItem(aimPlayerNameStorageKey, name);
+  } catch {
+    return;
+  }
+}
+
+function readAimLeaderboardEntries(): readonly AimLeaderboardEntry[] {
+  try {
+    const storedEntries = JSON.parse(window.localStorage.getItem(aimLeaderboardStorageKey) ?? "[]");
+    return Array.isArray(storedEntries) ? normalizeAimLeaderboardEntries(storedEntries) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveAimLeaderboardEntries(entries: readonly AimLeaderboardEntry[]): readonly AimLeaderboardEntry[] {
+  const normalizedEntries = normalizeAimLeaderboardEntries(entries);
+  try {
+    window.localStorage.setItem(aimLeaderboardStorageKey, JSON.stringify(normalizedEntries));
+  } catch {
+    return normalizedEntries;
+  }
+  return normalizedEntries;
+}
+
+function normalizeAimLeaderboardEntries(entries: readonly unknown[]): readonly AimLeaderboardEntry[] {
+  return entries
+    .filter(isAimLeaderboardEntry)
+    .sort((left, right) => right.savedAtMs - left.savedAtMs)
+    .slice(0, aimLeaderboardMaxEntries);
+}
+
+function isAimLeaderboardEntry(entry: unknown): entry is AimLeaderboardEntry {
+  if (typeof entry !== "object" || entry === null) {
+    return false;
+  }
+  const candidate = entry as Partial<AimLeaderboardEntry>;
+  return (
+    typeof candidate.id === "string" &&
+    typeof candidate.name === "string" &&
+    typeof candidate.score === "number" &&
+    Number.isFinite(candidate.score) &&
+    candidate.score >= 0 &&
+    typeof candidate.misses === "number" &&
+    Number.isFinite(candidate.misses) &&
+    candidate.misses >= 0 &&
+    typeof candidate.streak === "number" &&
+    Number.isFinite(candidate.streak) &&
+    candidate.streak >= 0 &&
+    typeof candidate.completedAtMs === "number" &&
+    Number.isFinite(candidate.completedAtMs) &&
+    typeof candidate.savedAtMs === "number" &&
+    Number.isFinite(candidate.savedAtMs)
+  );
+}
+
+function aimLeaderboardRows(
+  entries: readonly AimLeaderboardEntry[],
+  scope: AimLeaderboardScope,
+  nowMs: number
+): readonly AimLeaderboardEntry[] {
+  const scopedEntries =
+    scope === "week" ? entries.filter((entry) => nowMs - entry.savedAtMs <= aimWeekMs) : entries;
+  const sortedEntries =
+    scope === "recent"
+      ? [...scopedEntries].sort((left, right) => right.savedAtMs - left.savedAtMs)
+      : [...scopedEntries].sort(
+          (left, right) => right.score - left.score || left.misses - right.misses || right.savedAtMs - left.savedAtMs
+        );
+  return sortedEntries.slice(0, aimLeaderboardVisibleEntries);
+}
+
+function cleanAimPlayerNameInput(value: string): string {
+  return value.replace(/[\x00-\x1f\x7f]/g, "").slice(0, aimPlayerNameMaxLength);
+}
+
+function normalizeAimPlayerName(value: string): string {
+  const name = cleanAimPlayerNameInput(value).replace(/\s+/g, " ").trim();
+  return name.length > 0 ? name : "Anonymous";
+}
+
+function aimLeaderboardEntryId(): string {
+  return `${Date.now().toString(36)}-${Math.trunc(Math.random() * 1_000_000).toString(36)}`;
+}
+
+function formatAimLeaderboardDate(savedAtMs: number): string {
+  const elapsedMs = Math.max(0, Date.now() - savedAtMs);
+  const elapsedMinutes = Math.floor(elapsedMs / 60_000);
+  if (elapsedMinutes < 1) {
+    return "now";
+  }
+  if (elapsedMinutes < 60) {
+    return `${elapsedMinutes}m`;
+  }
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  if (elapsedHours < 24) {
+    return `${elapsedHours}h`;
+  }
+  return `${Math.floor(elapsedHours / 24)}d`;
 }
 
 function clamp(value: number, min: number, max: number): number {

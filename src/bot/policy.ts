@@ -79,7 +79,7 @@ const loadRebalanceSmiteScale = 0.92;
 const loadRebalanceRedemptionScale = 0.62;
 const loadRebalanceHealingSupplyScale = 0.82;
 const loadRebalanceTripleEatScale = 0.72;
-const loadRebalanceRestoreReboostScale = 0.72;
+const loadRebalanceRestoreReboostScale = 1;
 const loadRebalanceDoubleSpecScale = 0.7;
 const regearStyleIdlePriorPenalty = 0.2;
 const regearStyleDefenceGainPriorScale = 0.55;
@@ -638,7 +638,9 @@ function supplyIntentPrior(
   const hasFood = inputFeature(features, 4) > 0.5 / 28;
   const hasTwoFood = inputFeature(features, 4) > 1.5 / 28;
   const hasBrew = inputFeature(features, 5) > 0.5 / 8;
-  const hasAnySupply = hasFood || hasBrew;
+  const hasRestore = inputFeature(features, 6) > 0.5 / 8;
+  const hasReboost = inputFeature(features, 7) > 0.5 / 8;
+  const hasAnySupply = hasFood || hasBrew || hasRestore || hasReboost;
   if (!hasAnySupply) {
     return 0;
   }
@@ -666,6 +668,31 @@ function supplyIntentPrior(
     }
     return defenceGainCredit - regearStyleIdlePriorPenalty;
   }
+  if (action.supplyIntent === "restore_reboost") {
+    const selfPrayer = inputFeature(features, 3);
+    const attackDeficit = inputFeature(features, 66);
+    const strengthDeficit = inputFeature(features, 67);
+    const defenceDeficit = inputFeature(features, 68);
+    const rangedDeficit = inputFeature(features, 69);
+    const magicDeficit = inputFeature(features, 70);
+    const restoreNeed =
+      selfPrayer < 55 / 99 ||
+      attackDeficit < -0.025 ||
+      strengthDeficit < -0.025 ||
+      defenceDeficit < -0.025 ||
+      rangedDeficit < -0.025 ||
+      magicDeficit < -0.025;
+    const reboostNeed = needsCombatReboost(attackDeficit, strengthDeficit, defenceDeficit, rangedDeficit);
+    if ((hasRestore && restoreNeed) || (hasReboost && reboostNeed)) {
+      const needSeverity = Math.max(
+        clamp01((55 / 99 - selfPrayer) / (24 / 99)),
+        clamp01(Math.max(-attackDeficit, -strengthDeficit, -defenceDeficit, -rangedDeficit, -magicDeficit) / 0.18),
+        reboostNeed ? 0.65 : 0
+      );
+      return 4.35 + 4.2 * needSeverity;
+    }
+    return -2.4;
+  }
   if (!isHealingSupplyIntent(action.supplyIntent)) {
     return 0;
   }
@@ -692,13 +719,14 @@ function supplyIntentPrior(
     const currentEv = visibleStyleEv(features, context, action.offenceStyle);
     const postBrewEv = visibleStyleEv(features, context, action.offenceStyle, 1);
     const bestPostBrewEv = bestVisibleStyleEv(features, context, 1);
+    const landedDamagePressure = lastTaken > 0.04;
     const brewTempoWindow =
       hasBrew &&
       (canAttack || selfAttackReady) &&
-      selfHp < 80 / 99 &&
-      (risk > 0.12 || lastTaken > 0) &&
+      selfHp < 72 / 99 &&
+      (risk > 0.24 || landedDamagePressure || visibleKoRisk > 0.42) &&
       isBrewOnlyEvWindow(currentEv, postBrewEv, bestPostBrewEv);
-    return hasBrew && (selfHp < 56 / 99 || brewTempoWindow)
+    return hasBrew && (selfHp < 50 / 99 || (selfHp < 56 / 99 && risk > 0.28) || brewTempoWindow)
       ? 10.8 * Math.max(risk, brewTempoWindow ? 0.18 : risk) * (brewTempoWindow ? 0.42 : 0.66)
       : -lowRiskSupplyPenalty(action.supplyIntent, selfHp, risk, panicRisk);
   }
@@ -1138,7 +1166,7 @@ function allowHealingSupply(
     return selfHp < 48 / 99 || panicRisk > 0.42;
   }
   if (supply === "brew_only") {
-    return selfHp < 56 / 99 || hitRisk > 0.64 || ((canAttack || selfAttackReady) && selfHp < 80 / 99);
+    return selfHp < 50 / 99 || hitRisk > 0.64 || ((canAttack || selfAttackReady) && selfHp < 72 / 99 && hitRisk > 0.18);
   }
   if (supply === "panic_full") {
     return selfHp < 42 / 99 || panicRisk > 0.55;

@@ -17,6 +17,7 @@ type BotPolicyLoadState =
   | { readonly status: "error"; readonly label: string };
 
 const DEFAULT_STATIC_POLICY_URL = "./ai/nhstaker-selfplay-policy-nhstake-ags.tsv";
+const DMM_HARD_STATIC_POLICY_URL = "./ai/nhstaker-selfplay-policy-dmm-hard.tsv";
 const BOT_DIFFICULTY_STORAGE_KEY = "nh-trainer.bot-difficulty";
 const BOT_DIFFICULTY_POLICIES: Record<BotDifficulty, { readonly label: string; readonly staticUrl: string }> = {
   easy: {
@@ -54,12 +55,32 @@ function RuntimeSceneViewerFallback(): JSX.Element {
 
 export function App(): JSX.Element {
   const [loadedPolicy, setLoadedPolicy] = useState<ParsedNhPolicy | null>(null);
+  const [loadedDmmHardPolicy, setLoadedDmmHardPolicy] = useState<ParsedNhPolicy | null>(null);
   const [botDifficulty, setBotDifficulty] = useState<BotDifficulty>(() => readStoredBotDifficulty());
   const [policyLoadState, setPolicyLoadState] = useState<BotPolicyLoadState>({
     status: "loading",
     label: BOT_DIFFICULTY_POLICIES[botDifficulty].label
   });
   const policyCacheRef = useRef(new Map<BotDifficulty, ParsedNhPolicy>());
+
+  useEffect(() => {
+    let cancelled = false;
+    void readStaticPolicyUrl(DMM_HARD_STATIC_POLICY_URL)
+      .then((result) => {
+        if (!cancelled) {
+          setLoadedDmmHardPolicy(parseNhPolicyTsv(result.text, formatPolicySourceLabel(result)));
+        }
+      })
+      .catch((error: unknown) => {
+        console.warn(error instanceof Error ? error.message : `Could not load DMM hard policy.`);
+        if (!cancelled) {
+          setLoadedDmmHardPolicy(null);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -165,6 +186,7 @@ export function App(): JSX.Element {
       <Suspense fallback={<RuntimeSceneViewerFallback />}>
         <RuntimeSceneViewer
           policy={loadedPolicy}
+          dmmHardPolicy={loadedDmmHardPolicy}
           botDifficulty={botDifficulty}
           botPolicyLoadState={policyLoadState.status}
           onBotDifficultyChange={setBotDifficulty}

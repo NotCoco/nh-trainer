@@ -2,7 +2,7 @@ import equipmentRowsJson from "../generated/equipment-bonuses.json";
 import type { RuntimeActorId, RuntimeLoadoutId, RuntimeSequenceName, RuntimeTile } from "../render/runtimeScene";
 import { nhPlayerHealthBarDefinition } from "../render/nhHealthBars";
 import { NH_HITSPLAT_DEFAULT_DURATION_CYCLES } from "../render/nhHitsplats";
-import type { CombatLevels, CombatStyle, StyleEvEstimate } from "./combat/formulas";
+import { hitChance as combatHitChance, type CombatLevels, type CombatStyle, type StyleEvEstimate } from "./combat/formulas";
 import { dispatchPlayerAttack, nhWeaponProfiles, playerAttackGate, type WeaponTimingProfile } from "./combat/player-combat";
 import {
   clearQueuedGmaulSpecs,
@@ -33,6 +33,7 @@ import { nhGearProfileCandidateEquipmentByStyle, nhGearProfileWeaponIdForEquipme
 import type { NhOffenceStyle } from "./nh/policy-bridge";
 import {
   applyConsumable,
+  consumableDefinitions,
   createSupplyDelayState,
   type ConsumableId,
   type SimStats,
@@ -56,6 +57,17 @@ import { nhLoadouts, type NhWeaponId } from "./nh/loadouts";
 
 export type RuntimePlayerCombatAttackReason = "ready" | "lock" | "timer" | "out-of-range" | "dead";
 export type RuntimePlayerCombatSupplies = Readonly<Record<ConsumableId, number>>;
+export type RuntimePlayerCombatSoundChannel = "sound-effects" | "area-sounds";
+
+export const runtimePlayerCombatFoodSoundId = 2393;
+export const runtimePlayerCombatDrinkSoundId = 2401;
+
+export function runtimePlayerCombatConsumableSoundIds(item: ConsumableId): readonly number[] {
+  const kind = consumableDefinitions[item].kind;
+  return kind === "food" || kind === "karambwan"
+    ? [runtimePlayerCombatFoodSoundId]
+    : [runtimePlayerCombatDrinkSoundId];
+}
 
 export interface RuntimePlayerCombatActorState {
   readonly id: RuntimeActorId;
@@ -91,6 +103,10 @@ export interface RuntimePlayerCombatActorState {
   readonly specialActive: boolean;
   readonly gmaul: GmaulSpecState;
   readonly specialRestoreTicks: number;
+  readonly conflictionMagicAccuracyUntilTick: number;
+  readonly vengeanceActive: boolean;
+  readonly vengeanceCooldownUntilTick: number;
+  readonly vengeanceTrinketCharges: number;
   readonly actionSequenceName: RuntimeSequenceName | null;
   readonly actionStartedAtTick: number | null;
   readonly actionStartedAtClientCycle: number | null;
@@ -121,6 +137,7 @@ export interface RuntimePlayerQueuedHit {
   readonly defenderProtectionPrayer?: ProtectionPrayerId;
   readonly freezeDurationTicks?: number;
   readonly bloodHealFraction?: number;
+  readonly boltEffect?: RuntimePlayerCombatBoltEffect;
 }
 
 export interface RuntimePlayerCombatProjectileProfile {
@@ -145,8 +162,15 @@ export interface RuntimePlayerCombatProjectileProfile {
   readonly skipTravel: boolean;
 }
 
-export type RuntimePlayerCombatSpecialAttackId = "armadyl_crossbow" | "armadyl_godsword" | "granite_maul";
+export type RuntimePlayerCombatSpecialAttackId =
+  | "armadyl_crossbow"
+  | "zaryte_crossbow"
+  | "armadyl_godsword"
+  | "granite_maul"
+  | "voidwaker"
+  | "vesta_longsword";
 
+export type RuntimePlayerCombatBoltEffectId = "diamond" | "dragonstone" | "onyx";
 export type RuntimePlayerCombatSpellId = "blood-blitz" | "ice-blitz" | "blood-barrage" | "ice-barrage";
 export type RuntimePlayerCombatAttackType =
   | "ACCURATE"
@@ -178,8 +202,22 @@ export interface RuntimePlayerCombatSpellDefinition {
   readonly hitSpotanimArtifactUrl: string;
   readonly castSpotanimId?: number;
   readonly castSpotanimArtifactUrl?: string;
+  readonly castSoundId: number;
+  readonly hitSoundId: number;
   readonly freezeDurationTicks?: number;
   readonly bloodHealFraction?: number;
+}
+
+export interface RuntimePlayerCombatBoltEffect {
+  readonly id: RuntimePlayerCombatBoltEffectId;
+  readonly label: string;
+  readonly chancePercent: number;
+  readonly spotanimId: number;
+  readonly spotanimArtifactUrl: string;
+  readonly soundIds: readonly number[];
+  readonly damageMultiplier: number;
+  readonly guaranteedHit?: boolean;
+  readonly healFraction?: number;
 }
 
 export type RuntimePlayerCombatEvent =
@@ -201,6 +239,7 @@ export type RuntimePlayerCombatEvent =
       readonly expectedDamage: number;
       readonly specialAttack?: RuntimePlayerCombatSpecialAttackId;
       readonly specialAttackCount?: number;
+      readonly soundIds?: readonly number[];
       readonly projectileDurationCycles?: number;
       readonly projectile?: RuntimePlayerCombatProjectileProfile;
       readonly defenderProtectionPrayer?: ProtectionPrayerId;
@@ -215,6 +254,18 @@ export type RuntimePlayerCombatEvent =
       readonly actorId: RuntimeActorId;
       readonly spotanimId: number;
       readonly artifactUrl: string;
+      readonly soundIds?: readonly number[];
+      readonly soundChannel?: RuntimePlayerCombatSoundChannel;
+    }
+  | {
+      readonly kind: "overhead-text";
+      readonly id: string;
+      readonly tick: number;
+      readonly actorId: RuntimeActorId;
+      readonly text: string;
+      readonly textColor: number;
+      readonly textEffect: number;
+      readonly durationClientCycles: number;
     }
   | {
       readonly kind: "hitsplat";
@@ -225,6 +276,8 @@ export type RuntimePlayerCombatEvent =
       readonly style: CombatStyle;
       readonly spellId?: RuntimePlayerCombatSpellId;
       readonly autocast?: boolean;
+      readonly boltEffect?: RuntimePlayerCombatBoltEffect;
+      readonly soundIds?: readonly number[];
       readonly damage: number;
       readonly rawDamage: number;
       readonly maxDamage: number;
@@ -241,6 +294,8 @@ export type RuntimePlayerCombatEvent =
       readonly tick: number;
       readonly actorId: RuntimeActorId;
       readonly item: ConsumableId;
+      readonly soundIds?: readonly number[];
+      readonly soundChannel?: RuntimePlayerCombatSoundChannel;
       readonly healed: number;
       readonly previousHitpoints: number;
       readonly nextHitpoints: number;
@@ -276,6 +331,7 @@ export type RuntimePlayerCombatEvent =
         | "stat_state"
         | "death_supply"
         | "supply_reward"
+        | "vengeance_trinket"
         | "defence_belief"
         | "actual_prayer";
       readonly reward: number;
@@ -491,6 +547,10 @@ const nhServerTickMs = 600;
 const nhDefaultProjectileCycleRate = 16;
 const nhMagicProjectileCycleRate = 19;
 const runtimePlayerCombatHitpointXpRatio = 1.33;
+const runtimePlayerCombatVengeanceCooldownTicks = 50;
+const runtimePlayerCombatVengeanceStallTicks = 2;
+const runtimePlayerCombatVengeanceCastSoundId = 2907;
+const runtimePlayerCombatDefaultVengeanceTrinketCharges = 0;
 export const runtimePlayerCombatIceBarrageFreezeTicks = 32;
 export const runtimePlayerCombatIceBlitzFreezeTicks = 25;
 export const runtimePlayerCombatFreezeBreakDistance = 12;
@@ -499,6 +559,9 @@ export const runtimePlayerCombatIceBlitzCastSpotanimId = 366;
 export const runtimePlayerCombatIceBlitzHitSpotanimId = 367;
 export const runtimePlayerCombatActionDurationTicks = 4;
 export const runtimePlayerCombatClientCyclesPerGameTick = 30;
+const runtimePlayerCombatVengeanceForceText = "Taste Vengeance!";
+const runtimePlayerCombatForceTextDurationClientCycles = 100;
+const runtimePlayerCombatOverheadTextYellow = 0xffff00;
 const runtimePlayerCombatSpecialRestorePeriodTicks = 50;
 const runtimePlayerCombatSpecialRestorePercent = 10;
 export const runtimePlayerCombatFightCountdownTicks = 5;
@@ -599,6 +662,7 @@ export const runtimePlayerCombatIceBarrageAutocastSlot = 46;
 export const runtimePlayerCombatBloodBarrageAutocastSlot = 45;
 export const runtimePlayerCombatBloodBlitzHitSpotanimId = 375;
 export const runtimePlayerCombatBloodBarrageHitSpotanimId = 377;
+const runtimePlayerCombatMagicSplashSoundId = 227;
 
 export const runtimePlayerCombatSpellDefinitions: Readonly<Record<RuntimePlayerCombatSpellId, RuntimePlayerCombatSpellDefinition>> = {
   "blood-blitz": {
@@ -617,6 +681,9 @@ export const runtimePlayerCombatSpellDefinitions: Readonly<Record<RuntimePlayerC
     projectileProfile: projectileProfiles.bloodBlitz,
     hitSpotanimId: runtimePlayerCombatBloodBlitzHitSpotanimId,
     hitSpotanimArtifactUrl: "render/spotanims/blood_blitz_hit.glb",
+    // Source: BloodBlitz.java setCastSound(106, 1, 0); setHitSound(104).
+    castSoundId: 106,
+    hitSoundId: 104,
     bloodHealFraction: 0.25
   },
   "ice-blitz": {
@@ -637,6 +704,9 @@ export const runtimePlayerCombatSpellDefinitions: Readonly<Record<RuntimePlayerC
     hitSpotanimArtifactUrl: "render/spotanims/ice_blitz_hit.glb",
     castSpotanimId: runtimePlayerCombatIceBlitzCastSpotanimId,
     castSpotanimArtifactUrl: "render/spotanims/ice_blitz_cast.glb",
+    // Source: IceBlitz.java setCastSound(171, 1, 0); setHitSound(169).
+    castSoundId: 171,
+    hitSoundId: 169,
     freezeDurationTicks: runtimePlayerCombatIceBlitzFreezeTicks
   },
   "blood-barrage": {
@@ -655,6 +725,9 @@ export const runtimePlayerCombatSpellDefinitions: Readonly<Record<RuntimePlayerC
     projectileProfile: projectileProfiles.bloodBarrageDelay,
     hitSpotanimId: runtimePlayerCombatBloodBarrageHitSpotanimId,
     hitSpotanimArtifactUrl: "render/spotanims/blood_barrage_hit.glb",
+    // Source: BloodBarrage.java setCastSound(106, 1, 0); setHitSound(102).
+    castSoundId: 106,
+    hitSoundId: 102,
     bloodHealFraction: 0.25
   },
   "ice-barrage": {
@@ -673,9 +746,141 @@ export const runtimePlayerCombatSpellDefinitions: Readonly<Record<RuntimePlayerC
     projectileProfile: projectileProfiles.magic,
     hitSpotanimId: runtimePlayerCombatIceBarrageHitSpotanimId,
     hitSpotanimArtifactUrl: "render/spotanims/ice_barrage_hit.glb",
+    // Source: IceBarrage.java setCastSound(171, 1, 0); setHitSound(168).
+    castSoundId: 171,
+    hitSoundId: 168,
     freezeDurationTicks: runtimePlayerCombatIceBarrageFreezeTicks
   }
 };
+
+const runtimePlayerCombatWeaponAttackSoundIds: Readonly<Record<NhWeaponId, readonly number[]>> = {
+  kodai: [2563],
+  ancient_staff: [2555],
+  staff_of_the_dead: [2555],
+  zuriels_staff: [2555],
+  armadyl_crossbow: [2695],
+  zaryte_crossbow: [2695],
+  rune_crossbow: [2695],
+  magic_shortbow: [2693],
+  dragon_crossbow: [2695],
+  tentacle_whip: [2720],
+  abyssal_whip: [2720],
+  noxious_halberd: [],
+  voidwaker: [2500],
+  vesta_longsword: [2500],
+  armadyl_godsword: [3846],
+  granite_maul: [2714]
+};
+
+const runtimePlayerCombatSpecialAttackSoundIds: Readonly<Record<RuntimePlayerCombatSpecialAttackId, readonly number[]>> = {
+  armadyl_crossbow: [2695],
+  zaryte_crossbow: [2695],
+  armadyl_godsword: [3869],
+  granite_maul: [2715],
+  // Source: OSRS Wiki Voidwaker sound table lists both special sounds.
+  voidwaker: [5027, 6182],
+  // Kronos VestasLongsword.java has no publicSound; use the source weapon attack sound so the spec is audible.
+  vesta_longsword: [2500]
+};
+
+const runtimePlayerCombatBoltEffectsByAmmoItemId: Readonly<Record<number, RuntimePlayerCombatBoltEffect>> = {
+  9243: {
+    id: "diamond",
+    label: "Armour Piercing",
+    chancePercent: 5,
+    spotanimId: 758,
+    spotanimArtifactUrl: "render/spotanims/diamond_bolt_proc.glb",
+    soundIds: [2910],
+    damageMultiplier: 1.15,
+    guaranteedHit: true
+  },
+  21946: {
+    id: "diamond",
+    label: "Armour Piercing",
+    chancePercent: 5,
+    spotanimId: 758,
+    spotanimArtifactUrl: "render/spotanims/diamond_bolt_proc.glb",
+    soundIds: [2910],
+    damageMultiplier: 1.15,
+    guaranteedHit: true
+  },
+  21948: {
+    id: "dragonstone",
+    label: "Dragon's Breath",
+    chancePercent: 6,
+    spotanimId: 756,
+    spotanimArtifactUrl: "render/spotanims/dragonstone_bolt_proc.glb",
+    soundIds: [],
+    damageMultiplier: 1.45
+  },
+  21950: {
+    id: "onyx",
+    label: "Life Leech",
+    chancePercent: 10,
+    spotanimId: 753,
+    spotanimArtifactUrl: "render/spotanims/onyx_bolt_proc.glb",
+    soundIds: [2917],
+    damageMultiplier: 1.2,
+    healFraction: 0.25
+  }
+};
+
+function runtimePlayerCombatAttackSoundIds(
+  spell: RuntimePlayerCombatSpellDefinition | null,
+  specialAttackId: RuntimePlayerCombatSpecialAttackId | undefined,
+  weaponId: NhWeaponId
+): readonly number[] | undefined {
+  if (spell) {
+    return [spell.castSoundId];
+  }
+  if (specialAttackId) {
+    const specialSoundIds = runtimePlayerCombatSpecialAttackSoundIds[specialAttackId];
+    return specialSoundIds.length > 0 ? specialSoundIds : undefined;
+  }
+  const attackSoundIds = runtimePlayerCombatWeaponAttackSoundIds[weaponId];
+  return attackSoundIds.length > 0 ? attackSoundIds : undefined;
+}
+
+function runtimePlayerCombatQueuedHitSoundIds(
+  hit: RuntimePlayerQueuedHit,
+  damage: number
+): readonly number[] | undefined {
+  if (hit.spellId) {
+    const spell = runtimePlayerCombatSpellDefinitions[hit.spellId];
+    return [damage > 0 ? spell.hitSoundId : runtimePlayerCombatMagicSplashSoundId];
+  }
+  if (hit.boltEffect && hit.boltEffect.soundIds.length > 0) {
+    return hit.boltEffect.soundIds;
+  }
+  return undefined;
+}
+
+function rollRuntimePlayerCombatBoltEffect(
+  attacker: RuntimePlayerCombatActorState,
+  seed: number,
+  chanceMultiplier = 1
+): {
+  readonly effect: RuntimePlayerCombatBoltEffect | null;
+  readonly seed: number;
+} | null {
+  const effect = runtimePlayerCombatBoltEffectForActor(attacker);
+  if (!effect) {
+    return null;
+  }
+  const roll = nextRuntimeCombatRandom(seed);
+  const chance = Math.max(0, Math.min(100, effect.chancePercent * Math.max(0, chanceMultiplier)));
+  return {
+    effect: roll.value < chance / 100 ? effect : null,
+    seed: roll.seed
+  };
+}
+
+function runtimePlayerCombatBoltEffectForActor(
+  attacker: RuntimePlayerCombatActorState
+): RuntimePlayerCombatBoltEffect | null {
+  const ammoItemId = attacker.equipment.ammo?.itemId;
+  return ammoItemId === undefined ? null : runtimePlayerCombatBoltEffectsByAmmoItemId[ammoItemId] ?? null;
+}
 
 export function createRuntimePlayerCombatState(input: {
   readonly localTile: RuntimeTile;
@@ -694,6 +899,8 @@ export function createRuntimePlayerCombatState(input: {
   readonly opponentPrayerPoints?: RuntimePlayerCombatPrayerPoints;
   readonly localSupplies?: RuntimePlayerCombatSupplies;
   readonly opponentSupplies?: RuntimePlayerCombatSupplies;
+  readonly localVengeanceTrinketCharges?: number;
+  readonly opponentVengeanceTrinketCharges?: number;
   readonly localSpecialEnergy?: number;
   readonly opponentSpecialEnergy?: number;
   readonly combatStartTick?: number;
@@ -717,7 +924,8 @@ export function createRuntimePlayerCombatState(input: {
         input.localPrayerPoints ?? { current: 99, fixed: 99 },
         input.localPrayers ?? [],
         input.localSupplies ?? runtimePlayerCombatDefaultSupplies,
-        input.localSpecialEnergy ?? 100
+        input.localSpecialEnergy ?? 100,
+        input.localVengeanceTrinketCharges ?? runtimePlayerCombatDefaultVengeanceTrinketCharges
       ),
       opponent: createRuntimePlayerCombatActor(
         "opponent",
@@ -729,7 +937,8 @@ export function createRuntimePlayerCombatState(input: {
         input.opponentPrayerPoints ?? { current: 99, fixed: 99 },
         input.opponentPrayers ?? [],
         input.opponentSupplies ?? runtimePlayerCombatDefaultSupplies,
-        input.opponentSpecialEnergy ?? 100
+        input.opponentSpecialEnergy ?? 100,
+        input.opponentVengeanceTrinketCharges ?? runtimePlayerCombatDefaultVengeanceTrinketCharges
       )
     },
     queuedHits: [],
@@ -869,6 +1078,8 @@ export function resetRuntimePlayerCombatActorPolicyFreshFight(
   input: {
     readonly tile?: RuntimeTile;
     readonly gearProfile?: NhSelectedGearProfile;
+    readonly supplies?: RuntimePlayerCombatSupplies;
+    readonly vengeanceTrinketCharges?: number;
   } = {}
 ): RuntimePlayerCombatState {
   const actor = state.actors[actorId];
@@ -908,7 +1119,7 @@ export function resetRuntimePlayerCombatActorPolicyFreshFight(
         maxPrayerPoints: 99,
         levels: runtimePlayerCombatDefaultLevels,
         fixedLevels: runtimePlayerCombatDefaultLevels,
-        supplies: runtimePlayerCombatDefaultSupplies,
+        supplies: input.supplies ?? runtimePlayerCombatDefaultSupplies,
         supplyDelays: createSupplyDelayState(),
         activePrayers: [],
         locks: createEntityLockState(),
@@ -922,6 +1133,11 @@ export function resetRuntimePlayerCombatActorPolicyFreshFight(
           previousWeaponHadVisibleSpecBar: profile.hasVisibleSpecBar
         }),
         specialRestoreTicks: 0,
+        conflictionMagicAccuracyUntilTick: 0,
+        vengeanceActive: false,
+        vengeanceCooldownUntilTick: 0,
+        vengeanceTrinketCharges:
+          input.vengeanceTrinketCharges ?? actor.vengeanceTrinketCharges ?? runtimePlayerCombatDefaultVengeanceTrinketCharges,
         actionSequenceName: null,
         actionStartedAtTick: null,
         actionStartedAtClientCycle: null,
@@ -950,6 +1166,9 @@ function resetRuntimePlayerCombatActorPolicyDeath(actor: RuntimePlayerCombatActo
     policyOffenceStyle: undefined,
     policyStalledStyle: null,
     policyStalledStyleTicks: 0,
+    conflictionMagicAccuracyUntilTick: 0,
+    vengeanceActive: false,
+    vengeanceCooldownUntilTick: 0,
     activePrayers: []
   };
 }
@@ -1164,6 +1383,66 @@ export function toggleRuntimePlayerCombatSpecial(
   };
 }
 
+export function activateRuntimePlayerCombatVengeanceTrinket(
+  state: RuntimePlayerCombatState,
+  actorId: RuntimeActorId,
+  clientCycle?: number
+): {
+  readonly state: RuntimePlayerCombatState;
+  readonly activated: boolean;
+  readonly reason?: "cooldown" | "already-active" | "dead" | "no-charge";
+} {
+  const actor = state.actors[actorId];
+  if (isRuntimePlayerCombatActorDead(actor, state.tick)) {
+    return { state, activated: false, reason: "dead" };
+  }
+  if (actor.vengeanceTrinketCharges <= 0) {
+    return { state, activated: false, reason: "no-charge" };
+  }
+  if (actor.vengeanceActive) {
+    return { state, activated: false, reason: "already-active" };
+  }
+  if (state.tick < actor.vengeanceCooldownUntilTick) {
+    return { state, activated: false, reason: "cooldown" };
+  }
+
+  return {
+    state: {
+      ...state,
+      actors: {
+        ...state.actors,
+        [actorId]: {
+          ...actor,
+          vengeanceActive: true,
+          vengeanceTrinketCharges: Math.max(0, actor.vengeanceTrinketCharges - 1),
+          // Source: Trinket of vengeance casts Vengeance with the standard 30 second cooldown.
+          vengeanceCooldownUntilTick: state.tick + runtimePlayerCombatVengeanceCooldownTicks,
+          actionSequenceName: "vengeance_cast",
+          actionStartedAtTick: state.tick,
+          actionStartedAtClientCycle: clientCycle ?? state.tick * runtimePlayerCombatClientCyclesPerGameTick,
+          actionDurationTicks: runtimePlayerCombatVengeanceStallTicks,
+          actionUntilTick: state.tick + runtimePlayerCombatVengeanceStallTicks,
+          actionFacingDegrees: null
+        }
+      },
+      events: [
+        ...state.events,
+        {
+          kind: "spotanim",
+          id: `${state.tick}-${actorId}-vengeance-cast-spotanim`,
+          tick: state.tick,
+          actorId,
+          spotanimId: 726,
+          artifactUrl: "render/spotanims/vengeance_cast.glb",
+          soundIds: [runtimePlayerCombatVengeanceCastSoundId],
+          soundChannel: "sound-effects"
+        }
+      ]
+    },
+    activated: true
+  };
+}
+
 function applyGmaulTripleClickAutoTarget(
   state: RuntimePlayerCombatState,
   actorId: RuntimeActorId,
@@ -1264,6 +1543,8 @@ export function consumeRuntimePlayerCombatSupply(
     tick: state.tick,
     actorId,
     item,
+    soundIds: runtimePlayerCombatConsumableSoundIds(item),
+    soundChannel: "sound-effects",
     healed: result.healed,
     previousHitpoints: actor.hitpoints,
     nextHitpoints: result.stats.hitpoints.current,
@@ -1676,7 +1957,8 @@ function createRuntimePlayerCombatActor(
   prayerPoints: RuntimePlayerCombatPrayerPoints,
   activePrayers: readonly PrayerId[],
   supplies: RuntimePlayerCombatSupplies,
-  specialEnergy: number
+  specialEnergy: number,
+  vengeanceTrinketCharges: number
 ): RuntimePlayerCombatActorState {
   const profile = weaponProfileForRuntimeLoadout(loadoutId);
   const weaponId = weaponIdForLoadout(loadoutId);
@@ -1716,6 +1998,10 @@ function createRuntimePlayerCombatActor(
       previousWeaponHadVisibleSpecBar: profile.hasVisibleSpecBar
     }),
     specialRestoreTicks: 0,
+    conflictionMagicAccuracyUntilTick: 0,
+    vengeanceActive: false,
+    vengeanceCooldownUntilTick: 0,
+    vengeanceTrinketCharges: Math.max(0, Math.trunc(vengeanceTrinketCharges)),
     actionSequenceName: null,
     actionStartedAtTick: null,
     actionStartedAtClientCycle: null,
@@ -2136,14 +2422,52 @@ function tryRuntimePlayerAttack(
     specialAttack !== null &&
     specialAttack.id !== "granite_maul" &&
     attacker.gmaul.specialEnergy >= specialAttack.drainPercent;
+  const zurielAncientSpellBoost = spell && runtimePlayerCombatActorHasEquipmentItem(attacker, 22647) ? 1.1 : 1;
+  const rollStyle = useWeaponSpecial ? specialAttack.rollStyle ?? profile.style : profile.style;
+  const hitStyle = useWeaponSpecial ? specialAttack.damageStyle ?? profile.style : profile.style;
+  const conflictionAccuracyRolls =
+    spell &&
+    runtimePlayerCombatActorHasPendingConflictionAccuracy(attacker, tick) &&
+    runtimePlayerCombatActorCanUseConflictionGauntlets(attacker)
+      ? 2
+      : 1;
+  const guaranteedBoltEffect =
+    !spell && hitStyle === "ranged" && useWeaponSpecial && specialAttack.boltEffectMode === "guarantee_on_successful_hit"
+      ? runtimePlayerCombatBoltEffectForActor(attacker)
+      : null;
+  const boltEffectRoll = !spell && hitStyle === "ranged" && guaranteedBoltEffect === null
+    ? rollRuntimePlayerCombatBoltEffect(attacker, seed, useWeaponSpecial ? specialAttack.boltEffectChanceMultiplier ?? 1 : 1)
+    : null;
+  const candidateBoltEffect = guaranteedBoltEffect ?? boltEffectRoll?.effect ?? undefined;
+  const candidateBoltEffectRequiresSuccessfulHit = guaranteedBoltEffect !== null;
   const damageRoll = rollRuntimePlayerDamage(
     attacker,
     defender,
-    profile.style,
-    seed,
-    useWeaponSpecial ? specialAttack.accuracyMultiplier : 1,
-    spell?.maxDamage,
-    useWeaponSpecial ? specialAttack.damageMultiplier : 1
+    rollStyle,
+    boltEffectRoll?.seed ?? seed,
+    useWeaponSpecial ? specialAttack.accuracyMultiplier : zurielAncientSpellBoost,
+    spell ? Math.trunc(spell.maxDamage * zurielAncientSpellBoost) : undefined,
+    (useWeaponSpecial ? specialAttack.damageMultiplier : 1) * (candidateBoltEffect?.damageMultiplier ?? 1),
+    {
+      accuracyRolls: conflictionAccuracyRolls,
+      guaranteedHit:
+        (candidateBoltEffect?.guaranteedHit === true && !candidateBoltEffectRequiresSuccessfulHit) ||
+        (useWeaponSpecial ? specialAttack.guaranteedHit : false),
+      minDamageMultiplier: useWeaponSpecial ? specialAttack.minDamageMultiplier : undefined,
+      defenceStyleOverride: useWeaponSpecial ? specialAttack.defenceStyleOverride : undefined,
+      defenceRollMultiplier: useWeaponSpecial ? specialAttack.defenceRollMultiplier : undefined
+    }
+  );
+  const activeBoltEffect =
+    candidateBoltEffect && (!candidateBoltEffectRequiresSuccessfulHit || damageRoll.hitLanded)
+      ? candidateBoltEffect
+      : undefined;
+  const nextConflictionMagicAccuracyUntilTick = runtimePlayerCombatNextConflictionMagicAccuracyUntilTick(
+    attacker,
+    tick,
+    spell,
+    damageRoll.hitLanded,
+    conflictionAccuracyRolls > 1
   );
   const sequenceName = spell?.sequenceName ?? (useWeaponSpecial ? specialAttack.sequenceName : undefined) ?? runtimeAttackSequenceName(attacker.loadoutId, profile);
   const projectile = spell?.projectileProfile ?? runtimeProjectileProfile(profile.style, useWeaponSpecial ? specialAttack.id : undefined);
@@ -2155,7 +2479,7 @@ function tryRuntimePlayerAttack(
   const hitDelayTicks = runtimePlayerCombatHitDelayTicks(profile.style, distance, projectile);
   const sourceId = spell?.id ?? weaponId;
   const defenderProtectionPrayer = activeProtectionPrayer(defender.activePrayers);
-  const damage = runtimePlayerCombatFinalizedHitDamage(defender, damageRoll.damage, profile.style);
+  const damage = runtimePlayerCombatFinalizedHitDamage(defender, damageRoll.damage, hitStyle);
   const freezeLandsOnCast = spell?.freezeDurationTicks !== undefined && damage > 0;
   const nextDefenderLocks = freezeLandsOnCast
     ? applyFreeze(defender.locks, tick, spell.freezeDurationTicks, attackerId)
@@ -2170,8 +2494,13 @@ function tryRuntimePlayerAttack(
   const expectedDamage = runtimePlayerCombatExpectedDamage(
     damageRoll.maxDamage,
     damageRoll.hitChance,
-    profile.style,
+    hitStyle,
     defenderProtectionPrayer
+  );
+  const attackSoundIds = runtimePlayerCombatAttackSoundIds(
+    spell,
+    useWeaponSpecial ? specialAttack.id : undefined,
+    weaponId
   );
   const attackEvent: RuntimePlayerCombatEvent = {
     kind: "attack",
@@ -2181,7 +2510,7 @@ function tryRuntimePlayerAttack(
     defenderId,
     attackerTile: attacker.tile,
     defenderTile: defender.tile,
-    style: profile.style,
+    style: hitStyle,
     spellId: spell?.id,
     autocast: spell ? spellIsAutocast : undefined,
     sequenceName,
@@ -2190,6 +2519,7 @@ function tryRuntimePlayerAttack(
     hitChance: damageRoll.hitChance,
     expectedDamage,
     specialAttack: useWeaponSpecial ? specialAttack.id : undefined,
+    ...(attackSoundIds ? { soundIds: attackSoundIds } : {}),
     projectileDurationCycles,
     projectile,
     ...(defenderProtectionPrayer ? { defenderProtectionPrayer } : {}),
@@ -2233,6 +2563,7 @@ function tryRuntimePlayerAttack(
               specialEnergy: clampRuntimeSpecialEnergy(attacker.gmaul.specialEnergy - specialAttack.drainPercent)
             }
           : attacker.gmaul,
+        conflictionMagicAccuracyUntilTick: nextConflictionMagicAccuracyUntilTick,
         actionSequenceName: sequenceName,
         actionStartedAtTick: tick,
         actionStartedAtClientCycle: clientCycle ?? tick * runtimePlayerCombatClientCyclesPerGameTick,
@@ -2250,7 +2581,7 @@ function tryRuntimePlayerAttack(
         dueTick: tick + hitDelayTicks,
         attackerId,
         defenderId,
-        style: profile.style,
+        style: hitStyle,
         attackType: spell ? "ACCURATE" : runtimePlayerCombatAttackTypeForWeapon(weaponId, attacker.attackSetIndex),
         attackSetIndex: normalizeRuntimeAttackSetIndex(attacker.attackSetIndex),
         weaponId,
@@ -2265,7 +2596,8 @@ function tryRuntimePlayerAttack(
         ...(spell?.freezeDurationTicks !== undefined && !freezeLandsOnCast
           ? { freezeDurationTicks: spell.freezeDurationTicks }
           : {}),
-        bloodHealFraction: spell?.bloodHealFraction
+        bloodHealFraction: spell?.bloodHealFraction,
+        ...(activeBoltEffect ? { boltEffect: activeBoltEffect } : {})
       }
     ],
     events,
@@ -2487,6 +2819,7 @@ function tryRuntimePlayerGmaulSpecial(
         expectedDamage,
         specialAttack: "granite_maul",
         specialAttackCount: consumed.event.count,
+        soundIds: runtimePlayerCombatSpecialAttackSoundIds.granite_maul,
         ...(defenderProtectionPrayer ? { defenderProtectionPrayer } : {}),
         attackerActivePrayers: attacker.activePrayers,
         attackerEquipment: attacker.equipment,
@@ -2549,16 +2882,38 @@ function applyRuntimePlayerQueuedHit(
     hitpoints: nextHitpoints,
     deadUntilTick: dead ? respawnTick : defender.deadUntilTick,
     locks: freezeLands ? applyFreeze(resetDefender.locks, tick, hit.freezeDurationTicks, hit.attackerId) : resetDefender.locks,
+    vengeanceActive: damage > 0 ? false : resetDefender.vengeanceActive,
     hitsplatSlotCursor: (hitsplatSlotIndex + 1) % 4,
     lastHitsplatTick: tick
   };
   const attacker = actors[hit.attackerId];
   const bloodHeal = hit.bloodHealFraction && damage > 0 ? runtimePlayerCombatBloodSpellHeal(attacker, damage) : 0;
+  const boltHeal =
+    hit.boltEffect?.healFraction && damage > 0
+      ? Math.trunc(damage * hit.boltEffect.healFraction)
+      : 0;
+  const vengeanceDamage = defender.vengeanceActive && damage > 0
+    ? Math.min(attacker.hitpoints, Math.trunc(damage * 0.75))
+    : 0;
+  const attackerHitpointsAfterBloodHeal =
+    bloodHeal > 0 || boltHeal > 0
+      ? Math.min(attacker.maxHitpoints, attacker.hitpoints + bloodHeal + boltHeal)
+      : attacker.hitpoints;
+  const nextAttackerHitpoints = Math.max(0, attackerHitpointsAfterBloodHeal - vengeanceDamage);
+  const attackerDead = vengeanceDamage > 0 && nextAttackerHitpoints <= 0;
+  const attackerRespawnTick = tick + deathResetDelayTicks;
+  const resetAttacker = attackerDead ? resetRuntimePlayerCombatActorPolicyDeath(attacker) : attacker;
+  const attackerHitsplatExpired = tick >= runtimePlayerCombatHitsplatEndTick(attacker.lastHitsplatTick);
+  const attackerHitsplatSlotIndex = attackerHitsplatExpired ? 0 : (attacker.hitsplatSlotCursor % 4);
   const nextAttacker: RuntimePlayerCombatActorState = {
-    ...attacker,
-    hitpoints: bloodHeal > 0 ? Math.min(attacker.maxHitpoints, attacker.hitpoints + bloodHeal) : attacker.hitpoints,
-    targetId: dead ? null : attacker.targetId
+    ...resetAttacker,
+    hitpoints: nextAttackerHitpoints,
+    deadUntilTick: attackerDead ? attackerRespawnTick : resetAttacker.deadUntilTick,
+    hitsplatSlotCursor: vengeanceDamage > 0 ? (attackerHitsplatSlotIndex + 1) % 4 : resetAttacker.hitsplatSlotCursor,
+    lastHitsplatTick: vengeanceDamage > 0 ? tick : resetAttacker.lastHitsplatTick,
+    targetId: dead || attackerDead ? null : resetAttacker.targetId
   };
+  const hitSoundIds = runtimePlayerCombatQueuedHitSoundIds(hit, damage);
   const events: RuntimePlayerCombatEvent[] = [
     {
       kind: "hitsplat",
@@ -2569,6 +2924,8 @@ function applyRuntimePlayerQueuedHit(
       style: hit.style,
       spellId: hit.spellId,
       autocast: hit.autocast,
+      ...(hit.boltEffect ? { boltEffect: hit.boltEffect } : {}),
+      ...(hitSoundIds ? { soundIds: hitSoundIds } : {}),
       damage,
       rawDamage: hit.rawDamage,
       maxDamage: hit.maxDamage,
@@ -2591,6 +2948,44 @@ function applyRuntimePlayerQueuedHit(
       artifactUrl: spell.hitSpotanimArtifactUrl
     });
   }
+  if (hit.boltEffect && (hit.boltEffect.id === "diamond" || damage > 0)) {
+    events.push({
+      kind: "spotanim",
+      id: `${hit.id}-${hit.boltEffect.id}-bolt-proc-spotanim`,
+      tick,
+      actorId: hit.defenderId,
+      spotanimId: hit.boltEffect.spotanimId,
+      artifactUrl: hit.boltEffect.spotanimArtifactUrl
+    });
+  }
+  if (vengeanceDamage > 0) {
+    events.push({
+      kind: "overhead-text",
+      id: `${hit.id}-vengeance-force-text`,
+      tick,
+      actorId: hit.defenderId,
+      text: runtimePlayerCombatVengeanceForceText,
+      textColor: runtimePlayerCombatOverheadTextYellow,
+      textEffect: 0,
+      durationClientCycles: runtimePlayerCombatForceTextDurationClientCycles
+    });
+    events.push({
+      kind: "hitsplat",
+      id: `${hit.id}-vengeance-hitsplat`,
+      tick,
+      attackerId: hit.defenderId,
+      targetActorId: hit.attackerId,
+      style: "magic",
+      damage: vengeanceDamage,
+      rawDamage: vengeanceDamage,
+      maxDamage: vengeanceDamage,
+      hitChance: 1,
+      previousHitpoints: attackerHitpointsAfterBloodHeal,
+      nextHitpoints: nextAttackerHitpoints,
+      maxHitpoints: attacker.maxHitpoints,
+      slotIndex: attackerHitsplatSlotIndex
+    });
+  }
   if (dead) {
     events.push({
       kind: "death",
@@ -2598,6 +2993,15 @@ function applyRuntimePlayerQueuedHit(
       tick,
       actorId: hit.defenderId,
       respawnTick
+    });
+  }
+  if (attackerDead) {
+    events.push({
+      kind: "death",
+      id: `${tick}-${hit.attackerId}-death`,
+      tick,
+      actorId: hit.attackerId,
+      respawnTick: attackerRespawnTick
     });
   }
   return {
@@ -2623,6 +3027,46 @@ function runtimePlayerCombatActorHasEquipmentItem(actor: RuntimePlayerCombatActo
   return Object.values(actor.equipment).some((item) => item?.itemId === itemId);
 }
 
+function runtimePlayerCombatActorHasPendingConflictionAccuracy(
+  actor: RuntimePlayerCombatActorState,
+  tick: number
+): boolean {
+  return actor.conflictionMagicAccuracyUntilTick >= tick;
+}
+
+function runtimePlayerCombatActorCanUseConflictionGauntlets(actor: RuntimePlayerCombatActorState): boolean {
+  if (!runtimePlayerCombatActorHasEquipmentItem(actor, 31106)) {
+    return false;
+  }
+  const weaponId = weaponIdForRuntimeActor(actor);
+  return weaponId === "zuriels_staff" || weaponId === "kodai" || weaponId === "ancient_staff" || weaponId === "staff_of_the_dead";
+}
+
+function runtimePlayerCombatNextConflictionMagicAccuracyUntilTick(
+  attacker: RuntimePlayerCombatActorState,
+  tick: number,
+  spell: RuntimePlayerCombatSpellDefinition | null,
+  hitLanded: boolean,
+  consumedPendingAccuracy: boolean
+): number {
+  if (!spell || !runtimePlayerCombatActorCanUseConflictionGauntlets(attacker)) {
+    return attacker.conflictionMagicAccuracyUntilTick;
+  }
+  if (!hitLanded) {
+    // Source: Confliction gauntlets make the next one-handed magic attack within 4 ticks roll accuracy twice after a magic miss.
+    return tick + 4;
+  }
+  return consumedPendingAccuracy ? 0 : attacker.conflictionMagicAccuracyUntilTick;
+}
+
+interface RuntimePlayerDamageRollOptions {
+  readonly accuracyRolls?: number;
+  readonly guaranteedHit?: boolean;
+  readonly minDamageMultiplier?: number;
+  readonly defenceStyleOverride?: CombatStyle;
+  readonly defenceRollMultiplier?: number;
+}
+
 function rollRuntimePlayerDamage(
   attacker: RuntimePlayerCombatActorState,
   defender: RuntimePlayerCombatActorState,
@@ -2630,26 +3074,57 @@ function rollRuntimePlayerDamage(
   seed: number,
   accuracyMultiplier = 1,
   maxMagicDamage = 30,
-  damageMultiplier = 1
-): { readonly damage: number; readonly seed: number; readonly maxDamage: number; readonly hitChance: number } {
+  damageMultiplier = 1,
+  options: RuntimePlayerDamageRollOptions = {}
+): {
+  readonly damage: number;
+  readonly seed: number;
+  readonly maxDamage: number;
+  readonly hitChance: number;
+  readonly hitLanded: boolean;
+} {
   const estimate = runtimePlayerCombatDamageEstimate(attacker, defender, style, maxMagicDamage);
-  const hitChance = clampRuntimeHitChance(estimate.hitChance * Math.max(0, accuracyMultiplier));
+  const defenceEstimate =
+    options.defenceStyleOverride === undefined || options.defenceStyleOverride === style
+      ? estimate
+      : runtimePlayerCombatDamageEstimate(attacker, defender, options.defenceStyleOverride, maxMagicDamage);
+  const effectiveAttackRoll = estimate.attackRoll * Math.max(0, accuracyMultiplier);
+  const effectiveDefenceRoll = defenceEstimate.defenceRoll * Math.max(0, options.defenceRollMultiplier ?? 1);
+  const singleRollHitChance = clampRuntimeHitChance(combatHitChance(effectiveAttackRoll, effectiveDefenceRoll));
+  const accuracyRolls = Math.max(1, Math.trunc(options.accuracyRolls ?? 1));
+  const hitChance = options.guaranteedHit
+    ? 1
+    : clampRuntimeHitChance(1 - Math.pow(1 - singleRollHitChance, accuracyRolls));
   const maxDamage = Math.max(0, Math.trunc(estimate.maxDamage * Math.max(0, damageMultiplier)));
-  const hitChanceRoll = nextRuntimeCombatRandom(seed);
-  const damageRoll = nextRuntimeCombatRandom(hitChanceRoll.seed);
-  if (hitChanceRoll.value > hitChance || maxDamage <= 0) {
+  let nextSeed = seed;
+  let hitLanded = options.guaranteedHit === true;
+  if (!hitLanded) {
+    for (let rollIndex = 0; rollIndex < accuracyRolls; rollIndex += 1) {
+      const hitChanceRoll = nextRuntimeCombatRandom(nextSeed);
+      nextSeed = hitChanceRoll.seed;
+      if (hitChanceRoll.value <= singleRollHitChance) {
+        hitLanded = true;
+        break;
+      }
+    }
+  }
+  const damageRoll = nextRuntimeCombatRandom(nextSeed);
+  const minDamage = Math.max(0, Math.min(maxDamage, Math.trunc(estimate.maxDamage * Math.max(0, options.minDamageMultiplier ?? 0))));
+  if (!hitLanded || maxDamage <= 0) {
     return {
       damage: 0,
       seed: damageRoll.seed,
       maxDamage,
-      hitChance
+      hitChance,
+      hitLanded: false
     };
   }
   return {
-    damage: Math.floor(damageRoll.value * (maxDamage + 1)),
+    damage: minDamage + Math.floor(damageRoll.value * (maxDamage - minDamage + 1)),
     seed: damageRoll.seed,
     maxDamage,
-    hitChance
+    hitChance,
+    hitLanded: true
   };
 }
 
@@ -2869,6 +3344,7 @@ function runtimePlayerCombatAttackTypeForWeapon(
   // Source: exported Nh WeaponType attackSets for WAND/STAFF_OF_DEAD, ARMADYL_CROSSBOW, WHIP, and GRANITE_MAUL.
   if (
     weaponId === "armadyl_crossbow" ||
+    weaponId === "zaryte_crossbow" ||
     weaponId === "rune_crossbow" ||
     weaponId === "magic_shortbow" ||
     weaponId === "dragon_crossbow"
@@ -2906,7 +3382,7 @@ export function resolveRuntimePlayerCombatAttackSetIndexForWeapon(
 }
 
 function runtimePlayerCombatAttackSetIndexesForWeapon(_weaponId: NhWeaponId): readonly number[] {
-  if (_weaponId === "armadyl_godsword") {
+  if (_weaponId === "armadyl_godsword" || _weaponId === "voidwaker" || _weaponId === "vesta_longsword") {
     return [0, 1, 2, 3];
   }
   // Source: exported Nh WeaponType attackSets for WAND/STAFF_OF_DEAD, ARMADYL_CROSSBOW, WHIP, and GRANITE_MAUL
@@ -2917,6 +3393,12 @@ function runtimePlayerCombatAttackSetIndexesForWeapon(_weaponId: NhWeaponId): re
 function runtimePlayerCombatStyleForWeapon(weaponId: NhWeaponId, attackSetIndex: number): CombatStyle | null {
   if (weaponId === "armadyl_godsword") {
     return normalizeRuntimeAttackSetIndex(attackSetIndex) === 2 ? "crush" : "slash";
+  }
+  if (weaponId === "voidwaker") {
+    return normalizeRuntimeAttackSetIndex(attackSetIndex) === 2 ? "slash" : "stab";
+  }
+  if (weaponId === "vesta_longsword") {
+    return normalizeRuntimeAttackSetIndex(attackSetIndex) === 2 ? "stab" : "slash";
   }
   return null;
 }
@@ -2995,6 +3477,12 @@ function runtimeAttackSequenceName(loadoutId: RuntimeLoadoutId, profile: WeaponT
   if (weaponId === "granite_maul") {
     return "gmaul_attack";
   }
+  if (weaponId === "noxious_halberd") {
+    return "halberd_attack";
+  }
+  if (weaponId === "voidwaker" || weaponId === "vesta_longsword") {
+    return profile.style === "stab" ? "sword_stab_attack" : "sword_slash_attack";
+  }
   if (weaponId === "armadyl_godsword") {
     return "godsword_attack";
   }
@@ -3024,12 +3512,29 @@ function runtimeWeaponSpecialDefinition(
   readonly drainPercent: number;
   readonly accuracyMultiplier: number;
   readonly damageMultiplier: number;
+  readonly minDamageMultiplier?: number;
+  readonly rollStyle?: CombatStyle;
+  readonly damageStyle?: CombatStyle;
+  readonly guaranteedHit?: boolean;
+  readonly defenceStyleOverride?: CombatStyle;
+  readonly defenceRollMultiplier?: number;
+  readonly boltEffectChanceMultiplier?: number;
+  readonly boltEffectMode?: "guarantee_on_successful_hit";
   readonly sequenceName?: RuntimeSequenceName;
   readonly spotanimId?: number;
   readonly spotanimArtifactUrl?: string;
 } | null {
   if (weaponId === "armadyl_crossbow") {
-    return { id: "armadyl_crossbow", drainPercent: 40, accuracyMultiplier: 2, damageMultiplier: 1 };
+    return { id: "armadyl_crossbow", drainPercent: 50, accuracyMultiplier: 2, damageMultiplier: 1, boltEffectChanceMultiplier: 2 };
+  }
+  if (weaponId === "zaryte_crossbow") {
+    return {
+      id: "zaryte_crossbow",
+      drainPercent: 75,
+      accuracyMultiplier: 2,
+      damageMultiplier: 1,
+      boltEffectMode: "guarantee_on_successful_hit"
+    };
   }
   if (weaponId === "armadyl_godsword") {
     return {
@@ -3044,6 +3549,31 @@ function runtimeWeaponSpecialDefinition(
   }
   if (weaponId === "granite_maul") {
     return { id: "granite_maul", drainPercent: graniteMaulSpecEnergyCost, accuracyMultiplier: 1, damageMultiplier: 1 };
+  }
+  if (weaponId === "voidwaker") {
+    return {
+      id: "voidwaker",
+      drainPercent: 50,
+      accuracyMultiplier: 1,
+      damageMultiplier: 1.5,
+      minDamageMultiplier: 0.5,
+      rollStyle: "slash",
+      damageStyle: "magic",
+      guaranteedHit: true,
+      sequenceName: "voidwaker_special"
+    };
+  }
+  if (weaponId === "vesta_longsword") {
+    return {
+      id: "vesta_longsword",
+      drainPercent: 25,
+      accuracyMultiplier: 1,
+      damageMultiplier: 1.2,
+      minDamageMultiplier: 0.2,
+      defenceStyleOverride: "stab",
+      defenceRollMultiplier: 0.25,
+      sequenceName: "vesta_longsword_special"
+    };
   }
   return null;
 }

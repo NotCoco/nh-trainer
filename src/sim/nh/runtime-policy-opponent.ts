@@ -19,6 +19,7 @@ import {
 } from "../prayer/prayers";
 import { nhWeaponProfiles } from "../combat/player-combat";
 import {
+  activateRuntimePlayerCombatVengeanceTrinket,
   consumeRuntimePlayerCombatSupply,
   requestRuntimePlayerCombatAttack,
   resetRuntimePlayerCombatActorPolicyDisengage,
@@ -42,19 +43,26 @@ import {
   type NhDuelControllerContext
 } from "./duel";
 import { nhClientOffenceEv, nhStyleInOffensiveRange, nhWeaknessForStyle } from "./clientOffenceEv";
-import { nhLoadouts, type NhLoadoutId, type NhWeaponId } from "./loadouts";
+import { loadoutForWeapon, nhLoadouts, type NhLoadoutId, type NhWeaponId } from "./loadouts";
 import {
   inferNhSelectedGearProfile,
   isNhArmadylGodswordItemId,
   isNhGraniteMaulItemId,
+  isNhVestaLongswordItemId,
+  isNhVoidwakerItemId,
   nhGearProfileAvailableSpecialWeaponKind,
+  nhGearProfileAvailableSpecialWeaponKinds,
   nhGearProfileCanEquipArmadylGodsword,
   nhGearProfileCanEquipGraniteMaul,
+  nhGearProfileCanEquipVestaLongsword,
+  nhGearProfileCanEquipVoidwaker,
   nhGearProfileNormalizeBotSourceEquipment,
   nhGearProfileUsableBotSourceProfile,
+  nhGearProfileUsesIndependentGear,
   nhGearProfileActionEquipment,
   nhGearProfileCandidateEquipmentByStyle,
   nhGearProfileWeaponIdForEquipment,
+  type NhGearProfileSpecialWeaponKind,
   type NhSelectedGearProfile
 } from "./gearProfile";
 import {
@@ -73,7 +81,7 @@ import { nhPolicyGmaulSpecApproachWindow } from "./policy-features";
 
 type RuntimePolicyIntentCoverage<T extends string> = Readonly<Record<T, string>>;
 type RuntimePolicyDefencePrayer = (typeof nhDefencePrayers)[number];
-type RuntimePolicySpecialWeaponKind = "granite_maul" | "armadyl_godsword";
+type RuntimePolicySpecialWeaponKind = NhGearProfileSpecialWeaponKind;
 
 export interface RuntimePolicyInventorySlot {
   readonly itemId: number;
@@ -385,12 +393,19 @@ export function applyRuntimeOpponentPolicyAction(input: {
     "opponent",
     input.rewardEpisodeStartTick
   );
+  const selectedSpecialKind =
+    effectiveAction.specIntent === "none"
+      ? null
+      : runtimePolicyBestAvailableSpecialWeaponKind(context, effectiveAction.specIntent === "use_special_double");
   const currentOffenceStyle = context.self.lastOffenceStyle ?? null;
   const desiredOrCurrentOffenceStyle = currentOffenceStyle ?? effectiveAction.offenceStyle;
   let state = stateWithScriptedFreezeAttempt;
   const stateBeforeSupply = state;
   const supplyResult = consumeRuntimeOpponentPolicySupplies(state, contextGuardedAction, context);
   state = supplyResult.state;
+  if (supplyResult.consumed.length === 0) {
+    state = runtimePolicyMaybeActivateVengeanceTrinket(state, context, input.rewardEpisodeActive === true);
+  }
   const styleStall = runtimePolicyRecoverStyleStall(state, effectiveAction.offenceStyle, context, syncedOpponentGearProfile);
   state = styleStall.state;
   const actorCanUseFlexibleGear = canAct(state.actors.opponent.locks, state.tick);
@@ -456,12 +471,14 @@ export function applyRuntimeOpponentPolicyAction(input: {
     underPressure: opponentUnderAggression,
     hitpoints: state.actors.opponent.hitpoints,
     allowFlexibleGear: actorCanUseFlexibleGear,
+    specialEnergy: state.actors.opponent.gmaul.specialEnergy,
+    specialWeaponKind: selectedSpecialKind,
     // Source: NhStakerBot.switchToStyle() can call optimizeFlexibleGear(), then
     // the main tick loop calls optimizeFlexibleGear() again after currentOffence
     // is updated. Same-style ticks only receive the main-loop pass.
     flexibleGearPasses: javaWouldSwitchToStyle ? 2 : 1
   });
-  const targetLoadoutId = runtimeLoadoutForPolicyAction(effectiveAction, syncedOpponentGearProfile);
+  const targetLoadoutId = runtimeLoadoutForPolicyAction(effectiveAction, syncedOpponentGearProfile, selectedSpecialKind);
   let opponentLoadoutId = targetLoadoutId;
   if (!suppressStyleReequipThisTick) {
     if (javaWouldSwitchToStyle) {
@@ -484,7 +501,9 @@ export function applyRuntimeOpponentPolicyAction(input: {
   if (effectiveAction.offenceStyle === "magic") {
     // Source: MAGIC robe body is protected from flexible-gear swaps; keep the
     // runtime synced if a copied layout drifted before this tick.
-    state = runtimePolicyEnforceMagicCoreArmor(state, syncedOpponentGearProfile);
+    if (!nhGearProfileUsesIndependentGear(syncedOpponentGearProfile)) {
+      state = runtimePolicyEnforceMagicCoreArmor(state, syncedOpponentGearProfile);
+    }
     // Source: NhStakerBot.castBarrage() calls ensureAutocast(iceBarrageSpell(),
     // ICE_BARRAGE_AUTOCAST_SLOT) before attackTarget(opponent).
     state = setRuntimePlayerCombatAutocast(state, "opponent", "ice-barrage");
@@ -522,7 +541,7 @@ export function applyRuntimeOpponentPolicyAction(input: {
   }
 
   if (effectiveAction.specIntent !== "none") {
-    const specialKind = runtimePolicyAvailableSpecialWeaponKind(context.self);
+    const specialKind = selectedSpecialKind;
     state = toggleRuntimePlayerCombatSpecial(state, "opponent").state;
     if (effectiveAction.specIntent === "use_special_double" && specialKind === "granite_maul") {
       state = toggleRuntimePlayerCombatSpecial(state, "opponent").state;
@@ -729,24 +748,24 @@ function runtimePolicyGmaulSpecReward(
   if (action.specIntent !== "use_special" && action.specIntent !== "use_special_double") {
     return 0;
   }
-  const specialKind = runtimePolicyAvailableSpecialWeaponKind(context.self);
+  const specialKind = runtimePolicyBestAvailableSpecialWeaponKind(context, action.specIntent === "use_special_double");
   if (!specialKind) {
     return 0;
   }
   const doubleSpec = specialKind === "granite_maul" && action.specIntent === "use_special_double";
   const opponentHp = runtimePolicyOpponentVisibleHp(context);
   const recentHit = Math.max(0, context.self.lastDealtHit);
-  const meleeProtected = activeProtectionPrayer(context.opponent.activePrayers) === protectPrayerForStyle("crush");
-  const exposure = runtimePolicyOpponentMeleeSpecExposure(context, specialKind);
-  const setupScore = runtimePolicySpecialSetupScore(specialKind, doubleSpec, opponentHp, recentHit, exposure, meleeProtected);
-  const koChance = runtimePolicyClientSpecialKoChance(context, specialKind, doubleSpec, exposure, meleeProtected, opponentHp);
+  const specProtected = runtimePolicyOpponentProtectsFromSpecial(context, specialKind);
+  const exposure = runtimePolicyOpponentSpecExposure(context, specialKind);
+  const setupScore = runtimePolicySpecialSetupScore(specialKind, doubleSpec, opponentHp, recentHit, exposure, specProtected);
+  const koChance = runtimePolicyClientSpecialKoChance(context, specialKind, doubleSpec, exposure, specProtected, opponentHp);
   const credibleWindow = runtimePolicySpecialCredibleSpecWindow(
     specialKind,
     doubleSpec,
     opponentHp,
     recentHit,
     exposure,
-    meleeProtected,
+    specProtected,
     koChance,
     setupScore
   );
@@ -774,7 +793,7 @@ function runtimePolicyGmaulSpecReward(
     delta -= runtimePolicySpecEarlyLowPressurePenalty * (doubleSpec ? 1.25 : 1);
   }
   delta -= runtimePolicySpecialDryHighHpPenalty(specialKind, doubleSpec, opponentHp, recentHit, setupScore);
-  if (meleeProtected && opponentHp > 44) {
+  if (specProtected && opponentHp > 44) {
     const prayerPenaltyScale = runtimePolicyClamp01((opponentHp - 40) / 45);
     delta -= runtimePolicySpecMeleePrayerPenalty * prayerPenaltyScale * (doubleSpec ? 1.15 : 0.85);
   }
@@ -792,14 +811,14 @@ function runtimePolicyGmaulSpecRewardDetails(
   action: NhPolicyAction
 ): RuntimePolicyRewardDetails {
   const doubleSpec = action.specIntent === "use_special_double";
-  const specialKind = runtimePolicyAvailableSpecialWeaponKind(context.self) ?? "granite_maul";
+  const specialKind = runtimePolicyBestAvailableSpecialWeaponKind(context, doubleSpec) ?? runtimePolicyAvailableSpecialWeaponKind(context.self) ?? "granite_maul";
   const opponentHp = runtimePolicyOpponentVisibleHp(context);
   const recentHit = Math.max(0, context.self.lastDealtHit);
-  const meleeProtected = activeProtectionPrayer(context.opponent.activePrayers) === protectPrayerForStyle("crush");
+  const specProtected = runtimePolicyOpponentProtectsFromSpecial(context, specialKind);
   const effectiveDoubleSpec = specialKind === "granite_maul" && doubleSpec;
-  const exposure = runtimePolicyOpponentMeleeSpecExposure(context, specialKind);
-  const setupScore = runtimePolicySpecialSetupScore(specialKind, effectiveDoubleSpec, opponentHp, recentHit, exposure, meleeProtected);
-  const koChance = runtimePolicyClientSpecialKoChance(context, specialKind, effectiveDoubleSpec, exposure, meleeProtected, opponentHp);
+  const exposure = runtimePolicyOpponentSpecExposure(context, specialKind);
+  const setupScore = runtimePolicySpecialSetupScore(specialKind, effectiveDoubleSpec, opponentHp, recentHit, exposure, specProtected);
+  const koChance = runtimePolicyClientSpecialKoChance(context, specialKind, effectiveDoubleSpec, exposure, specProtected, opponentHp);
   return {
     gmaulDoubleSpec: effectiveDoubleSpec,
     specialWeaponKind: specialKind,
@@ -813,11 +832,11 @@ function runtimePolicyGmaulSpecRewardDetails(
       opponentHp,
       recentHit,
       exposure,
-      meleeProtected,
+      specProtected,
       koChance,
       setupScore
     ),
-    meleeProtected
+    meleeProtected: specProtected
   };
 }
 
@@ -1718,7 +1737,7 @@ function runtimePolicyIsProductiveUnderControl(
 }
 
 function runtimePolicySpecApproachWindowFromContext(context: NhDuelControllerContext, doubleSpecOnly: boolean): number {
-  const specialKind = runtimePolicyAvailableSpecialWeaponKind(context.self);
+  const specialKind = runtimePolicyBestAvailableSpecialWeaponKind(context, doubleSpecOnly);
   if (
     !canAct(context.self.locks, context.tick) ||
     isFrozen(context.self.locks, context.tick) ||
@@ -1733,14 +1752,14 @@ function runtimePolicySpecApproachWindowFromContext(context: NhDuelControllerCon
     distance < 0 ||
     distance > 2 ||
     context.self.gmaul.specialEnergy < runtimePolicySpecialRequiredEnergy(specialKind, false) ||
-    (specialKind === "armadyl_godsword" && !canAttackByTimer(context.self.attackTimer, context.tick))
+    (specialKind !== "granite_maul" && !canAttackByTimer(context.self.attackTimer, context.tick))
   ) {
     return 0;
   }
   // Source: NhStakerBot.specApproachWindow() values two-tile approach windows
   // before the special weapon is already in melee reach.
-  const exposure = runtimePolicyOpponentMeleeSpecExposure(context, specialKind);
-  const meleeProtected = activeProtectionPrayer(context.opponent.activePrayers) === protectPrayerForStyle("crush");
+  const exposure = runtimePolicyOpponentSpecExposure(context, specialKind);
+  const specProtected = runtimePolicyOpponentProtectsFromSpecial(context, specialKind);
   const opponentHp = runtimePolicyOpponentVisibleHp(context);
   const recentHit = Math.max(0, context.self.lastDealtHit);
   const single = doubleSpecOnly
@@ -1751,9 +1770,9 @@ function runtimePolicySpecApproachWindowFromContext(context: NhDuelControllerCon
         opponentHp,
         recentHit,
         exposure,
-        meleeProtected,
-        runtimePolicyClientSpecialKoChance(context, specialKind, false, exposure, meleeProtected, opponentHp, false),
-        runtimePolicySpecialSetupScore(specialKind, false, opponentHp, recentHit, exposure, meleeProtected)
+        specProtected,
+        runtimePolicyClientSpecialKoChance(context, specialKind, false, exposure, specProtected, opponentHp, false),
+        runtimePolicySpecialSetupScore(specialKind, false, opponentHp, recentHit, exposure, specProtected)
       );
   const double =
     specialKind === "granite_maul" && context.self.gmaul.specialEnergy >= runtimePolicySpecialRequiredEnergy(specialKind, true)
@@ -1762,9 +1781,9 @@ function runtimePolicySpecApproachWindowFromContext(context: NhDuelControllerCon
           opponentHp,
           recentHit,
           exposure,
-          meleeProtected,
-          runtimePolicyClientGmaulKoChance(context, true, exposure, meleeProtected, opponentHp, false),
-          runtimePolicyGmaulSetupScore(true, opponentHp, recentHit, exposure, meleeProtected)
+          specProtected,
+          runtimePolicyClientGmaulKoChance(context, true, exposure, specProtected, opponentHp, false),
+          runtimePolicyGmaulSetupScore(true, opponentHp, recentHit, exposure, specProtected)
         )
       : 0;
   return Math.max(single, double);
@@ -2063,7 +2082,7 @@ function runtimePolicyMissedGmaulSpecReward(
   actorId: RuntimeActorId,
   rewardEpisodeStartTick?: number
 ): number {
-  const specialKind = runtimePolicyAvailableSpecialWeaponKind(context.self);
+  const specialKind = runtimePolicyBestAvailableSpecialWeaponKind(context, false);
   if (!specialKind) {
     return 0;
   }
@@ -2081,25 +2100,25 @@ function runtimePolicyMissedGmaulSpecReward(
   const canDouble = runtimePolicyCanUseSpecialSpecFromObserved(context, specialKind, true);
   const opponentHp = runtimePolicyOpponentVisibleHp(context);
   const recentHit = Math.max(0, context.self.lastDealtHit);
-  const exposure = runtimePolicyOpponentMeleeSpecExposure(context, specialKind);
-  const meleeProtected = activeProtectionPrayer(context.opponent.activePrayers) === protectPrayerForStyle("crush");
-  const singleKo = canSingle ? runtimePolicyClientSpecialKoChance(context, specialKind, false, exposure, meleeProtected, opponentHp) : 0;
-  const doubleKo = canDouble ? runtimePolicyClientSpecialKoChance(context, specialKind, true, exposure, meleeProtected, opponentHp) : 0;
-  const singleSetup = canSingle ? runtimePolicySpecialSetupScore(specialKind, false, opponentHp, recentHit, exposure, meleeProtected) : 0;
-  const doubleSetup = canDouble ? runtimePolicySpecialSetupScore(specialKind, true, opponentHp, recentHit, exposure, meleeProtected) : 0;
+  const exposure = runtimePolicyOpponentSpecExposure(context, specialKind);
+  const specProtected = runtimePolicyOpponentProtectsFromSpecial(context, specialKind);
+  const singleKo = canSingle ? runtimePolicyClientSpecialKoChance(context, specialKind, false, exposure, specProtected, opponentHp) : 0;
+  const doubleKo = canDouble ? runtimePolicyClientSpecialKoChance(context, specialKind, true, exposure, specProtected, opponentHp) : 0;
+  const singleSetup = canSingle ? runtimePolicySpecialSetupScore(specialKind, false, opponentHp, recentHit, exposure, specProtected) : 0;
+  const doubleSetup = canDouble ? runtimePolicySpecialSetupScore(specialKind, true, opponentHp, recentHit, exposure, specProtected) : 0;
   const bestKo = Math.max(singleKo, doubleKo);
   const bestSetup = Math.max(singleSetup, doubleSetup);
   let bestCredible = 0;
   if (canSingle) {
     bestCredible = Math.max(
       bestCredible,
-      runtimePolicySpecialCredibleSpecWindow(specialKind, false, opponentHp, recentHit, exposure, meleeProtected, singleKo, singleSetup)
+      runtimePolicySpecialCredibleSpecWindow(specialKind, false, opponentHp, recentHit, exposure, specProtected, singleKo, singleSetup)
     );
   }
   if (canDouble) {
     bestCredible = Math.max(
       bestCredible,
-      runtimePolicySpecialCredibleSpecWindow(specialKind, true, opponentHp, recentHit, exposure, meleeProtected, doubleKo, doubleSetup)
+      runtimePolicySpecialCredibleSpecWindow(specialKind, true, opponentHp, recentHit, exposure, specProtected, doubleKo, doubleSetup)
     );
   }
   const missedFloor = recentHit >= 24 ? runtimePolicySpecCredibleWindowFloor : Math.max(0.22, runtimePolicySpecCredibleWindowFloor);
@@ -2113,7 +2132,7 @@ function runtimePolicyMissedGmaulSpecReward(
   if (recentHit >= 24) {
     delta -= runtimePolicySpecMissedBigHitPenalty * runtimePolicyClamp01((recentHit - 20) / 22);
   }
-  if (meleeProtected) {
+  if (specProtected) {
     delta *= 0.35;
   }
   // Source: NhStakerBot.applyMissedSpecOpportunityReward() penalizes a NONE
@@ -2176,19 +2195,102 @@ function runtimePolicyCanUseSpecialSpecFromObserved(
     context.opponent.stats.hitpoints.current > 0 &&
     context.self.gmaul.specialEnergy >= requiredEnergy &&
     runtimePolicyObservedMeleeReachable(context) &&
-    nhWeaponProfiles[context.self.weaponId].hasVisibleSpecBar &&
-    (specialKind !== "armadyl_godsword" || canAttackByTimer(context.self.attackTimer, context.tick))
+    runtimePolicyHasClientSpecControlForSpecial(context, specialKind) &&
+    (specialKind === "granite_maul" || canAttackByTimer(context.self.attackTimer, context.tick))
+  );
+}
+
+function runtimePolicyHasClientSpecControlForSpecial(
+  context: NhDuelControllerContext,
+  specialKind: RuntimePolicySpecialWeaponKind
+): boolean {
+  return (
+    nhWeaponProfiles[context.self.weaponId].hasVisibleSpecBar ||
+    specialKind === "voidwaker" ||
+    specialKind === "vesta_longsword"
   );
 }
 
 function runtimePolicyAvailableSpecialWeaponKind(actor: NhDuelActorState): RuntimePolicySpecialWeaponKind | null {
-  if (runtimePolicyHasEquipableGraniteMaulAvailable(actor)) {
-    return "granite_maul";
+  return runtimePolicyAvailableSpecialWeaponKinds(actor)[0] ?? null;
+}
+
+function runtimePolicyAvailableSpecialWeaponKinds(actor: NhDuelActorState): readonly RuntimePolicySpecialWeaponKind[] {
+  const kinds: RuntimePolicySpecialWeaponKind[] = [];
+  const add = (kind: RuntimePolicySpecialWeaponKind): void => {
+    if (!kinds.includes(kind)) {
+      kinds.push(kind);
+    }
+  };
+  if (actor.gearProfile) {
+    for (const kind of nhGearProfileAvailableSpecialWeaponKinds(actor.gearProfile, actor.gmaul.specialEnergy)) {
+      add(kind);
+    }
   }
-  if (runtimePolicyHasEquipableArmadylGodswordAvailable(actor)) {
-    return "armadyl_godsword";
+  if (runtimePolicyHasEquipableGraniteMaulAvailable(actor) && actor.gmaul.specialEnergy >= 50) {
+    add("granite_maul");
   }
-  return null;
+  if (runtimePolicyHasEquipableArmadylGodswordAvailable(actor) && actor.gmaul.specialEnergy >= 50) {
+    add("armadyl_godsword");
+  }
+  if (runtimePolicyHasEquipableVoidwakerAvailable(actor) && actor.gmaul.specialEnergy >= 50) {
+    add("voidwaker");
+  }
+  if (runtimePolicyHasEquipableVestaLongswordAvailable(actor) && actor.gmaul.specialEnergy >= 25) {
+    add("vesta_longsword");
+  }
+  return kinds;
+}
+
+function runtimePolicyBestAvailableSpecialWeaponKind(
+  context: NhDuelControllerContext,
+  doubleSpec: boolean
+): RuntimePolicySpecialWeaponKind | null {
+  let bestKind: RuntimePolicySpecialWeaponKind | null = null;
+  let bestScore = Number.NEGATIVE_INFINITY;
+  for (const kind of runtimePolicyAvailableSpecialWeaponKinds(context.self)) {
+    if (doubleSpec && kind !== "granite_maul") {
+      continue;
+    }
+    if (!runtimePolicyCanUseSpecialSpecFromObserved(context, kind, doubleSpec)) {
+      continue;
+    }
+    const score = runtimePolicySpecialWeaponDecisionScore(context, kind, doubleSpec && kind === "granite_maul");
+    if (score > bestScore) {
+      bestScore = score;
+      bestKind = kind;
+    }
+  }
+  return bestKind;
+}
+
+function runtimePolicySpecialWeaponDecisionScore(
+  context: NhDuelControllerContext,
+  specialKind: RuntimePolicySpecialWeaponKind,
+  doubleSpec: boolean
+): number {
+  const opponentHp = runtimePolicyOpponentVisibleHp(context);
+  const recentHit = Math.max(0, context.self.lastDealtHit);
+  const specProtected = runtimePolicyOpponentProtectsFromSpecial(context, specialKind);
+  const exposure = runtimePolicyOpponentSpecExposure(context, specialKind);
+  const setupScore = runtimePolicySpecialSetupScore(specialKind, doubleSpec, opponentHp, recentHit, exposure, specProtected);
+  const koChance = runtimePolicyClientSpecialKoChance(context, specialKind, doubleSpec, exposure, specProtected, opponentHp);
+  const credibleWindow = runtimePolicySpecialCredibleSpecWindow(
+    specialKind,
+    doubleSpec,
+    opponentHp,
+    recentHit,
+    exposure,
+    specProtected,
+    koChance,
+    setupScore
+  );
+  const dryPenalty = runtimePolicySpecialDryHighHpPenalty(specialKind, doubleSpec, opponentHp, recentHit, setupScore);
+  const vlsExplorationBonus =
+    specialKind === "vesta_longsword"
+      ? runtimePolicyVlsExplorationDecisionBonus + runtimePolicyClamp01((context.self.gmaul.specialEnergy - 25) / 75) * 0.04
+      : 0;
+  return koChance * 1.45 + credibleWindow * 0.9 + setupScore * 0.25 + vlsExplorationBonus - dryPenalty;
 }
 
 function runtimePolicyHasEquipableGraniteMaulAvailable(actor: NhDuelActorState): boolean {
@@ -2214,9 +2316,32 @@ function runtimePolicyHasEquipableArmadylGodswordAvailable(actor: NhDuelActorSta
   return actor.inventorySlots.some((slot) => slot !== null && slot.quantity > 0 && isNhArmadylGodswordItemId(slot.itemId));
 }
 
+function runtimePolicyHasEquipableVoidwakerAvailable(actor: NhDuelActorState): boolean {
+  if (actor.equipment.weapon && isNhVoidwakerItemId(actor.equipment.weapon.itemId)) {
+    return true;
+  }
+  if (actor.gearProfile && nhGearProfileCanEquipVoidwaker(actor.gearProfile)) {
+    return true;
+  }
+  return actor.inventorySlots.some((slot) => slot !== null && slot.quantity > 0 && isNhVoidwakerItemId(slot.itemId));
+}
+
+function runtimePolicyHasEquipableVestaLongswordAvailable(actor: NhDuelActorState): boolean {
+  if (actor.equipment.weapon && isNhVestaLongswordItemId(actor.equipment.weapon.itemId)) {
+    return true;
+  }
+  if (actor.gearProfile && nhGearProfileCanEquipVestaLongsword(actor.gearProfile)) {
+    return true;
+  }
+  return actor.inventorySlots.some((slot) => slot !== null && slot.quantity > 0 && isNhVestaLongswordItemId(slot.itemId));
+}
+
 function runtimePolicySpecialRequiredEnergy(specialKind: RuntimePolicySpecialWeaponKind, doubleSpec: boolean): number {
   if (specialKind === "granite_maul") {
     return doubleSpec ? 100 : 50;
+  }
+  if (specialKind === "vesta_longsword") {
+    return 25;
   }
   return 50;
 }
@@ -2232,6 +2357,12 @@ function runtimePolicyClientSpecialKoChance(
 ): number {
   if (specialKind === "armadyl_godsword") {
     return doubleSpec ? 0 : runtimePolicyClientAgsKoChance(context, exposure, meleeProtected, opponentHp, requireMeleeRange);
+  }
+  if (specialKind === "voidwaker") {
+    return doubleSpec ? 0 : runtimePolicyClientVoidwakerKoChance(context, exposure, meleeProtected, opponentHp, requireMeleeRange);
+  }
+  if (specialKind === "vesta_longsword") {
+    return doubleSpec ? 0 : runtimePolicyClientVlsKoChance(context, exposure, meleeProtected, opponentHp, requireMeleeRange);
   }
   return runtimePolicyClientGmaulKoChance(context, doubleSpec, exposure, meleeProtected, opponentHp, requireMeleeRange);
 }
@@ -2302,6 +2433,61 @@ function runtimePolicyClientAgsKoChance(
   return runtimePolicyClamp01(chance);
 }
 
+function runtimePolicyClientVoidwakerKoChance(
+  context: NhDuelControllerContext,
+  exposure: number,
+  magicProtected: boolean,
+  opponentHp = runtimePolicyOpponentVisibleHp(context),
+  requireMeleeRange = true
+): number {
+  if (requireMeleeRange && !runtimePolicyObservedMeleeReachable(context)) {
+    return 0;
+  }
+  const recentHit = Math.max(0, context.self.lastDealtHit);
+  const prayerFactor = magicProtected ? runtimePolicyClientThreatPrayerReduction : 1;
+  const effectiveDamage = Math.max(1, Math.round(runtimePolicyClientThreatVoidwakerMax * exposure * prayerFactor));
+  let chance = runtimePolicySoftKoRisk(opponentHp, effectiveDamage, 10);
+  if (!magicProtected && opponentHp <= 70) {
+    chance += 0.08;
+  }
+  if (recentHit >= 24 && opponentHp <= 78) {
+    chance += 0.1;
+  }
+  if (opponentHp <= 52) {
+    chance += 0.08;
+  }
+  if (opponentHp >= 88 && recentHit < 18) {
+    chance -= 0.12;
+  }
+  return runtimePolicyClamp01(chance);
+}
+
+function runtimePolicyClientVlsKoChance(
+  context: NhDuelControllerContext,
+  exposure: number,
+  meleeProtected: boolean,
+  opponentHp = runtimePolicyOpponentVisibleHp(context),
+  requireMeleeRange = true
+): number {
+  if (requireMeleeRange && !runtimePolicyObservedMeleeReachable(context)) {
+    return 0;
+  }
+  const recentHit = Math.max(0, context.self.lastDealtHit);
+  const prayerFactor = meleeProtected ? runtimePolicyClientThreatPrayerReduction : 1;
+  const effectiveDamage = Math.max(1, Math.round(runtimePolicyClientThreatVlsMax * exposure * prayerFactor));
+  let chance = runtimePolicySoftKoRisk(opponentHp, effectiveDamage, 12);
+  if (!meleeProtected && recentHit >= 20 && opponentHp <= 72) {
+    chance += 0.07;
+  }
+  if (opponentHp <= 48) {
+    chance += 0.08;
+  }
+  if (opponentHp >= 82 && recentHit < 20) {
+    chance -= 0.12;
+  }
+  return runtimePolicyClamp01(chance);
+}
+
 function runtimePolicySpecialCredibleSpecWindow(
   specialKind: RuntimePolicySpecialWeaponKind,
   doubleSpec: boolean,
@@ -2314,6 +2500,12 @@ function runtimePolicySpecialCredibleSpecWindow(
 ): number {
   if (specialKind === "armadyl_godsword") {
     return runtimePolicyAgsCredibleSpecWindow(opponentHp, recentHit, exposure, meleeProtected, koChance, setupScore);
+  }
+  if (specialKind === "voidwaker") {
+    return runtimePolicyVoidwakerCredibleSpecWindow(opponentHp, recentHit, exposure, meleeProtected, koChance, setupScore);
+  }
+  if (specialKind === "vesta_longsword") {
+    return runtimePolicyVlsCredibleSpecWindow(opponentHp, recentHit, exposure, meleeProtected, koChance, setupScore);
   }
   return runtimePolicyGmaulCredibleSpecWindow(doubleSpec, opponentHp, recentHit, exposure, meleeProtected, koChance, setupScore);
 }
@@ -2367,6 +2559,54 @@ function runtimePolicyGmaulCredibleSpecWindow(
   return runtimePolicyClamp01(window);
 }
 
+function runtimePolicyVoidwakerCredibleSpecWindow(
+  opponentHp: number,
+  recentHit: number,
+  exposure: number,
+  magicProtected: boolean,
+  koChance: number,
+  setupScore: number
+): number {
+  let window = Math.max(koChance, setupScore * 0.9);
+  if (recentHit >= 22 && opponentHp <= 80) {
+    window += 0.08 + runtimePolicyClamp01((recentHit - 22) / 26) * 0.1;
+  }
+  if (!magicProtected && exposure >= 1 && opponentHp <= 78) {
+    window += 0.07;
+  }
+  if (magicProtected && opponentHp > 46) {
+    window *= 0.5;
+  }
+  if (opponentHp >= 90 && recentHit < 18) {
+    window *= 0.48;
+  }
+  return runtimePolicyClamp01(window);
+}
+
+function runtimePolicyVlsCredibleSpecWindow(
+  opponentHp: number,
+  recentHit: number,
+  exposure: number,
+  meleeProtected: boolean,
+  koChance: number,
+  setupScore: number
+): number {
+  let window = Math.max(koChance, setupScore * 0.84);
+  if (recentHit >= 20 && opponentHp <= 70) {
+    window += 0.08 + runtimePolicyClamp01((recentHit - 20) / 24) * 0.09;
+  }
+  if (!meleeProtected && exposure >= 1.04 && opponentHp <= 72) {
+    window += runtimePolicyClamp01((exposure - 1) / 0.32) * 0.08;
+  }
+  if (meleeProtected && opponentHp > 40) {
+    window *= 0.46;
+  }
+  if (opponentHp >= 82 && recentHit < 18) {
+    window *= 0.48;
+  }
+  return runtimePolicyClamp01(window);
+}
+
 function runtimePolicySpecialSetupScore(
   specialKind: RuntimePolicySpecialWeaponKind,
   doubleSpec: boolean,
@@ -2377,6 +2617,12 @@ function runtimePolicySpecialSetupScore(
 ): number {
   if (specialKind === "armadyl_godsword") {
     return runtimePolicyAgsSetupScore(opponentHp, recentHit, exposure, meleeProtected);
+  }
+  if (specialKind === "voidwaker") {
+    return runtimePolicyVoidwakerSetupScore(opponentHp, recentHit, exposure, meleeProtected);
+  }
+  if (specialKind === "vesta_longsword") {
+    return runtimePolicyVlsSetupScore(opponentHp, recentHit, exposure, meleeProtected);
   }
   return runtimePolicyGmaulSetupScore(doubleSpec, opponentHp, recentHit, exposure, meleeProtected);
 }
@@ -2420,6 +2666,44 @@ function runtimePolicyGmaulSetupScore(
   return runtimePolicyClamp01(setup * (meleeProtected ? 0.25 : 1));
 }
 
+function runtimePolicyVoidwakerSetupScore(
+  opponentHp: number,
+  recentHit: number,
+  exposure: number,
+  magicProtected: boolean
+): number {
+  const hpScore = runtimePolicyClamp01((78 - opponentHp) / 44);
+  const recentHitScore = runtimePolicyClamp01((recentHit - 16) / 26);
+  const exposureScore = runtimePolicyClamp01((exposure - 0.9) / 0.3);
+  let setup = hpScore * 0.58 + recentHitScore * 0.28 + exposureScore * 0.14;
+  if (recentHit >= 28 && opponentHp <= 72) {
+    setup += 0.1;
+  }
+  if (recentHit <= 8 && opponentHp >= 78) {
+    setup -= 0.18;
+  }
+  return runtimePolicyClamp01(setup * (magicProtected ? 0.38 : 1));
+}
+
+function runtimePolicyVlsSetupScore(
+  opponentHp: number,
+  recentHit: number,
+  exposure: number,
+  meleeProtected: boolean
+): number {
+  const hpScore = runtimePolicyClamp01((70 - opponentHp) / 38);
+  const recentHitScore = runtimePolicyClamp01((recentHit - 14) / 24);
+  const exposureScore = runtimePolicyClamp01((exposure - 0.82) / 0.45);
+  let setup = hpScore * 0.5 + recentHitScore * 0.32 + exposureScore * 0.18;
+  if (recentHit >= 24 && opponentHp <= 64) {
+    setup += 0.1;
+  }
+  if (recentHit <= 8 && opponentHp >= 68) {
+    setup -= 0.16;
+  }
+  return runtimePolicyClamp01(setup * (meleeProtected ? 0.28 : 1));
+}
+
 function runtimePolicySpecialDryHighHpPenalty(
   specialKind: RuntimePolicySpecialWeaponKind,
   doubleSpec: boolean,
@@ -2433,6 +2717,20 @@ function runtimePolicySpecialDryHighHpPenalty(
     }
     const highHp = runtimePolicyClamp01((opponentHp - 70) / 24);
     return runtimePolicySpecDryHighHpPenalty * highHp * (1 - setupScore);
+  }
+  if (specialKind === "voidwaker") {
+    if (recentHit >= 20 || opponentHp < 72) {
+      return 0;
+    }
+    const highHp = runtimePolicyClamp01((opponentHp - 72) / 24);
+    return runtimePolicySpecDryHighHpPenalty * highHp * (1 - setupScore) * 0.9;
+  }
+  if (specialKind === "vesta_longsword") {
+    if (recentHit >= 18 || opponentHp < 64) {
+      return 0;
+    }
+    const highHp = runtimePolicyClamp01((opponentHp - 64) / 26);
+    return runtimePolicySpecDryHighHpPenalty * highHp * (1 - setupScore) * 0.7;
   }
   return runtimePolicyGmaulDryHighHpPenalty(doubleSpec, opponentHp, recentHit, setupScore);
 }
@@ -2452,7 +2750,7 @@ function runtimePolicyGmaulDryHighHpPenalty(
   return runtimePolicySpecDryHighHpPenalty * highHp * noSetup * specScale;
 }
 
-function runtimePolicyOpponentMeleeSpecExposure(
+function runtimePolicyOpponentSpecExposure(
   context: NhDuelControllerContext,
   specialKind: RuntimePolicySpecialWeaponKind = "granite_maul"
 ): number {
@@ -2460,7 +2758,25 @@ function runtimePolicyOpponentMeleeSpecExposure(
     return 1;
   }
   const bonuses = aggregateVisibleEquipmentBonuses(context.opponent.equipment, equipmentRows);
-  const meleeDefence = specialKind === "armadyl_godsword" ? bonuses.slash_defence_bonus : bonuses.crush_defence_bonus;
+  if (specialKind === "voidwaker") {
+    const magicDefence = bonuses.magic_defence_bonus;
+    let exposure = 1;
+    if (activeProtectionPrayer(context.opponent.activePrayers) !== protectPrayerForStyle("magic")) {
+      exposure += 0.05;
+    }
+    if (magicDefence <= 70) {
+      exposure += 0.04;
+    } else if (magicDefence >= 180) {
+      exposure -= 0.04;
+    }
+    return Math.max(0.88, Math.min(1.12, exposure));
+  }
+  const meleeDefence =
+    specialKind === "vesta_longsword"
+      ? bonuses.stab_defence_bonus
+      : specialKind === "armadyl_godsword"
+        ? bonuses.slash_defence_bonus
+        : bonuses.crush_defence_bonus;
   const rangedDefence = bonuses.range_defence_bonus;
   let exposure = 1;
   if (meleeDefence <= 75) {
@@ -2480,6 +2796,23 @@ function runtimePolicyOpponentMeleeSpecExposure(
     exposure -= 0.08;
   }
   return Math.max(0.62, Math.min(1.32, exposure));
+}
+
+function runtimePolicyOpponentMeleeSpecExposure(
+  context: NhDuelControllerContext,
+  specialKind: RuntimePolicySpecialWeaponKind = "granite_maul"
+): number {
+  return runtimePolicyOpponentSpecExposure(context, specialKind);
+}
+
+function runtimePolicyOpponentProtectsFromSpecial(
+  context: NhDuelControllerContext,
+  specialKind: RuntimePolicySpecialWeaponKind
+): boolean {
+  if (specialKind === "voidwaker") {
+    return activeProtectionPrayer(context.opponent.activePrayers) === protectPrayerForStyle("magic");
+  }
+  return activeProtectionPrayer(context.opponent.activePrayers) === protectPrayerForStyle("crush");
 }
 
 function runtimePolicySoftKoRisk(hp: number, possibleDamage: number, margin: number): number {
@@ -2702,7 +3035,8 @@ const runtimePolicyGuaranteedMagicWeaponIds = new Set([
   12904, // TOXIC_STAFF_OF_THE_DEAD
   11791, // STAFF_OF_THE_DEAD
   22323, // SANGUINESTI_STAFF
-  4675 // ANCIENT_STAFF
+  4675, // ANCIENT_STAFF
+  27690 // VOIDWAKER spec threat
 ]);
 
 function runtimePolicyBestExpectedOffenceStyle(context: NhDuelControllerContext): NhOffenceStyle | null {
@@ -3140,7 +3474,7 @@ function runtimePolicyCanApplySpecialSpecIntent(
   action: NhPolicyAction,
   context: NhDuelControllerContext
 ): boolean {
-  const specialKind = runtimePolicyAvailableSpecialWeaponKind(context.self);
+  const specialKind = runtimePolicyBestAvailableSpecialWeaponKind(context, action.specIntent === "use_special_double");
   if (!specialKind || (action.specIntent === "use_special_double" && specialKind !== "granite_maul")) {
     return false;
   }
@@ -3153,8 +3487,8 @@ function runtimePolicyCanApplySpecialSpecIntent(
     context.self.stats.hitpoints.current > 0 &&
     context.opponent.stats.hitpoints.current > 0 &&
     context.self.gmaul.specialEnergy >= requiredEnergy &&
-    nhWeaponProfiles[context.self.weaponId].hasVisibleSpecBar &&
-    (specialKind !== "armadyl_godsword" || canAttackByTimer(context.self.attackTimer, context.tick)) &&
+    runtimePolicyHasClientSpecControlForSpecial(context, specialKind) &&
+    (specialKind === "granite_maul" || canAttackByTimer(context.self.attackTimer, context.tick)) &&
     runtimePolicyStyleWeaponCanAttackForSpec(context, action.offenceStyle) &&
     runtimePolicyObservedMeleeReachable(context) &&
     !runtimePolicyFrozenDiagonalAdjacent(context)
@@ -3607,6 +3941,15 @@ function runtimePolicyIsEquippedForStyle(
   gearProfile: NhSelectedGearProfile
 ): boolean {
   const weaponId = runtimePolicyWeaponIdForEquipment(actor.equipment);
+  if (nhGearProfileUsesIndependentGear(gearProfile)) {
+    if (style === "magic") {
+      return weaponId === gearProfile.magicWeaponId;
+    }
+    if (style === "ranged") {
+      return weaponId === gearProfile.rangedWeaponId && actor.equipment.ammo?.itemId === gearProfile.rangedAmmoItem.itemId;
+    }
+    return weaponId === gearProfile.meleeWeaponId;
+  }
   if (style === "magic") {
     // Source: NhStakerBot.applyLoadout(MAGIC) calls enforceMagicCoreArmor(),
     // so the live trainer cannot treat magic as ready while still wearing a tank body.
@@ -3878,9 +4221,12 @@ const runtimePolicySpecOutcomePressureBonus = 1.2;
 const runtimePolicySpecOutcomeHealPressureBonus = 0.8;
 const runtimePolicySpecOutcomeWhiffPenalty = 1.05;
 const runtimePolicySpecApproachBonus = 0.18;
+const runtimePolicyVlsExplorationDecisionBonus = 0.1;
 const runtimePolicyClientThreatGmaulMax = 40;
 const runtimePolicyClientThreatGmaulDoubleMax = 72;
 const runtimePolicyClientThreatAgsMax = 74;
+const runtimePolicyClientThreatVoidwakerMax = 72;
+const runtimePolicyClientThreatVlsMax = 66;
 const runtimePolicyClientThreatPrayerReduction = 0.6;
 
 interface RuntimePolicyRewardDetails {
@@ -4314,7 +4660,10 @@ function consumeRuntimeOpponentPolicySupplies(
 ): RuntimePolicySupplySummary {
   let nextState = state;
   const consumed: ConsumableId[] = [];
-  const supplyIntent = runtimePolicyResolvedSupplyIntent(action.supplyIntent, context.self.stats, state, "opponent");
+  let supplyIntent = runtimePolicyResolvedSupplyIntent(action.supplyIntent, context.self.stats, state, "opponent");
+  if (supplyIntent === "none") {
+    supplyIntent = runtimePolicyEmergencySupplyIntent(state, context, "opponent");
+  }
   const statsBefore = runtimePolicyStats(state.actors.opponent);
   const emptySummary = (): RuntimePolicySupplySummary => ({
     state: nextState,
@@ -4432,6 +4781,81 @@ function consumeRuntimeOpponentPolicySupplies(
     wastedFoodHealing,
     wastedBrewHealing
   };
+}
+
+function runtimePolicyMaybeActivateVengeanceTrinket(
+  state: RuntimePlayerCombatState,
+  context: NhDuelControllerContext,
+  rewardEpisodeActive: boolean
+): RuntimePlayerCombatState {
+  const actor = state.actors.opponent;
+  if (
+    actor.vengeanceTrinketCharges <= 0 ||
+    actor.vengeanceActive ||
+    state.tick < actor.vengeanceCooldownUntilTick ||
+    !canAct(actor.locks, state.tick)
+  ) {
+    return state;
+  }
+  const threatStyle = runtimePolicyResolveThreatStyle(context);
+  const defencePrayer = runtimePolicyProtectedStyleFromPrayer(activeProtectionPrayer(context.self.activePrayers));
+  const risk = runtimePolicyClientKoRisk(context, threatStyle, actor.hitpoints, defencePrayer);
+  const queuedThreat = runtimePolicyIncomingQueuedHitPressure(state, "opponent");
+  const recentPressure = runtimePolicyClamp01(context.self.lastTakenHit / 36);
+  const pressure = Math.max(risk, queuedThreat, recentPressure);
+  const lowHpWindow = actor.hitpoints <= 76 && pressure >= 0.24;
+  const hardDangerWindow = actor.hitpoints <= 48 || pressure >= 0.58;
+  if (!lowHpWindow && !hardDangerWindow) {
+    return state;
+  }
+
+  const activated = activateRuntimePlayerCombatVengeanceTrinket(state, "opponent");
+  if (!activated.activated) {
+    return state;
+  }
+  if (!rewardEpisodeActive) {
+    return activated.state;
+  }
+  const reward = 0.06 + Math.min(0.18, pressure * 0.18);
+  return appendRuntimePolicyRewardEvent(
+    activated.state,
+    "opponent",
+    "vengeance_trinket",
+    reward,
+    {
+      pressure,
+      riskBefore: risk,
+      expectedRisk: queuedThreat,
+      recentHit: context.self.lastTakenHit,
+      protectedStyle: defencePrayer ?? undefined,
+      distance: runtimePolicyObservedDistance(context)
+    }
+  );
+}
+
+function runtimePolicyIncomingQueuedHitPressure(
+  state: RuntimePlayerCombatState,
+  actorId: RuntimeActorId
+): number {
+  const incomingMax = state.queuedHits
+    .filter((hit) => hit.defenderId === actorId && hit.dueTick <= state.tick + 2)
+    .reduce((max, hit) => Math.max(max, hit.maxDamage), 0);
+  return runtimePolicyClamp01(incomingMax / 48);
+}
+
+function runtimePolicyIncomingQueuedKoPressure(
+  state: RuntimePlayerCombatState,
+  actorId: RuntimeActorId,
+  hitpoints: number
+): number {
+  const incomingMax = state.queuedHits
+    .filter((hit) => hit.defenderId === actorId && hit.dueTick <= state.tick + 2)
+    .reduce((max, hit) => Math.max(max, hit.maxDamage), 0);
+  if (incomingMax <= 0) {
+    return 0;
+  }
+  const projectedHitpoints = hitpoints - incomingMax;
+  return runtimePolicyClamp01((42 - projectedHitpoints) / 42) * runtimePolicyClamp01(incomingMax / 48);
 }
 
 function runtimePolicyPostBrewRecoveryUntilAfterSupply(input: {
@@ -5024,19 +5448,19 @@ function runtimePolicySupplyOffenceOpportunity(context: NhDuelControllerContext,
       ? 0.14
       : 0;
   let specWindow = 0;
-  const meleeProtected = activeProtectionPrayer(context.opponent.activePrayers) === protectPrayerForStyle("crush");
-  const specialKind = runtimePolicyAvailableSpecialWeaponKind(context.self);
-  const exposure = specialKind ? runtimePolicyOpponentMeleeSpecExposure(context, specialKind) : 1;
+  const specialKind = runtimePolicyBestAvailableSpecialWeaponKind(context, false);
+  const specProtected = specialKind ? runtimePolicyOpponentProtectsFromSpecial(context, specialKind) : false;
+  const exposure = specialKind ? runtimePolicyOpponentSpecExposure(context, specialKind) : 1;
   if (specialKind && runtimePolicyCanUseSpecialSpecFromObserved(context, specialKind, false)) {
     specWindow = Math.max(
       specWindow,
-      runtimePolicyClientSpecialKoChance(context, specialKind, false, exposure, meleeProtected, opponentHp)
+      runtimePolicyClientSpecialKoChance(context, specialKind, false, exposure, specProtected, opponentHp)
     );
-    specWindow = Math.max(specWindow, runtimePolicySpecialSetupScore(specialKind, false, opponentHp, recentHit, exposure, meleeProtected));
+    specWindow = Math.max(specWindow, runtimePolicySpecialSetupScore(specialKind, false, opponentHp, recentHit, exposure, specProtected));
   }
   if (specialKind && runtimePolicyCanUseSpecialSpecFromObserved(context, specialKind, true)) {
-    specWindow = Math.max(specWindow, runtimePolicyClientGmaulKoChance(context, true, exposure, meleeProtected, opponentHp));
-    specWindow = Math.max(specWindow, runtimePolicyGmaulSetupScore(true, opponentHp, recentHit, exposure, meleeProtected));
+    specWindow = Math.max(specWindow, runtimePolicyClientGmaulKoChance(context, true, exposure, specProtected, opponentHp));
+    specWindow = Math.max(specWindow, runtimePolicyGmaulSetupScore(true, opponentHp, recentHit, exposure, specProtected));
   }
   const pressureWindow = lowHpScore * 0.48 + recentHitScore * 0.28 + freezeControl + attackWindow;
   return runtimePolicyClamp01(Math.max(specWindow, pressureWindow));
@@ -5642,19 +6066,22 @@ function runtimePolicyPressureApproachTile(input: {
   readonly scale: number;
   readonly targetRouteStep?: RuntimePolicyTargetRouteStepPredicate;
 }): RuntimeTile | null {
+  const meleeRouteDistance = runtimePolicyMeleeTargetRouteRange(input.context.self);
   const shouldRouteToOpponent =
     input.action.offenceStyle === "melee" && !input.context.meleeReachable;
   const shouldRouteForSpec =
+    meleeRouteDistance <= 1 &&
     chebyshevPolicyDistance(input.context.self.tile, input.context.opponent.tile) === 2 &&
     nhPolicyGmaulSpecApproachWindow(input.context, false) >= runtimePolicySpecApproachWindowFloor;
 
   if (shouldRouteToOpponent || shouldRouteForSpec) {
+    const routeDistance = shouldRouteToOpponent ? meleeRouteDistance : 1;
     // Source: NhStakerBot.applyMovementIntent(PRESSURE) calls routeToOpponentIfAllowed()
     // for melee pressure and shouldApproachForSpec(). RouteFinder.routeEntity()
     // uses RouteEntity/ClipUtils.canStep, so collision detours must come from the
     // same target-route path when a scene collision map is available.
     if (input.targetRouteStep) {
-      return input.targetRouteStep(input.opponentTile, input.localTile, 1, {
+      return input.targetRouteStep(input.opponentTile, input.localTile, routeDistance, {
         movementIntent: "pressure",
         targetTile: input.localTile,
         allowTargetTile: false
@@ -5664,6 +6091,17 @@ function runtimePolicyPressureApproachTile(input: {
   }
 
   return null;
+}
+
+function runtimePolicyMeleeTargetRouteRange(actor: NhDuelActorState): number {
+  const weaponId =
+    actor.gearProfile?.meleeWeaponId ??
+    nhGearProfileWeaponIdForEquipment(actor.candidateEquipmentByStyle?.slash ?? actor.equipment) ??
+    actor.weaponId;
+  const profile = nhWeaponProfiles[weaponId];
+  return profile.style === "stab" || profile.style === "slash" || profile.style === "crush"
+    ? profile.attackRange
+    : 1;
 }
 
 function runtimePolicyDirectionalStepWouldStarveTargetRoute(
@@ -5954,6 +6392,43 @@ function runtimePolicyResolvedSupplyIntent(
     : "none";
 }
 
+function runtimePolicyEmergencySupplyIntent(
+  state: RuntimePlayerCombatState,
+  context: NhDuelControllerContext,
+  actorId: RuntimeActorId
+): NhPolicyAction["supplyIntent"] {
+  const actor = state.actors[actorId];
+  const mainFoodUses = actor.supplies.manta_ray + actor.supplies.shark + actor.supplies.anglerfish;
+  const karambwanUses = actor.supplies.karambwan;
+  const brewUses = actor.supplies.saradomin_brew;
+  if (mainFoodUses <= 0 && karambwanUses <= 0 && brewUses <= 0) {
+    return "none";
+  }
+
+  const threatStyle = runtimePolicyResolveThreatStyle(context);
+  const protectedStyle = runtimePolicyProtectedStyleFromPrayer(activeProtectionPrayer(context.self.activePrayers));
+  const risk = runtimePolicyClientKoRisk(context, threatStyle, actor.hitpoints, protectedStyle);
+  const queuedThreat = runtimePolicyIncomingQueuedKoPressure(state, actorId, actor.hitpoints);
+  const pressure = Math.max(risk, queuedThreat, runtimePolicyClamp01(context.self.lastTakenHit / 40));
+  const hardDanger = actor.hitpoints <= 34 || pressure >= 0.72;
+  const doubleDanger = actor.hitpoints <= 52 || pressure >= 0.52;
+  const safeDanger = actor.hitpoints <= 66 || pressure >= 0.36;
+
+  if (hardDanger && (brewUses > 0 || mainFoodUses > 0 || karambwanUses > 0)) {
+    return brewUses > 0 && (mainFoodUses > 0 || karambwanUses > 0) ? "panic_full" : brewUses > 0 ? "brew_only" : "double_eat";
+  }
+  if (doubleDanger && mainFoodUses > 0 && karambwanUses > 0) {
+    return "double_eat";
+  }
+  if (safeDanger && mainFoodUses > 0) {
+    return "safe_eat";
+  }
+  if (hardDanger && brewUses > 0) {
+    return "brew_only";
+  }
+  return "none";
+}
+
 function runtimePolicyHasPostBrewRecoveryWindow(state: RuntimePlayerCombatState, actorId: RuntimeActorId): boolean {
   // Source: NhStakerBot keeps postBrewRecoveryUntilTick as mutable policy state;
   // it extends after brew/needed recovery and clears as soon as recovery is done.
@@ -6047,9 +6522,22 @@ function normalizedLevel(value: number): CombatLevels["attack"] {
   return Math.max(1, Math.trunc(Number.isFinite(value) ? value : 99));
 }
 
-function runtimeLoadoutForPolicyAction(action: NhPolicyAction, gearProfile: NhSelectedGearProfile): RuntimeLoadoutId {
-  if (action.specIntent === "use_special" && nhGearProfileAvailableSpecialWeaponKind(gearProfile) === "armadyl_godsword") {
-    return "ags-bandos";
+function runtimeLoadoutForPolicyAction(
+  action: NhPolicyAction,
+  gearProfile: NhSelectedGearProfile,
+  selectedSpecialKind?: RuntimePolicySpecialWeaponKind | null
+): RuntimeLoadoutId {
+  if (action.specIntent === "use_special" || action.specIntent === "use_special_double") {
+    const specialKind = selectedSpecialKind ?? nhGearProfileAvailableSpecialWeaponKind(gearProfile);
+    if (specialKind === "armadyl_godsword") {
+      return "ags-bandos";
+    }
+    if (specialKind === "granite_maul") {
+      return "gmaul-bandos";
+    }
+    if (specialKind === "voidwaker" || specialKind === "vesta_longsword") {
+      return "tentacle-bandos";
+    }
   }
   if (action.offenceStyle === "magic") {
     return "kodai-robes";
@@ -6057,7 +6545,7 @@ function runtimeLoadoutForPolicyAction(action: NhPolicyAction, gearProfile: NhSe
   if (action.offenceStyle === "ranged") {
     return "acb-hides";
   }
-  return "tentacle-bandos";
+  return loadoutForWeapon(gearProfile.meleeWeaponId).id;
 }
 
 function runtimePolicyOffencePrayerAction(
@@ -6117,11 +6605,18 @@ function runtimePolicyCanActivatePreferredOffencePrayer(
 }
 
 function policyStyleForRuntimeWeaponId(weaponId: NhWeaponId): NhOffenceStyle {
-  if (weaponId === "kodai" || weaponId === "ancient_staff" || weaponId === "staff_of_the_dead") {
+  if (
+    weaponId === "kodai" ||
+    weaponId === "ancient_staff" ||
+    weaponId === "staff_of_the_dead" ||
+    weaponId === "zuriels_staff" ||
+    weaponId === "voidwaker"
+  ) {
     return "magic";
   }
   if (
     weaponId === "armadyl_crossbow" ||
+    weaponId === "zaryte_crossbow" ||
     weaponId === "rune_crossbow" ||
     weaponId === "magic_shortbow" ||
     weaponId === "dragon_crossbow"

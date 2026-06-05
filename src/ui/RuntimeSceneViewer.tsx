@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { flushSync, unstable_batchedUpdates } from "react-dom";
 import equipmentRowsJson from "../generated/equipment-bonuses.json";
 import kitsJson from "../generated/kits.json";
 import serverItemsJson from "../generated/server-items.json";
+import weaponTypesJson from "../generated/weapon-types.json";
 import {
   AmbientLight,
   Box3,
@@ -281,6 +282,7 @@ import {
   consumableItemIdForDoseCount,
   consumeRuntimePlayerCombatSupply,
   applyRuntimePlayerCombatPreMovementHits,
+  activateRuntimePlayerCombatVengeanceTrinket,
   clearRuntimePlayerCombatActorPolicyNoTargetGrace,
   consumableDefinitions,
   consumableUseCountForItemId,
@@ -302,6 +304,7 @@ import {
   resetRuntimePlayerCombatActorTarget,
   runtimePlayerCombatActionDurationTicks,
   runtimePlayerCombatActiveProtectionPrayer,
+  runtimePlayerCombatConsumableSoundIds,
   runtimePlayerCombatDefaultLevels,
   runtimePlayerCombatDistance,
   runtimePlayerCombatFightCountdownLabel,
@@ -358,6 +361,7 @@ import { nhLoadouts } from "../sim/nh/loadouts";
 import {
   NhClientHud,
   type NhChatboxButtonCommand,
+  type NhChatboxGameMessage,
   type NhClanChatButtonCommand,
   type NhClanChatSnapshot,
   type NhCombatAutoRetaliateCommand,
@@ -371,6 +375,7 @@ import {
   type NhInventorySlotDragCommand,
   type NhPrayerSlotDragCommand,
   type NhPrayerSlotCommand,
+  type NhOptionsSoundToggleCommand,
   type NhRunOrbCommand,
   type NhSideTabCommand,
   type NhSocialButtonCommand,
@@ -712,12 +717,46 @@ interface ManualActorState {
 }
 
 type RuntimeEquipmentItemIdsBySlot = ReadonlyMap<number, number>;
+type RuntimeTrainerSetupId = "nh-stake" | "dmm";
+interface RuntimeTrainerSetupPreset {
+  readonly id: RuntimeTrainerSetupId;
+  readonly label: string;
+  readonly loadoutId: RuntimeLoadoutId;
+  readonly inventorySlots: readonly (RuntimeInventorySlot | null)[];
+  readonly equipmentEntries: readonly (readonly [number, number])[];
+}
 const runtimePlayerAppearanceKits = kitsJson as NhPlayerModelSources["kits"];
 const runtimePlayerAppearanceServerItemsById = new Map(
   (serverItemsJson as NhPlayerModelSources["serverItems"]).map((item) => [item.id, item])
 );
 
 const RUNTIME_NH_STAKE_LOADOUT_ID: RuntimeLoadoutId = "kodai-robes";
+const RUNTIME_VENGEANCE_TRINKET_ITEM_ID = 28561;
+const RUNTIME_VENGEANCE_CAST_SEQUENCE_NAME: RuntimeSequenceName = "vengeance_cast";
+const RUNTIME_VENGEANCE_CAST_SEQUENCE_ID = 8316;
+const RUNTIME_VENGEANCE_CAST_SPOTANIM_ID = 726;
+const RUNTIME_VENGEANCE_CAST_SPOTANIM_HEIGHT = 92;
+const RUNTIME_VENGEANCE_CAST_SOUND_ID = 2907;
+const RUNTIME_OPTIONS_VOLUME_CLICK_SOUND_ID = 2266;
+const RUNTIME_PRAYER_DEACTIVATE_SOUND_ID = 2663;
+const RUNTIME_AREA_SOUND_RANGE_TILES = 15;
+const RUNTIME_ONYX_BOLT_PROC_SOUND_ID = 2917;
+const RUNTIME_ONYX_BOLT_PROC_VOLUME_SCALE = 0.35;
+type RuntimeGameSoundChannel = "sound-effects" | "area-sounds";
+interface RuntimeOptionsSoundVolumes {
+  readonly soundEffects: number;
+  readonly areaSounds: number;
+}
+
+type RuntimeActiveGameAudioByChannel = Readonly<Record<RuntimeGameSoundChannel, Set<HTMLAudioElement>>>;
+const RUNTIME_GAME_SOUND_EFFECT_ASSET_IDS = [
+  102, 104, 106, 168, 169, 171, 227,
+  1982, 2266, 2662, 2663, 2664, 2665, 2666, 2667, 2668, 2669, 2670, 2675, 2676, 2677, 2678,
+  2679, 2680, 2682, 2684, 2685, 2686, 2687, 2688, 2689, 2690, 2691,
+  2238, 2242, 2244, 2246, 2393, 2401, 2500, 2555, 2563, 2693, 2695, 2714, 2715, 2720,
+  2907, 2910, 2917, 3825, 3826, 3846, 3869, 5027, 6182
+] as const;
+const RUNTIME_GAME_SOUND_EFFECT_ASSET_ID_SET: ReadonlySet<number> = new Set(RUNTIME_GAME_SOUND_EFFECT_ASSET_IDS);
 const RUNTIME_NH_STAKE_INVENTORY_ITEM_IDS = [
   12695,
   22461,
@@ -761,18 +800,87 @@ const RUNTIME_NH_STAKE_EQUIPMENT_ENTRIES = [
   [12, 11770],
   [13, 21932]
 ] as const satisfies readonly (readonly [number, number])[];
-const RUNTIME_NH_STAKE_EQUIPMENT_ITEMS = new Map(RUNTIME_NH_STAKE_EQUIPMENT_ENTRIES);
 const RUNTIME_NH_STAKE_INVENTORY_SLOTS = normalizeNhInventorySlots(
   RUNTIME_NH_STAKE_INVENTORY_ITEM_IDS.map((itemId) => ({ itemId, quantity: 1 }))
 );
+const RUNTIME_DMM_CAPTURED_INVENTORY_SLOTS = normalizeNhInventorySlots([
+  { itemId: 12695, quantity: 1 },
+  { itemId: 22461, quantity: 1 },
+  { itemId: 10925, quantity: 1 },
+  { itemId: 10925, quantity: 1 },
+  { itemId: 13441, quantity: 1 },
+  { itemId: 391, quantity: 1 },
+  { itemId: 6685, quantity: 1 },
+  { itemId: 10925, quantity: 1 },
+  { itemId: 391, quantity: 1 },
+  { itemId: 391, quantity: 1 },
+  { itemId: 6685, quantity: 1 },
+  { itemId: 6685, quantity: 1 },
+  { itemId: 27238, quantity: 1 },
+  { itemId: 26374, quantity: 1 },
+  { itemId: 391, quantity: 1 },
+  { itemId: 391, quantity: 1 },
+  { itemId: 26386, quantity: 1 },
+  { itemId: 11283, quantity: 1 },
+  { itemId: 29796, quantity: 1 },
+  { itemId: 391, quantity: 1 },
+  { itemId: 7462, quantity: 1 },
+  { itemId: 22613, quantity: 1 },
+  { itemId: 27690, quantity: 1 },
+  { itemId: 391, quantity: 1 },
+  { itemId: 28561, quantity: 2 },
+  { itemId: 391, quantity: 1 },
+  { itemId: 391, quantity: 1 },
+  { itemId: 391, quantity: 1 }
+]);
+const RUNTIME_DMM_EQUIPMENT_ENTRIES = [
+  [0, 26382],
+  [1, 21791],
+  [2, 6585],
+  [3, 22647],
+  [4, 26243],
+  [5, 27251],
+  [7, 26245],
+  [9, 31106],
+  [10, 31097],
+  [12, 19710],
+  [13, 21950]
+] as const satisfies readonly (readonly [number, number])[];
+const RUNTIME_TRAINER_SETUP_PRESETS = {
+  "nh-stake": {
+    id: "nh-stake",
+    label: "NH stake",
+    loadoutId: RUNTIME_NH_STAKE_LOADOUT_ID,
+    inventorySlots: RUNTIME_NH_STAKE_INVENTORY_SLOTS,
+    equipmentEntries: RUNTIME_NH_STAKE_EQUIPMENT_ENTRIES
+  },
+  dmm: {
+    id: "dmm",
+    label: "DMM",
+    loadoutId: RUNTIME_NH_STAKE_LOADOUT_ID,
+    inventorySlots: RUNTIME_DMM_CAPTURED_INVENTORY_SLOTS,
+    equipmentEntries: RUNTIME_DMM_EQUIPMENT_ENTRIES
+  }
+} as const satisfies Readonly<Record<RuntimeTrainerSetupId, RuntimeTrainerSetupPreset>>;
+const RUNTIME_NH_STAKE_EQUIPMENT_ITEMS = new Map(RUNTIME_NH_STAKE_EQUIPMENT_ENTRIES);
+function runtimeSetupPreset(setupId: RuntimeTrainerSetupId): RuntimeTrainerSetupPreset {
+  return RUNTIME_TRAINER_SETUP_PRESETS[setupId];
+}
+
+function runtimeSetupInventorySlots(setupId: RuntimeTrainerSetupId): readonly (RuntimeInventorySlot | null)[] {
+  return normalizeNhInventorySlots(runtimeSetupPreset(setupId).inventorySlots);
+}
+
+function runtimeSetupEquipmentItems(setupId: RuntimeTrainerSetupId): RuntimeEquipmentItemIdsBySlot {
+  return new Map(runtimeSetupPreset(setupId).equipmentEntries);
+}
+
 function runtimeNhStakeInventorySlots(): readonly (RuntimeInventorySlot | null)[] {
-  return normalizeNhInventorySlots(
-    RUNTIME_NH_STAKE_INVENTORY_ITEM_IDS.map((itemId) => ({ itemId, quantity: 1 }))
-  );
+  return runtimeSetupInventorySlots("nh-stake");
 }
 
 function runtimeNhStakeEquipmentItems(): RuntimeEquipmentItemIdsBySlot {
-  return new Map(RUNTIME_NH_STAKE_EQUIPMENT_ENTRIES);
+  return runtimeSetupEquipmentItems("nh-stake");
 }
 
 const RUNTIME_CONSUMABLE_IDS = Object.keys(consumableDefinitions) as ConsumableId[];
@@ -789,9 +897,15 @@ const EMPTY_RUNTIME_SUPPLIES: RuntimePlayerCombatSupplies = {
   bastion: 0
 };
 const RUNTIME_NH_STAKE_ALLOWED_SETUP_ITEM_IDS = new Set<number>([
-  ...RUNTIME_NH_STAKE_INVENTORY_ITEM_IDS,
-  ...RUNTIME_NH_STAKE_EQUIPMENT_ENTRIES.map(([, itemId]) => itemId),
-  ...RUNTIME_NH_STAKE_INVENTORY_ITEM_IDS.flatMap((itemId) => {
+  ...Object.values(RUNTIME_TRAINER_SETUP_PRESETS).flatMap((setup) => [
+    ...setup.inventorySlots.flatMap((slot) => slot ? [slot.itemId] : []),
+    ...setup.equipmentEntries.map(([, itemId]) => itemId)
+  ]),
+  ...Object.values(RUNTIME_TRAINER_SETUP_PRESETS).flatMap((setup) => setup.inventorySlots).flatMap((slot) => {
+    const itemId = slot?.itemId;
+    if (itemId === undefined) {
+      return [];
+    }
     const consumableId = RUNTIME_CONSUMABLE_IDS.find((id) => consumableDefinitions[id].itemIds.includes(itemId));
     return consumableId ? consumableDefinitions[consumableId].itemIds : [itemId];
   })
@@ -824,15 +938,38 @@ function runtimeSuppliesFromInventorySlots(
   return supplies;
 }
 
+function runtimeVengeanceTrinketChargesFromInventorySlots(
+  slots: readonly (RuntimeInventorySlot | null)[]
+): number {
+  return slots.reduce(
+    (total, slot) =>
+      slot?.itemId === RUNTIME_VENGEANCE_TRINKET_ITEM_ID
+        ? total + Math.max(0, Math.trunc(slot.quantity))
+        : total,
+    0
+  );
+}
+
 function runtimeNhStakeSupplies(): RuntimePlayerCombatSupplies {
   return runtimeSuppliesFromInventorySlots(RUNTIME_NH_STAKE_INVENTORY_SLOTS);
+}
+
+function runtimeNhStakeVengeanceTrinketCharges(): number {
+  return runtimeVengeanceTrinketChargesFromInventorySlots(RUNTIME_NH_STAKE_INVENTORY_SLOTS);
 }
 
 function runtimeNhStakeInventorySlotsForSupplies(
   supplies: RuntimePlayerCombatSupplies
 ): readonly (RuntimeInventorySlot | null)[] {
+  return runtimeSetupInventorySlotsForSupplies("nh-stake", supplies);
+}
+
+function runtimeSetupInventorySlotsForSupplies(
+  setupId: RuntimeTrainerSetupId,
+  supplies: RuntimePlayerCombatSupplies
+): readonly (RuntimeInventorySlot | null)[] {
   const remainingSupplies: Record<ConsumableId, number> = { ...supplies };
-  return runtimeNhStakeInventorySlots().map((slot) => {
+  return runtimeSetupInventorySlots(setupId).map((slot) => {
     if (!slot) {
       return null;
     }
@@ -859,6 +996,17 @@ function runtimeNhStakeInventorySlotsForSupplies(
 const RUNTIME_NH_STAKE_ITEM_NAMES = new Map(
   (serverItemsJson as readonly { readonly id: number; readonly name: string }[]).map((item) => [item.id, item.name])
 );
+const RUNTIME_WEAPON_TYPE_SOUND_BY_ID = new Map(
+  Object.entries(weaponTypesJson as Record<string, { readonly equipSound?: number; readonly attackSound?: number }>)
+);
+function runtimeWeaponTypeEquipSoundId(weaponType: string | null): number | null {
+  if (!weaponType) {
+    return null;
+  }
+  const soundId = RUNTIME_WEAPON_TYPE_SOUND_BY_ID.get(weaponType)?.equipSound;
+  return soundId === undefined || soundId < 0 ? null : soundId;
+}
+
 const RUNTIME_NH_STAKE_VISIBLE_EQUIPMENT: VisibleEquipment = {
   head: { itemId: 10828, name: RUNTIME_NH_STAKE_ITEM_NAMES.get(10828) ?? "Item 10828" },
   cape: { itemId: 21791, name: RUNTIME_NH_STAKE_ITEM_NAMES.get(21791) ?? "Item 21791" },
@@ -887,6 +1035,7 @@ interface RuntimeInventoryEquipmentMutation {
   readonly previousItemId: number | null;
   readonly weaponType: string | null;
   readonly weaponTypeConfig: number | undefined;
+  readonly equipSoundId: number | null;
   readonly serverHandler: "Equipment.equip";
 }
 
@@ -1252,13 +1401,16 @@ interface RuntimeDomOverlaySprite {
 interface RuntimeDomOverlay {
   readonly id: string;
   readonly actorId: RuntimeActorId;
-  readonly spriteSheetId: RuntimeSpriteSheetId;
+  readonly spriteSheetId?: RuntimeSpriteSheetId;
   readonly left: number;
   readonly top: number;
   readonly width: number;
   readonly height: number;
   readonly renderOrder: number;
   readonly hitsplatScale?: number;
+  readonly text?: string;
+  readonly textColor?: number;
+  readonly textEffect?: number;
   readonly sprites: readonly RuntimeDomOverlaySprite[];
 }
 
@@ -1645,6 +1797,8 @@ const NH_CLIENT_ROUTE_BUFFER_LIMIT = 9;
 const NH_TRAINER_ATTACK_SET_STORAGE_KEY = "nhTrainer.attackSet.v1";
 const NH_AUTO_RETALIATE_STORAGE_KEY = "nhTrainer.autoRetaliate.v1";
 const LEGACY_AUTO_RETALIATE_STORAGE_KEYS = ["source.autoRetaliate.v1"] as const;
+const NH_SOUND_EFFECT_VOLUME_STORAGE_KEY = "nhTrainer.soundEffectVolume.var169.v1";
+const NH_AREA_SOUND_EFFECT_VOLUME_STORAGE_KEY = "nhTrainer.areaSoundEffectVolume.var872.v1";
 const NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY = "nhTrainer.temporaryNhStakeSetup.v1";
 const NH_TRAINER_PVP_FIGHT_HISTORY_STORAGE_KEY = "nhTrainer.pvpFightHistory.v1";
 const NH_TRAINER_BROWSER_CLIENT_WINDOW_STORAGE_KEY = "nhTrainer.browserClientWindow.v2";
@@ -1965,6 +2119,8 @@ const initialRuntimePlayerCombatBaseState = createRuntimePlayerCombatState({
   localAttackSetIndex: typeof window === "undefined" ? 0 : (readStoredAttackSetIndex() ?? 0),
   localSupplies: runtimeNhStakeSupplies(),
   opponentSupplies: runtimeNhStakeSupplies(),
+  localVengeanceTrinketCharges: runtimeNhStakeVengeanceTrinketCharges(),
+  opponentVengeanceTrinketCharges: runtimeNhStakeVengeanceTrinketCharges(),
   combatStartTick: NH_TRAINER_MANUAL_START_PENDING_TICK
 });
 const initialRuntimePlayerCombatState = syncRuntimePlayerCombatStateToInput(initialRuntimePlayerCombatBaseState, {
@@ -3621,9 +3777,10 @@ function runtimeManualPolicyCanAttackSignal(input: {
 
 function runtimeLoadoutWeaponTypeId(
   loadoutId: RuntimeLoadoutId,
-  equipmentDefinitions: NhInventoryEquipmentDefinitionStore
+  equipmentDefinitions: NhInventoryEquipmentDefinitionStore,
+  equipment?: VisibleEquipment
 ): string | null {
-  const weaponItemId = nhLoadouts[loadoutId].equipment.weapon?.itemId;
+  const weaponItemId = equipment?.weapon?.itemId ?? nhLoadouts[loadoutId].equipment.weapon?.itemId;
   return weaponItemId === undefined ? null : equipmentDefinitions.get(weaponItemId)?.weaponType ?? null;
 }
 
@@ -3632,9 +3789,10 @@ function nhWeaponRenderSequenceName(
   renderAnimationIndex: 0 | 1 | 2 | 3 | 4 | 5 | 6,
   equipmentDefinitions: NhInventoryEquipmentDefinitionStore,
   weaponTypeDefinitions: NhWeaponTypeDefinitionStore,
-  actorSequenceDefinitions: NhActorSequenceDefinitionStore
+  actorSequenceDefinitions: NhActorSequenceDefinitionStore,
+  equipment?: VisibleEquipment
 ): RuntimeSequenceName {
-  const weaponTypeId = runtimeLoadoutWeaponTypeId(loadoutId, equipmentDefinitions);
+  const weaponTypeId = runtimeLoadoutWeaponTypeId(loadoutId, equipmentDefinitions, equipment);
   const sequenceId = weaponTypeId ? weaponTypeDefinitions.get(weaponTypeId)?.renderAnimations[renderAnimationIndex] : undefined;
   return nhRuntimeSequenceNameForId(sequenceId, actorSequenceDefinitions) ?? (
     renderAnimationIndex === 1 ? "turn" :
@@ -3646,46 +3804,60 @@ function nhWeaponRenderSequenceName(
   );
 }
 
+function manualActorWeaponRenderAnimationIndex(sequenceName: RuntimeSequenceName): 0 | 1 | 2 | 3 | 4 | 5 | 6 | null {
+  if (sequenceName === "idle" || runtimeSequenceIsWeaponReady(sequenceName)) {
+    return 0;
+  }
+  if (sequenceName === "turn" || sequenceName.endsWith("_turn")) {
+    return 1;
+  }
+  if (sequenceName === "walk") {
+    return 2;
+  }
+  if (sequenceName === "walk_back" || sequenceName.endsWith("_walk_back")) {
+    return 3;
+  }
+  if (sequenceName === "walk_left" || sequenceName.endsWith("_walk_left")) {
+    return 4;
+  }
+  if (sequenceName === "walk_right" || sequenceName.endsWith("_walk_right")) {
+    return 5;
+  }
+  if (sequenceName === "run" || sequenceName.endsWith("_run")) {
+    return 6;
+  }
+  if (sequenceName.endsWith("_walk")) {
+    return 2;
+  }
+  return null;
+}
+
 function manualActorBaseSequenceName(
   sequenceName: RuntimeSequenceName,
   loadoutId?: RuntimeLoadoutId,
   equipmentDefinitions: NhInventoryEquipmentDefinitionStore = new Map(),
   weaponTypeDefinitions: NhWeaponTypeDefinitionStore = new Map(),
-  actorSequenceDefinitions: NhActorSequenceDefinitionStore = createNhActorSequenceDefinitionStore(null)
+  actorSequenceDefinitions: NhActorSequenceDefinitionStore = createNhActorSequenceDefinitionStore(null),
+  equipment?: VisibleEquipment
 ): RuntimeSequenceName {
-  if (
-    runtimeSequenceIsWeaponReady(sequenceName) ||
-    sequenceName.endsWith("_turn") ||
-    sequenceName.endsWith("_walk") ||
-    sequenceName.endsWith("_walk_back") ||
-    sequenceName.endsWith("_walk_left") ||
-    sequenceName.endsWith("_walk_right") ||
-    sequenceName.endsWith("_run")
-  ) {
-    return sequenceName;
-  }
+  const weaponRenderAnimationIndex = manualActorWeaponRenderAnimationIndex(sequenceName);
   if (!loadoutId) {
+    if (weaponRenderAnimationIndex !== null && sequenceName !== "idle" && !runtimeSequenceIsMovement(sequenceName)) {
+      return sequenceName;
+    }
     return runtimeSequenceIsMovement(sequenceName) ? sequenceName : "idle";
   }
-  if (sequenceName === "turn") {
-    return nhWeaponRenderSequenceName(loadoutId, 1, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions);
+  if (weaponRenderAnimationIndex !== null) {
+    return nhWeaponRenderSequenceName(
+      loadoutId,
+      weaponRenderAnimationIndex,
+      equipmentDefinitions,
+      weaponTypeDefinitions,
+      actorSequenceDefinitions,
+      equipment
+    );
   }
-  if (sequenceName === "walk") {
-    return nhWeaponRenderSequenceName(loadoutId, 2, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions);
-  }
-  if (sequenceName === "walk_back") {
-    return nhWeaponRenderSequenceName(loadoutId, 3, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions);
-  }
-  if (sequenceName === "walk_left") {
-    return nhWeaponRenderSequenceName(loadoutId, 4, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions);
-  }
-  if (sequenceName === "walk_right") {
-    return nhWeaponRenderSequenceName(loadoutId, 5, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions);
-  }
-  if (sequenceName === "run") {
-    return nhWeaponRenderSequenceName(loadoutId, 6, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions);
-  }
-  return nhWeaponRenderSequenceName(loadoutId, 0, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions);
+  return nhWeaponRenderSequenceName(loadoutId, 0, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions, equipment);
 }
 
 function manualActorVisibleSequenceName(actor: ManualActorState): RuntimeSequenceName {
@@ -4112,6 +4284,43 @@ function syncManualActorActionSequence(
   };
 }
 
+function manualActorWithPrimarySequence(
+  actor: ManualActorState,
+  sequenceName: RuntimeSequenceName,
+  startClientCycle: number
+): ManualActorState {
+  return {
+    ...actor,
+    activeSequenceKey: `${sequenceName}:${Math.max(0, Math.trunc(startClientCycle))}`,
+    completedSequenceKey: null,
+    sequencePathLengthAtStart: actor.routeWaypoints.length,
+    primaryFrame: 0,
+    primaryFrameCycle: 0,
+    primarySequenceLoops: 0,
+    primarySequenceCycle: 0,
+    primarySequenceDelayCycles: 0
+  };
+}
+
+function runtimeVengeanceTrinketChatText(activated: boolean, blockedReason: string): string {
+  if (activated) {
+    return "You cast Vengeance.";
+  }
+  if (blockedReason === "already-active") {
+    return "You already have this spell casted.";
+  }
+  if (blockedReason === "cooldown") {
+    return "Vengeance spells may only be cast every 30 seconds.";
+  }
+  if (blockedReason === "no-charge") {
+    return "Your trinket of vengeance has no charges left.";
+  }
+  if (blockedReason === "dead") {
+    return "You can't use that while dead.";
+  }
+  return "You can't cast Vengeance right now.";
+}
+
 function sameManualActorTilePath(
   left: readonly RuntimeTile[],
   right: readonly RuntimeTile[]
@@ -4457,6 +4666,32 @@ function manualActorMovementBlockedByNhSequence(
   if (actor.routeWaypoints.length === 0) {
     return false;
   }
+  return manualActorSequenceBlocksVisibleMovement(
+    actor,
+    activeSequence,
+    combatActor,
+    combatState,
+    sequence
+  );
+}
+
+function manualActorSequenceBlocksVisibleMovement(
+  actor: ManualActorState,
+  activeSequence: { readonly key: string; readonly sequenceName: RuntimeSequenceName },
+  combatActor: RuntimePlayerCombatActorState | null,
+  combatState: RuntimePlayerCombatState,
+  sequence: NhRenderSequenceDefinition
+): boolean {
+  const activeCombatSequenceKey = combatActor
+    ? manualActorActionSequenceKey(combatActor, combatState)
+    : null;
+  if (
+    activeSequence.sequenceName === RUNTIME_VENGEANCE_CAST_SEQUENCE_NAME &&
+    activeCombatSequenceKey !== null &&
+    activeCombatSequenceKey === activeSequence.key
+  ) {
+    return true;
+  }
   return actor.sequencePathLengthAtStart > 0
     ? nhSequencePrecedenceAnimating(sequence) === 0
     : nhSequencePriority(sequence) === 0;
@@ -4481,9 +4716,13 @@ function manualActorClientPathHeldByNhSequence(
   // Source: client class329 stalls path consumption with field726 > 0 using
   // precedenceAnimating, otherwise priority. New movement packets should be
   // appended to the held client path, not replace that path from the latest click.
-  return actor.sequencePathLengthAtStart > 0
-    ? nhSequencePrecedenceAnimating(sequence) === 0
-    : nhSequencePriority(sequence) === 0;
+  return manualActorSequenceBlocksVisibleMovement(
+    actor,
+    activeSequence,
+    combatActor,
+    combatState,
+    sequence
+  );
 }
 
 function advanceManualActorLogicalClientCycle(
@@ -4935,7 +5174,8 @@ function manualCombatActorPose(
     combatActor.loadoutId,
     equipmentDefinitions,
     weaponTypeDefinitions,
-    actorSequenceDefinitions
+    actorSequenceDefinitions,
+    combatActor.equipment
   );
   const movementSequenceName =
     actionFrameActive && runtimeSequenceIsMovement(baseSequenceName) ? baseSequenceName : undefined;
@@ -5424,6 +5664,11 @@ const RUNTIME_EQUIPMENT_MODEL_PREWARM_SEQUENCE_NAMES: readonly RuntimeSequenceNa
   "godsword_attack",
   "ags_special",
   "gmaul_special",
+  "halberd_attack",
+  "sword_stab_attack",
+  "sword_slash_attack",
+  "vesta_longsword_special",
+  "voidwaker_special",
   "crossbow_attack",
   "blitz_cast",
   "barrage_cast"
@@ -6519,6 +6764,127 @@ function writeStoredAutoRetaliate(enabled: boolean): void {
   }
 }
 
+function normalizeStoredOptionsSoundVolume(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 4;
+  }
+  return Math.max(0, Math.min(4, Math.trunc(value)));
+}
+
+function readStoredOptionsSoundVolume(key: string): number | null {
+  try {
+    const raw = window.localStorage.getItem(key);
+    const parsed = raw === null ? Number.NaN : Number(raw);
+    return Number.isInteger(parsed) && parsed >= 0 && parsed <= 4 ? parsed : null;
+  } catch {
+    // Non-fatal in restricted browser contexts.
+  }
+  return null;
+}
+
+function writeStoredOptionsSoundVolume(key: string, volume: number): void {
+  try {
+    window.localStorage.setItem(key, String(normalizeStoredOptionsSoundVolume(volume)));
+  } catch {
+    // Non-fatal in restricted browser contexts.
+  }
+}
+
+function runtimeOptionsSoundVolumeForChannel(
+  channel: RuntimeGameSoundChannel,
+  current: RuntimeOptionsSoundVolumes
+): number {
+  const fallback = channel === "sound-effects" ? current.soundEffects : current.areaSounds;
+  const stored = readStoredOptionsSoundVolume(
+    channel === "sound-effects"
+      ? NH_SOUND_EFFECT_VOLUME_STORAGE_KEY
+      : NH_AREA_SOUND_EFFECT_VOLUME_STORAGE_KEY
+  );
+  return normalizeStoredOptionsSoundVolume(stored ?? fallback);
+}
+
+function runtimeOptionsHtmlVolumeForChannel(
+  channel: RuntimeGameSoundChannel,
+  current: RuntimeOptionsSoundVolumes
+): number {
+  return Math.max(0, Math.min(1, runtimeOptionsSoundVolumeForChannel(channel, current) / 4));
+}
+
+function runtimeAreaSoundVolumeScale(
+  sourceTile: RuntimeTile | null,
+  listenerTile: RuntimeTile | null,
+  rangeTiles = RUNTIME_AREA_SOUND_RANGE_TILES
+): number {
+  if (!sourceTile || !listenerTile) {
+    return 0;
+  }
+  const distance = Math.max(0, Math.abs(sourceTile.x - listenerTile.x) + Math.abs(sourceTile.z - listenerTile.z) - 1);
+  if (distance > rangeTiles) {
+    return 0;
+  }
+  return Math.max(0, Math.min(1, (rangeTiles - distance) / rangeTiles));
+}
+
+function runtimeCombatEventSoundSourceTile(
+  event: RuntimePlayerCombatEvent,
+  state: RuntimePlayerCombatState
+): RuntimeTile | null {
+  if (event.kind === "attack") {
+    return event.attackerTile;
+  }
+  if (event.kind === "hitsplat") {
+    return state.actors[event.targetActorId]?.tile ?? null;
+  }
+  if (event.kind === "spotanim" || event.kind === "supply" || event.kind === "death") {
+    return state.actors[event.actorId]?.tile ?? null;
+  }
+  return null;
+}
+
+function runtimeCombatEventSoundVolumeScale(
+  event: RuntimePlayerCombatEvent,
+  state: RuntimePlayerCombatState,
+  soundId: number,
+  channel: RuntimeGameSoundChannel
+): number {
+  // Source: Kronos Entity.privateSound() sends only to that player. Consumables
+  // and the vengeance trinket use private sound-effect packets, so remote actor
+  // copies must not play for the local trainer client.
+  if (channel === "sound-effects") {
+    const actorId =
+      event.kind === "supply" || event.kind === "spotanim" || event.kind === "death"
+        ? event.actorId
+        : null;
+    if (actorId !== null && actorId !== "local-player") {
+      return 0;
+    }
+  }
+
+  let scale =
+    channel === "area-sounds"
+      ? runtimeAreaSoundVolumeScale(
+          runtimeCombatEventSoundSourceTile(event, state),
+          state.actors["local-player"]?.tile ?? null
+        )
+      : 1;
+  if (event.kind === "hitsplat" && event.boltEffect?.id === "onyx" && soundId === RUNTIME_ONYX_BOLT_PROC_SOUND_ID) {
+    scale *= RUNTIME_ONYX_BOLT_PROC_VOLUME_SCALE;
+  }
+  return Math.max(0, Math.min(1, scale));
+}
+
+function updateRuntimeActiveGameAudioVolumes(
+  activeAudioByChannel: RuntimeActiveGameAudioByChannel,
+  volumes: RuntimeOptionsSoundVolumes
+): void {
+  for (const channel of ["sound-effects", "area-sounds"] as const) {
+    const htmlVolume = runtimeOptionsHtmlVolumeForChannel(channel, volumes);
+    for (const audio of activeAudioByChannel[channel]) {
+      audio.volume = htmlVolume;
+    }
+  }
+}
+
 function readStoredClientDisplayMode(): NhClientDisplayMode {
   try {
     const raw = window.localStorage.getItem(NH_TRAINER_CLIENT_DISPLAY_MODE_STORAGE_KEY);
@@ -6651,12 +7017,23 @@ function swapNhWidgetOrder(
 function initialHudOverrideFromStorage(): Partial<RuntimeHudState> | null {
   const attackSet = typeof window === "undefined" ? null : readStoredAttackSetIndex();
   const autoRetaliate = typeof window === "undefined" ? null : readStoredAutoRetaliate();
-  if (attackSet === null && autoRetaliate === null) {
+  const soundEffectVolume =
+    typeof window === "undefined" ? null : readStoredOptionsSoundVolume(NH_SOUND_EFFECT_VOLUME_STORAGE_KEY);
+  const areaSoundEffectVolume =
+    typeof window === "undefined" ? null : readStoredOptionsSoundVolume(NH_AREA_SOUND_EFFECT_VOLUME_STORAGE_KEY);
+  if (
+    attackSet === null &&
+    autoRetaliate === null &&
+    soundEffectVolume === null &&
+    areaSoundEffectVolume === null
+  ) {
     return null;
   }
   return {
     ...(attackSet === null ? {} : { attackSet }),
-    ...(autoRetaliate === null ? {} : { autoRetaliate })
+    ...(autoRetaliate === null ? {} : { autoRetaliate }),
+    ...(soundEffectVolume === null ? {} : { soundEffectVolume }),
+    ...(areaSoundEffectVolume === null ? {} : { areaSoundEffectVolume })
   };
 }
 
@@ -7355,11 +7732,17 @@ function isNhPlayerContextMenuEntry(entry: NhContextMenuEntry): entry is NhPlaye
 }
 
 function runtimeWeaponLoadoutForItemId(itemId: number): RuntimeLoadoutId | null {
-  if (itemId === 6914 || itemId === 11791 || itemId === 22296) {
+  if (itemId === 6914 || itemId === 11791 || itemId === 22296 || itemId === 22647) {
     return "kodai-robes";
   }
-  if (itemId === 21902) {
+  if (itemId === 21902 || itemId === 26374) {
     return "acb-hides";
+  }
+  if (itemId === 22613 || itemId === 27690) {
+    return "tentacle-bandos";
+  }
+  if (itemId === 29796) {
+    return "noxious-halberd";
   }
   if (itemId === 11802) {
     return "ags-bandos";
@@ -7568,7 +7951,12 @@ function clickCrossStyle(
   };
 }
 
-const NH_CONTEXT_MENU_BROWSER_X_SCALE = 0.9;
+const NH_CONTEXT_MENU_BROWSER_X_SCALE = 1;
+const NH_RUNTIME_CROSSBOW_ITEM_IDS = new Set<number>([9185, 11785, 21902, 26374]);
+
+function isRuntimeCrossbowItemId(itemId: number | null | undefined): boolean {
+  return itemId !== null && itemId !== undefined && NH_RUNTIME_CROSSBOW_ITEM_IDS.has(itemId);
+}
 
 function contextMenuStyleWithFont(
   menu: NhContextMenuState,
@@ -7766,6 +8154,12 @@ async function loadAnimationFixtures(): Promise<NhAnimationFixtures> {
     ["gmaul_walk_right", "1663"],
     ["gmaul_run", "1664"],
     ["gmaul_attack", "1665"],
+    ["halberd_attack", "440"],
+    ["vesta_longsword_ready", "809"],
+    ["sword_stab_attack", "386"],
+    ["sword_slash_attack", "390"],
+    ["vesta_longsword_special", "7515"],
+    ["voidwaker_special", "11275"],
     ["godsword_ready", "7053"],
     ["godsword_turn", "7044"],
     ["godsword_walk", "7052"],
@@ -7775,6 +8169,7 @@ async function loadAnimationFixtures(): Promise<NhAnimationFixtures> {
     ["godsword_run", "7043"],
     ["godsword_attack", "7045"],
     ["ags_special", "7644"],
+    ["vengeance_cast", "8316"],
     ["crossbow_ready", "4591"],
     ["crossbow_turn", "823"],
     ["crossbow_walk", "4226"],
@@ -8168,6 +8563,19 @@ function runtimeItemSpriteStyle(atlas: RuntimeSpriteAtlas, sprite: SpriteAtlasEn
     backgroundRepeat: "no-repeat",
     backgroundSize: `${atlas.metadata.width}px ${atlas.metadata.height}px`,
     transform: `translate(${sprite.offsetX}px, ${sprite.offsetY}px)`
+  };
+}
+
+function runtimeScaledItemSpriteStyle(
+  atlas: RuntimeSpriteAtlas,
+  sprite: SpriteAtlasEntry,
+  scale: number
+): CSSProperties {
+  const base = runtimeItemSpriteStyle(atlas, sprite);
+  return {
+    ...base,
+    transform: `${base.transform ?? ""} scale(${scale})`,
+    transformOrigin: "left center"
   };
 }
 
@@ -9257,7 +9665,7 @@ function buildRuntimeDomOverlays(
 ): readonly RuntimeDomOverlay[] {
   const fixedLayout = boundary.fixedClientLayout;
   const cssLayout = boundary.fixedClientCssLayout;
-  if (!fixedLayout || !cssLayout || spriteAtlases.size === 0) {
+  if (!fixedLayout || !cssLayout) {
     return [];
   }
 
@@ -9275,6 +9683,45 @@ function buildRuntimeDomOverlays(
   const overlays: RuntimeDomOverlay[] = [];
   const overlayStackCounts = new Map<string, number>();
   for (const event of sortedEvents) {
+    if (event.kind === "overlay-text" && event.actorId && event.text) {
+      const slot = boundary.actorSlots.get(event.actorId);
+      if (!slot) {
+        continue;
+      }
+
+      // Source: Scene.copy$drawActor2d projects forced overhead text from Actor.defaultHeight,
+      // sharing the same projected head anchor as other actor overheads.
+      const projection = nhOverlayClientViewportProjection(
+        nhRuntimeOverlayClientCameraState(boundary),
+        fixedLayout.viewport,
+        slot.group.position,
+        {
+          anchorClientUnits: slot.currentDefaultHeightClientUnits + 15,
+          centerOffsetXPixels: 0,
+          centerOffsetYPixelsDown: 0
+        }
+      );
+      if (!projection) {
+        continue;
+      }
+
+      const textHeight = 15;
+      overlays.push({
+        id: event.id,
+        actorId: event.actorId,
+        left: cssLayout.viewportRect.x + projection.x * cssLayout.scale,
+        top: cssLayout.viewportRect.y + projection.y * cssLayout.scale - textHeight * cssLayout.scale,
+        width: 1,
+        height: textHeight,
+        renderOrder: 20 + nhOverlaySortValue(event),
+        text: event.text,
+        textColor: event.textColor,
+        textEffect: event.textEffect,
+        sprites: []
+      });
+      continue;
+    }
+
     if (event.kind !== "overlay-sprite" || !event.actorId || !event.spriteSheetId || event.spriteId === undefined) {
       continue;
     }
@@ -9345,7 +9792,7 @@ function runtimeDomOverlayStructureSignature(overlays: readonly RuntimeDomOverla
             `${sprite.key}:${sprite.sheetId}:${sprite.spriteId}:${sprite.spriteFrame}:${sprite.sourceX}:${sprite.sourceY}:${sprite.left}:${sprite.top}:${sprite.width}:${sprite.height}:${Math.round(sprite.opacity * 255)}:${sprite.renderOrder}`
         )
         .join(",");
-      return `${overlay.id}:${overlay.actorId}:${overlay.spriteSheetId}:${overlay.width}:${overlay.height}:${overlay.renderOrder}:${spriteSignature}`;
+      return `${overlay.id}:${overlay.actorId}:${overlay.spriteSheetId ?? ""}:${overlay.text ?? ""}:${overlay.textColor ?? ""}:${overlay.textEffect ?? ""}:${overlay.width}:${overlay.height}:${overlay.renderOrder}:${spriteSignature}`;
     })
     .join("|");
 }
@@ -10163,6 +10610,11 @@ function runtimeDomOverlayStaticStyle(overlay: RuntimeDomOverlay): CSSProperties
   };
 }
 
+function runtimeOverheadTextColor(color: number | undefined): string {
+  const normalized = Math.max(0, Math.min(0xffffff, Math.trunc(color ?? 0xffff00)));
+  return `#${normalized.toString(16).padStart(6, "0")}`;
+}
+
 function nhActorOverlayCssPixel(value: number): number {
   // Source: Client.viewportTempX/Y feed Sprite.method6159(int, int) after integer projection.
   // Keep that source projection intact through fixed-client CSS scaling; layout rounding here makes overhead sprites drift during camera-key motion.
@@ -10243,10 +10695,10 @@ function runeliteFreezeTimerInfoBoxOverlayStyle(
   const scale = layout?.scale ?? 1;
   const preferredLocation = runeliteOverlayPreferredLocationStyle("InfoBoxOverlay", overlayLocations, scale);
   const viewportRect = layout?.viewportRect;
-  const defaultBottomLeftLocation = viewportRect
+  const defaultTopLeftLocation = viewportRect
     ? {
         left: viewportRect.x + 2 * scale,
-        top: viewportRect.y + viewportRect.height - overlay.height * scale - 2 * scale
+        top: viewportRect.y + 2 * scale
       }
     : {};
   return {
@@ -10260,7 +10712,7 @@ function runeliteFreezeTimerInfoBoxOverlayStyle(
     transform: `scale(${scale})`,
     transformOrigin: "left top",
     zIndex: overlay.renderOrder,
-    ...(preferredLocation ?? defaultBottomLeftLocation)
+    ...(preferredLocation ?? defaultTopLeftLocation)
   };
 }
 
@@ -10288,11 +10740,40 @@ function runtimeFightStartOverlayStyle(
     return preferredLocation;
   }
   const viewportRect = layout?.viewportRect;
+  if (!viewportRect) {
+    return {
+      left: 0,
+      top: 0
+    };
+  }
   return {
-    left: viewportRect ? viewportRect.x + viewportRect.width / 2 : 0,
-    top: viewportRect ? viewportRect.y + viewportRect.height / 2 : 0,
-    transform: `translate(-50%, -50%) scale(${scale})`,
-    transformOrigin: "center center"
+    left: viewportRect.x,
+    top: viewportRect.y,
+    width: Math.max(1, Math.round(viewportRect.width / scale)),
+    height: Math.max(1, Math.round(viewportRect.height / scale)),
+    transform: `scale(${scale})`,
+    transformOrigin: "left top"
+  };
+}
+
+function runtimeVengeanceTrinketIndicatorStyle(
+  cssLayout: NhFixedClientCssLayout | null,
+  fixedLayout: NhFixedClientLayout
+): CSSProperties {
+  const scale = cssLayout?.scale ?? 1;
+  const chatbox = fixedLayout.chatbox;
+  if (!cssLayout || !chatbox) {
+    return {
+      left: 8,
+      top: 8
+    };
+  }
+
+  return {
+    left: cssLayout.surfaceRect.x + (chatbox.rect.x + 8) * scale,
+    top: cssLayout.surfaceRect.y + (chatbox.rect.y - 34) * scale,
+    transform: `scale(${scale})`,
+    transformOrigin: "top left"
   };
 }
 
@@ -11398,6 +11879,28 @@ function runtimePlayerCombatRenderEvents(
         spotanimId: event.spotanimId,
         artifactUrl: event.artifactUrl
       });
+    } else if (event.kind === "overhead-text") {
+      const durationTicks = Math.max(
+        1,
+        Math.ceil(Math.max(0, event.durationClientCycles) / NH_CLIENT_CYCLES_PER_GAME_TICK)
+      );
+      const endTick = event.tick + durationTicks;
+      if (event.tick <= combatState.tick && endTick >= combatState.tick) {
+        events.push({
+          id: event.id,
+          kind: "overlay-text",
+          label: event.text,
+          startCycle: event.tick,
+          endCycle: endTick,
+          actorId: event.actorId,
+          text: event.text,
+          textColor: event.textColor,
+          textEffect: event.textEffect,
+          durationClientCycles: event.durationClientCycles,
+          clientOrder: event.tick * 100 + runtimePlayerCombatOverlayActorOffset(event.actorId) + 60,
+          clientCycle
+        });
+      }
     } else if (event.kind === "hitsplat") {
       if (activeHitsplatEventIds.has(event.id)) {
         const hitsplat = createNhHitsplatRenderState(
@@ -12408,6 +12911,7 @@ function writeManualOpponentPolicyDataset(
 interface RuntimeSceneViewerProps {
   readonly liveTrace?: ClientViewTrace | null;
   readonly policy?: ParsedNhPolicy | null;
+  readonly dmmHardPolicy?: ParsedNhPolicy | null;
   readonly botDifficulty?: "easy" | "medium" | "hard";
   readonly botPolicyLoadState?: "loading" | "loaded" | "error";
   readonly onBotDifficultyChange?: (difficulty: "easy" | "medium" | "hard") => void;
@@ -12753,6 +13257,7 @@ function writeRuntimeBotWatchStatsDataset(viewport: HTMLElement, stats: RuntimeB
 export function RuntimeSceneViewer({
   liveTrace,
   policy,
+  dmmHardPolicy,
   botDifficulty = "medium",
   botPolicyLoadState = policy ? "loaded" : "loading",
   onBotDifficultyChange
@@ -12819,6 +13324,10 @@ export function RuntimeSceneViewer({
   const manualOpponentPolicyController = useMemo<NhPolicyRuntimeController | null>(
     () => (policy ? createNhPolicyController(policy) : null),
     [policy]
+  );
+  const manualOpponentDmmHardPolicyController = useMemo<NhPolicyRuntimeController | null>(
+    () => (dmmHardPolicy ? createNhPolicyController(dmmHardPolicy) : null),
+    [dmmHardPolicy]
   );
   const manualOpponentObservedLocalAppearanceRef = useRef<ManualPolicyActorAppearanceView>({
     tile: initialManualActor.tile,
@@ -12924,6 +13433,8 @@ export function RuntimeSceneViewer({
   );
   const [runeliteMouseHighlightTooltip, setRuneliteMouseHighlightTooltip] =
     useState<RuneliteMouseHighlightTooltipSnapshot | null>(null);
+  const [runtimeChatMessages, setRuntimeChatMessages] = useState<readonly NhChatboxGameMessage[]>([]);
+  const runtimeChatMessageSequenceRef = useRef(1);
   const [inventoryOverride, setInventoryOverride] = useState<readonly (RuntimeInventorySlot | null)[] | null>(
     () => [...RUNTIME_NH_STAKE_INVENTORY_SLOTS]
   );
@@ -12932,8 +13443,17 @@ export function RuntimeSceneViewer({
     () => new Map(RUNTIME_NH_STAKE_EQUIPMENT_ITEMS)
   );
   const [hudOverride, setHudOverride] = useState<Partial<RuntimeHudState> | null>(() => initialHudOverrideFromStorage());
+  const runtimeOptionsSoundVolumesRef = useRef<RuntimeOptionsSoundVolumes>({
+    soundEffects: normalizeStoredOptionsSoundVolume(hudOverride?.soundEffectVolume ?? 4),
+    areaSounds: normalizeStoredOptionsSoundVolume(hudOverride?.areaSoundEffectVolume ?? 4)
+  });
+  const runtimeActiveGameAudioByChannelRef = useRef<RuntimeActiveGameAudioByChannel>({
+    "sound-effects": new Set<HTMLAudioElement>(),
+    "area-sounds": new Set<HTMLAudioElement>()
+  });
   const [localFreezeBypass, setLocalFreezeBypass] = useState(false);
   const [temporarySetupStatus, setTemporarySetupStatus] = useState("");
+  const [runtimeSetupSelectorOpen, setRuntimeSetupSelectorOpen] = useState(true);
   const [storedPvpFightHistory, setStoredPvpFightHistory] = useState<readonly RunelitePvpFightHistoryEntrySnapshot[]>(
     () => readStoredRunelitePvpFightHistory()
   );
@@ -12954,6 +13474,7 @@ export function RuntimeSceneViewer({
   const groundItemSequenceRef = useRef(1);
   const pendingGroundItemPickupRef = useRef<PendingGroundItemPickup | null>(null);
   const equipmentOverrideRef = useRef<RuntimeEquipmentItemIdsBySlot | null>(equipmentOverride);
+  const runtimeSetupPresetIdRef = useRef<RuntimeTrainerSetupId>("nh-stake");
   const localFreezeBypassRef = useRef(localFreezeBypass);
   const temporarySavedSetupLoadedRef = useRef(false);
   const [selectedInventoryItem, setSelectedInventoryItem] = useState<NhInventorySelectedItem | null>(null);
@@ -13054,12 +13575,55 @@ export function RuntimeSceneViewer({
   }, [baseVisibleSnapshot, equipmentOverride, hudOverride, inventoryOverride, manualControl]);
   const visibleSnapshotRef = useRef(visibleSnapshot);
   const runtimeInteractionSnapshotRef = useRef(visibleSnapshot);
+  useEffect(() => {
+    const nextVolumes = {
+      soundEffects: normalizeStoredOptionsSoundVolume(visibleSnapshot.hud.soundEffectVolume ?? 4),
+      areaSounds: normalizeStoredOptionsSoundVolume(visibleSnapshot.hud.areaSoundEffectVolume ?? 4)
+    };
+    runtimeOptionsSoundVolumesRef.current = nextVolumes;
+    updateRuntimeActiveGameAudioVolumes(runtimeActiveGameAudioByChannelRef.current, nextVolumes);
+  }, [visibleSnapshot.hud.areaSoundEffectVolume, visibleSnapshot.hud.soundEffectVolume]);
   const visibleActiveEventsRef = useRef<readonly RuntimeRenderEvent[]>([]);
   const spriteAtlasesRef = useRef<ReadonlyMap<RuntimeSpriteSheetId, RuntimeSpriteAtlas>>(new Map());
   const runelitePvpToolsRenderSelfRef = useRef(runelitePvpToolsRenderSelf);
   const runtimeDomOverlaySignatureRef = useRef("");
   const runtimeDomOverlayElementsRef = useRef(new Map<string, HTMLElement>());
   const [runtimeDomOverlays, setRuntimeDomOverlays] = useState<readonly RuntimeDomOverlay[]>([]);
+  const runtimePlayedCombatSoundEventIdsRef = useRef(new Set<string>());
+  const playRuntimeGameSound = (soundId: number, channel: RuntimeGameSoundChannel, volumeScale = 1): void => {
+    const optionsVolume = runtimeOptionsSoundVolumeForChannel(channel, runtimeOptionsSoundVolumesRef.current);
+    const assetUrl = RUNTIME_GAME_SOUND_EFFECT_ASSET_ID_SET.has(soundId) ? `render/sounds/sound-${soundId}.wav` : "";
+    const htmlVolume = runtimeOptionsHtmlVolumeForChannel(channel, runtimeOptionsSoundVolumesRef.current) *
+      Math.max(0, Math.min(1, volumeScale));
+    const viewport = canvasRef.current?.closest(".runtimeViewport") as HTMLElement | null;
+    if (viewport) {
+      viewport.dataset.lastRuntimeSoundAssetUrl = assetUrl;
+      viewport.dataset.lastRuntimeSoundChannel = channel;
+      viewport.dataset.lastRuntimeSoundHtmlVolume = String(htmlVolume);
+      viewport.dataset.lastRuntimeSoundId = String(soundId);
+      viewport.dataset.lastRuntimeSoundMuted = String(optionsVolume <= 0 || volumeScale <= 0);
+      viewport.dataset.lastRuntimeSoundVolumeScale = String(volumeScale);
+      viewport.dataset.lastRuntimeSoundVolume = String(optionsVolume);
+    }
+
+    if (!assetUrl || optionsVolume <= 0 || volumeScale <= 0 || typeof Audio === "undefined") {
+      return;
+    }
+
+    const audio = new Audio(assetUrl);
+    audio.volume = htmlVolume;
+    const activeChannelAudio = runtimeActiveGameAudioByChannelRef.current[channel];
+    const removeActiveAudio = (): void => {
+      activeChannelAudio.delete(audio);
+    };
+    activeChannelAudio.add(audio);
+    audio.addEventListener("ended", removeActiveAudio, { once: true });
+    audio.addEventListener("error", removeActiveAudio, { once: true });
+    void audio.play().catch(() => {
+      removeActiveAudio();
+      // Browsers can reject play() before the page has received a trusted user gesture.
+    });
+  };
   const runeliteFreezeTimerDomOverlaySignatureRef = useRef("");
   const runeliteFreezeTimerOverlayElementsRef = useRef(new Map<string, HTMLElement>());
   const [runeliteFreezeTimerOverlays, setRuneliteFreezeTimerOverlays] = useState<readonly RuneliteFreezeTimerDomOverlay[]>([]);
@@ -13116,6 +13680,34 @@ export function RuntimeSceneViewer({
     () => runeliteStatusOrbsRunOrbText(visibleSnapshot.hud, runeliteClientConfig.statusOrbs),
     [runeliteClientConfig.statusOrbs, visibleSnapshot.hud]
   );
+  const localVengeanceActor = manualCombatState.actors["local-player"];
+  const vengeanceCooldownTicks = Math.max(
+    0,
+    Math.trunc(localVengeanceActor.vengeanceCooldownUntilTick - manualCombatState.tick)
+  );
+  const vengeanceCooldownSeconds = Math.ceil((vengeanceCooldownTicks * NH_GAME_TICK_MS) / 1000);
+  const vengeanceTrinketStatus = localVengeanceActor.vengeanceActive
+    ? "active"
+    : vengeanceCooldownTicks > 0
+      ? "cooldown"
+      : "ready";
+  const vengeanceTrinketLabel =
+    vengeanceTrinketStatus === "active"
+      ? "Active"
+      : vengeanceTrinketStatus === "cooldown"
+        ? `${vengeanceCooldownSeconds}s`
+        : "Ready";
+  const vengeanceTrinketItemAtlas = spriteAtlases.get("item_sprites");
+  const vengeanceTrinketItemSprite = vengeanceTrinketItemAtlas
+    ? runeliteSuppliesTrackerItemSprite(vengeanceTrinketItemAtlas, RUNTIME_VENGEANCE_TRINKET_ITEM_ID, 1)
+    : undefined;
+  const vengeanceTrinketIndicatorVisible =
+    fixedClientLayout !== null &&
+    (
+      localVengeanceActor.vengeanceActive ||
+      vengeanceCooldownTicks > 0 ||
+      visibleSnapshot.inventory.some((slot) => slot?.itemId === RUNTIME_VENGEANCE_TRINKET_ITEM_ID)
+    );
   const runeliteOpponentInfo = useMemo(
     () => runeliteOpponentInfoSnapshot(manualCombatState, runeliteClientConfig.opponentInfo),
     [manualCombatState, runeliteClientConfig.opponentInfo]
@@ -13193,6 +13785,30 @@ export function RuntimeSceneViewer({
     () => runeliteEntityHiderFilterRuntimeEvents(baseVisibleActiveEvents, visibleSnapshot, runeliteClientConfig.entityHider),
     [baseVisibleActiveEvents, runeliteClientConfig.entityHider, visibleSnapshot]
   );
+  useEffect(() => {
+    const playedEventIds = runtimePlayedCombatSoundEventIdsRef.current;
+    const liveEventIds = new Set(manualCombatState.events.map((event) => event.id));
+    for (const playedEventId of playedEventIds) {
+      if (!liveEventIds.has(playedEventId)) {
+        playedEventIds.delete(playedEventId);
+      }
+    }
+    for (const event of manualCombatState.events) {
+      if (playedEventIds.has(event.id)) {
+        continue;
+      }
+      const soundIds = "soundIds" in event ? event.soundIds : undefined;
+      if (!soundIds?.length) {
+        continue;
+      }
+      const soundChannel = "soundChannel" in event && event.soundChannel ? event.soundChannel : "area-sounds";
+      for (const soundId of soundIds) {
+        const volumeScale = runtimeCombatEventSoundVolumeScale(event, manualCombatState, soundId, soundChannel);
+        playRuntimeGameSound(soundId, soundChannel, volumeScale);
+      }
+      playedEventIds.add(event.id);
+    }
+  }, [manualCombatState.events]);
   const completedPvpFightHistoryFromEvents = useMemo(
     () => runelitePvpFightHistoryFromCombatEvents(manualCombatState.events),
     [manualCombatState.events]
@@ -15450,7 +16066,8 @@ export function RuntimeSceneViewer({
         patch.loadoutId,
         inventoryEquipmentDefinitionsRef.current,
         weaponTypeDefinitionsRef.current,
-        actorSequenceDefinitions
+        actorSequenceDefinitions,
+        nextCombatState.actors["local-player"].equipment
       )
     };
     manualCombatStateRef.current = nextCombatState;
@@ -15566,6 +16183,8 @@ export function RuntimeSceneViewer({
     const opponentActor = collisionMap
       ? snapManualActorToCollision(manualActorFromSnapshot(visibleSnapshot, "opponent", "opponent"), collisionMap)
       : manualActorFromSnapshot(visibleSnapshot, "opponent", "opponent");
+    const localInventorySlots = normalizeNhInventorySlots(inventoryOverrideRef.current ?? visibleSnapshot.inventory);
+    const opponentInventorySlots = runtimeSetupInventorySlots(runtimeSetupPresetIdRef.current);
     const combatState = createRuntimePlayerCombatState({
       localTile: localActor.tile,
       opponentTile: opponentActor.tile,
@@ -15575,6 +16194,10 @@ export function RuntimeSceneViewer({
       localLevels: runtimeCombatLevelsFromHud(visibleSnapshot.hud),
       localPrayers: runtimePrayerIdsFromNhStates(visibleSnapshot.hud.prayers),
       localSpecialEnergy: visibleSnapshot.hud.specialEnergy,
+      localSupplies: runtimeSuppliesFromInventorySlots(localInventorySlots),
+      opponentSupplies: runtimeSuppliesFromInventorySlots(opponentInventorySlots),
+      localVengeanceTrinketCharges: runtimeVengeanceTrinketChargesFromInventorySlots(localInventorySlots),
+      opponentVengeanceTrinketCharges: runtimeVengeanceTrinketChargesFromInventorySlots(opponentInventorySlots),
       combatStartTick: runtimePlayerCombatFightCountdownTicks
     });
     manualActorRef.current = localActor;
@@ -15699,15 +16322,18 @@ export function RuntimeSceneViewer({
     // inventory/equipment containers are client-side mirrors, so the rematch reset restores
     // them on the same respawn transition instead of leaving eaten/worn items depleted.
     const savedSetup = readTemporarySavedSetupSnapshot();
-    const localLoadoutId = savedSetup?.loadoutId ?? RUNTIME_NH_STAKE_LOADOUT_ID;
+    const setupId = runtimeSetupPresetIdRef.current;
+    const setup = runtimeSetupPreset(setupId);
+    const localLoadoutId = savedSetup?.loadoutId ?? setup.loadoutId;
     const localInventorySlots = savedSetup
       ? normalizeNhInventorySlots(savedSetup.inventory)
-      : runtimeNhStakeInventorySlots();
+      : runtimeSetupInventorySlots(setupId);
     const localEquipmentItems = savedSetup
       ? new Map(savedSetup.equipment)
-      : runtimeNhStakeEquipmentItems();
-    const opponentInventorySlots = runtimeNhStakeInventorySlots();
-    const opponentEquipmentItems = runtimeNhStakeEquipmentItems();
+      : runtimeSetupEquipmentItems(setupId);
+    const opponentLoadoutId = setup.loadoutId;
+    const opponentInventorySlots = runtimeSetupInventorySlots(setupId);
+    const opponentEquipmentItems = runtimeSetupEquipmentItems(setupId);
     const localVisibleEquipment = visibleEquipmentFromRuntimeItemIdsBySlot(
       localEquipmentItems,
       inventoryItemDefinitionsRef.current
@@ -15726,6 +16352,8 @@ export function RuntimeSceneViewer({
     );
     const localSupplies = runtimeSuppliesFromInventorySlots(localInventorySlots);
     const opponentSupplies = runtimeSuppliesFromInventorySlots(opponentInventorySlots);
+    const localVengeanceTrinketCharges = runtimeVengeanceTrinketChargesFromInventorySlots(localInventorySlots);
+    const opponentVengeanceTrinketCharges = runtimeVengeanceTrinketChargesFromInventorySlots(opponentInventorySlots);
     const localGearProfile = inferNhSelectedGearProfile({
       equipment: localVisibleEquipment,
       inventoryItems: localInventoryItems
@@ -15743,7 +16371,7 @@ export function RuntimeSceneViewer({
       localTile: localSpawn.tile,
       opponentTile: opponentSpawn.tile,
       localLoadoutId,
-      opponentLoadoutId: RUNTIME_NH_STAKE_LOADOUT_ID,
+      opponentLoadoutId,
       localAttackSetIndex,
       opponentAttackSetIndex: 0,
       localLevels: runtimePlayerCombatDefaultLevels,
@@ -15754,6 +16382,8 @@ export function RuntimeSceneViewer({
       opponentPrayerPoints: { current: 99, fixed: 99 },
       localSupplies,
       opponentSupplies,
+      localVengeanceTrinketCharges,
+      opponentVengeanceTrinketCharges,
       localSpecialEnergy: 100,
       opponentSpecialEnergy: 100,
       combatStartTick: NH_TRAINER_MANUAL_START_PENDING_TICK,
@@ -15766,7 +16396,7 @@ export function RuntimeSceneViewer({
       },
       loadouts: {
         "local-player": localLoadoutId,
-        opponent: RUNTIME_NH_STAKE_LOADOUT_ID
+        opponent: opponentLoadoutId
       },
       equipment: {
         "local-player": localVisibleEquipment,
@@ -15791,7 +16421,7 @@ export function RuntimeSceneViewer({
     );
     const opponentAppearance = runtimeAppearanceFromEquipmentItems(
       opponentEquipmentItems,
-      runtimeLoadoutAppearance(RUNTIME_NH_STAKE_LOADOUT_ID)
+      runtimeLoadoutAppearance(opponentLoadoutId)
     );
     const nextLocalActor: ManualActorState = {
       ...localSpawn,
@@ -15802,19 +16432,21 @@ export function RuntimeSceneViewer({
         localLoadoutId,
         inventoryEquipmentDefinitionsRef.current,
         weaponTypeDefinitionsRef.current,
-        actorSequenceDefinitionsRef.current
+        actorSequenceDefinitionsRef.current,
+        localVisibleEquipment
       )
     };
     const nextOpponentActor: ManualActorState = {
       ...opponentSpawn,
-      loadoutId: RUNTIME_NH_STAKE_LOADOUT_ID,
+      loadoutId: opponentLoadoutId,
       appearance: opponentAppearance,
       sequenceName: manualActorBaseSequenceName(
         "idle",
-        RUNTIME_NH_STAKE_LOADOUT_ID,
+        opponentLoadoutId,
         inventoryEquipmentDefinitionsRef.current,
         weaponTypeDefinitionsRef.current,
-        actorSequenceDefinitionsRef.current
+        actorSequenceDefinitionsRef.current,
+        opponentVisibleEquipment
       )
     };
 
@@ -15853,7 +16485,7 @@ export function RuntimeSceneViewer({
     clearSelectedInventoryItem("fresh-fight-reset");
     clearSelectedSpell("fresh-fight-reset");
     ensureLocalActorEquipmentModel(localEquipmentItems, localLoadoutId, "local-player");
-    ensureLocalActorEquipmentModel(opponentEquipmentItems, RUNTIME_NH_STAKE_LOADOUT_ID, "opponent");
+    ensureLocalActorEquipmentModel(opponentEquipmentItems, opponentLoadoutId, "opponent");
     unstable_batchedUpdates(() => {
       setPlaying(false);
       setFollowLive(false);
@@ -15869,13 +16501,15 @@ export function RuntimeSceneViewer({
       setHudOverride((current) => ({
         ...(current?.attackSet === undefined ? {} : { attackSet: current.attackSet }),
         ...(current?.autoRetaliate === undefined ? {} : { autoRetaliate: current.autoRetaliate }),
+        ...(current?.soundEffectVolume === undefined ? {} : { soundEffectVolume: current.soundEffectVolume }),
+        ...(current?.areaSoundEffectVolume === undefined ? {} : { areaSoundEffectVolume: current.areaSoundEffectVolume }),
         prayers: {} as NhPrayerStates
       }));
       setManualFightStartPending(true);
       setManualCombatState(nextCombatState);
       setManualActor(nextLocalActor);
       setManualOpponent(nextOpponentActor);
-      setTemporarySetupStatus(savedSetup ? "Saved setup restored" : "NH stake restored");
+      setTemporarySetupStatus(savedSetup ? "Saved setup restored" : `${setup.label} restored`);
     });
 
     const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
@@ -15884,7 +16518,10 @@ export function RuntimeSceneViewer({
       viewport.dataset.lastFreshFightResetTick = String(nextCombatState.tick);
       viewport.dataset.lastFreshFightResetCombatStartTick = String(nextCombatState.combatStartTick);
       viewport.dataset.lastFreshFightResetRequiresStart = "true";
-      viewport.dataset.lastFreshFightResetLocalSetup = savedSetup ? "saved-setup" : "nh-stake";
+      viewport.dataset.lastFreshFightResetLocalSetup = savedSetup ? "saved-setup" : setupId;
+      viewport.dataset.lastFreshFightResetSetup = setupId;
+      viewport.dataset.lastFreshFightResetOpponentSetup = setupId;
+      viewport.dataset.lastFreshFightResetOpponentLoadout = opponentLoadoutId;
       viewport.dataset.lastFreshFightResetInventoryCount = String(localInventorySlots.filter(Boolean).length);
       viewport.dataset.lastFreshFightResetEquipmentCount = String(localEquipmentItems.size);
       viewport.dataset.lastFreshFightResetOpponentEquipmentCount = String(opponentEquipmentItems.size);
@@ -15991,7 +16628,11 @@ export function RuntimeSceneViewer({
       nextCombatState = freshFightReset
         ? resetRuntimePlayerCombatActorPolicyFreshFight(nextCombatState, "opponent", {
             tile: opponentSpawn.tile,
-            gearProfile: opponent.gearProfile
+            gearProfile: opponent.gearProfile,
+            supplies: runtimeSuppliesFromInventorySlots(runtimeSetupInventorySlots(runtimeSetupPresetIdRef.current)),
+            vengeanceTrinketCharges: runtimeVengeanceTrinketChargesFromInventorySlots(
+              runtimeSetupInventorySlots(runtimeSetupPresetIdRef.current)
+            )
           })
         : resetRuntimePlayerCombatActorPolicyDisengage(nextCombatState, "opponent");
       manualCombatStateRef.current = nextCombatState;
@@ -16046,9 +16687,13 @@ export function RuntimeSceneViewer({
     // Source: NhStakerBot.captureObservation() records selfDx/selfDy from the bot's own
     // current-vs-last server tile delta; only the opponent/local-player view is delayed.
     const observedOpponentSelfMovement = opponentSelfMovement;
+    const selectedPolicyController =
+      runtimeSetupPresetIdRef.current === "dmm" && botDifficulty === "hard"
+        ? manualOpponentDmmHardPolicyController ?? manualOpponentPolicyController
+        : manualOpponentPolicyController;
     const result = applyRuntimeOpponentPolicyAction({
       state: combatState,
-      controller: manualOpponentPolicyController ?? scriptedNhController,
+      controller: selectedPolicyController ?? scriptedNhController,
       localActor: {
         tile: observedLocalAppearance.tile,
         loadoutId: observedLocalAppearance.loadoutId,
@@ -16282,7 +16927,10 @@ export function RuntimeSceneViewer({
       }
     }
     if (consumedSupplies.length > 0) {
-      const inventorySlots = runtimeNhStakeInventorySlotsForSupplies(combatState.actors["local-player"].supplies);
+      const inventorySlots = runtimeSetupInventorySlotsForSupplies(
+        runtimeSetupPresetIdRef.current,
+        combatState.actors["local-player"].supplies
+      );
       consumedInventorySlots = inventorySlots;
       inventoryOverrideRef.current = inventorySlots;
       setInventoryOverride(inventorySlots);
@@ -16343,7 +16991,8 @@ export function RuntimeSceneViewer({
           loadoutId,
           inventoryEquipmentDefinitionsRef.current,
           weaponTypeDefinitionsRef.current,
-          actorSequenceDefinitionsRef.current
+          actorSequenceDefinitionsRef.current,
+          equipment
         )
       };
       equipmentOverrideRef.current = equipmentItems;
@@ -16428,6 +17077,26 @@ export function RuntimeSceneViewer({
     if (runtimePlayerCombatIsFightCountdownActive(scene.combatState)) {
       blockPlayerCombatCommandDuringCountdown("attack", position);
       return;
+    }
+    const localCombatActor = scene.combatState.actors["local-player"];
+    const targetCombatActor = scene.combatState.actors.opponent;
+    const localWeaponItemId = localCombatActor.equipment.weapon?.itemId ?? null;
+    if (isRuntimeCrossbowItemId(localWeaponItemId)) {
+      const profile = runtimePlayerCombatTargetRouteProfile("local-player", localCombatActor);
+      const distance = runtimePlayerCombatDistance(localCombatActor.tile, targetCombatActor.tile, NH_TILE_WORLD_UNITS);
+      const movementStatus = movementGate(localCombatActor.locks, scene.combatState.tick);
+      if (distance > profile.attackRange && movementStatus.blocked && movementStatus.reason !== "none") {
+        pushRuntimeChatMessage("I can't reach that!");
+        const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
+        if (viewport) {
+          viewport.dataset.lastCrossbowReachFeedback = "movement-blocked";
+          viewport.dataset.lastCrossbowReachBlockedReason = movementStatus.reason;
+          viewport.dataset.lastCrossbowReachWeaponItemId = String(localWeaponItemId);
+          viewport.dataset.lastCrossbowReachDistance = String(distance);
+          viewport.dataset.lastCrossbowReachAttackRange = String(profile.attackRange);
+          viewport.dataset.lastCrossbowReachSource = source;
+        }
+      }
     }
     setManualOpponentFightEngaged(true, scene.combatState.tick);
     const nextCombatState = requestRuntimePlayerCombatAttack(scene.combatState, "local-player", "opponent");
@@ -16948,6 +17617,11 @@ export function RuntimeSceneViewer({
     );
   };
 
+  const pushRuntimeChatMessage = (text: string): void => {
+    const id = `${manualCombatStateRef.current.tick}:${runtimeChatMessageSequenceRef.current++}`;
+    setRuntimeChatMessages((current) => [...current.slice(-5), { id, text }]);
+  };
+
   const dispatchChatboxAction = (command: NhChatboxButtonCommand): void => {
     closeContextMenu();
     clearSelectedInventoryItem("chatbox-action");
@@ -17442,6 +18116,69 @@ export function RuntimeSceneViewer({
     );
   };
 
+  const dispatchOptionsSoundToggle = (command: NhOptionsSoundToggleCommand): void => {
+    closeContextMenu();
+    clearSelectedInventoryItem("options-sound-toggle");
+    clearSelectedSpell("options-sound-toggle");
+    setPlaying(false);
+    setFollowLive(false);
+    const nextVolume = normalizeStoredOptionsSoundVolume(command.nextVolume);
+    const hudPatch: Partial<RuntimeHudState> =
+      command.id === "sound-effects"
+        ? { soundEffectVolume: nextVolume }
+        : { areaSoundEffectVolume: nextVolume };
+    runtimeOptionsSoundVolumesRef.current =
+      command.id === "sound-effects"
+        ? { ...runtimeOptionsSoundVolumesRef.current, soundEffects: nextVolume }
+        : { ...runtimeOptionsSoundVolumesRef.current, areaSounds: nextVolume };
+    updateRuntimeActiveGameAudioVolumes(runtimeActiveGameAudioByChannelRef.current, runtimeOptionsSoundVolumesRef.current);
+    setHudOverride((current) => ({
+      ...(current ?? {}),
+      ...hudPatch
+    }));
+    writeStoredOptionsSoundVolume(
+      command.id === "sound-effects"
+        ? NH_SOUND_EFFECT_VOLUME_STORAGE_KEY
+        : NH_AREA_SOUND_EFFECT_VOLUME_STORAGE_KEY,
+      nextVolume
+    );
+    playRuntimeGameSound(RUNTIME_OPTIONS_VOLUME_CLICK_SOUND_ID, "sound-effects");
+
+    const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
+    if (viewport) {
+      viewport.dataset.lastOptionsSoundAction = command.actionText;
+      viewport.dataset.lastOptionsSoundChildId = String(command.childId);
+      viewport.dataset.lastOptionsSoundEnabled = String(nextVolume > 0);
+      viewport.dataset.lastOptionsSoundId = command.id;
+      viewport.dataset.lastOptionsSoundLabel = command.label;
+      viewport.dataset.lastOptionsSoundNextVolume = String(nextVolume);
+      viewport.dataset.lastOptionsSoundPreviousVolume = String(command.previousVolume);
+      viewport.dataset.lastOptionsSoundSourceSpriteId = String(command.spriteId);
+      viewport.dataset.lastOptionsSoundSourceHandler = command.id === "sound-effects" ? "options_sounds_op" : "options_areasounds_op";
+      viewport.dataset.lastOptionsSoundVarpId = String(command.varpId);
+      viewport.dataset.lastOptionsSoundSourceVarpValue = String(command.sourceVarpValue);
+    }
+
+    window.dispatchEvent(
+      new CustomEvent("nh-runtime-options-sound-toggle", {
+        detail: {
+          actionText: command.actionText,
+          enabled: nextVolume > 0,
+          id: command.id,
+          label: command.label,
+          nextVolume,
+          previousVolume: command.previousVolume,
+          sourceChildId: command.childId,
+          sourceHandler: command.id === "sound-effects" ? "options_sounds_op" : "options_areasounds_op",
+          sourceSpriteId: command.spriteId,
+          sourceVarpValue: command.sourceVarpValue,
+          varpId: command.varpId,
+          position: command.position
+        }
+      })
+    );
+  };
+
   const dispatchXpDropOrbAction = (command: NhXpDropOrbCommand): void => {
     closeContextMenu();
     clearSelectedInventoryItem("xp-drop-orb");
@@ -17672,7 +18409,8 @@ export function RuntimeSceneViewer({
         snapshot.loadoutId,
         inventoryEquipmentDefinitionsRef.current,
         weaponTypeDefinitionsRef.current,
-        actorSequenceDefinitionsRef.current
+        actorSequenceDefinitionsRef.current,
+        visibleEquipment
       )
     };
 
@@ -17703,16 +18441,15 @@ export function RuntimeSceneViewer({
     }
   };
 
-  const applyRuntimeNhStakeSetupPreset = (): void => {
+  const applyRuntimeSetupPreset = (setupId: RuntimeTrainerSetupId): void => {
     closeContextMenu();
     clearSelectedTargetMode("nh-stake-setup");
     setPlaying(false);
     setFollowLive(false);
-    const loadoutId = RUNTIME_NH_STAKE_LOADOUT_ID;
-    const inventorySlots = normalizeNhInventorySlots(
-      RUNTIME_NH_STAKE_INVENTORY_ITEM_IDS.map((itemId) => ({ itemId, quantity: 1 }))
-    );
-    const equipmentItems = new Map(RUNTIME_NH_STAKE_EQUIPMENT_ENTRIES);
+    const setup = runtimeSetupPreset(setupId);
+    const loadoutId = setup.loadoutId;
+    const inventorySlots = runtimeSetupInventorySlots(setupId);
+    const equipmentItems = runtimeSetupEquipmentItems(setupId);
     const visibleEquipment = visibleEquipmentFromRuntimeItemIdsBySlot(
       equipmentItems,
       inventoryItemDefinitionsRef.current
@@ -17723,6 +18460,7 @@ export function RuntimeSceneViewer({
       inventoryItems
     });
     const resetSupplies = runtimeSuppliesFromInventorySlots(inventorySlots);
+    const resetVengeanceTrinketCharges = runtimeVengeanceTrinketChargesFromInventorySlots(inventorySlots);
     const localActor = manualActorRef.current;
     const opponentActor = manualOpponentRef.current;
     const freshCombatState = createRuntimePlayerCombatState({
@@ -17739,6 +18477,8 @@ export function RuntimeSceneViewer({
       opponentPrayerPoints: { current: 99, fixed: 99 },
       localSupplies: resetSupplies,
       opponentSupplies: resetSupplies,
+      localVengeanceTrinketCharges: resetVengeanceTrinketCharges,
+      opponentVengeanceTrinketCharges: resetVengeanceTrinketCharges,
       localSpecialEnergy: 100,
       opponentSpecialEnergy: 100,
       combatStartTick: NH_TRAINER_MANUAL_START_PENDING_TICK
@@ -17791,7 +18531,8 @@ export function RuntimeSceneViewer({
         loadoutId,
         inventoryEquipmentDefinitionsRef.current,
         weaponTypeDefinitionsRef.current,
-        actorSequenceDefinitionsRef.current
+        actorSequenceDefinitionsRef.current,
+        visibleEquipment
       )
     };
     const nextOpponentActor: ManualActorState = {
@@ -17803,11 +18544,13 @@ export function RuntimeSceneViewer({
         loadoutId,
         inventoryEquipmentDefinitionsRef.current,
         weaponTypeDefinitionsRef.current,
-        actorSequenceDefinitionsRef.current
+        actorSequenceDefinitionsRef.current,
+        visibleEquipment
       )
     };
 
     inventoryOverrideRef.current = inventorySlots;
+    runtimeSetupPresetIdRef.current = setupId;
     groundItemsRef.current = [];
     pendingGroundItemPickupRef.current = null;
     equipmentOverrideRef.current = equipmentItems;
@@ -17839,6 +18582,8 @@ export function RuntimeSceneViewer({
       setHudOverride((current) => ({
         ...(current?.attackSet === undefined ? {} : { attackSet: current.attackSet }),
         ...(current?.autoRetaliate === undefined ? {} : { autoRetaliate: current.autoRetaliate }),
+        ...(current?.soundEffectVolume === undefined ? {} : { soundEffectVolume: current.soundEffectVolume }),
+        ...(current?.areaSoundEffectVolume === undefined ? {} : { areaSoundEffectVolume: current.areaSoundEffectVolume }),
         prayers: {} as NhPrayerStates
       }));
       setManualFightStartPending(true);
@@ -17847,17 +18592,21 @@ export function RuntimeSceneViewer({
       setFollowTarget("local-player");
       setManualActor(nextLocalActor);
       setManualOpponent(nextOpponentActor);
-      setTemporarySetupStatus("NH stake loaded");
+      setRuntimeSetupSelectorOpen(false);
+      setTemporarySetupStatus(`${setup.label} loaded`);
     });
 
     const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
     if (viewport) {
-      viewport.dataset.lastTemporarySetupSource = "nh-stake";
+      viewport.dataset.lastTemporarySetupSource = setupId;
       viewport.dataset.lastTemporarySetupRequiresStart = "true";
+      viewport.dataset.lastRuntimeSetupPreset = setupId;
       viewport.dataset.lastTemporarySetupLoadoutId = loadoutId;
       viewport.dataset.lastTemporarySetupInventoryCount = String(inventorySlots.filter(Boolean).length);
       viewport.dataset.lastTemporarySetupEquipmentCount = String(equipmentItems.size);
-      viewport.dataset.lastNhStakeInventoryItemIds = RUNTIME_NH_STAKE_INVENTORY_ITEM_IDS.join(",");
+      viewport.dataset.lastNhStakeInventoryItemIds = setup.inventorySlots
+        .flatMap((slot) => slot ? [slot.itemId] : [])
+        .join(",");
       viewport.dataset.lastNhStakeEquipmentItemIds = [...equipmentItems.entries()]
         .sort((left, right) => left[0] - right[0])
         .map(([, itemId]) => itemId)
@@ -17868,7 +18617,13 @@ export function RuntimeSceneViewer({
     }
   };
 
-  const saveTemporaryCurrentSetup = (): void => {
+  const applyRuntimeNhStakeSetupPreset = (): void => applyRuntimeSetupPreset("nh-stake");
+
+  const currentTemporarySetupSnapshot = (): {
+    readonly inventorySlots: readonly (RuntimeInventorySlot | null)[];
+    readonly equipmentItems: RuntimeEquipmentItemIdsBySlot;
+    readonly snapshot: TemporarySavedSetupSnapshot;
+  } => {
     const inventorySlots = normalizeNhInventorySlots(
       inventoryOverrideRef.current ?? visibleSnapshotRef.current.inventory
     );
@@ -17882,6 +18637,11 @@ export function RuntimeSceneViewer({
       inventory: inventorySlots,
       equipment: [...equipmentItems.entries()].sort((left, right) => left[0] - right[0])
     };
+    return { inventorySlots, equipmentItems, snapshot };
+  };
+
+  const saveTemporaryCurrentSetup = (): void => {
+    const { inventorySlots, equipmentItems, snapshot } = currentTemporarySetupSnapshot();
     const saved = writeTemporarySavedSetupSnapshot(snapshot);
     setTemporarySetupStatus(saved ? "Setup saved" : "Setup save failed");
 
@@ -17898,7 +18658,7 @@ export function RuntimeSceneViewer({
 
   const resetTemporarySetupToDefault = (): void => {
     const cleared = clearTemporarySavedSetupSnapshot();
-    applyRuntimeNhStakeSetupPreset();
+    applyRuntimeSetupPreset("nh-stake");
     setTemporarySetupStatus(cleared ? "Default setup restored" : "Default setup restored; storage unchanged");
     const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
     if (viewport) {
@@ -18113,6 +18873,8 @@ export function RuntimeSceneViewer({
     const transition = nhTogglePrayerState(currentPrayers, command.definition);
     const nextActive = transition.prayers[command.definition.id] === true;
     const nextActivePrayerIds = nhActivePrayerIds(transition.prayers);
+    const prayerSoundId =
+      transition.mutation === "deactivate" ? RUNTIME_PRAYER_DEACTIVATE_SOUND_ID : command.definition.soundId;
     hudPrayersRef.current = transition.prayers;
     const nextCombatState = setRuntimePlayerCombatPrayers(
       manualCombatStateRef.current,
@@ -18125,6 +18887,7 @@ export function RuntimeSceneViewer({
       ...(current ?? {}),
       prayers: transition.prayers
     }));
+    playRuntimeGameSound(prayerSoundId, "sound-effects");
     const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
     if (viewport) {
       viewport.dataset.lastPrayerAction = command.actionText;
@@ -18152,7 +18915,7 @@ export function RuntimeSceneViewer({
       viewport.dataset.lastPrayerSourceHandler = "PlayerPrayer.toggle";
       viewport.dataset.lastPrayerSourceOrder = String(command.slot.sourceOrder);
       viewport.dataset.lastPrayerSourceOrdinal = String(command.definition.ordinal);
-      viewport.dataset.lastPrayerSoundId = String(command.definition.soundId);
+      viewport.dataset.lastPrayerSoundId = String(prayerSoundId);
       viewport.dataset.lastPrayerTabHandler = "TabPrayer.ordinalPlusFive";
       viewport.dataset.lastPrayerVarpbitId = String(command.definition.varpbitId);
       viewport.dataset.lastPrayerWidgetId = String(command.slot.widgetId);
@@ -18183,7 +18946,7 @@ export function RuntimeSceneViewer({
           sourceHandler: "PlayerPrayer.toggle",
           sourceOrder: command.slot.sourceOrder,
           sourceOrdinal: command.definition.ordinal,
-          soundId: command.definition.soundId,
+          soundId: prayerSoundId,
           tabHandler: "TabPrayer.ordinalPlusFive",
           varpbitId: command.definition.varpbitId,
           widgetId: command.slot.widgetId,
@@ -18578,7 +19341,15 @@ export function RuntimeSceneViewer({
     const nextActor = {
       ...sourceActor,
       loadoutId,
-      appearance
+      appearance,
+      sequenceName: manualActorBaseSequenceName(
+        sourceActor.sequenceName,
+        loadoutId,
+        inventoryEquipmentDefinitionsRef.current,
+        weaponTypeDefinitionsRef.current,
+        actorSequenceDefinitionsRef.current,
+        nextCombatState.actors["local-player"].equipment
+      )
     };
     manualCombatStateRef.current = nextCombatState;
     manualActorRef.current = nextActor;
@@ -18623,7 +19394,6 @@ export function RuntimeSceneViewer({
     entry: NhInventoryContextMenuEntry,
     sourceSlots: readonly (RuntimeInventorySlot | null)[],
     currentEquipment: RuntimeEquipmentItemIdsBySlot,
-    currentActorLoadoutId: RuntimeLoadoutId,
     validateSourceSlot = false
   ): RuntimeInventoryMutationResolution => {
     const directMutation = mutateNhInventorySlotsForAction(sourceSlots, entry);
@@ -18691,6 +19461,7 @@ export function RuntimeSceneViewer({
       equipSlot === 3 && selectedDefinition.weaponType
         ? weaponTypeDefinitionsRef.current.get(selectedDefinition.weaponType)?.config
         : undefined;
+    const equipSoundId = runtimeWeaponTypeEquipSoundId(selectedDefinition.weaponType);
     const hud = weaponTypeConfig === undefined
       ? null
       : {
@@ -18698,7 +19469,7 @@ export function RuntimeSceneViewer({
         weaponTypeConfig
       };
     const nextLoadoutId = equipSlot === 3 ? runtimeWeaponLoadoutForItemId(entry.itemId) : null;
-    const actorLoadoutId = nextLoadoutId && nextLoadoutId !== currentActorLoadoutId ? nextLoadoutId : null;
+    const actorLoadoutId = nextLoadoutId;
     return {
       inventorySlots: nextInventorySlots,
       equipmentItems: nextEquipment,
@@ -18711,6 +19482,7 @@ export function RuntimeSceneViewer({
         previousItemId: wornItemId,
         weaponType: selectedDefinition.weaponType ?? null,
         weaponTypeConfig,
+        equipSoundId,
         serverHandler: "Equipment.equip"
       },
       blockedReason: null
@@ -18724,7 +19496,6 @@ export function RuntimeSceneViewer({
       entry,
       normalizeNhInventorySlots(visibleSnapshot.inventory),
       equipmentOverride ?? localPlayerEquipmentItemIdsBySlot(visibleSnapshot, inventoryEquipmentDefinitionsRef.current),
-      manualCombatStateRef.current.actors["local-player"].loadoutId
     );
 
   const applyResolvedInventoryMutation = (resolution: RuntimeInventoryMutationResolution): void => {
@@ -18748,6 +19519,9 @@ export function RuntimeSceneViewer({
         undefined,
         resolution.equipmentItems ?? undefined
       );
+    }
+    if (resolution.equipmentMutation?.equipSoundId !== null && resolution.equipmentMutation?.equipSoundId !== undefined) {
+      playRuntimeGameSound(resolution.equipmentMutation.equipSoundId, "sound-effects");
     }
   };
 
@@ -18896,7 +19670,6 @@ export function RuntimeSceneViewer({
             context.entry,
             nextInventorySlots,
             nextEquipmentItems,
-            nextActorLoadoutId,
             true
           );
           if (viewport) {
@@ -18927,6 +19700,17 @@ export function RuntimeSceneViewer({
           }
           if (resolution.equipmentMutation) {
             inventoryEquipResetActions = true;
+            const equipSoundId =
+              resolution.equipmentMutation.equipSoundId ??
+              runtimeWeaponTypeEquipSoundId(action.equipData?.weaponType ?? null);
+            if (viewport) {
+              viewport.dataset.lastProcessedEquipSoundId = equipSoundId === null ? "" : String(equipSoundId);
+              viewport.dataset.lastProcessedEquipWeaponType =
+                resolution.equipmentMutation.weaponType ?? action.equipData?.weaponType ?? "";
+            }
+            if (equipSoundId !== null) {
+              playRuntimeGameSound(equipSoundId, "sound-effects");
+            }
             if (resolution.equipmentMutation.equipSlot === 3) {
               weaponSlotEquipmentChanged = true;
             }
@@ -18943,7 +19727,6 @@ export function RuntimeSceneViewer({
           context.entry,
           nextInventorySlots,
           nextEquipmentItems,
-          nextActorLoadoutId,
           true
         );
         if (!resolution.inventoryMutation || !resolution.inventorySlots) {
@@ -19022,6 +19805,8 @@ export function RuntimeSceneViewer({
               tick: state.tick,
               actorId: "local-player",
               item: context.item,
+              soundIds: runtimePlayerCombatConsumableSoundIds(context.item),
+              soundChannel: "sound-effects",
               healed: result.healed,
               previousHitpoints: localActor.hitpoints,
               nextHitpoints: result.stats.hitpoints.current,
@@ -19508,6 +20293,115 @@ export function RuntimeSceneViewer({
       return;
     }
 
+    if (
+      entry.action === "inventory-action" &&
+      entry.itemId === RUNTIME_VENGEANCE_TRINKET_ITEM_ID &&
+      entry.actionText.toLowerCase() === "cast"
+    ) {
+      closeContextMenu();
+      clearSelectedInventoryItem("vengeance-trinket");
+      clearSelectedSpell("vengeance-trinket");
+      const sourceSlots = [...normalizeNhInventorySlots(inventoryOverrideRef.current ?? visibleSnapshotRef.current.inventory)];
+      const current = sourceSlots[entry.slotIndex] ?? null;
+      const hasCharge = current?.itemId === RUNTIME_VENGEANCE_TRINKET_ITEM_ID && current.quantity > 0;
+      const chargeSlot = hasCharge ? current : null;
+      const activationState =
+        hasCharge &&
+        chargeSlot &&
+        manualCombatStateRef.current.actors["local-player"].vengeanceTrinketCharges <= 0
+          ? {
+              ...manualCombatStateRef.current,
+              actors: {
+                ...manualCombatStateRef.current.actors,
+                "local-player": {
+                  ...manualCombatStateRef.current.actors["local-player"],
+                  vengeanceTrinketCharges: chargeSlot.quantity
+                }
+              }
+            }
+          : manualCombatStateRef.current;
+      const castClientCycle = Math.floor(performance.now() / NH_CLIENT_CYCLE_MS);
+      const result = hasCharge
+        ? activateRuntimePlayerCombatVengeanceTrinket(
+            activationState,
+            "local-player",
+            castClientCycle
+          )
+        : { state: manualCombatStateRef.current, activated: false, reason: undefined };
+      const blockedReason = hasCharge ? result.reason ?? "" : "no-charge";
+      let nextInventorySlots: readonly (RuntimeInventorySlot | null)[] | null = null;
+      if (result.activated && chargeSlot) {
+        sourceSlots[entry.slotIndex] = chargeSlot.quantity > 1
+          ? { itemId: chargeSlot.itemId, quantity: chargeSlot.quantity - 1 }
+          : null;
+        nextInventorySlots = sourceSlots;
+        inventoryOverrideRef.current = nextInventorySlots;
+        setInventoryOverride(nextInventorySlots);
+        manualCombatStateRef.current = result.state;
+        setManualCombatState(result.state);
+        const nextManualActor = manualActorWithPrimarySequence(
+          manualActorRef.current,
+          RUNTIME_VENGEANCE_CAST_SEQUENCE_NAME,
+          castClientCycle
+        );
+        manualActorRef.current = nextManualActor;
+        setManualActor(nextManualActor);
+      }
+      const chatText = runtimeVengeanceTrinketChatText(result.activated, blockedReason);
+      pushRuntimeChatMessage(chatText);
+      const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
+      if (viewport) {
+        viewport.dataset.lastInventoryActivation = activationSource;
+        viewport.dataset.lastInventoryAction = entry.actionText;
+        viewport.dataset.lastInventoryActionKind = entry.action;
+        viewport.dataset.lastInventoryOpcode = String(entry.opcode);
+        viewport.dataset.lastInventoryItemId = String(entry.itemId);
+        viewport.dataset.lastInventoryItemName = entry.itemName;
+        viewport.dataset.lastInventorySlot = String(entry.slotIndex);
+        viewport.dataset.lastInventoryWidgetId = String(entry.widgetId);
+        viewport.dataset.lastInventoryMutation = result.activated ? "vengeance-trinket-cast" : "";
+        viewport.dataset.lastInventoryBlockedReason = blockedReason;
+        viewport.dataset.lastInventoryQueuedForTick = "false";
+        viewport.dataset.lastInventoryConsumableQueuedForTick = "false";
+        viewport.dataset.lastVengeanceTrinketActivated = result.activated ? "true" : "false";
+        viewport.dataset.lastVengeanceTrinketAnimationId = String(RUNTIME_VENGEANCE_CAST_SEQUENCE_ID);
+        viewport.dataset.lastVengeanceTrinketChatText = chatText;
+        viewport.dataset.lastVengeanceTrinketCooldownUntilTick = String(
+          result.state.actors["local-player"].vengeanceCooldownUntilTick
+        );
+        viewport.dataset.lastVengeanceTrinketSoundId = String(RUNTIME_VENGEANCE_CAST_SOUND_ID);
+        viewport.dataset.lastVengeanceTrinketSpotanimHeight = String(RUNTIME_VENGEANCE_CAST_SPOTANIM_HEIGHT);
+        viewport.dataset.lastVengeanceTrinketSpotanimId = String(RUNTIME_VENGEANCE_CAST_SPOTANIM_ID);
+        viewport.dataset.lastVengeanceTrinketChargesRemaining = String(
+          nextInventorySlots?.[entry.slotIndex]?.quantity ?? 0
+        );
+      }
+      window.dispatchEvent(
+        new CustomEvent("nh-runtime-inventory-action", {
+          detail: {
+            activationSource,
+            action: entry.action,
+            actionText: entry.actionText,
+            opcode: entry.opcode,
+            identifier: entry.identifier,
+            itemId: entry.itemId,
+            itemName: entry.itemName,
+            slotIndex: entry.slotIndex,
+            widgetId: entry.widgetId,
+            blockedReason,
+            chatText,
+            sequenceId: RUNTIME_VENGEANCE_CAST_SEQUENCE_ID,
+            sequenceName: RUNTIME_VENGEANCE_CAST_SEQUENCE_NAME,
+            soundId: RUNTIME_VENGEANCE_CAST_SOUND_ID,
+            spotanimHeight: RUNTIME_VENGEANCE_CAST_SPOTANIM_HEIGHT,
+            spotanimId: RUNTIME_VENGEANCE_CAST_SPOTANIM_ID,
+            mutation: result.activated ? { kind: "vengeance-trinket-cast", slotIndex: entry.slotIndex, previousItemId: entry.itemId, nextItemId: nextInventorySlots?.[entry.slotIndex]?.itemId ?? null } : null
+          }
+        })
+      );
+      return;
+    }
+
     const consumableItem = runtimeInventoryActionConsumableId(entry);
     const queuedConsumable = consumableItem ? queueInventoryConsumableAction(entry, consumableItem) : false;
     const sourceSlotForDrop = normalizeNhInventorySlots(inventoryOverrideRef.current ?? visibleSnapshotRef.current.inventory)[entry.slotIndex] ?? null;
@@ -19567,6 +20461,11 @@ export function RuntimeSceneViewer({
         mutation.equipmentMutation?.previousItemId === null || mutation.equipmentMutation?.previousItemId === undefined
           ? ""
           : String(mutation.equipmentMutation.previousItemId);
+      viewport.dataset.lastInventoryEquipmentEquipSoundId =
+        mutation.equipmentMutation?.equipSoundId === null || mutation.equipmentMutation?.equipSoundId === undefined
+          ? ""
+          : String(mutation.equipmentMutation.equipSoundId);
+      viewport.dataset.lastInventoryEquipmentWeaponType = mutation.equipmentMutation?.weaponType ?? "";
       viewport.dataset.lastInventoryEquipmentServerHandler = mutation.equipmentMutation?.serverHandler ?? "";
       viewport.dataset.selectedInventoryItemId = entry.action === "inventory-use-selected" ? "" : selectedItem ? String(selectedItem.itemId) : "";
       viewport.dataset.selectedInventoryItemName = entry.action === "inventory-use-selected" ? "" : selectedItem?.itemName ?? "";
@@ -19866,6 +20765,64 @@ export function RuntimeSceneViewer({
     return false;
   };
 
+  const beginClientMouseCameraDrag = (event: ReactPointerEvent<HTMLElement>): void => {
+    if (event.button !== 1) {
+      return;
+    }
+
+    const boundary = boundaryRef.current;
+    const position = boundary ? pointerEventToCanvasPosition(boundary, event.nativeEvent) : null;
+    if (!boundary || !position) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    closeContextMenu();
+    updateRuneliteMouseHighlightTooltip(null);
+    setCameraMode("free");
+    mouseCameraDragRef.current = {
+      pointerId: event.pointerId,
+      x: position.x,
+      y: position.y,
+      clickedX: Math.trunc(position.x),
+      clickedY: Math.trunc(position.y)
+    };
+  };
+
+  const updateClientMouseCameraDrag = (event: ReactPointerEvent<HTMLElement>): void => {
+    const mouseCameraDrag = mouseCameraDragRef.current;
+    if (mouseCameraDrag?.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const boundary = boundaryRef.current;
+    const position = boundary ? pointerEventToCanvasPosition(boundary, event.nativeEvent) : null;
+    if (position) {
+      mouseCameraDragRef.current = {
+        ...mouseCameraDrag,
+        x: position.x,
+        y: position.y
+      };
+    }
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const endClientMouseCameraDrag = (event: ReactPointerEvent<HTMLElement>): void => {
+    if (mouseCameraDragRef.current?.pointerId !== event.pointerId) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    mouseCameraDragRef.current = null;
+  };
+
   const updateHoveredSceneTile = (tile: RuntimeTile | null): void => {
     const snappedTile = tile && collisionMap ? collisionMap.snapTile(tile) : null;
     const current = hoveredSceneTileRef.current;
@@ -19963,6 +20920,12 @@ export function RuntimeSceneViewer({
           >
           <div
             className="runtimeViewport"
+            onAuxClickCapture={(event) => {
+              if (event.button === 1) {
+                event.preventDefault();
+                event.stopPropagation();
+              }
+            }}
             onContextMenuCapture={(event) => {
               if (!consumeSuppressedCanvasContextMenu()) {
                 return;
@@ -19970,6 +20933,10 @@ export function RuntimeSceneViewer({
               event.preventDefault();
               event.stopPropagation();
             }}
+            onPointerCancelCapture={endClientMouseCameraDrag}
+            onPointerDownCapture={beginClientMouseCameraDrag}
+            onPointerMoveCapture={updateClientMouseCameraDrag}
+            onPointerUpCapture={endClientMouseCameraDrag}
           >
           <canvas
             ref={canvasRef}
@@ -20308,6 +21275,7 @@ export function RuntimeSceneViewer({
             onPrayerDefaultAction={dispatchPrayerAction}
             onPrayerDragReorder={dispatchPrayerDragReorder}
             onRunOrbDefaultAction={dispatchRunOrbAction}
+            onOptionsSoundToggle={dispatchOptionsSoundToggle}
             xpDropCounterShown={xpDropCounterShown}
             onXpDropOrbDefaultAction={dispatchXpDropOrbAction}
             onXpDropOrbContextMenu={(command) => {
@@ -20332,6 +21300,7 @@ export function RuntimeSceneViewer({
             onGameKeybindChange={dispatchGameKeybindChange}
             onGameKeybindEscapeCloseChange={dispatchGameKeybindEscapeClose}
             onGameKeybindRestoreDefaults={dispatchGameKeybindRestoreDefaults}
+            chatMessages={runtimeChatMessages}
             onChatboxContextMenu={(command) => {
               suppressNextCanvasContextMenu();
               closeContextMenu();
@@ -20459,11 +21428,12 @@ export function RuntimeSceneViewer({
               ) : null}
             </svg>
           ))}
-          {manualFightStartPending ? (
+          {runtimeSetupSelectorOpen || manualFightStartPending ? (
             <div
-              className="runtimeFightStartOverlay"
-              aria-label="Pre-fight start controls"
-              data-manual-fight-start-pending="true"
+              className="runtimeStartupControls"
+              aria-label="Pre-fight setup controls"
+              data-manual-fight-start-pending={String(manualFightStartPending)}
+              data-runtime-setup-selector-open={String(runtimeSetupSelectorOpen)}
               data-runelite-overlay-name={RUNELITE_FIGHT_START_OVERLAY_NAME}
               data-source-overlay-drag={RUNELITE_FIGHT_START_OVERLAY_DRAG_SOURCE}
               data-source-overlay-position-storage={RUNELITE_OVERLAY_POSITION_SOURCE}
@@ -20473,47 +21443,76 @@ export function RuntimeSceneViewer({
               data-trainer-countdown-rules="movement-and-supplies-allowed-before-start; player-and-opponent-attacks-blocked-until-go"
               style={runtimeFightStartOverlayStyle(fixedClientCssLayout, runeliteOverlayLocations)}
             >
-              {onBotDifficultyChange ? (
+              {manualFightStartPending ? (
                 <div
-                  className="runtimeBotDifficultySelector"
-                  data-bot-difficulty={botDifficulty}
-                  data-bot-policy-status={botPolicyLoadState}
+                  className="runtimeFightStartOverlay"
+                  aria-label="Pre-fight start controls"
+                  data-manual-fight-start-pending="true"
                 >
-                  <span className="runtimeBotDifficultyLabel">Opponent</span>
-                  <div className="runtimeBotDifficultyButtons">
-                    <button
-                      type="button"
-                      aria-pressed={botDifficulty === "easy"}
-                      onClick={() => onBotDifficultyChange("easy")}
+                  {onBotDifficultyChange ? (
+                    <div
+                      className="runtimeBotDifficultySelector"
+                      data-bot-difficulty={botDifficulty}
+                      data-bot-policy-status={botPolicyLoadState}
                     >
-                      Easy
-                    </button>
-                    <button
-                      type="button"
-                      aria-pressed={botDifficulty === "medium"}
-                      onClick={() => onBotDifficultyChange("medium")}
-                    >
-                      Medium
-                    </button>
-                    <button
-                      type="button"
-                      aria-pressed={botDifficulty === "hard"}
-                      onClick={() => onBotDifficultyChange("hard")}
-                    >
-                      Hard
-                    </button>
-                  </div>
-                  <span className="runtimeBotDifficultyStatus">{selectedBotPolicyStatusLabel}</span>
+                      <span className="runtimeBotDifficultyLabel">Opponent</span>
+                      <div className="runtimeBotDifficultyButtons">
+                        <button
+                          type="button"
+                          aria-pressed={botDifficulty === "easy"}
+                          onClick={() => onBotDifficultyChange("easy")}
+                        >
+                          Easy
+                        </button>
+                        <button
+                          type="button"
+                          aria-pressed={botDifficulty === "medium"}
+                          onClick={() => onBotDifficultyChange("medium")}
+                        >
+                          Medium
+                        </button>
+                        <button
+                          type="button"
+                          aria-pressed={botDifficulty === "hard"}
+                          onClick={() => onBotDifficultyChange("hard")}
+                        >
+                          Hard
+                        </button>
+                      </div>
+                      <span className="runtimeBotDifficultyStatus">{selectedBotPolicyStatusLabel}</span>
+                    </div>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="runtimeFightStartButton"
+                    onClick={startManualFightCountdown}
+                    disabled={!selectedBotPolicyReady}
+                  >
+                    Start
+                  </button>
                 </div>
               ) : null}
-              <button
-                type="button"
-                className="runtimeFightStartButton"
-                onClick={startManualFightCountdown}
-                disabled={!selectedBotPolicyReady}
-              >
-                Start
-              </button>
+              {runtimeSetupSelectorOpen ? (
+                <div className="runtimeSetupSelector" data-runtime-setup-selector="true">
+                  <div className="runtimeSetupSelectorTitle">Choose setup</div>
+                  <div className="runtimeSetupSelectorActions">
+                    <button
+                      type="button"
+                      data-runtime-setup-option="nh-stake"
+                      onClick={() => applyRuntimeSetupPreset("nh-stake")}
+                    >
+                      NH stake
+                    </button>
+                    <button
+                      type="button"
+                      data-runtime-setup-option="dmm"
+                      onClick={() => applyRuntimeSetupPreset("dmm")}
+                    >
+                      DMM
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           ) : null}
           <div
@@ -20586,23 +21585,34 @@ export function RuntimeSceneViewer({
                   runtimeDomOverlayElementsRef.current.delete(overlay.id);
                 }
               }}
-              className="nhActorOverlay"
+              className={`nhActorOverlay${overlay.text ? " nhActorOverlayText" : ""}`}
               data-actor-id={overlay.actorId}
-              data-sprite-sheet-id={overlay.spriteSheetId}
+              data-sprite-sheet-id={overlay.spriteSheetId ?? ""}
+              data-overhead-text={overlay.text ?? ""}
+              data-overhead-text-effect={overlay.textEffect ?? ""}
               data-trainer-hitsplat-scale={overlay.hitsplatScale ?? ""}
               data-trainer-extension={overlay.hitsplatScale ? "runtime-overlay-scale-probe" : ""}
               style={runtimeDomOverlayStaticStyle(overlay)}
             >
-              {overlay.sprites.map((sprite) => (
+              {overlay.text ? (
                 <span
-                  key={sprite.key}
-                  className="nhActorOverlaySprite"
-                  data-sprite-sheet-id={sprite.sheetId}
-                  data-sprite-id={sprite.spriteId}
-                  data-sprite-frame={sprite.spriteFrame}
-                  style={runtimeDomOverlaySpriteStyle(sprite)}
-                />
-              ))}
+                  className="nhActorOverlayTextLabel"
+                  style={{ color: runtimeOverheadTextColor(overlay.textColor) }}
+                >
+                  {overlay.text}
+                </span>
+              ) : (
+                overlay.sprites.map((sprite) => (
+                  <span
+                    key={sprite.key}
+                    className="nhActorOverlaySprite"
+                    data-sprite-sheet-id={sprite.sheetId}
+                    data-sprite-id={sprite.spriteId}
+                    data-sprite-frame={sprite.spriteFrame}
+                    style={runtimeDomOverlaySpriteStyle(sprite)}
+                  />
+                ))
+              )}
             </div>
           ))}
           {runeliteFreezeTimerOverlays.map((overlay) => (
@@ -20962,7 +21972,7 @@ export function RuntimeSceneViewer({
               data-source-overlay-position-storage={RUNELITE_OVERLAY_POSITION_SOURCE}
               data-source-infobox="TimerTimer(GameTimer.ICEBARRAGE)"
               data-source-position="OverlayPosition.TOP_LEFT"
-              data-trainer-default-position="bottom-left fixed game viewport when no saved InfoBoxOverlay location exists"
+              data-trainer-default-position="top-left fixed game viewport when no saved InfoBoxOverlay location exists"
               data-source-priority="InfoBoxPriority.MED"
               data-source-panel="PanelComponent"
               data-source-panel-background="null"
@@ -21319,6 +22329,29 @@ export function RuntimeSceneViewer({
               onClose={() => setOpponentInventoryInspectOpen(false)}
             />
           ) : null}
+          {vengeanceTrinketIndicatorVisible ? (
+            <div
+              className="runtimeVengeanceTrinketIndicator"
+              data-vengeance-active={String(localVengeanceActor.vengeanceActive)}
+              data-vengeance-cooldown-seconds={vengeanceCooldownSeconds}
+              data-vengeance-cooldown-ticks={vengeanceCooldownTicks}
+              data-vengeance-status={vengeanceTrinketStatus}
+              data-source-animation-id={RUNTIME_VENGEANCE_CAST_SEQUENCE_ID}
+              data-source-sound-id={RUNTIME_VENGEANCE_CAST_SOUND_ID}
+              data-source-spotanim-id={RUNTIME_VENGEANCE_CAST_SPOTANIM_ID}
+              style={runtimeVengeanceTrinketIndicatorStyle(fixedClientCssLayout, fixedClientLayout)}
+            >
+              {vengeanceTrinketItemAtlas && vengeanceTrinketItemSprite ? (
+                <span
+                  aria-hidden="true"
+                  className="runtimeVengeanceTrinketIcon"
+                  data-item-id={RUNTIME_VENGEANCE_TRINKET_ITEM_ID}
+                  style={runtimeScaledItemSpriteStyle(vengeanceTrinketItemAtlas, vengeanceTrinketItemSprite, 0.72)}
+                />
+              ) : null}
+              <span className="runtimeVengeanceTrinketText">{vengeanceTrinketLabel}</span>
+            </div>
+          ) : null}
           <div
             className="runtimeTemporaryDevControls"
             data-temporary-dev-controls="true"
@@ -21445,6 +22478,12 @@ export function RuntimeSceneViewer({
                 onClick={() => activateManualActor({ loadoutId: "gmaul-bandos", sequenceName: "idle" })}
               >
                 Gmaul
+              </button>
+              <button
+                type="button"
+                onClick={() => activateManualActor({ loadoutId: "noxious-halberd", sequenceName: "idle" })}
+              >
+                Nox
               </button>
             </div>
             <label htmlFor="runtime-camera">Camera</label>

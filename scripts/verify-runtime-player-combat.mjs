@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -103,6 +103,7 @@ const spellRequirements = loadTsModule("src/sim/magic/spellRequirements.ts");
 const runtimePolicyOpponent = loadTsModule("src/sim/nh/runtime-policy-opponent.ts");
 const nhDuel = loadTsModule("src/sim/nh/duel.ts");
 const consumables = loadTsModule("src/sim/items/consumables.ts");
+const combatFormulas = loadTsModule("src/sim/combat/formulas.ts");
 const itemActionQueue = loadTsModule("src/sim/engine/itemActionQueue.ts");
 const nhLoadouts = loadTsModule("src/sim/nh/loadouts.ts");
 const nhPolicyFeatures = loadTsModule("src/sim/nh/policy-features.ts");
@@ -117,8 +118,13 @@ const hitSource = readNhServerSource("model/combat/Hit.java");
 const combatUtilsSource = readNhServerSource("model/combat/CombatUtils.java");
 const projectileSource = readNhServerSource("model/map/Projectile.java");
 const graniteMaulSource = readNhServerSource("model/combat/special/melee/GraniteMaul.java");
+const armadylGodswordSource = readNhServerSource("model/combat/special/melee/ArmadylGodsword.java");
+const vestasLongswordSource = readNhServerSource("model/combat/special/melee/VestasLongsword.java");
 const armadylCrossbowSource = readNhServerSource("model/combat/special/ranged/ArmadylCrossbow.java");
 const rangedAmmoSource = readNhServerSource("model/combat/RangedAmmo.java");
+const diamondBoltEffectSource = readNhServerSource("model/combat/special/ranged/bolts/DiamondBoltEffect.java");
+const dragonBoltEffectSource = readNhServerSource("model/combat/special/ranged/bolts/DragonBoltEffect.java");
+const onyxBoltEffectSource = readNhServerSource("model/combat/special/ranged/bolts/OnyxBoltEffect.java");
 const targetSpellSource = readNhServerSource("model/skills/magic/spells/TargetSpell.java");
 const iceBlitzSource = readNhServerSource("model/skills/magic/spells/ancient/IceBlitz.java");
 const bloodBlitzSource = readNhServerSource("model/skills/magic/spells/ancient/BloodBlitz.java");
@@ -223,6 +229,136 @@ function advance(state, tiles = {}) {
       opponent: tiles.opponent ?? state.actors.opponent.tile
     }
   });
+}
+
+function stateWithLocalEquipment(state, equipment) {
+  return runtimeCombat.syncRuntimePlayerCombatStateToInput(state, {
+    tiles: {
+      "local-player": state.actors["local-player"].tile,
+      opponent: state.actors.opponent.tile
+    },
+    equipment: {
+      "local-player": equipment
+    }
+  });
+}
+
+function expectedRuntimeHitChance(state, attackerId, defenderId, attackStyle, options = {}) {
+  const attackEstimate = runtimeCombat.runtimePlayerCombatDamageEstimate(
+    state.actors[attackerId],
+    state.actors[defenderId],
+    attackStyle
+  );
+  const defenceStyle = options.defenceStyle ?? attackStyle;
+  const defenceEstimate =
+    defenceStyle === attackStyle
+      ? attackEstimate
+      : runtimeCombat.runtimePlayerCombatDamageEstimate(
+          state.actors[attackerId],
+          state.actors[defenderId],
+          defenceStyle
+        );
+  return combatFormulas.hitChance(
+    attackEstimate.attackRoll * (options.attackRollMultiplier ?? 1),
+    defenceEstimate.defenceRoll * (options.defenceRollMultiplier ?? 1)
+  );
+}
+
+function nearlyEqual(left, right, epsilon = 1e-12) {
+  return Math.abs(left - right) <= epsilon;
+}
+
+function findLocalBoltProc(ammoItemId, ammoName, effectId, seedStart = 800, seedEnd = 5000) {
+  const equipment = {
+    ...nhLoadouts.nhLoadouts["acb-hides"].equipment,
+    ammo: { itemId: ammoItemId, name: ammoName }
+  };
+  for (let seed = seedStart; seed < seedEnd; seed += 1) {
+    let state = createState(seed, {
+      localTile: { x: 0, z: 0 },
+      opponentTile: { x: 4, z: 0 },
+      localLoadoutId: "acb-hides"
+    });
+    state = stateWithLocalEquipment(state, equipment);
+    state = {
+      ...state,
+      actors: {
+        ...state.actors,
+        "local-player": {
+          ...state.actors["local-player"],
+          hitpoints: 50
+        }
+      }
+    };
+    const result = advance(requestLocalAttack(state));
+    const queuedHit = result.state.queuedHits.find((hit) => hit.attackerId === "local-player");
+    if (queuedHit?.boltEffect?.id === effectId) {
+      return result.state;
+    }
+  }
+  throw new Error(`could not find deterministic ${effectId} bolt proc for ammo ${ammoItemId}`);
+}
+
+function findAcbSpecialDoubledBoltProc(seedStart = 5000, seedEnd = 12000) {
+  const equipment = {
+    ...nhLoadouts.nhLoadouts["acb-hides"].equipment,
+    ammo: { itemId: 21946, name: "Diamond dragon bolts (e)" }
+  };
+  for (let seed = seedStart; seed < seedEnd; seed += 1) {
+    const normalResult = advance(requestLocalAttack(stateWithLocalEquipment(createState(seed), equipment)));
+    const normalHit = normalResult.state.queuedHits.find((hit) => hit.attackerId === "local-player");
+
+    const specialBase = stateWithLocalEquipment(createState(seed), equipment);
+    const specialResult = advance(requestLocalAttack(runtimeCombat.toggleRuntimePlayerCombatSpecial(specialBase, "local-player").state));
+    const specialHit = specialResult.state.queuedHits.find((hit) => hit.attackerId === "local-player");
+    if (!normalHit?.boltEffect && specialHit?.boltEffect?.id === "diamond") {
+      return { normalHit, specialHit, state: specialResult.state };
+    }
+  }
+  throw new Error("could not find deterministic ACB doubled bolt-proc seed");
+}
+
+function findSuccessfulZaryteSpecialBoltProc(seedStart = 12000, seedEnd = 22000) {
+  const equipment = {
+    ...nhLoadouts.nhLoadouts["acb-hides"].equipment,
+    weapon: { itemId: 26374, name: "Zaryte crossbow" },
+    ammo: { itemId: 21946, name: "Diamond dragon bolts (e)" }
+  };
+  for (let seed = seedStart; seed < seedEnd; seed += 1) {
+    const state = stateWithLocalEquipment(createState(seed, {
+      localSpecialEnergy: 100
+    }), equipment);
+    const result = advance(requestLocalAttack(runtimeCombat.toggleRuntimePlayerCombatSpecial(state, "local-player").state));
+    const queuedHit = result.state.queuedHits.find((hit) => hit.attackerId === "local-player");
+    if (
+      queuedHit?.weaponId === "zaryte_crossbow" &&
+      queuedHit.boltEffect?.id === "diamond" &&
+      queuedHit.hitChance > 0 &&
+      queuedHit.hitChance < 1
+    ) {
+      return { queuedHit, state: result.state };
+    }
+  }
+  throw new Error("could not find deterministic successful Zaryte special bolt-proc seed");
+}
+
+function resolveForcedLocalQueuedHit(state, damage = 20) {
+  const queuedHit = state.queuedHits.find((hit) => hit.attackerId === "local-player");
+  assert(queuedHit, `expected a local queued hit to force: ${JSON.stringify(state.queuedHits)}`);
+  let nextState = {
+    ...state,
+    queuedHits: [
+      {
+        ...queuedHit,
+        damage,
+        rawDamage: damage
+      }
+    ]
+  };
+  while (nextState.tick < queuedHit.dueTick) {
+    nextState = advance(nextState).state;
+  }
+  return advance(nextState).state;
 }
 
 function freezeActor(state, actorId, untilTick, sourceId = undefined) {
@@ -351,17 +487,47 @@ assert(
   "Nh dragon-bolt ammo should use Projectile.DRAGON_BOLT instead of the standard bolt gfx"
 );
 assert(
+  rangedAmmoSource.includes("DIAMOND_BOLTS(new RangedData(Projectile.BOLT), new DiamondBoltEffect())") &&
+    rangedAmmoSource.includes("DRAGON_DIAMOND_BOLTS(new RangedData(Projectile.DRAGON_BOLT), new DiamondBoltEffect())") &&
+    rangedAmmoSource.includes("DRAGON_DRAGONSTONE_BOLTS(new RangedData(Projectile.DRAGON_BOLT), new DragonBoltEffect())") &&
+    rangedAmmoSource.includes("DRAGON_ONYX_BOLTS(new RangedData(Projectile.DRAGON_BOLT), new OnyxBoltEffect())"),
+  "Nh bolt ammo should wire Diamond, Dragonstone, and Onyx effects to the matching bolt item families"
+);
+assert(
+  diamondBoltEffectSource.includes("Random.rollPercent(target.player != null ? 5 : 10)") &&
+    diamondBoltEffectSource.includes("target.graphics(758)") &&
+    diamondBoltEffectSource.includes("hit.boostDamage(0.15).ignoreDefence()") &&
+    dragonBoltEffectSource.includes("Random.rollPercent(6)") &&
+    dragonBoltEffectSource.includes("target.graphics(756)") &&
+    dragonBoltEffectSource.includes("hit.boostDamage(0.45)") &&
+    onyxBoltEffectSource.includes("Random.rollPercent(target.player != null ? 10 : 11)") &&
+    onyxBoltEffectSource.includes("target.graphics(753)") &&
+    onyxBoltEffectSource.includes("hit.boostDamage(0.20)") &&
+    onyxBoltEffectSource.includes("hit.attacker.incrementHp(heal)"),
+  "Nh bolt effect sources should preserve player proc chances, graphics, damage boosts, diamond defence ignore, and onyx healing"
+);
+assert(
   armadylCrossbowSource.includes("new Projectile(301, 38, 36, 41, 51, 5, 5, 11)") &&
     armadylCrossbowSource.includes(".boostAttack(1.0)") &&
-    armadylCrossbowSource.includes("return 40"),
-  "Nh Armadyl crossbow special should use projectile 301, double accuracy, and 40 percent drain"
+    runtimeCombatSource.includes('id: "armadyl_crossbow", drainPercent: 50'),
+  "Armadyl crossbow special should use projectile 301, double accuracy, and current OSRS 50 percent drain"
 );
 assert(
   graniteMaulSource.includes("player.animate(1667)") &&
     graniteMaulSource.includes("player.graphics(340, 96, 0)") &&
+    graniteMaulSource.includes("player.publicSound(2715)") &&
     graniteMaulSource.includes("target.hit(new Hit(player, attackStyle, attackType).randDamage(maxDamage))") &&
     graniteMaulSource.includes("return 50"),
-  "Nh Granite maul special should use animation 1667, graphics 340, immediate hit, and 50 percent drain"
+  "Nh Granite maul special should use animation 1667, graphics 340, sound 2715, immediate hit, and 50 percent drain"
+);
+assert(
+  playerCombatSource.includes("player.publicSound(weaponType.attackSound, 1, 1)") &&
+    armadylGodswordSource.includes("player.publicSound(3869)") &&
+    vestasLongswordSource.includes("player.animate(7515)") &&
+    !vestasLongswordSource.includes("publicSound(") &&
+    consumableSource.includes("player.privateSound(2393)") &&
+    consumableSource.includes("player.privateSound(2401)"),
+  "Nh combat sounds should come from WeaponType.attackSound, AGS special sound 3869, VLS source has animation 7515 but no explicit publicSound, and supplies use private eat/drink sounds 2393/2401"
 );
 assert(
   specbarRedrawSource.includes("get_varp               301") &&
@@ -398,6 +564,48 @@ assert(
     wandType.attackSets[3]?.child === 15,
   "Kodai/WAND attack sets should be sparse like Nh config 18: Bash, Pound, no child 12, Focus."
 );
+for (const soundId of [
+  102, 104, 106, 168, 169, 171, 227, 2238, 2242, 2244, 2246, 2393, 2401, 2500, 2555, 2563, 2693, 2695,
+  2714, 2715, 2720, 2907, 2910, 2917, 3846, 3869, 5027, 6182
+]) {
+  assert(
+    existsSync(path.join(projectRoot, "fixtures", "render", "sounds", `sound-${soundId}.wav`)),
+    `exported sound-${soundId}.wav should exist for runtime game sound playback`
+  );
+}
+const foodSoundResult = runtimeCombat.consumeRuntimePlayerCombatSupply(createState(141, {
+  localLevels: combatLevels({ hitpoints: 50 })
+}), "local-player", "manta_ray");
+const foodSoundEvent = foodSoundResult.state.events.find((event) => event.kind === "supply");
+assert(
+  foodSoundResult.consumed &&
+    JSON.stringify(foodSoundEvent?.soundIds) === JSON.stringify([2393]) &&
+    foodSoundEvent?.soundChannel === "sound-effects",
+  `Manta ray supply event should emit source private eat sound 2393 on sound-effects: ${JSON.stringify(foodSoundEvent)}`
+);
+const drinkSoundResult = runtimeCombat.consumeRuntimePlayerCombatSupply(createState(142, {
+  localLevels: combatLevels({ attack: 90, strength: 90, defence: 90 })
+}), "local-player", "super_combat");
+const drinkSoundEvent = drinkSoundResult.state.events.find((event) => event.kind === "supply");
+assert(
+  drinkSoundResult.consumed &&
+    JSON.stringify(drinkSoundEvent?.soundIds) === JSON.stringify([2401]) &&
+    drinkSoundEvent?.soundChannel === "sound-effects",
+  `Super combat supply event should emit source private drink sound 2401 on sound-effects: ${JSON.stringify(drinkSoundEvent)}`
+);
+for (const spotanimFile of [
+  "onyx_bolt_proc.glb",
+  "onyx_bolt_proc.mesh.json",
+  "dragonstone_bolt_proc.glb",
+  "dragonstone_bolt_proc.mesh.json",
+  "diamond_bolt_proc.glb",
+  "diamond_bolt_proc.mesh.json"
+]) {
+  assert(
+    existsSync(path.join(projectRoot, "fixtures", "render", "spotanims", spotanimFile)),
+    `exported ${spotanimFile} should exist for bolt proc spotanim playback`
+  );
+}
 assert(
   clientActorSource.includes("this.hitSplatCycles[var9] = var5 + var11 + var6") &&
     clientActorSource.includes("if(var13.definition.field3296 == var8.field3296)") &&
@@ -462,6 +670,20 @@ assert(
     iceBlitzSource.includes("setProjectile(new Projectile(56, 10))") &&
     iceBlitzSource.includes("hold(hit, target, 15, true)"),
   "Nh Blitz sources should preserve animation 1978, Blood Blitz projectile 374, Ice Blitz cast gfx 366, and 15-second freeze"
+);
+assert(
+  targetSpellSource.includes("entity.publicSound(castSound[0], castSound[1], castSound[2])") &&
+    targetSpellSource.includes("t.publicSound(227, 1, 0)") &&
+    targetSpellSource.includes("t.publicSound(hitSoundId, 1, 0)") &&
+    bloodBlitzSource.includes("setCastSound(106, 1, 0)") &&
+    bloodBlitzSource.includes("setHitSound(104)") &&
+    iceBlitzSource.includes("setCastSound(171, 1, 0)") &&
+    iceBlitzSource.includes("setHitSound(169)") &&
+    bloodBarrageSource.includes("setCastSound(106, 1, 0)") &&
+    bloodBarrageSource.includes("setHitSound(102)") &&
+    iceBarrageSource.includes("setCastSound(171, 1, 0)") &&
+    iceBarrageSource.includes("setHitSound(168)"),
+  "Nh target spells should preserve cast, hit, and splash sound IDs for Blitz/Barrage spells"
 );
 assert(
   bloodSpellSource.includes("int healAmount = hit.damage / 4") &&
@@ -1175,10 +1397,11 @@ let wandAttack = createState(12, {
 wandAttack = requestLocalAttack(wandAttack);
 const wandAttackResult = advance(wandAttack);
 const wandAttackEvent = wandAttackResult.state.events.find((event) => event.kind === "attack");
-assert(wandAttackEvent?.style === "crush", "Kodai wand default Attack should dispatch the Nh WAND crush style, not a spell");
-assert(wandAttackEvent?.sequenceName === "wand_attack", "Kodai wand default Attack should play the WAND attack animation 393");
-assert(wandAttackEvent?.projectile === undefined, "Kodai wand default Attack should not emit an Ice Barrage projectile");
-assert(wandAttackEvent?.hitDelayTicks === 1, "Kodai wand default melee hit should resolve through the melee hit delay");
+assert(wandAttackEvent?.style === "slash", "Staff of the Dead default Attack should dispatch its source melee style, not a spell");
+assert(wandAttackEvent?.sequenceName === "whip_attack", "Staff of the Dead default Attack should follow the current melee staff fallback animation path");
+assert(wandAttackEvent?.projectile === undefined, "Staff of the Dead default Attack should not emit an Ice Barrage projectile");
+assert(JSON.stringify(wandAttackEvent?.soundIds) === JSON.stringify([2555]), `Staff of the Dead default Attack should emit source attack sound 2555: ${JSON.stringify(wandAttackEvent)}`);
+assert(wandAttackEvent?.hitDelayTicks === 1, "Staff of the Dead default melee hit should resolve through the melee hit delay");
 
 let localKodaiNoAutocast = createState(122, {
   localTile: { x: 0, z: 0 },
@@ -1908,6 +2131,7 @@ assert(magicAttackEvent?.style === "magic", "Selected Ice Barrage should dispatc
 assert(magicAttackEvent?.spellId === "ice-barrage" && magicAttackEvent?.autocast === false, "Selected Ice Barrage should be tagged as a queued one-shot spell, not autocast");
 assert(magicAttackEvent?.sequenceName === "barrage_cast", "Selected Ice Barrage should play the barrage cast sequence");
 assert(magicAttackEvent?.projectile?.id === "ice_barrage_projectile", "Selected Ice Barrage should emit the ice barrage projectile profile");
+assert(JSON.stringify(magicAttackEvent?.soundIds) === JSON.stringify([171]), `Ice Barrage cast should emit source sound 171: ${JSON.stringify(magicAttackEvent)}`);
 assert(magicAttackEvent?.hitDelayTicks === 4, "Ice barrage hit delay should match Nh Projectile.send plus TargetSpell clientDelay(projectileDuration, 19)");
 assert(magicAttackEvent?.projectileDurationCycles === 86, "Ice barrage projectile duration should use source 56 + 10 cycles per extra tile");
 assert(magicAttackResult.state.queuedHits[0]?.dueTick === 4, "Ice barrage hitsplat should resolve before the next five-tick magic attack can animate");
@@ -1959,6 +2183,10 @@ for (let index = 0; index < 4; index += 1) {
 const magicHitsplatEvent = magicHitState.events.find((event) => event.kind === "hitsplat" && event.style === "magic");
 assert(magicHitsplatEvent, "queued magic damage should resolve into a style-tagged hitsplat event");
 assert(
+  JSON.stringify(magicHitsplatEvent.soundIds) === JSON.stringify([magicHitsplatEvent.damage > 0 ? 168 : 227]),
+  `Ice Barrage hit/splash should emit source hit sound 168 or splash sound 227: ${JSON.stringify(magicHitsplatEvent)}`
+);
+assert(
   magicHitsplatEvent.damage <= magicHitsplatEvent.maxDamage && magicHitsplatEvent.maxDamage === 38,
   `magic hitsplat should be the applied engine value and should not display impossible barrage damage: ${JSON.stringify(magicHitsplatEvent)}`
 );
@@ -1995,6 +2223,7 @@ assert(bloodAttackEvent?.style === "magic", "Selected Blood Barrage should dispa
 assert(bloodAttackEvent?.spellId === "blood-barrage" && bloodAttackEvent?.autocast === false, "Selected Blood Barrage should be tagged as a queued one-shot spell");
 assert(bloodAttackEvent?.projectile?.id === "blood_barrage_delay", "Blood Barrage should carry the Nh delay-only Projectile(51,56,10) profile");
 assert(bloodAttackEvent?.projectile?.gfxId === -1, "Blood Barrage should not render an Ice projectile because Nh sends no projectile packet for gfx -1");
+assert(JSON.stringify(bloodAttackEvent?.soundIds) === JSON.stringify([106]), `Blood Barrage cast should emit source sound 106: ${JSON.stringify(bloodAttackEvent)}`);
 assert(bloodAttackEvent?.projectileDurationCycles === 86, "Blood Barrage delay-only projectile should still use source duration cycles for hit timing");
 assert(bloodAttackResult.state.queuedHits[0]?.maxDamage === 36, `Blood Barrage max should use base 29 plus the source NH gear bonus: ${JSON.stringify(bloodAttackResult.state.queuedHits[0])}`);
 const deterministicBloodHit = bloodAttackResult.state.queuedHits[0];
@@ -2025,6 +2254,7 @@ const bloodHitsplatEvent = bloodHitState.events.find((event) => event.kind === "
 const bloodSpotanimEvent = bloodHitState.events.find((event) => event.kind === "spotanim" && event.spotanimId === 377);
 assert(bloodHitsplatEvent, "Blood Barrage queued damage should resolve into a tagged hitsplat event");
 assert(bloodSpotanimEvent?.artifactUrl === "render/spotanims/blood_barrage_hit.glb", "Blood Barrage should play Nh hit gfx 377, not the Ice Barrage hit gfx");
+assert(JSON.stringify(bloodHitsplatEvent.soundIds) === JSON.stringify([102]), `Blood Barrage hit should emit source hit sound 102: ${JSON.stringify(bloodHitsplatEvent)}`);
 assert(bloodHitsplatEvent.damage === 20, "Blood Barrage deterministic heal verifier should apply the forced source hit value");
 assert(
   bloodHitState.actors["local-player"].hitpoints === Math.min(99, 50 + Math.trunc(bloodHitsplatEvent.damage / 4)),
@@ -2066,6 +2296,7 @@ assert(bloodBlitzAttackEvent?.spellId === "blood-blitz", "Selected Blood Blitz s
 assert(bloodBlitzAttackEvent?.sequenceName === "blitz_cast", "Blood Blitz should use Nh animation 1978 through the blitz_cast sequence");
 assert(bloodBlitzAttackEvent?.projectile?.id === "blood_blitz_projectile", "Blood Blitz should carry Nh projectile gfx 374");
 assert(bloodBlitzAttackEvent?.projectile?.artifactUrl === "render/spotanims/blood_blitz_projectile.glb", "Blood Blitz projectile should render from the cache GLB");
+assert(JSON.stringify(bloodBlitzAttackEvent?.soundIds) === JSON.stringify([106]), `Blood Blitz cast should emit source sound 106: ${JSON.stringify(bloodBlitzAttackEvent)}`);
 assert(bloodBlitzAttackEvent?.projectileDurationCycles === 86, "Blood Blitz projectile duration should use the source 56 + 10 per tile cycles");
 assert(bloodBlitzAttackResult.state.queuedHits[0]?.maxDamage === 31, `Blood Blitz max should use base 25 plus the source NH gear bonus: ${JSON.stringify(bloodBlitzAttackResult.state.queuedHits[0])}`);
 const deterministicBloodBlitzHit = bloodBlitzAttackResult.state.queuedHits[0];
@@ -2088,6 +2319,7 @@ const bloodBlitzHitsplatEvent = bloodBlitzHitState.events.find((event) => event.
 const bloodBlitzSpotanimEvent = bloodBlitzHitState.events.find((event) => event.kind === "spotanim" && event.spotanimId === 375);
 assert(bloodBlitzHitsplatEvent?.damage === 20, "Blood Blitz deterministic heal verifier should apply the forced source hit value");
 assert(bloodBlitzSpotanimEvent?.artifactUrl === "render/spotanims/blood_blitz_hit.glb", "Blood Blitz should play Nh hit gfx 375");
+assert(JSON.stringify(bloodBlitzHitsplatEvent?.soundIds) === JSON.stringify([104]), `Blood Blitz hit should emit source hit sound 104: ${JSON.stringify(bloodBlitzHitsplatEvent)}`);
 assert(
   bloodBlitzHitState.actors["local-player"].hitpoints === Math.min(99, 50 + Math.trunc(bloodBlitzHitsplatEvent.damage / 4)),
   `Blood Blitz should heal the caster by hit.damage / 4 like BloodSpell.afterHit: ${JSON.stringify({
@@ -2121,6 +2353,7 @@ assert(iceBlitzAttackEvent?.spellId === "ice-blitz", "Selected Ice Blitz should 
 assert(iceBlitzAttackEvent?.sequenceName === "blitz_cast", "Ice Blitz should use Nh animation 1978 through the blitz_cast sequence");
 assert(iceBlitzAttackEvent?.projectile?.id === "ice_blitz_delay", "Ice Blitz should carry Nh delay-only Projectile(56,10)");
 assert(iceBlitzAttackEvent?.projectile?.gfxId === -1, "Ice Blitz should not render a travel projectile because Nh sends no projectile packet for gfx -1");
+assert(JSON.stringify(iceBlitzAttackEvent?.soundIds) === JSON.stringify([171]), `Ice Blitz cast should emit source sound 171: ${JSON.stringify(iceBlitzAttackEvent)}`);
 assert(iceBlitzAttackEvent?.projectileDurationCycles === 86, "Ice Blitz delay-only projectile should still use source duration cycles for hit timing");
 assert(iceBlitzCastSpotanimEvent?.artifactUrl === "render/spotanims/ice_blitz_cast.glb", "Ice Blitz should play Nh cast gfx 366 on the caster");
 assert(iceBlitzAttackResult.state.queuedHits[0]?.maxDamage === 33, `Ice Blitz max should use base 26 plus the source NH gear bonus: ${JSON.stringify(iceBlitzAttackResult.state.queuedHits[0])}`);
@@ -2132,6 +2365,25 @@ assert(
   entityLocks.isFrozen(iceBlitzAttackResult.state.actors.opponent.locks, iceBlitzAttackResult.state.tick),
   `Ice Blitz should apply freeze on a successful cast like TargetSpell.hold(): ${JSON.stringify(iceBlitzAttackResult.state.actors.opponent.locks)}`
 );
+const deterministicIceBlitzHit = iceBlitzAttackResult.state.queuedHits[0];
+let iceBlitzHitState = {
+  ...iceBlitzAttackResult.state,
+  queuedHits: [
+    {
+      ...deterministicIceBlitzHit,
+      damage: 20,
+      rawDamage: 20
+    }
+  ]
+};
+while (iceBlitzHitState.tick < deterministicIceBlitzHit.dueTick) {
+  iceBlitzHitState = advance(iceBlitzHitState).state;
+}
+iceBlitzHitState = advance(iceBlitzHitState).state;
+const iceBlitzHitsplatEvent = iceBlitzHitState.events.find((event) => event.kind === "hitsplat" && event.spellId === "ice-blitz");
+const iceBlitzHitSpotanimEvent = iceBlitzHitState.events.find((event) => event.kind === "spotanim" && event.spotanimId === 367);
+assert(JSON.stringify(iceBlitzHitsplatEvent?.soundIds) === JSON.stringify([169]), `Ice Blitz hit should emit source hit sound 169: ${JSON.stringify(iceBlitzHitsplatEvent)}`);
+assert(iceBlitzHitSpotanimEvent?.artifactUrl === "render/spotanims/ice_blitz_hit.glb", "Ice Blitz should play Nh hit gfx 367");
 
 assert(runtimeCombat.runtimePlayerCombatSpellDefinitions["blood-barrage"].requiredMagicLevel === 92, "Blood Barrage runtime definition should keep Nh level requirement 92");
 assert(runtimeCombat.runtimePlayerCombatSpellDefinitions["ice-barrage"].requiredMagicLevel === 94, "Ice Barrage runtime definition should keep Nh level requirement 94");
@@ -2442,23 +2694,48 @@ assert(
   })}`
 );
 
+const armadylCrossbowEquipment = {
+  ...nhLoadouts.nhLoadouts["acb-hides"].equipment,
+  weapon: { itemId: 11785, name: "Armadyl crossbow" }
+};
+
 let acbSpecialAttack = createState(22, {
   localTile: { x: 0, z: 0 },
   opponentTile: { x: 4, z: 0 },
   localLoadoutId: "acb-hides"
 });
+acbSpecialAttack = stateWithLocalEquipment(acbSpecialAttack, armadylCrossbowEquipment);
 const acbSpecialToggle = runtimeCombat.toggleRuntimePlayerCombatSpecial(acbSpecialAttack, "local-player");
 assert(acbSpecialToggle.mutation === "activate", "ACB special click should activate PlayerCombat.toggleSpecial state");
 acbSpecialAttack = requestLocalAttack(acbSpecialToggle.state);
 const acbSpecialResult = advance(acbSpecialAttack);
 const acbSpecialEvent = acbSpecialResult.state.events.find((event) => event.kind === "attack");
+const expectedAcbSpecialHitChance = expectedRuntimeHitChance(acbSpecialToggle.state, "local-player", "opponent", "ranged", {
+  attackRollMultiplier: 2
+});
 assertAttackAnimationWindow(acbSpecialResult, "local-player", "ACB special attack");
 assert(acbSpecialEvent?.specialAttack === "armadyl_crossbow", "ACB special attack event should be tagged as Armadyl crossbow special");
 assert(acbSpecialEvent?.projectile?.id === "armadyl_crossbow_special", "ACB special should use the Nh Armadyl Eye projectile profile");
 assert(acbSpecialEvent?.projectile?.gfxId === 301, "ACB special projectile should use gfx 301 from ArmadylCrossbow.java");
+assert(JSON.stringify(acbSpecialEvent?.soundIds) === JSON.stringify([2695]), `ACB special should emit the crossbow attack sound 2695: ${JSON.stringify(acbSpecialEvent)}`);
 assert(acbSpecialEvent?.hitDelayTicks === 2, "ACB special should keep the source projectile client-delay timing");
-assert(acbSpecialResult.state.actors["local-player"].gmaul.specialEnergy === 60, "ACB special should drain 40 percent special energy");
+assert(
+  nearlyEqual(acbSpecialEvent?.hitChance ?? -1, expectedAcbSpecialHitChance),
+  `ACB special should double the ranged attack roll, not the final hit chance: ${JSON.stringify({
+    event: acbSpecialEvent,
+    expectedAcbSpecialHitChance
+  })}`
+);
+assert(acbSpecialResult.state.actors["local-player"].gmaul.specialEnergy === 50, "ACB special should drain 50 percent special energy");
 assert(acbSpecialResult.state.actors["local-player"].specialActive === false, "ACB special should clear Config.SPECIAL_ACTIVE after use");
+const acbDoubledBolt = findAcbSpecialDoubledBoltProc();
+assert(
+  acbDoubledBolt.normalHit?.boltEffect === undefined &&
+    acbDoubledBolt.specialHit?.weaponId === "armadyl_crossbow" &&
+    acbDoubledBolt.specialHit?.boltEffect?.id === "diamond" &&
+    acbDoubledBolt.state.actors["local-player"].gmaul.specialEnergy === 50,
+  `ACB special should double enchanted bolt proc chance while preserving 50 percent drain: ${JSON.stringify(acbDoubledBolt)}`
+);
 
 let specialRegen = createState(701, {
   localSpecialEnergy: 60
@@ -2482,8 +2759,9 @@ let acbSpecialRestoreBoundary = createState(702, {
   localTile: { x: 0, z: 0 },
   opponentTile: { x: 4, z: 0 },
   localLoadoutId: "acb-hides",
-  localSpecialEnergy: 40
+  localSpecialEnergy: 50
 });
+acbSpecialRestoreBoundary = stateWithLocalEquipment(acbSpecialRestoreBoundary, armadylCrossbowEquipment);
 acbSpecialRestoreBoundary = {
   ...acbSpecialRestoreBoundary,
   actors: {
@@ -2507,7 +2785,7 @@ assert(
 assert(
   acbSpecialRestoreBoundaryResult.state.actors["local-player"].gmaul.specialEnergy === 10 &&
     acbSpecialRestoreBoundaryResult.state.actors["local-player"].specialRestoreTicks === 0,
-  `ACB special should drain first, then Nh post-attack regen should add 10 percent on the same 50th tick: ${JSON.stringify(
+  `ACB special should drain 50 first, then post-attack regen should add 10 percent on the same 50th tick: ${JSON.stringify(
     acbSpecialRestoreBoundaryResult.state.actors["local-player"]
   )}`
 );
@@ -2518,14 +2796,61 @@ let lowEnergyAcbSpecial = createState(23, {
   localLoadoutId: "acb-hides",
   localSpecialEnergy: 30
 });
+lowEnergyAcbSpecial = stateWithLocalEquipment(lowEnergyAcbSpecial, armadylCrossbowEquipment);
 lowEnergyAcbSpecial = runtimeCombat.toggleRuntimePlayerCombatSpecial(lowEnergyAcbSpecial, "local-player").state;
 lowEnergyAcbSpecial = requestLocalAttack(lowEnergyAcbSpecial);
 const lowEnergyAcbResult = advance(lowEnergyAcbSpecial);
 const lowEnergyAcbEvent = lowEnergyAcbResult.state.events.find((event) => event.kind === "attack");
 assert(lowEnergyAcbEvent?.specialAttack === undefined, "low-energy ACB should fall back to a normal attack instead of firing the special");
 assert(lowEnergyAcbEvent?.projectile?.id === "dragon_bolt", "low-energy ACB fallback should keep the normal dragon-bolt projectile");
+assert(JSON.stringify(lowEnergyAcbEvent?.soundIds) === JSON.stringify([2695]), `normal crossbow attack should emit source attack sound 2695: ${JSON.stringify(lowEnergyAcbEvent)}`);
 assert(lowEnergyAcbResult.state.actors["local-player"].gmaul.specialEnergy === 30, "low-energy ACB fallback should not drain special energy");
 assert(lowEnergyAcbResult.state.actors["local-player"].specialActive === false, "low-energy ACB fallback should clear active special state");
+
+const diamondBoltProcState = findLocalBoltProc(21946, "Diamond dragon bolts (e)", "diamond");
+const diamondBoltHit = diamondBoltProcState.queuedHits.find((hit) => hit.attackerId === "local-player");
+assert(
+  diamondBoltHit?.boltEffect?.chancePercent === 5 &&
+    diamondBoltHit.boltEffect.damageMultiplier === 1.15 &&
+    diamondBoltHit.boltEffect.guaranteedHit === true,
+  `Diamond dragon bolt proc should carry source player chance, damage boost, and ignore-defence semantics: ${JSON.stringify(diamondBoltHit)}`
+);
+const diamondBoltResolvedState = resolveForcedLocalQueuedHit(diamondBoltProcState);
+const diamondBoltHitsplat = diamondBoltResolvedState.events.find((event) => event.kind === "hitsplat" && event.boltEffect?.id === "diamond");
+const diamondBoltSpotanim = diamondBoltResolvedState.events.find((event) => event.kind === "spotanim" && event.spotanimId === 758);
+assert(JSON.stringify(diamondBoltHitsplat?.soundIds) === JSON.stringify([2910]), `Diamond bolt proc should emit configured proc sound 2910: ${JSON.stringify(diamondBoltHitsplat)}`);
+assert(diamondBoltSpotanim?.artifactUrl === "render/spotanims/diamond_bolt_proc.glb", `Diamond bolt proc should emit gfx 758 artifact: ${JSON.stringify(diamondBoltSpotanim)}`);
+
+const dragonstoneBoltProcState = findLocalBoltProc(21948, "Dragonstone dragon bolts (e)", "dragonstone");
+const dragonstoneBoltHit = dragonstoneBoltProcState.queuedHits.find((hit) => hit.attackerId === "local-player");
+assert(
+  dragonstoneBoltHit?.boltEffect?.chancePercent === 6 &&
+    dragonstoneBoltHit.boltEffect.damageMultiplier === 1.45,
+  `Dragonstone dragon bolt proc should carry source 6 percent chance and 45 percent boost: ${JSON.stringify(dragonstoneBoltHit)}`
+);
+const dragonstoneBoltResolvedState = resolveForcedLocalQueuedHit(dragonstoneBoltProcState);
+const dragonstoneBoltHitsplat = dragonstoneBoltResolvedState.events.find((event) => event.kind === "hitsplat" && event.boltEffect?.id === "dragonstone");
+const dragonstoneBoltSpotanim = dragonstoneBoltResolvedState.events.find((event) => event.kind === "spotanim" && event.spotanimId === 756);
+assert(dragonstoneBoltHitsplat?.soundIds === undefined, `Dragonstone bolt proc should not invent a sound absent from the source behavior: ${JSON.stringify(dragonstoneBoltHitsplat)}`);
+assert(dragonstoneBoltSpotanim?.artifactUrl === "render/spotanims/dragonstone_bolt_proc.glb", `Dragonstone bolt proc should emit gfx 756 artifact: ${JSON.stringify(dragonstoneBoltSpotanim)}`);
+
+const onyxBoltProcState = findLocalBoltProc(21950, "Onyx dragon bolts (e)", "onyx");
+const onyxBoltHit = onyxBoltProcState.queuedHits.find((hit) => hit.attackerId === "local-player");
+assert(
+  onyxBoltHit?.boltEffect?.chancePercent === 10 &&
+    onyxBoltHit.boltEffect.damageMultiplier === 1.2 &&
+    onyxBoltHit.boltEffect.healFraction === 0.25,
+  `Onyx dragon bolt proc should carry source player chance, 20 percent boost, and 25 percent heal: ${JSON.stringify(onyxBoltHit)}`
+);
+const onyxBoltResolvedState = resolveForcedLocalQueuedHit(onyxBoltProcState);
+const onyxBoltHitsplat = onyxBoltResolvedState.events.find((event) => event.kind === "hitsplat" && event.boltEffect?.id === "onyx");
+const onyxBoltSpotanim = onyxBoltResolvedState.events.find((event) => event.kind === "spotanim" && event.spotanimId === 753);
+assert(JSON.stringify(onyxBoltHitsplat?.soundIds) === JSON.stringify([2917]), `Onyx bolt proc should emit configured proc sound 2917: ${JSON.stringify(onyxBoltHitsplat)}`);
+assert(onyxBoltSpotanim?.artifactUrl === "render/spotanims/onyx_bolt_proc.glb", `Onyx bolt proc should emit gfx 753 artifact: ${JSON.stringify(onyxBoltSpotanim)}`);
+assert(
+  onyxBoltResolvedState.actors["local-player"].hitpoints === 55,
+  `Onyx bolt proc should heal the attacker for damage * 0.25 after a forced 20 hit: ${JSON.stringify(onyxBoltResolvedState.actors["local-player"])}`
+);
 
 const dragonCrossbowEquipment = {
   ...nhLoadouts.nhLoadouts["acb-hides"].equipment,
@@ -2583,8 +2908,138 @@ const dragonCrossbowIntoAgsResult = advance(requestLocalAttack(dragonCrossbowInt
 const dragonCrossbowIntoAgsEvent = dragonCrossbowIntoAgsResult.state.events.find((event) => event.kind === "attack");
 assert(
   dragonCrossbowIntoAgsEvent?.specialAttack === "armadyl_godsword" &&
+    JSON.stringify(dragonCrossbowIntoAgsEvent.soundIds) === JSON.stringify([3869]) &&
     dragonCrossbowIntoAgsResult.state.actors["local-player"].gmaul.specialEnergy === 50,
   `Dragon crossbow visible spec bar should support AGS one-tick packet order without giving DCB a special: ${JSON.stringify(dragonCrossbowIntoAgsEvent)}`
+);
+const agsBaseEstimate = runtimeCombat.runtimePlayerCombatDamageEstimate(
+  dragonCrossbowIntoAgsToggle.state.actors["local-player"],
+  dragonCrossbowIntoAgsToggle.state.actors.opponent,
+  "slash"
+);
+const expectedAgsHitChance = expectedRuntimeHitChance(dragonCrossbowIntoAgsToggle.state, "local-player", "opponent", "slash", {
+  attackRollMultiplier: 2
+});
+assert(
+  dragonCrossbowIntoAgsEvent?.maxDamage === Math.trunc(agsBaseEstimate.maxDamage * 1.375) &&
+    nearlyEqual(dragonCrossbowIntoAgsEvent.hitChance, expectedAgsHitChance),
+  `AGS special should use 50 percent energy, 37.5 percent damage boost, and doubled attack roll: ${JSON.stringify({
+    event: dragonCrossbowIntoAgsEvent,
+    baseMaxDamage: agsBaseEstimate.maxDamage,
+    expectedAgsHitChance
+  })}`
+);
+const voidwakerEquipment = {
+  ...nhLoadouts.nhLoadouts["tentacle-bandos"].equipment,
+  weapon: { itemId: 27690, name: "Voidwaker" }
+};
+let voidwakerSpecial = runtimeCombat.syncRuntimePlayerCombatStateToInput(createState(705, {
+  localTile: { x: 0, z: 0 },
+  opponentTile: { x: 1, z: 0 },
+  localLoadoutId: "tentacle-bandos",
+  localSpecialEnergy: 100
+}), {
+  tiles: {
+    "local-player": { x: 0, z: 0 },
+    opponent: { x: 1, z: 0 }
+  },
+  equipment: {
+    "local-player": voidwakerEquipment
+  }
+});
+const voidwakerSpecialToggle = runtimeCombat.toggleRuntimePlayerCombatSpecial(voidwakerSpecial, "local-player");
+assert(voidwakerSpecialToggle.mutation === "activate", "Voidwaker visible equipment should expose a server special");
+voidwakerSpecial = requestLocalAttack(voidwakerSpecialToggle.state);
+const voidwakerSpecialResult = advance(voidwakerSpecial);
+const voidwakerSpecialEvent = voidwakerSpecialResult.state.events.find((event) => event.kind === "attack");
+const voidwakerQueuedHit = voidwakerSpecialResult.state.queuedHits.find((hit) => hit.attackerId === "local-player");
+const voidwakerBaseEstimate = runtimeCombat.runtimePlayerCombatDamageEstimate(
+  voidwakerSpecialToggle.state.actors["local-player"],
+  voidwakerSpecialToggle.state.actors.opponent,
+  "slash"
+);
+assert(
+  voidwakerSpecialEvent?.specialAttack === "voidwaker" &&
+    voidwakerSpecialEvent?.sequenceName === "voidwaker_special" &&
+    JSON.stringify(voidwakerSpecialEvent.soundIds) === JSON.stringify([5027, 6182]),
+  `Voidwaker special should emit its special sequence and both configured special sounds: ${JSON.stringify(voidwakerSpecialEvent)}`
+);
+assert(
+  voidwakerSpecialEvent?.style === "magic" &&
+    voidwakerQueuedHit?.style === "magic" &&
+    voidwakerQueuedHit.hitChance === 1 &&
+    voidwakerQueuedHit.maxDamage === Math.trunc(voidwakerBaseEstimate.maxDamage * 1.5) &&
+    voidwakerQueuedHit.rawDamage >= Math.trunc(voidwakerBaseEstimate.maxDamage * 0.5),
+  `Voidwaker special should be guaranteed magic damage rolled from 50 to 150 percent melee max: ${JSON.stringify({
+    event: voidwakerSpecialEvent,
+    queuedHit: voidwakerQueuedHit,
+    baseMaxDamage: voidwakerBaseEstimate.maxDamage
+  })}`
+);
+const vestaEquipment = {
+  ...nhLoadouts.nhLoadouts["tentacle-bandos"].equipment,
+  weapon: { itemId: 22613, name: "Vesta's longsword (Deadman Mode)" }
+};
+let vestaSpecial = runtimeCombat.syncRuntimePlayerCombatStateToInput(createState(706, {
+  localTile: { x: 0, z: 0 },
+  opponentTile: { x: 1, z: 0 },
+  localLoadoutId: "tentacle-bandos",
+  localSpecialEnergy: 100
+}), {
+  tiles: {
+    "local-player": { x: 0, z: 0 },
+    opponent: { x: 1, z: 0 }
+  },
+  equipment: {
+    "local-player": vestaEquipment
+  }
+});
+const vestaSpecialToggle = runtimeCombat.toggleRuntimePlayerCombatSpecial(vestaSpecial, "local-player");
+assert(vestaSpecialToggle.mutation === "activate", "Vesta's longsword visible equipment should expose a server special");
+vestaSpecial = requestLocalAttack(vestaSpecialToggle.state);
+const vestaSpecialResult = advance(vestaSpecial);
+const vestaSpecialEvent = vestaSpecialResult.state.events.find((event) => event.kind === "attack");
+const vestaQueuedHit = vestaSpecialResult.state.queuedHits.find((hit) => hit.attackerId === "local-player");
+const vestaBaseEstimate = runtimeCombat.runtimePlayerCombatDamageEstimate(
+  vestaSpecialToggle.state.actors["local-player"],
+  vestaSpecialToggle.state.actors.opponent,
+  "slash"
+);
+const expectedVestaHitChance = expectedRuntimeHitChance(vestaSpecialToggle.state, "local-player", "opponent", "slash", {
+  defenceStyle: "stab",
+  defenceRollMultiplier: 0.25
+});
+assert(
+  vestaSpecialEvent?.specialAttack === "vesta_longsword" &&
+    vestaSpecialEvent?.sequenceName === "vesta_longsword_special" &&
+    JSON.stringify(vestaSpecialEvent.soundIds) === JSON.stringify([2500]),
+  `VLS special should emit the VLS sequence and the weapon attack sound fallback because Kronos source has no explicit publicSound: ${JSON.stringify(vestaSpecialEvent)}`
+);
+assert(
+  vestaQueuedHit?.weaponId === "vesta_longsword" &&
+    vestaQueuedHit.maxDamage === Math.trunc(vestaBaseEstimate.maxDamage * 1.2) &&
+    nearlyEqual(vestaQueuedHit.hitChance, expectedVestaHitChance) &&
+    vestaSpecialResult.state.actors["local-player"].gmaul.specialEnergy === 75,
+  `VLS special should use 25 percent energy, 20-120 percent damage, and attack accuracy against 25 percent stab defence: ${JSON.stringify({
+    queuedHit: vestaQueuedHit,
+    baseMaxDamage: vestaBaseEstimate.maxDamage,
+    expectedVestaHitChance
+  })}`
+);
+const zaryteForcedBolt = findSuccessfulZaryteSpecialBoltProc();
+const expectedZaryteHitChance = expectedRuntimeHitChance(zaryteForcedBolt.state, "local-player", "opponent", "ranged", {
+  attackRollMultiplier: 2
+});
+assert(
+  zaryteForcedBolt.queuedHit.weaponId === "zaryte_crossbow" &&
+    zaryteForcedBolt.queuedHit.boltEffect?.id === "diamond" &&
+    zaryteForcedBolt.queuedHit.hitChance < 1 &&
+    nearlyEqual(zaryteForcedBolt.queuedHit.hitChance, expectedZaryteHitChance) &&
+    zaryteForcedBolt.state.actors["local-player"].gmaul.specialEnergy === 25,
+  `Zaryte crossbow special should double accuracy, drain 75 percent, and force the equipped bolt effect only after a successful hit: ${JSON.stringify({
+    queuedHit: zaryteForcedBolt.queuedHit,
+    expectedZaryteHitChance
+  })}`
 );
 assert(
   hudSource.includes("combatTabVisibleSpecBarWithoutServerSpecialItemIds") &&
@@ -2602,10 +3057,21 @@ gmaulAttack = requestLocalAttack(gmaulAttack);
 const gmaulAttackResult = advance(gmaulAttack);
 const gmaulAttackEvent = gmaulAttackResult.state.events.find((event) => event.kind === "attack");
 assert(gmaulAttackEvent?.sequenceName === "gmaul_attack", "regular Granite maul attack should use WeaponType.attackAnimation 1665, not the special animation");
+assert(JSON.stringify(gmaulAttackEvent?.soundIds) === JSON.stringify([2714]), `regular Granite maul attacks should emit source attack sound 2714: ${JSON.stringify(gmaulAttackEvent)}`);
 assert(
   !gmaulAttackResult.state.events.some((event) => event.kind === "spotanim" && event.spotanimId === 340),
   "regular Granite maul attacks should not emit the special-only source gfx 340"
 );
+
+let noxiousAttack = createState(15, {
+  localTile: { x: 0, z: 0 },
+  opponentTile: { x: 2, z: 0 },
+  localLoadoutId: "noxious-halberd"
+});
+noxiousAttack = requestLocalAttack(noxiousAttack);
+const noxiousAttackResult = advance(noxiousAttack);
+const noxiousAttackEvent = noxiousAttackResult.state.events.find((event) => event.kind === "attack");
+assert(noxiousAttackEvent?.sequenceName === "halberd_attack", "Noxious halberd attack should use HALBERD animation 440");
 
 let gmaulSpecial = createState(24, {
   localTile: { x: 0, z: 0 },
@@ -2621,6 +3087,7 @@ const gmaulSpecialEvent = gmaulSpecialResult.state.events.find((event) => event.
 assertAttackAnimationWindow(gmaulSpecialResult, "local-player", "Granite maul special attack");
 assert(gmaulSpecialEvent?.specialAttack === "granite_maul", "Granite maul queued special should emit a special attack event");
 assert(gmaulSpecialEvent?.sequenceName === "gmaul_special", "Granite maul queued special should use GraniteMaul.handle animation 1667");
+assert(JSON.stringify(gmaulSpecialEvent?.soundIds) === JSON.stringify([2715]), `Granite maul special should emit source special sound 2715: ${JSON.stringify(gmaulSpecialEvent)}`);
 assert(gmaulSpecialResult.state.events.some((event) => event.kind === "spotanim" && event.spotanimId === 340), "Granite maul special should emit source gfx 340");
 assert(gmaulSpecialResult.state.queuedHits.length === 1, "single Granite maul queued spec should create one immediate hit");
 assert(gmaulSpecialResult.state.queuedHits[0]?.dueTick === 1, "Granite maul special hit should resolve on the next combat tick");
@@ -4055,6 +4522,58 @@ assert(
     viewerSource.includes('sequenceMode: actionFrameActive ? "primary" : undefined') &&
     viewerSource.includes('movementAnimationCycle: movementSequenceName ? actor.animationCycle : undefined'),
   "manual combat actors should use Nh orientation/rotation turning and suppress primary-animation idle fallback after source sequence frames end"
+);
+assert(
+  viewerSource.includes("function manualActorWeaponRenderAnimationIndex") &&
+    /function manualActorBaseSequenceName[\s\S]*const weaponRenderAnimationIndex = manualActorWeaponRenderAnimationIndex\(sequenceName\);[\s\S]*if \(!loadoutId\)[\s\S]*if \(weaponRenderAnimationIndex !== null\)[\s\S]*return nhWeaponRenderSequenceName\([\s\S]*loadoutId,[\s\S]*weaponRenderAnimationIndex/.test(viewerSource) &&
+    /const applyInventoryActorLoadoutMutation[\s\S]*sequenceName: manualActorBaseSequenceName\([\s\S]*sourceActor\.sequenceName,[\s\S]*loadoutId,[\s\S]*nextCombatState\.actors\["local-player"\]\.equipment/.test(viewerSource) &&
+    /function manualCombatActorPose[\s\S]*manualActorBaseSequenceName\([\s\S]*manualActorVisibleSequenceName\(actor\),[\s\S]*combatActor\.loadoutId,[\s\S]*combatActor\.equipment/.test(viewerSource),
+  "manual actor base sequence should remap stale weapon-ready/movement poses through the current weapon loadout after equipment switches"
+);
+assert(
+  /function runtimeWeaponLoadoutForItemId[\s\S]*itemId === 22647[\s\S]*return "kodai-robes"/.test(viewerSource) &&
+    /function runtimeWeaponLoadoutForItemId[\s\S]*itemId === 26374[\s\S]*return "acb-hides"/.test(viewerSource) &&
+    /function runtimeWeaponLoadoutForItemId[\s\S]*itemId === 22613 \|\| itemId === 27690[\s\S]*return "tentacle-bandos"/.test(viewerSource) &&
+    /function runtimeWeaponLoadoutForItemId[\s\S]*itemId === 29796[\s\S]*return "noxious-halberd"/.test(viewerSource) &&
+    viewerSource.includes("const weaponItemId = equipment?.weapon?.itemId ?? nhLoadouts[loadoutId].equipment.weapon?.itemId"),
+  "DMM weapon equips should move the actor out of stale Zaryte/crossbow loadout state while deriving the actual stance from the equipped weapon type"
+);
+assert(
+  viewerSource.includes("function runtimeOptionsSoundVolumeForChannel") &&
+    viewerSource.includes("readStoredOptionsSoundVolume(") &&
+    viewerSource.includes("viewport.dataset.lastRuntimeSoundHtmlVolume") &&
+    viewerSource.includes("audio.volume = htmlVolume"),
+  "runtime game sounds should use the current options sound slider volume when creating Audio playback"
+);
+assert(
+  viewerSource.includes("RUNTIME_ONYX_BOLT_PROC_VOLUME_SCALE = 0.35") &&
+    viewerSource.includes("event.boltEffect?.id === \"onyx\"") &&
+    viewerSource.includes("soundId === RUNTIME_ONYX_BOLT_PROC_SOUND_ID") &&
+    viewerSource.includes("scale *= RUNTIME_ONYX_BOLT_PROC_VOLUME_SCALE"),
+  "runtime should lower only the onyx bolt proc sound volume by default"
+);
+assert(
+  viewerSource.includes("function runtimeCombatEventSoundVolumeScale") &&
+    viewerSource.includes("channel === \"sound-effects\"") &&
+    viewerSource.includes("actorId !== \"local-player\"") &&
+    viewerSource.includes("return 0") &&
+    viewerSource.includes("runtimeAreaSoundVolumeScale("),
+  "runtime should keep Kronos private sound-effect semantics for remote consumables while area sounds use positional scaling"
+);
+assert(
+  viewerSource.includes("const opponentLoadoutId = setup.loadoutId") &&
+    viewerSource.includes("const opponentInventorySlots = runtimeSetupInventorySlots(setupId)") &&
+    viewerSource.includes("const opponentEquipmentItems = runtimeSetupEquipmentItems(setupId)") &&
+    viewerSource.includes("opponentLoadoutId,") &&
+    viewerSource.includes("viewport.dataset.lastFreshFightResetOpponentSetup = setupId"),
+  "DMM rematch reset should respawn the opponent with the active setup preset instead of hardcoding NH stake"
+);
+assert(
+  runtimeCombatSource.includes("const runtimePlayerCombatVengeanceStallTicks = 2") &&
+    runtimeCombatSource.includes("actionSequenceName: \"vengeance_cast\"") &&
+    runtimeCombatSource.includes("actionDurationTicks: runtimePlayerCombatVengeanceStallTicks") &&
+    runtimeCombatSource.includes("actionUntilTick: state.tick + runtimePlayerCombatVengeanceStallTicks"),
+  "vengeance trinket activation should apply the same vengeance_cast primary action stall for exactly two ticks"
 );
 assert(
   clientActorMovementSource.includes("if(var0.field720 != 0)") &&

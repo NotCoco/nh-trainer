@@ -3,7 +3,7 @@ import type { WeaponTimingProfile } from "../combat/player-combat";
 import { nhWeaponProfiles } from "../combat/player-combat";
 import { canonicalNhLoadoutEquipment } from "./canonicalGear";
 
-export type NhLoadoutId = "kodai-robes" | "acb-hides" | "tentacle-bandos" | "ags-bandos" | "gmaul-bandos";
+export type NhLoadoutId = "kodai-robes" | "acb-hides" | "tentacle-bandos" | "ags-bandos" | "gmaul-bandos" | "noxious-halberd";
 export type NhWeaponId = keyof typeof nhWeaponProfiles;
 
 export interface NhLoadoutDefinition {
@@ -43,17 +43,24 @@ export const nhLoadouts = {
     label: "Granite maul NH stake",
     weaponId: "granite_maul",
     equipment: canonicalNhLoadoutEquipment["gmaul-bandos"]
+  },
+  "noxious-halberd": {
+    id: "noxious-halberd",
+    label: "Noxious halberd",
+    weaponId: "noxious_halberd",
+    equipment: canonicalNhLoadoutEquipment["noxious-halberd"]
   }
 } as const satisfies Readonly<Record<NhLoadoutId, NhLoadoutDefinition>>;
 
 export const graniteMaulEquipment: VisibleEquipment = nhLoadouts["gmaul-bandos"].equipment;
 
 export function loadoutForWeapon(weaponId: NhWeaponId): NhLoadoutDefinition {
-  if (weaponId === "kodai" || weaponId === "ancient_staff" || weaponId === "staff_of_the_dead") {
+  if (weaponId === "kodai" || weaponId === "ancient_staff" || weaponId === "staff_of_the_dead" || weaponId === "zuriels_staff") {
     return nhLoadouts["kodai-robes"];
   }
   if (
     weaponId === "armadyl_crossbow" ||
+    weaponId === "zaryte_crossbow" ||
     weaponId === "rune_crossbow" ||
     weaponId === "magic_shortbow" ||
     weaponId === "dragon_crossbow"
@@ -65,6 +72,12 @@ export function loadoutForWeapon(weaponId: NhWeaponId): NhLoadoutDefinition {
   }
   if (weaponId === "armadyl_godsword") {
     return nhLoadouts["ags-bandos"];
+  }
+  if (weaponId === "noxious_halberd") {
+    return nhLoadouts["noxious-halberd"];
+  }
+  if (weaponId === "voidwaker" || weaponId === "vesta_longsword") {
+    return nhLoadouts["tentacle-bandos"];
   }
   return nhLoadouts["tentacle-bandos"];
 }

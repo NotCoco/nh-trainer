@@ -1068,7 +1068,12 @@ for (const snippet of [
   "runtimePolicyPressureApproachTile",
   "RuntimePolicyTargetRouteStepPredicate",
   "RuntimePolicyTileRouteStepPredicate",
-  "input.targetRouteStep(input.opponentTile, input.localTile, 1",
+  "const meleeRouteDistance = runtimePolicyMeleeTargetRouteRange(input.context.self);",
+  "meleeRouteDistance <= 1",
+  "const routeDistance = shouldRouteToOpponent ? meleeRouteDistance : 1;",
+  "input.targetRouteStep(input.opponentTile, input.localTile, routeDistance",
+  "function runtimePolicyMeleeTargetRouteRange(actor: NhDuelActorState): number",
+  "return loadoutForWeapon(gearProfile.meleeWeaponId).id;",
   "runtimePolicyStandUnderRouteTile",
   "input.tileRouteStep(input.opponentTile, input.localTile",
   "input.action.offenceStyle === \"melee\" && !input.context.meleeReachable",
@@ -8476,6 +8481,52 @@ assert(
     blocked: meleePressureRouteDetour.movementBlockedReason
   })}`
 );
+const noxiousAtReachPressureState = runtimeCombat.createRuntimePlayerCombatState({
+  localTile: { x: 2, z: 0 },
+  opponentTile: { x: 0, z: 0 },
+  localLoadoutId: "acb-hides",
+  opponentLoadoutId: "noxious-halberd",
+  localPrayers: ["protect_from_magic"],
+  seed: 2616
+});
+const noxiousAtReachPressure = runtimePolicy.applyRuntimeOpponentPolicyAction({
+  state: noxiousAtReachPressureState,
+  controller: meleePressureRouteController,
+  localActor: {
+    tile: noxiousAtReachPressureState.actors["local-player"].tile,
+    loadoutId: "acb-hides"
+  },
+  opponentActor: {
+    tile: noxiousAtReachPressureState.actors.opponent.tile,
+    loadoutId: "noxious-halberd",
+    inventoryItems: []
+  },
+  targetRouteStep: () => {
+    throw new Error("Noxious halberd pressure should not request a one-tile spec approach while already at two-tile reach");
+  }
+});
+assert(
+  noxiousAtReachPressure.effectiveAction.offenceStyle === "melee",
+  `Noxious at-reach verifier should exercise melee pressure, got ${noxiousAtReachPressure.effectiveAction.offenceStyle}`
+);
+assert(noxiousAtReachPressure.context.meleeReachable === true, "Noxious pressure context should treat two-tile distance as melee-reachable");
+assert(
+  noxiousAtReachPressure.opponentLoadoutId === "noxious-halberd",
+  `Noxious halberd melee policy should keep the Nox loadout instead of switching to tentacle: ${JSON.stringify({
+    loadout: noxiousAtReachPressure.opponentLoadoutId,
+    effectiveAction: noxiousAtReachPressure.effectiveAction
+  })}`
+);
+assert(
+  !noxiousAtReachPressure.opponentMovedThisTick &&
+    noxiousAtReachPressure.opponentTile.x === noxiousAtReachPressureState.actors.opponent.tile.x &&
+    noxiousAtReachPressure.opponentTile.z === noxiousAtReachPressureState.actors.opponent.tile.z,
+  `Noxious halberd pressure should stay at two-tile reach instead of pulling into one-tile range: ${JSON.stringify({
+    moved: noxiousAtReachPressure.opponentMovedThisTick,
+    tile: noxiousAtReachPressure.opponentTile,
+    blocked: noxiousAtReachPressure.movementBlockedReason
+  })}`
+);
 const meleePressureRouteNoPath = runtimePolicy.applyRuntimeOpponentPolicyAction({
   state: meleePressureRouteState,
   controller: meleePressureRouteController,
@@ -9391,6 +9442,23 @@ assert(
     noneIdleScore !== undefined &&
     Math.abs((regearIdleScore - noneIdleScore) + 0.2) < 1e-9,
   `regear idle prior should match Java REGEAR_STYLE_IDLE_PRIOR_PENALTY=0.20, got regear=${regearIdleScore} none=${noneIdleScore}`
+);
+
+assert(
+  botPolicySource.includes("const loadRebalanceRestoreReboostScale = 1") &&
+    botPolicySource.includes("const hasAnySupply = hasFood || hasBrew || hasRestore || hasReboost") &&
+    botPolicySource.includes("selfHp < 72 / 99 &&") &&
+    botPolicySource.includes("hitRisk > 0.18") &&
+    botPolicySource.includes("action.supplyIntent === \"restore_reboost\"") &&
+    botPolicySource.includes("return 4.35 + 4.2 * needSeverity"),
+  "policy scorer should tighten brew-only use and add a positive needed restore/reboost prior"
+);
+assert(
+  runtimePolicySource.includes("runtimePolicyIncomingQueuedKoPressure(state, actorId, actor.hitpoints)") &&
+    runtimePolicySource.includes("function runtimePolicyIncomingQueuedKoPressure") &&
+    runtimePolicySource.includes("const projectedHitpoints = hitpoints - incomingMax") &&
+    runtimePolicySource.includes("return runtimePolicyClamp01((42 - projectedHitpoints) / 42)"),
+  "runtime policy emergency supplies should use HP-sensitive queued-hit pressure instead of brewing from raw queued max hit alone"
 );
 
 console.log(

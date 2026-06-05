@@ -41,12 +41,17 @@ export const nhWeaponProfiles: Readonly<
     | "kodai"
     | "ancient_staff"
     | "staff_of_the_dead"
+    | "zuriels_staff"
     | "armadyl_crossbow"
+    | "zaryte_crossbow"
     | "rune_crossbow"
     | "magic_shortbow"
     | "dragon_crossbow"
     | "tentacle_whip"
     | "abyssal_whip"
+    | "noxious_halberd"
+    | "voidwaker"
+    | "vesta_longsword"
     | "armadyl_godsword"
     | "granite_maul",
     WeaponTimingProfile
@@ -73,8 +78,22 @@ export const nhWeaponProfiles: Readonly<
     attackRange: 1,
     hasVisibleSpecBar: true
   },
+  zuriels_staff: {
+    id: "zuriels_staff",
+    style: "crush",
+    cooldownTicks: 5,
+    attackRange: 1,
+    hasVisibleSpecBar: false
+  },
   armadyl_crossbow: {
     id: "armadyl_crossbow",
+    style: "ranged",
+    cooldownTicks: 6,
+    attackRange: 8,
+    hasVisibleSpecBar: true
+  },
+  zaryte_crossbow: {
+    id: "zaryte_crossbow",
     style: "ranged",
     cooldownTicks: 6,
     attackRange: 8,
@@ -115,6 +134,27 @@ export const nhWeaponProfiles: Readonly<
     attackRange: 1,
     hasVisibleSpecBar: true
   },
+  noxious_halberd: {
+    id: "noxious_halberd",
+    style: "slash",
+    cooldownTicks: 5,
+    attackRange: 2,
+    hasVisibleSpecBar: false
+  },
+  voidwaker: {
+    id: "voidwaker",
+    style: "stab",
+    cooldownTicks: 4,
+    attackRange: 1,
+    hasVisibleSpecBar: true
+  },
+  vesta_longsword: {
+    id: "vesta_longsword",
+    style: "slash",
+    cooldownTicks: 5,
+    attackRange: 1,
+    hasVisibleSpecBar: true
+  },
   armadyl_godsword: {
     id: "armadyl_godsword",
     style: "slash",
@@ -143,7 +183,8 @@ export function playerAttackGate(input: PlayerAttackGateInput): PlayerAttackGate
     const reach = canMeleeReachThisTick({
       attacker: input.attackerTile,
       defender: input.defenderTile,
-      attackerFrozen: input.attackerFrozen
+      attackerFrozen: input.attackerFrozen,
+      attackRange: input.weapon.attackRange
     });
 
     if (!reach.canReach) {

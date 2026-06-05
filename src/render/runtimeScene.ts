@@ -43,7 +43,13 @@ export interface RuntimeActorPose {
 }
 
 export type RuntimeActorId = "local-player" | "opponent";
-export type RuntimeLoadoutId = "kodai-robes" | "acb-hides" | "tentacle-bandos" | "ags-bandos" | "gmaul-bandos";
+export type RuntimeLoadoutId =
+  | "kodai-robes"
+  | "acb-hides"
+  | "tentacle-bandos"
+  | "ags-bandos"
+  | "gmaul-bandos"
+  | "noxious-halberd";
 export type RuntimeSequenceName =
   | "idle"
   | "turn"
@@ -93,9 +99,16 @@ export type RuntimeSequenceName =
   | "ags_special"
   | "gmaul_attack"
   | "gmaul_special"
+  | "halberd_attack"
+  | "vesta_longsword_ready"
+  | "sword_stab_attack"
+  | "sword_slash_attack"
+  | "vesta_longsword_special"
+  | "voidwaker_special"
   | "crossbow_attack"
   | "blitz_cast"
-  | "barrage_cast";
+  | "barrage_cast"
+  | "vengeance_cast";
 
 export interface RuntimePlayerAppearance {
   readonly itemIds: readonly number[];
@@ -278,11 +291,13 @@ export interface RuntimeHudState {
   readonly weaponTypeConfig?: number;
   readonly autocast?: number;
   readonly defensiveCast?: boolean;
+  readonly soundEffectVolume?: number;
+  readonly areaSoundEffectVolume?: number;
   readonly prayers?: NhPrayerStates;
   readonly skills?: RuntimeSkillStates;
 }
 
-export type RuntimeEventKind = "projectile" | "spotanim" | "overlay-sprite";
+export type RuntimeEventKind = "projectile" | "spotanim" | "overlay-sprite" | "overlay-text";
 export type RuntimeSpriteSheetId =
   | "prayer_overheads"
   | "pk_skull"
@@ -338,6 +353,10 @@ export interface RuntimeRenderEvent {
   readonly spriteSheetId?: RuntimeSpriteSheetId;
   readonly spriteId?: number;
   readonly spriteFrame?: number;
+  readonly text?: string;
+  readonly textColor?: number;
+  readonly textEffect?: number;
+  readonly durationClientCycles?: number;
   readonly clientOrder?: number;
   readonly clientCycle?: number;
   readonly healthRatio?: number;
@@ -409,6 +428,16 @@ export const runtimeLoadouts = [
     artifactUrl: "render/player-loadouts/gmaul-bandos.glb",
     meshMetadataPath: "fixtures/render/player-loadouts/gmaul-bandos.mesh.json",
     meshMetadataUrl: "render/player-loadouts/gmaul-bandos.mesh.json"
+  },
+  {
+    id: "noxious-halberd",
+    label: "Noxious halberd",
+    itemIds: canonicalNhLoadoutItemIds["noxious-halberd"],
+    bodyColors: [0, 0, 0, 0, 0],
+    artifactPath: "fixtures/render/player-loadouts/noxious-bandos.glb",
+    artifactUrl: "render/player-loadouts/noxious-bandos.glb",
+    meshMetadataPath: "fixtures/render/player-loadouts/noxious-bandos.mesh.json",
+    meshMetadataUrl: "render/player-loadouts/noxious-bandos.mesh.json"
   }
 ] satisfies readonly RuntimeLoadout[];
 
@@ -496,6 +525,8 @@ export const defaultRuntimeHudState: RuntimeHudState = {
   weaponTypeConfig: 18,
   autocast: 0,
   defensiveCast: false,
+  soundEffectVolume: 4,
+  areaSoundEffectVolume: 4,
   prayers: {},
   skills: defaultRuntimeSkillStates
 };

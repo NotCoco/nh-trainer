@@ -8,11 +8,12 @@ export interface MeleeReachInput {
   readonly attacker: TilePosition;
   readonly defender: TilePosition;
   readonly attackerFrozen: boolean;
+  readonly attackRange?: number;
 }
 
 export interface MeleeReachResult {
   readonly canReach: boolean;
-  readonly relation: "same-tile" | "cardinal-adjacent" | "diagonal" | "step-in" | "out-of-range" | "different-plane";
+  readonly relation: "same-tile" | "cardinal-adjacent" | "diagonal" | "step-in" | "extended-range" | "out-of-range" | "different-plane";
   readonly requiresMovement: boolean;
 }
 
@@ -56,6 +57,7 @@ export function canMeleeReachThisTick(input: MeleeReachInput): MeleeReachResult 
   }
 
   const { dx, dy } = tileDelta(input.attacker, input.defender);
+  const attackRange = Math.max(1, Math.trunc(input.attackRange ?? 1));
 
   // Reference NH behavior treats standing under the target as a melee opportunity only when the attacker can step.
   if (dx === 0 && dy === 0) {
@@ -71,6 +73,22 @@ export function canMeleeReachThisTick(input: MeleeReachInput): MeleeReachResult 
       canReach: true,
       relation: "cardinal-adjacent",
       requiresMovement: false
+    };
+  }
+
+  if (attackRange > 1) {
+    const distance = Math.max(dx, dy);
+    if (distance <= attackRange) {
+      return {
+        canReach: true,
+        relation: dx === 1 && dy === 1 ? "diagonal" : "extended-range",
+        requiresMovement: false
+      };
+    }
+    return {
+      canReach: false,
+      relation: "out-of-range",
+      requiresMovement: distance <= attackRange + 1
     };
   }
 

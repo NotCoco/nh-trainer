@@ -35,8 +35,12 @@ const defaultActorSequenceDefinitions: NhActorSequenceDefinitionStore = new Map<
   [1660, "whip_walk"],
   [1661, "whip_run"],
   [1658, "whip_attack"],
+  [386, "sword_stab_attack"],
+  [390, "sword_slash_attack"],
   [1665, "gmaul_attack"],
   [1667, "gmaul_special"],
+  [440, "halberd_attack"],
+  [809, "vesta_longsword_ready"],
   [7053, "godsword_ready"],
   [7044, "godsword_turn"],
   [7052, "godsword_walk"],
@@ -45,8 +49,11 @@ const defaultActorSequenceDefinitions: NhActorSequenceDefinitionStore = new Map<
   [7043, "godsword_run"],
   [7045, "godsword_attack"],
   [7644, "ags_special"],
+  [7515, "vesta_longsword_special"],
+  [11275, "voidwaker_special"],
   [1978, "blitz_cast"],
   [1979, "barrage_cast"],
+  [8316, "vengeance_cast"],
   [4591, "crossbow_ready"],
   [4227, "crossbow_walk_back"],
   [4226, "crossbow_walk"],
@@ -170,9 +177,16 @@ function runtimeSequenceNameField(value: unknown): RuntimeSequenceName | undefin
     value === "ags_special" ||
     value === "gmaul_attack" ||
     value === "gmaul_special" ||
+    value === "halberd_attack" ||
+    value === "vesta_longsword_ready" ||
+    value === "sword_stab_attack" ||
+    value === "sword_slash_attack" ||
+    value === "vesta_longsword_special" ||
+    value === "voidwaker_special" ||
     value === "crossbow_attack" ||
     value === "blitz_cast" ||
-    value === "barrage_cast"
+    value === "barrage_cast" ||
+    value === "vengeance_cast"
     ? value
     : undefined;
 }

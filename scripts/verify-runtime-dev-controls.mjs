@@ -35,6 +35,10 @@ for (const anchor of [
   "RUNTIME_NH_STAKE_EQUIPMENT_ENTRIES",
   "RUNTIME_NH_STAKE_EQUIPMENT_ITEMS",
   "RUNTIME_NH_STAKE_INVENTORY_SLOTS",
+  "type RuntimeTrainerSetupId = \"nh-stake\" | \"dmm\"",
+  "RUNTIME_DMM_CAPTURED_INVENTORY_SLOTS",
+  "RUNTIME_TRAINER_SETUP_PRESETS",
+  "runtimeSetupInventorySlotsForSupplies(",
   "RUNTIME_NH_STAKE_GEAR_PROFILE",
   "const initialRuntimePlayerCombatBaseState = createRuntimePlayerCombatState({",
   "const initialRuntimePlayerCombatState = syncRuntimePlayerCombatStateToInput(initialRuntimePlayerCombatBaseState",
@@ -43,7 +47,10 @@ for (const anchor of [
   "inventorySlots: RUNTIME_NH_STAKE_INVENTORY_SLOTS",
   "() => [...RUNTIME_NH_STAKE_INVENTORY_SLOTS]",
   "() => new Map(RUNTIME_NH_STAKE_EQUIPMENT_ITEMS)",
-  "applyRuntimeNhStakeSetupPreset",
+  "applyRuntimeSetupPreset",
+  "data-runtime-setup-selector=\"true\"",
+  "data-runtime-setup-option=\"dmm\"",
+  "setRuntimeSetupSelectorOpen(false)",
   "const freshCombatState = createRuntimePlayerCombatState({",
   "syncRuntimePlayerCombatStateToInput(freshCombatState",
   "manualOpponentTargetTrackingRef.current = emptyRuntimePolicyTargetTrackingState",
@@ -68,9 +75,11 @@ assert(
 for (const anchor of [
   ".runtimeTemporaryDevControls",
   ".runtimeTemporaryDevControls button",
-  ".runtimeTemporaryDevStatus"
+  ".runtimeTemporaryDevStatus",
+  ".runtimeSetupSelector",
+  ".runtimeSetupSelectorActions"
 ]) {
   assert(cssSource.includes(anchor), `styles.css missing temporary dev control style: ${anchor}`);
 }
 
-console.log("Runtime dev controls verifier passed: NH stake startup baseline, auto-retaliate persistence, temporary spec/freeze controls, saved setup load, and source-like renderer AA are wired.");
+console.log("Runtime dev controls verifier passed: setup selector, DMM Nox preset, auto-retaliate persistence, temporary spec/freeze controls, saved setup load, and source-like renderer AA are wired.");

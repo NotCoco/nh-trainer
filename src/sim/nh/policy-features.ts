@@ -8,11 +8,16 @@ import { canMeleeReachThisTick, chebyshevDistance } from "../world/movement";
 import {
   isNhArmadylGodswordItemId,
   isNhGraniteMaulItemId,
+  isNhVestaLongswordItemId,
+  isNhVoidwakerItemId,
   nhGearProfileDefenceScoreAgainstThreat,
   nhGearProfileOptimizeFlexibleEquipment,
   nhGearProfileAvailableSpecialWeaponKind,
+  nhGearProfileAvailableSpecialWeaponKinds,
   nhGearProfileCanEquipArmadylGodsword,
-  nhGearProfileCanEquipGraniteMaul
+  nhGearProfileCanEquipGraniteMaul,
+  nhGearProfileCanEquipVestaLongsword,
+  nhGearProfileCanEquipVoidwaker
 } from "./gearProfile";
 import {
   nhPolicyFeatureSize,
@@ -53,8 +58,10 @@ const equipmentRows = equipmentRowsJson as readonly EquipmentBonusRow[];
 const clientThreatGmaulMax = 40;
 const clientThreatGmaulDoubleMax = 72;
 const clientThreatAgsMax = 74;
+const clientThreatVoidwakerMax = 72;
+const clientThreatVlsMax = 66;
 const clientThreatPrayerReduction = 0.6;
-type NhSpecialWeaponKind = "granite_maul" | "armadyl_godsword";
+type NhSpecialWeaponKind = "granite_maul" | "armadyl_godsword" | "voidwaker" | "vesta_longsword";
 
 let reservoirCache: ReturnType<typeof createReservoir> | null = null;
 
@@ -407,11 +414,18 @@ function pushStyle(output: number[], style: NhOffenceStyle | null): void {
 }
 
 function styleForWeapon(weaponId: NhWeaponId): NhOffenceStyle {
-  if (weaponId === "kodai" || weaponId === "ancient_staff" || weaponId === "staff_of_the_dead") {
+  if (
+    weaponId === "kodai" ||
+    weaponId === "ancient_staff" ||
+    weaponId === "staff_of_the_dead" ||
+    weaponId === "zuriels_staff" ||
+    weaponId === "voidwaker"
+  ) {
     return "magic";
   }
   if (
     weaponId === "armadyl_crossbow" ||
+    weaponId === "zaryte_crossbow" ||
     weaponId === "rune_crossbow" ||
     weaponId === "magic_shortbow" ||
     weaponId === "dragon_crossbow"
@@ -441,8 +455,14 @@ function itemIdForWeapon(weaponId: NhWeaponId): number {
   if (weaponId === "staff_of_the_dead") {
     return 11791;
   }
+  if (weaponId === "zuriels_staff") {
+    return 22647;
+  }
   if (weaponId === "armadyl_crossbow") {
     return 11785;
+  }
+  if (weaponId === "zaryte_crossbow") {
+    return 26374;
   }
   if (weaponId === "rune_crossbow") {
     return 9185;
@@ -461,6 +481,15 @@ function itemIdForWeapon(weaponId: NhWeaponId): number {
   }
   if (weaponId === "abyssal_whip") {
     return 4151;
+  }
+  if (weaponId === "noxious_halberd") {
+    return 29796;
+  }
+  if (weaponId === "voidwaker") {
+    return 27690;
+  }
+  if (weaponId === "vesta_longsword") {
+    return 22613;
   }
   return 12006;
 }
@@ -566,11 +595,12 @@ function flexibleDefenceGainFeature(
 }
 
 function gmaulFeatureWindow(context: NhDuelControllerContext): GmaulFeatureWindow {
-  const specialKind = availableSpecialWeaponKind(context.self);
-  const singleCanSpecNow = canUseSpecialSpecFromObserved(context, false);
-  const doubleCanSpecNow = canUseSpecialSpecFromObserved(context, true);
-  const singleCanSpecSoon = singleCanSpecNow || canApproachSpecialSpecSoon(context, false);
-  const doubleCanSpecSoon = doubleCanSpecNow || canApproachSpecialSpecSoon(context, true);
+  const singleKind = bestAvailableSpecialWeaponKind(context, false);
+  const doubleKind = bestAvailableSpecialWeaponKind(context, true);
+  const singleCanSpecNow = singleKind !== null && canUseSpecialSpecFromObserved(context, false, singleKind);
+  const doubleCanSpecNow = doubleKind !== null && canUseSpecialSpecFromObserved(context, true, doubleKind);
+  const singleCanSpecSoon = singleKind !== null && (singleCanSpecNow || canApproachSpecialSpecSoon(context, false, singleKind));
+  const doubleCanSpecSoon = doubleKind !== null && (doubleCanSpecNow || canApproachSpecialSpecSoon(context, true, doubleKind));
   if (!singleCanSpecSoon && !doubleCanSpecSoon) {
     return {
       singleKoChance: 0,
@@ -582,19 +612,21 @@ function gmaulFeatureWindow(context: NhDuelControllerContext): GmaulFeatureWindo
 
   const opponentHp = clientVisibleOpponentHp(context);
   const recentHit = Math.max(0, context.self.lastDealtHit);
-  const exposure = specialKind ? opponentSpecialSpecExposure(context, specialKind) : 1;
-  const meleeProtected = opponentProtectsFromMelee(context);
+  const singleExposure = singleKind ? opponentSpecialSpecExposure(context, singleKind) : 1;
+  const singleProtected = opponentProtectsFromSpecial(context, singleKind);
+  const doubleExposure = doubleKind ? opponentSpecialSpecExposure(context, doubleKind) : 1;
+  const doubleProtected = opponentProtectsFromSpecial(context, doubleKind);
   // Source: NhStakerBot fills gmaulSingle/DoubleKoChance from clientGmaulKoChance()
   // when in melee range, otherwise clientGmaulKoChanceEstimate(..., requireMeleeRange=false).
   return {
     singleKoChance: singleCanSpecSoon
-      ? clientSpecialKoChanceEstimate(context, specialKind, false, singleCanSpecNow, exposure, meleeProtected)
+      ? clientSpecialKoChanceEstimate(context, singleKind, false, singleCanSpecNow, singleExposure, singleProtected)
       : 0,
     doubleKoChance: doubleCanSpecSoon
-      ? clientSpecialKoChanceEstimate(context, specialKind, true, doubleCanSpecNow, exposure, meleeProtected)
+      ? clientSpecialKoChanceEstimate(context, doubleKind, true, doubleCanSpecNow, doubleExposure, doubleProtected)
       : 0,
-    singleSetupScore: singleCanSpecSoon ? specialSetupScore(specialKind, false, opponentHp, recentHit, exposure, meleeProtected) : 0,
-    doubleSetupScore: doubleCanSpecSoon ? specialSetupScore(specialKind, true, opponentHp, recentHit, exposure, meleeProtected) : 0
+    singleSetupScore: singleCanSpecSoon ? specialSetupScore(singleKind, false, opponentHp, recentHit, singleExposure, singleProtected) : 0,
+    doubleSetupScore: doubleCanSpecSoon ? specialSetupScore(doubleKind, true, opponentHp, recentHit, doubleExposure, doubleProtected) : 0
   };
 }
 
@@ -606,7 +638,7 @@ export function nhPolicyGmaulSpecApproachWindow(context: NhDuelControllerContext
   ) {
     return 0;
   }
-  const specialKind = availableSpecialWeaponKind(context.self);
+  const specialKind = bestAvailableSpecialWeaponKind(context, doubleSpecOnly);
   if (specialKind === null || (doubleSpecOnly && specialKind !== "granite_maul")) {
     return 0;
   }
@@ -621,23 +653,26 @@ export function nhPolicyGmaulSpecApproachWindow(context: NhDuelControllerContext
   const opponentHp = clientVisibleOpponentHp(context);
   const recentHit = Math.max(0, context.self.lastDealtHit);
   const exposure = opponentSpecialSpecExposure(context, specialKind);
-  const meleeProtected = opponentProtectsFromMelee(context);
+  const specProtected = opponentProtectsFromSpecial(context, specialKind);
   let best = 0;
   if (!doubleSpecOnly) {
-    const singleKo = clientSpecialKoChanceEstimate(context, specialKind, false, false, exposure, meleeProtected);
-    const singleSetup = specialSetupScore(specialKind, false, opponentHp, recentHit, exposure, meleeProtected);
-    best = Math.max(best, specialCredibleSpecWindow(specialKind, false, opponentHp, recentHit, exposure, meleeProtected, singleKo, singleSetup));
+    const singleKo = clientSpecialKoChanceEstimate(context, specialKind, false, false, exposure, specProtected);
+    const singleSetup = specialSetupScore(specialKind, false, opponentHp, recentHit, exposure, specProtected);
+    best = Math.max(best, specialCredibleSpecWindow(specialKind, false, opponentHp, recentHit, exposure, specProtected, singleKo, singleSetup));
   }
   if (specialKind === "granite_maul" && energy >= 100) {
-    const doubleKo = clientGmaulKoChanceEstimate(context, true, false, exposure, meleeProtected);
-    const doubleSetup = gmaulSetupScore(true, opponentHp, recentHit, exposure, meleeProtected);
-    best = Math.max(best, gmaulCredibleSpecWindow(true, opponentHp, recentHit, exposure, meleeProtected, doubleKo, doubleSetup));
+    const doubleKo = clientGmaulKoChanceEstimate(context, true, false, exposure, specProtected);
+    const doubleSetup = gmaulSetupScore(true, opponentHp, recentHit, exposure, specProtected);
+    best = Math.max(best, gmaulCredibleSpecWindow(true, opponentHp, recentHit, exposure, specProtected, doubleKo, doubleSetup));
   }
   return best;
 }
 
-function canUseSpecialSpecFromObserved(context: NhDuelControllerContext, doubleSpec: boolean): boolean {
-  const specialKind = availableSpecialWeaponKind(context.self);
+function canUseSpecialSpecFromObserved(
+  context: NhDuelControllerContext,
+  doubleSpec: boolean,
+  specialKind = bestAvailableSpecialWeaponKind(context, doubleSpec)
+): boolean {
   if (specialKind === null || (doubleSpec && specialKind !== "granite_maul")) {
     return false;
   }
@@ -655,14 +690,17 @@ function canUseSpecialSpecFromObserved(context: NhDuelControllerContext, doubleS
   if (!context.meleeReachable) {
     return false;
   }
-  if (specialKind === "armadyl_godsword" && getAttackDelayStatus(context.self.attackTimer, context.tick).delayed) {
+  if (specialKind !== "granite_maul" && getAttackDelayStatus(context.self.attackTimer, context.tick).delayed) {
     return false;
   }
-  return nhWeaponProfiles[context.self.weaponId].hasVisibleSpecBar;
+  return hasClientSpecControlForSpecial(context, specialKind);
 }
 
-function canApproachSpecialSpecSoon(context: NhDuelControllerContext, doubleSpec: boolean): boolean {
-  const specialKind = availableSpecialWeaponKind(context.self);
+function canApproachSpecialSpecSoon(
+  context: NhDuelControllerContext,
+  doubleSpec: boolean,
+  specialKind = bestAvailableSpecialWeaponKind(context, doubleSpec)
+): boolean {
   if (specialKind === null || (doubleSpec && specialKind !== "granite_maul")) {
     return false;
   }
@@ -676,20 +714,95 @@ function canApproachSpecialSpecSoon(context: NhDuelControllerContext, doubleSpec
   ) {
     return false;
   }
-  if (specialKind === "armadyl_godsword" && getAttackDelayStatus(context.self.attackTimer, context.tick).delayed) {
+  if (specialKind !== "granite_maul" && getAttackDelayStatus(context.self.attackTimer, context.tick).delayed) {
     return false;
   }
-  return observedDistance(context) === 2;
+  return observedDistance(context) === 2 && hasClientSpecControlForSpecial(context, specialKind);
+}
+
+function hasClientSpecControlForSpecial(context: NhDuelControllerContext, specialKind: NhSpecialWeaponKind): boolean {
+  return (
+    nhWeaponProfiles[context.self.weaponId].hasVisibleSpecBar ||
+    specialKind === "voidwaker" ||
+    specialKind === "vesta_longsword"
+  );
 }
 
 function availableSpecialWeaponKind(actor: NhDuelActorState): NhSpecialWeaponKind | null {
-  if (hasEquipableGraniteMaulAvailable(actor)) {
-    return "granite_maul";
+  return availableSpecialWeaponKinds(actor)[0] ?? null;
+}
+
+function availableSpecialWeaponKinds(actor: NhDuelActorState): readonly NhSpecialWeaponKind[] {
+  const kinds: NhSpecialWeaponKind[] = [];
+  const add = (kind: NhSpecialWeaponKind): void => {
+    if (!kinds.includes(kind)) {
+      kinds.push(kind);
+    }
+  };
+  if (actor.gearProfile) {
+    for (const kind of nhGearProfileAvailableSpecialWeaponKinds(actor.gearProfile, actor.gmaul.specialEnergy)) {
+      add(kind);
+    }
   }
-  if (hasEquipableArmadylGodswordAvailable(actor)) {
-    return "armadyl_godsword";
+  if (hasEquipableGraniteMaulAvailable(actor) && actor.gmaul.specialEnergy >= 50) {
+    add("granite_maul");
   }
-  return null;
+  if (hasEquipableArmadylGodswordAvailable(actor) && actor.gmaul.specialEnergy >= 50) {
+    add("armadyl_godsword");
+  }
+  if (hasEquipableVoidwakerAvailable(actor) && actor.gmaul.specialEnergy >= 50) {
+    add("voidwaker");
+  }
+  if (hasEquipableVestaLongswordAvailable(actor) && actor.gmaul.specialEnergy >= 25) {
+    add("vesta_longsword");
+  }
+  return kinds;
+}
+
+function bestAvailableSpecialWeaponKind(
+  context: NhDuelControllerContext,
+  doubleSpec: boolean
+): NhSpecialWeaponKind | null {
+  let bestKind: NhSpecialWeaponKind | null = null;
+  let bestScore = Number.NEGATIVE_INFINITY;
+  for (const kind of availableSpecialWeaponKinds(context.self)) {
+    if (doubleSpec && kind !== "granite_maul") {
+      continue;
+    }
+    if (!canUseSpecialSpecFromObserved(context, doubleSpec, kind) && !canApproachSpecialSpecSoon(context, doubleSpec, kind)) {
+      continue;
+    }
+    const score = specialWeaponDecisionScore(context, kind, doubleSpec && kind === "granite_maul");
+    if (score > bestScore) {
+      bestScore = score;
+      bestKind = kind;
+    }
+  }
+  return bestKind;
+}
+
+function specialWeaponDecisionScore(
+  context: NhDuelControllerContext,
+  specialKind: NhSpecialWeaponKind,
+  doubleSpec: boolean
+): number {
+  const opponentHp = clientVisibleOpponentHp(context);
+  const recentHit = Math.max(0, context.self.lastDealtHit);
+  const specProtected = opponentProtectsFromSpecial(context, specialKind);
+  const exposure = opponentSpecialSpecExposure(context, specialKind);
+  const setupScore = specialSetupScore(specialKind, doubleSpec, opponentHp, recentHit, exposure, specProtected);
+  const koChance = clientSpecialKoChanceEstimate(context, specialKind, doubleSpec, false, exposure, specProtected);
+  const credibleWindow = specialCredibleSpecWindow(
+    specialKind,
+    doubleSpec,
+    opponentHp,
+    recentHit,
+    exposure,
+    specProtected,
+    koChance,
+    setupScore
+  );
+  return koChance * 1.45 + credibleWindow * 0.9 + setupScore * 0.25;
 }
 
 function hasEquipableGraniteMaulAvailable(actor: NhDuelActorState): boolean {
@@ -712,9 +825,32 @@ function hasEquipableArmadylGodswordAvailable(actor: NhDuelActorState): boolean 
   return actor.inventorySlots.some((slot) => slot !== null && slot.quantity > 0 && isNhArmadylGodswordItemId(slot.itemId));
 }
 
+function hasEquipableVoidwakerAvailable(actor: NhDuelActorState): boolean {
+  if (actor.gearProfile && nhGearProfileCanEquipVoidwaker(actor.gearProfile)) {
+    return true;
+  }
+  if (actor.equipment.weapon && isNhVoidwakerItemId(actor.equipment.weapon.itemId)) {
+    return true;
+  }
+  return actor.inventorySlots.some((slot) => slot !== null && slot.quantity > 0 && isNhVoidwakerItemId(slot.itemId));
+}
+
+function hasEquipableVestaLongswordAvailable(actor: NhDuelActorState): boolean {
+  if (actor.gearProfile && nhGearProfileCanEquipVestaLongsword(actor.gearProfile)) {
+    return true;
+  }
+  if (actor.equipment.weapon && isNhVestaLongswordItemId(actor.equipment.weapon.itemId)) {
+    return true;
+  }
+  return actor.inventorySlots.some((slot) => slot !== null && slot.quantity > 0 && isNhVestaLongswordItemId(slot.itemId));
+}
+
 function specialRequiredEnergy(specialKind: NhSpecialWeaponKind, doubleSpec: boolean): number {
   if (specialKind === "granite_maul") {
     return doubleSpec ? 100 : 50;
+  }
+  if (specialKind === "vesta_longsword") {
+    return 25;
   }
   return 50;
 }
@@ -729,6 +865,12 @@ function clientSpecialKoChanceEstimate(
 ): number {
   if (specialKind === "armadyl_godsword") {
     return doubleSpec ? 0 : clientAgsKoChanceEstimate(context, requireMeleeRange, exposure, meleeProtected);
+  }
+  if (specialKind === "voidwaker") {
+    return doubleSpec ? 0 : clientVoidwakerKoChanceEstimate(context, requireMeleeRange, exposure, meleeProtected);
+  }
+  if (specialKind === "vesta_longsword") {
+    return doubleSpec ? 0 : clientVlsKoChanceEstimate(context, requireMeleeRange, exposure, meleeProtected);
   }
   return clientGmaulKoChanceEstimate(context, doubleSpec, requireMeleeRange, exposure, meleeProtected);
 }
@@ -805,6 +947,67 @@ function clientAgsKoChanceEstimate(
   return clamp01(chance);
 }
 
+function clientVoidwakerKoChanceEstimate(
+  context: NhDuelControllerContext,
+  requireMeleeRange: boolean,
+  exposure: number,
+  magicProtected: boolean
+): number {
+  if (observedDistance(context) < 0) {
+    return 0;
+  }
+  if (requireMeleeRange && !context.meleeReachable) {
+    return 0;
+  }
+  const opponentHp = clientVisibleOpponentHp(context);
+  const recentHit = Math.max(0, context.self.lastDealtHit);
+  const prayerFactor = magicProtected ? clientThreatPrayerReduction : 1;
+  const effectiveDamage = Math.max(1, Math.round(clientThreatVoidwakerMax * exposure * prayerFactor));
+  let chance = softKoRisk(opponentHp, effectiveDamage, 10);
+  if (!magicProtected && opponentHp <= 70) {
+    chance += 0.08;
+  }
+  if (recentHit >= 24 && opponentHp <= 78) {
+    chance += 0.1;
+  }
+  if (opponentHp <= 52) {
+    chance += 0.08;
+  }
+  if (opponentHp >= 88 && recentHit < 18) {
+    chance -= 0.12;
+  }
+  return clamp01(chance);
+}
+
+function clientVlsKoChanceEstimate(
+  context: NhDuelControllerContext,
+  requireMeleeRange: boolean,
+  exposure: number,
+  meleeProtected: boolean
+): number {
+  if (observedDistance(context) < 0) {
+    return 0;
+  }
+  if (requireMeleeRange && !context.meleeReachable) {
+    return 0;
+  }
+  const opponentHp = clientVisibleOpponentHp(context);
+  const recentHit = Math.max(0, context.self.lastDealtHit);
+  const prayerFactor = meleeProtected ? clientThreatPrayerReduction : 1;
+  const effectiveDamage = Math.max(1, Math.round(clientThreatVlsMax * exposure * prayerFactor));
+  let chance = softKoRisk(opponentHp, effectiveDamage, 12);
+  if (!meleeProtected && recentHit >= 20 && opponentHp <= 72) {
+    chance += 0.07;
+  }
+  if (opponentHp <= 48) {
+    chance += 0.08;
+  }
+  if (opponentHp >= 82 && recentHit < 20) {
+    chance -= 0.12;
+  }
+  return clamp01(chance);
+}
+
 function specialCredibleSpecWindow(
   specialKind: NhSpecialWeaponKind | null,
   doubleSpec: boolean,
@@ -817,6 +1020,12 @@ function specialCredibleSpecWindow(
 ): number {
   if (specialKind === "armadyl_godsword") {
     return agsCredibleSpecWindow(opponentHp, recentHit, exposure, meleeProtected, koChance, setupScore);
+  }
+  if (specialKind === "voidwaker") {
+    return voidwakerCredibleSpecWindow(opponentHp, recentHit, exposure, meleeProtected, koChance, setupScore);
+  }
+  if (specialKind === "vesta_longsword") {
+    return vlsCredibleSpecWindow(opponentHp, recentHit, exposure, meleeProtected, koChance, setupScore);
   }
   return gmaulCredibleSpecWindow(doubleSpec, opponentHp, recentHit, exposure, meleeProtected, koChance, setupScore);
 }
@@ -870,6 +1079,54 @@ function gmaulCredibleSpecWindow(
   return clamp01(window);
 }
 
+function voidwakerCredibleSpecWindow(
+  opponentHp: number,
+  recentHit: number,
+  exposure: number,
+  magicProtected: boolean,
+  koChance: number,
+  setupScore: number
+): number {
+  let window = Math.max(koChance, setupScore * 0.9);
+  if (recentHit >= 22 && opponentHp <= 80) {
+    window += 0.08 + clamp01((recentHit - 22) / 26) * 0.1;
+  }
+  if (!magicProtected && exposure >= 1 && opponentHp <= 78) {
+    window += 0.07;
+  }
+  if (magicProtected && opponentHp > 46) {
+    window *= 0.5;
+  }
+  if (opponentHp >= 90 && recentHit < 18) {
+    window *= 0.48;
+  }
+  return clamp01(window);
+}
+
+function vlsCredibleSpecWindow(
+  opponentHp: number,
+  recentHit: number,
+  exposure: number,
+  meleeProtected: boolean,
+  koChance: number,
+  setupScore: number
+): number {
+  let window = Math.max(koChance, setupScore * 0.84);
+  if (recentHit >= 20 && opponentHp <= 70) {
+    window += 0.08 + clamp01((recentHit - 20) / 24) * 0.09;
+  }
+  if (!meleeProtected && exposure >= 1.04 && opponentHp <= 72) {
+    window += clamp01((exposure - 1) / 0.32) * 0.08;
+  }
+  if (meleeProtected && opponentHp > 40) {
+    window *= 0.46;
+  }
+  if (opponentHp >= 82 && recentHit < 18) {
+    window *= 0.48;
+  }
+  return clamp01(window);
+}
+
 function specialSetupScore(
   specialKind: NhSpecialWeaponKind | null,
   doubleSpec: boolean,
@@ -880,6 +1137,12 @@ function specialSetupScore(
 ): number {
   if (specialKind === "armadyl_godsword") {
     return agsSetupScore(opponentHp, recentHit, exposure, meleeProtected);
+  }
+  if (specialKind === "voidwaker") {
+    return voidwakerSetupScore(opponentHp, recentHit, exposure, meleeProtected);
+  }
+  if (specialKind === "vesta_longsword") {
+    return vlsSetupScore(opponentHp, recentHit, exposure, meleeProtected);
   }
   return gmaulSetupScore(doubleSpec, opponentHp, recentHit, exposure, meleeProtected);
 }
@@ -925,12 +1188,68 @@ function gmaulSetupScore(
   return clamp01(setup * prayerScale);
 }
 
+function voidwakerSetupScore(
+  opponentHp: number,
+  recentHit: number,
+  exposure: number,
+  magicProtected: boolean
+): number {
+  const hpScore = clamp01((78 - opponentHp) / 44);
+  const recentHitScore = clamp01((recentHit - 16) / 26);
+  const exposureScore = clamp01((exposure - 0.9) / 0.3);
+  let setup = hpScore * 0.58 + recentHitScore * 0.28 + exposureScore * 0.14;
+  if (recentHit >= 28 && opponentHp <= 72) {
+    setup += 0.1;
+  }
+  if (recentHit <= 8 && opponentHp >= 78) {
+    setup -= 0.18;
+  }
+  return clamp01(setup * (magicProtected ? 0.38 : 1));
+}
+
+function vlsSetupScore(
+  opponentHp: number,
+  recentHit: number,
+  exposure: number,
+  meleeProtected: boolean
+): number {
+  const hpScore = clamp01((70 - opponentHp) / 38);
+  const recentHitScore = clamp01((recentHit - 14) / 24);
+  const exposureScore = clamp01((exposure - 0.82) / 0.45);
+  let setup = hpScore * 0.5 + recentHitScore * 0.32 + exposureScore * 0.18;
+  if (recentHit >= 24 && opponentHp <= 64) {
+    setup += 0.1;
+  }
+  if (recentHit <= 8 && opponentHp >= 68) {
+    setup -= 0.16;
+  }
+  return clamp01(setup * (meleeProtected ? 0.28 : 1));
+}
+
 function opponentSpecialSpecExposure(context: NhDuelControllerContext, specialKind: NhSpecialWeaponKind): number {
   if (!observedOpponentInfoKnown(context)) {
     return 1;
   }
   const bonuses = aggregateVisibleEquipmentBonuses(context.opponent.equipment, equipmentRows);
-  const meleeDefence = specialKind === "armadyl_godsword" ? bonuses.slash_defence_bonus : bonuses.crush_defence_bonus;
+  if (specialKind === "voidwaker") {
+    const magicDefence = bonuses.magic_defence_bonus;
+    let exposure = 1;
+    if (activeProtectionPrayer(context.opponent.activePrayers) !== protectPrayerForStyle("magic")) {
+      exposure += 0.05;
+    }
+    if (magicDefence <= 70) {
+      exposure += 0.04;
+    } else if (magicDefence >= 180) {
+      exposure -= 0.04;
+    }
+    return Math.max(0.88, Math.min(1.12, exposure));
+  }
+  const meleeDefence =
+    specialKind === "vesta_longsword"
+      ? bonuses.stab_defence_bonus
+      : specialKind === "armadyl_godsword"
+        ? bonuses.slash_defence_bonus
+        : bonuses.crush_defence_bonus;
   const rangedDefence = bonuses.range_defence_bonus;
   let exposure = 1;
   if (meleeDefence <= 75) {
@@ -952,7 +1271,13 @@ function opponentSpecialSpecExposure(context: NhDuelControllerContext, specialKi
   return Math.max(0.62, Math.min(1.32, exposure));
 }
 
-function opponentProtectsFromMelee(context: NhDuelControllerContext): boolean {
+function opponentProtectsFromSpecial(
+  context: NhDuelControllerContext,
+  specialKind: NhSpecialWeaponKind | null
+): boolean {
+  if (specialKind === "voidwaker") {
+    return activeProtectionPrayer(context.opponent.activePrayers) === protectPrayerForStyle("magic");
+  }
   return activeProtectionPrayer(context.opponent.activePrayers) === protectPrayerForStyle("crush");
 }
 

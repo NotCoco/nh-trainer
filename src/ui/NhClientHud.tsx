@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { Fragment, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import equipmentRowsJson from "../generated/equipment-bonuses.json";
 import emotesJson from "../../fixtures/assets/defs/emotes.json";
 import { aggregateBonuses, zeroBonuses, type BonusKey, type BonusTable } from "../sim/combat/formulas";
@@ -397,6 +397,7 @@ interface NhClientHudProps {
   readonly onPrayerDefaultAction?: (command: NhPrayerSlotCommand) => void;
   readonly onPrayerDragReorder?: (command: NhPrayerSlotDragCommand) => void;
   readonly onRunOrbDefaultAction?: (command: NhRunOrbCommand) => void;
+  readonly onOptionsSoundToggle?: (command: NhOptionsSoundToggleCommand) => void;
   readonly onXpDropOrbDefaultAction?: (command: NhXpDropOrbCommand) => void;
   readonly onXpDropOrbContextMenu?: (command: NhXpDropOrbCommand) => void;
   readonly gameKeybinds?: NhGameKeybindSnapshot;
@@ -411,6 +412,7 @@ interface NhClientHudProps {
   readonly onChatboxContextMenu?: (command: NhChatboxButtonCommand) => void;
   readonly onChatboxDefaultAction?: (command: NhChatboxButtonCommand) => void;
   readonly onChatboxHover?: (command: NhChatboxButtonCommand | null) => void;
+  readonly chatMessages?: readonly NhChatboxGameMessage[];
   readonly socialLists?: NhSocialListsSnapshot;
   readonly onSocialButtonDefaultAction?: (command: NhSocialButtonCommand) => void;
   readonly clanChat?: NhClanChatSnapshot;
@@ -463,6 +465,22 @@ export interface NhRunOrbCommand {
   readonly sourceActionCount: number;
   readonly previousRunning: boolean;
   readonly runEnergy: number;
+  readonly position: {
+    readonly x: number;
+    readonly y: number;
+  };
+}
+
+export interface NhOptionsSoundToggleCommand {
+  readonly id: "sound-effects" | "area-sounds";
+  readonly label: "Sound effects" | "Area sounds";
+  readonly actionText: "Adjust Sound Effect Volume" | "Adjust Area Sound Effect Volume";
+  readonly childId: number;
+  readonly spriteId: number;
+  readonly varpId: 169 | 872;
+  readonly previousVolume: number;
+  readonly nextVolume: number;
+  readonly sourceVarpValue: number;
   readonly position: {
     readonly x: number;
     readonly y: number;
@@ -663,6 +681,11 @@ export interface NhChatboxButtonCommand {
     readonly x: number;
     readonly y: number;
   };
+}
+
+export interface NhChatboxGameMessage {
+  readonly id: string;
+  readonly text: string;
 }
 
 export interface NhSourceWidgetAction {
@@ -985,6 +1008,7 @@ export function NhClientHud({
   onPrayerDefaultAction,
   onPrayerDragReorder,
   onRunOrbDefaultAction,
+  onOptionsSoundToggle,
   onXpDropOrbDefaultAction,
   onXpDropOrbContextMenu,
   gameKeybinds,
@@ -999,6 +1023,7 @@ export function NhClientHud({
   onChatboxContextMenu,
   onChatboxDefaultAction,
   onChatboxHover,
+  chatMessages,
   socialLists,
   onSocialButtonDefaultAction,
   clanChat,
@@ -1096,10 +1121,7 @@ export function NhClientHud({
   }
   if (activeSidePanelInterface?.groupId === NH_OPTIONS_GROUP_ID) {
     for (const widget of activeSidePanelInterface.widgets) {
-      if (
-        nhOptionsKeybindingSuppressedChildIds.has(widget.widget.childId) ||
-        widget.widget.childId === nhOptionsZoomSliderKnobChildId
-      ) {
+      if (nhOptionsCuratedPanelSuppressedChildIds.has(widget.widget.childId)) {
         suppressedMountedWidgetIds.add(widget.widget.id);
       }
     }
@@ -1113,7 +1135,6 @@ export function NhClientHud({
   const noticeboardPanel =
     activeSidePanelInterface?.groupId === NH_NOTICEBOARD_GROUP_ID ? activeSidePanelInterface : null;
   const emotePanel = activeSidePanelInterface?.groupId === NH_EMOTES_GROUP_ID ? activeSidePanelInterface : null;
-
   return (
     <div className="nhClientHud" aria-label="NH Trainer fixed-mode client interface">
       <div className="nhFixedClient" style={fixedClientStyle(layout)}>
@@ -1171,6 +1192,12 @@ export function NhClientHud({
           displayMode={clientDisplayMode ?? sourceLayout.displayMode}
           layout={resolvedActiveSideTabId === "options" ? activeSidePanelInterface : null}
           onChange={onClientDisplayModeChange}
+        />
+        <NhOptionsSoundToggleLayer
+          atlas={atlas}
+          hud={hud}
+          layout={resolvedActiveSideTabId === "options" ? activeSidePanelInterface : null}
+          onToggle={onOptionsSoundToggle}
         />
         <NhNoticeboardLayer
           clientFonts={clientFonts}
@@ -1444,6 +1471,10 @@ export function NhClientHud({
           clientFonts={clientFonts}
           layout={sourceLayout?.chatbox ?? null}
           spriteAtlases={spriteAtlases}
+        />
+        <NhChatboxMessageLayer
+          layout={sourceLayout?.chatbox ?? null}
+          messages={chatMessages ?? []}
         />
         <NhChatboxClickLayer
           layout={sourceLayout?.chatbox ?? null}
@@ -1967,6 +1998,43 @@ function chatboxBackgroundStyle(layout: NhMountedInterfaceLayout | null): CSSPro
   };
 }
 
+function NhChatboxMessageLayer({
+  layout,
+  messages
+}: {
+  readonly layout: NhMountedInterfaceLayout | null;
+  readonly messages: readonly NhChatboxGameMessage[];
+}): JSX.Element | null {
+  if (!layout || messages.length === 0) {
+    return null;
+  }
+
+  const visibleMessages = messages.slice(-6);
+  return (
+    <div
+      className="nhChatboxMessageLayer"
+      data-chatbox-message-count={visibleMessages.length}
+      data-source-chatbox-interface="Interface.CHATBOX group 162"
+      style={nhChatboxMessageLayerStyle(layout.rect)}
+    >
+      {visibleMessages.map((message) => (
+        <div className="nhChatboxGameMessage" key={message.id}>
+          {message.text}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function nhChatboxMessageLayerStyle(rect: NhRect): CSSProperties {
+  return {
+    left: rect.x + 7,
+    top: rect.y + 7,
+    width: Math.max(1, rect.width - 14),
+    height: Math.max(1, rect.height - 42)
+  };
+}
+
 function minimapOverlayStyle(
   rect: NhResolvedWidget["rect"],
   maskSprite: NhHudSprite | undefined
@@ -2335,17 +2403,28 @@ function NhOptionsCameraZoomLayer({
   const sliderTrack = layout.widgets.find((widget) => widget.widget.childId === nhOptionsZoomSliderTrackChildId);
   const sliderKnob = layout.widgets.find((widget) => widget.widget.childId === nhOptionsZoomSliderKnobChildId);
   const resetWidget = layout.widgets.find((widget) => widget.widget.childId === nhOptionsZoomIconActionChildId);
+  const iconWidget = layout.widgets.find((widget) => widget.widget.childId === nhOptionsZoomIconSpriteChildId);
+  const stopWidgets = nhOptionsZoomSliderStopChildIds.flatMap((childId) => {
+    const widget = layout.widgets.find((candidate) => candidate.widget.childId === childId);
+    return widget ? [widget] : [];
+  });
   if (!sliderTrack || !sliderKnob) {
     return null;
   }
 
-  const sliderRange = Math.max(1, sliderTrack.rect.width - sliderKnob.rect.width);
+  const rootRect = nhOptionsRootRect(layout);
+  const rowOffset = nhOptionsCuratedRowOffsets.zoom;
+  const iconRect = nhOptionsCuratedIconRect(rootRect, rowOffset);
+  const sliderStopRects = stopWidgets.map((_, index) => nhOptionsCuratedSliderStopRect(rootRect, rowOffset, index));
+  const knobTrackRect = nhOptionsCuratedZoomKnobTrackRect(rootRect, rowOffset);
+  const sliderRange = Math.max(1, knobTrackRect.width - sliderKnob.rect.width);
   const knobOffset = nhCameraZoomSliderOffset(
     cameraZoom,
     viewportHeight,
     sliderRange
   );
   const knobSprite = findSpriteById(atlas, sliderKnob.widget.spriteId);
+  const iconSprite = iconWidget && iconWidget.widget.spriteId > 0 ? findSpriteById(atlas, iconWidget.widget.spriteId) : undefined;
 
   const applyPointerZoom = (event: ReactPointerEvent<HTMLButtonElement>): void => {
     if (!onChange) {
@@ -2357,7 +2436,7 @@ function NhOptionsCameraZoomLayer({
       return;
     }
 
-    const sourceX = ((event.clientX - rect.left) / rect.width) * sliderTrack.rect.width;
+    const sourceX = ((event.clientX - rect.left) / rect.width) * knobTrackRect.width;
     const sourceOffset = sourceX - sliderKnob.rect.width / 2;
     onChange(nhCameraZoomFromSliderOffset(sourceOffset, sliderRange));
   };
@@ -2370,6 +2449,37 @@ function NhOptionsCameraZoomLayer({
       data-zoom-height={cameraZoom.zoomHeight}
       data-zoom-width={cameraZoom.zoomWidth}
     >
+      {iconSprite ? (
+        <span
+          aria-hidden="true"
+          className="nhOptionsCameraZoomIcon"
+          data-source-child-id={iconWidget?.widget.childId ?? ""}
+          data-source-sprite-id={iconSprite.spriteId}
+          style={{
+            ...spriteStyle(atlas, iconSprite),
+            left: iconRect.x,
+            top: iconRect.y,
+            zIndex: 3
+          }}
+        />
+      ) : null}
+      {stopWidgets.map((widget, index) => {
+        const sprite = widget.widget.spriteId > 0 ? findSpriteById(atlas, widget.widget.spriteId) : undefined;
+        return sprite ? (
+          <span
+            aria-hidden="true"
+            className="nhOptionsCameraZoomStopSprite"
+            data-source-child-id={widget.widget.childId}
+            data-source-sprite-id={sprite.spriteId}
+            key={`zoom-stop:${widget.widget.childId}`}
+            style={{
+              ...spriteStyle(atlas, sprite),
+              ...rectStyle(sliderStopRects[index] ?? nhOptionsCuratedSliderStopRect(rootRect, rowOffset, index)),
+              zIndex: 3
+            }}
+          />
+        ) : null;
+      })}
       {resetWidget ? (
         <button
           aria-label="Restore default camera zoom"
@@ -2382,7 +2492,7 @@ function NhOptionsCameraZoomLayer({
             event.stopPropagation();
             onReset?.();
           }}
-          style={rectStyle(resetWidget.rect)}
+          style={{ ...rectStyle(iconRect), zIndex: 4 }}
           type="button"
         />
       ) : null}
@@ -2413,7 +2523,7 @@ function NhOptionsCameraZoomLayer({
             event.currentTarget.releasePointerCapture(event.pointerId);
           }
         }}
-        style={rectStyle(sliderTrack.rect)}
+        style={{ ...rectStyle(knobTrackRect), zIndex: 4 }}
         type="button"
       />
       {knobSprite ? (
@@ -2424,8 +2534,8 @@ function NhOptionsCameraZoomLayer({
           data-source-sprite-id={sliderKnob.widget.spriteId}
           style={{
             ...spriteStyle(atlas, knobSprite),
-            left: sliderTrack.rect.x + knobOffset,
-            top: sliderTrack.rect.y,
+            left: knobTrackRect.x + knobOffset,
+            top: knobTrackRect.y,
             width: sliderKnob.rect.width,
             height: sliderKnob.rect.height
           }}
@@ -2436,8 +2546,75 @@ function NhOptionsCameraZoomLayer({
 }
 
 const nhOptionsZoomIconActionChildId = 5;
+const nhOptionsZoomIconSpriteChildId = 6;
+const nhOptionsZoomSliderStopChildIds = [9, 10, 11, 12, 13] as const;
 const nhOptionsZoomSliderTrackChildId = 14;
 const nhOptionsZoomSliderKnobChildId = 15;
+const nhOptionsCuratedPanelSuppressedChildIds: ReadonlySet<number> = new Set(
+  Array.from({ length: 97 }, (_, index) => index + nhOptionsZoomIconActionChildId)
+);
+const nhOptionsCuratedRowOffsets = {
+  zoom: 8,
+  soundEffects: 45,
+  areaSounds: 82,
+  windowMode: 126,
+  keybinding: 180
+} as const;
+const nhOptionsCuratedIconX = 10;
+const nhOptionsCuratedSliderX = 48;
+const nhOptionsCuratedSliderStopWidth = 26;
+const nhOptionsCuratedSliderHeight = 16;
+const nhOptionsCuratedButtonSize = 40;
+const nhOptionsCuratedSmallIconSize = 32;
+
+function nhOptionsRootRect(layout: NhMountedInterfaceLayout): NhRect {
+  return layout.widgets.find((widget) => widget.widget.childId === 0)?.rect ?? layout.rect;
+}
+
+function nhOptionsCuratedIconRect(root: NhRect, rowOffset: number): NhRect {
+  return {
+    x: root.x + nhOptionsCuratedIconX,
+    y: root.y + rowOffset + 1,
+    width: nhOptionsCuratedSmallIconSize,
+    height: nhOptionsCuratedSmallIconSize
+  };
+}
+
+function nhOptionsCuratedSliderStopRect(root: NhRect, rowOffset: number, index: number): NhRect {
+  return {
+    x: root.x + nhOptionsCuratedSliderX + index * nhOptionsCuratedSliderStopWidth,
+    y: root.y + rowOffset + 9,
+    width: nhOptionsCuratedSliderStopWidth,
+    height: nhOptionsCuratedSliderHeight
+  };
+}
+
+function nhOptionsCuratedSliderTrackRect(root: NhRect, rowOffset: number): NhRect {
+  return {
+    x: root.x + nhOptionsCuratedSliderX,
+    y: root.y + rowOffset + 9,
+    width: nhOptionsCuratedSliderStopWidth * 5,
+    height: nhOptionsCuratedSliderHeight
+  };
+}
+
+function nhOptionsCuratedZoomKnobTrackRect(root: NhRect, rowOffset: number): NhRect {
+  return {
+    x: root.x + nhOptionsCuratedSliderX + 9,
+    y: root.y + rowOffset + 9,
+    width: 112,
+    height: nhOptionsCuratedSliderHeight
+  };
+}
+
+function nhOptionsCuratedButtonRect(root: NhRect, x: number, rowOffset: number): NhRect {
+  return {
+    x: root.x + x,
+    y: root.y + rowOffset,
+    width: nhOptionsCuratedButtonSize,
+    height: nhOptionsCuratedButtonSize
+  };
+}
 
 function NhOptionsWindowModeLayer({
   atlas,
@@ -2459,6 +2636,7 @@ function NhOptionsWindowModeLayer({
   if (!fixedContainer || !resizableContainer) {
     return null;
   }
+  const rootRect = nhOptionsRootRect(layout);
 
   return (
     <div
@@ -2471,6 +2649,7 @@ function NhOptionsWindowModeLayer({
         container={fixedContainer}
         currentDisplayMode={displayMode}
         displayMode="fixed"
+        rootRect={rootRect}
         onChange={onChange}
       />
       <NhOptionsWindowModeButton
@@ -2478,6 +2657,7 @@ function NhOptionsWindowModeLayer({
         container={resizableContainer}
         currentDisplayMode={displayMode}
         displayMode="resizable"
+        rootRect={rootRect}
         onChange={onChange}
       />
     </div>
@@ -2489,12 +2669,14 @@ function NhOptionsWindowModeButton({
   container,
   currentDisplayMode,
   displayMode,
+  rootRect,
   onChange
 }: {
   readonly atlas: NhHudAtlas;
   readonly container: NhResolvedWidget;
   readonly currentDisplayMode: NhClientDisplayMode;
   readonly displayMode: NhClientDisplayMode;
+  readonly rootRect: NhRect;
   readonly onChange: ((displayMode: NhClientDisplayMode) => void) | undefined;
 }): JSX.Element | null {
   const selected = currentDisplayMode === displayMode;
@@ -2507,7 +2689,7 @@ function NhOptionsWindowModeButton({
         ? nhOptionsWindowModeResizableSelectedSpriteId
         : nhOptionsWindowModeResizableSpriteId;
   const iconSprite = findSpriteById(atlas, iconSpriteId);
-  const buttonRect = nhOptionsWindowModeButtonRect(container.rect);
+  const buttonRect = nhOptionsWindowModeButtonRect(rootRect, displayMode);
   const actionText = displayMode === "fixed" ? "Fixed mode" : "Resizable mode";
 
   return (
@@ -2560,15 +2742,289 @@ const nhOptionsWindowModeResizableSpriteId = 1170;
 const nhOptionsWindowModeFixedSelectedSpriteId = 1572;
 const nhOptionsWindowModeResizableSelectedSpriteId = 1573;
 
-function nhOptionsWindowModeButtonRect(rect: NhRect): NhRect {
-  const width = 54;
-  const height = 46;
+function nhOptionsWindowModeButtonRect(root: NhRect, displayMode: NhClientDisplayMode): NhRect {
   return {
-    x: rect.x + Math.trunc((rect.width - width) / 2),
-    y: rect.y + Math.trunc((rect.height - height) / 2),
-    width,
-    height
+    x: root.x + (displayMode === "fixed" ? 33 : 103),
+    y: root.y + nhOptionsCuratedRowOffsets.windowMode,
+    width: 54,
+    height: 46
   };
+}
+
+function NhOptionsSoundToggleLayer({
+  atlas,
+  hud,
+  layout,
+  onToggle
+}: {
+  readonly atlas: NhHudAtlas;
+  readonly hud: RuntimeHudState;
+  readonly layout: NhMountedInterfaceLayout | null;
+  readonly onToggle: ((command: NhOptionsSoundToggleCommand) => void) | undefined;
+}): JSX.Element | null {
+  if (!layout || !onToggle) {
+    return null;
+  }
+  const rootRect = nhOptionsRootRect(layout);
+
+  return (
+    <div
+      className="nhOptionsSoundToggleLayer"
+      data-source-client-script="options_sounds_op/options_areasounds_op"
+      data-source-handler="var169 controls sound effects; var872 controls area sounds; source varp value 4=high 0=muted"
+    >
+      {nhOptionsSoundToggleSpecs.flatMap((spec) => {
+        const volume = normalizeOptionsSoundVolume(spec.currentVolume(hud));
+        const widgetsByChildId = new Map(layout.widgets.map((widget) => [widget.widget.childId, widget]));
+        const iconWidget = widgetsByChildId.get(spec.iconChildId) ?? null;
+        const iconSprite = iconWidget && iconWidget.widget.spriteId > 0 ? findSpriteById(atlas, iconWidget.widget.spriteId) : undefined;
+        const rowOffset = spec.id === "sound-effects"
+          ? nhOptionsCuratedRowOffsets.soundEffects
+          : nhOptionsCuratedRowOffsets.areaSounds;
+        const iconRect = nhOptionsCuratedIconRect(rootRect, rowOffset);
+        const rowWidgets = spec.stops.flatMap((stop) => {
+          const widget = widgetsByChildId.get(stop.childId);
+          return widget ? [{ stop, widget }] : [];
+        });
+        const trackRect = rowWidgets.length > 0 ? nhOptionsCuratedSliderTrackRect(rootRect, rowOffset) : null;
+        const commandForStop = (
+          event: ReactPointerEvent<HTMLElement>,
+          stop: NhOptionsSoundToggleStop
+        ): NhOptionsSoundToggleCommand => ({
+          id: spec.id,
+          label: spec.label,
+          actionText: spec.actionText,
+          childId: stop.childId,
+          spriteId: stop.spriteId,
+          varpId: spec.varpId,
+          previousVolume: volume,
+          nextVolume: stop.sourceVarpValue,
+          sourceVarpValue: stop.sourceVarpValue,
+          position: runtimeViewportPointerPosition(event)
+        });
+        const stopFromPointerEvent = (event: ReactPointerEvent<HTMLElement>): NhOptionsSoundToggleStop | null => {
+          if (!trackRect || rowWidgets.length === 0) {
+            return null;
+          }
+          const rect = event.currentTarget.getBoundingClientRect();
+          if (rect.width <= 0) {
+            return null;
+          }
+          const sourceX = trackRect.x + Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)) * trackRect.width;
+          let nearest = rowWidgets[0];
+          let nearestDistance = Number.POSITIVE_INFINITY;
+          for (let index = 0; index < rowWidgets.length; index += 1) {
+            const entry = rowWidgets[index];
+            const stopRect = nhOptionsCuratedSliderStopRect(rootRect, rowOffset, index);
+            const centerX = stopRect.x + stopRect.width / 2;
+            const distance = Math.abs(sourceX - centerX);
+            if (distance < nearestDistance) {
+              nearest = entry;
+              nearestDistance = distance;
+            }
+          }
+          return nearest.stop;
+        };
+        const applyPointerVolume = (event: ReactPointerEvent<HTMLElement>): void => {
+          const stop = stopFromPointerEvent(event);
+          if (!stop) {
+            return;
+          }
+          onToggle(commandForStop(event, stop));
+        };
+        const applyKeyboardVolume = (event: ReactKeyboardEvent<HTMLDivElement>): void => {
+          const currentIndex = spec.stops.findIndex((stop) => stop.sourceVarpValue === volume);
+          const resolvedIndex = currentIndex >= 0 ? currentIndex : 0;
+          const nextIndex =
+            event.key === "ArrowLeft" || event.key === "ArrowUp"
+              ? Math.max(0, resolvedIndex - 1)
+              : event.key === "ArrowRight" || event.key === "ArrowDown"
+                ? Math.min(spec.stops.length - 1, resolvedIndex + 1)
+                : event.key === "Home"
+                  ? 0
+                  : event.key === "End"
+                    ? spec.stops.length - 1
+                    : -1;
+          if (nextIndex < 0) {
+            return;
+          }
+          event.preventDefault();
+          event.stopPropagation();
+          const stop = spec.stops[nextIndex];
+          onToggle({
+            id: spec.id,
+            label: spec.label,
+            actionText: spec.actionText,
+            childId: stop.childId,
+            spriteId: stop.spriteId,
+            varpId: spec.varpId,
+            previousVolume: volume,
+            nextVolume: stop.sourceVarpValue,
+            sourceVarpValue: stop.sourceVarpValue,
+            position: {
+              x: trackRect ? trackRect.x + trackRect.width / 2 : 0,
+              y: trackRect ? trackRect.y + trackRect.height / 2 : 0
+            }
+          });
+        };
+
+        return [
+          iconWidget && iconSprite ? (
+            <span
+              aria-hidden="true"
+              className="nhOptionsSoundToggleIcon"
+              data-setting-id={spec.id}
+              data-source-child-id={iconWidget.widget.childId}
+              data-source-sprite-id={iconWidget.widget.spriteId}
+              key={`${spec.id}:icon:${iconWidget.widget.childId}`}
+              style={{
+                ...spriteStyle(atlas, iconSprite),
+                left: iconRect.x,
+                top: iconRect.y,
+                zIndex: 3
+              }}
+            />
+          ) : null,
+          ...rowWidgets.map(({ stop }, index) => {
+            const renderedSpriteAlias = nhOptionsSoundToggleSpriteAliasForStop(spec.stops, volume, stop);
+            const sprite = findSprite(atlas, renderedSpriteAlias) ?? findSpriteById(atlas, stop.spriteId);
+            const stopRect = nhOptionsCuratedSliderStopRect(rootRect, rowOffset, index);
+            return sprite ? (
+              <span
+                aria-hidden="true"
+                className="nhOptionsSoundToggleStopSprite"
+                data-setting-id={spec.id}
+                data-source-child-id={stop.childId}
+                data-source-sprite-alias={renderedSpriteAlias}
+                data-source-sprite-id={sprite.spriteId}
+                data-source-varp-value={stop.sourceVarpValue}
+                key={`${spec.id}:sprite:${stop.childId}`}
+                style={{
+                  ...spriteStyle(atlas, sprite),
+                  ...rectStyle(stopRect),
+                  zIndex: 3
+                }}
+              />
+            ) : null;
+          }),
+          trackRect ? (
+            <div
+              aria-label={`${spec.label} ${volume === 0 ? "muted" : `level ${volume}`}`}
+              aria-valuemax={4}
+              aria-valuemin={0}
+              aria-valuenow={volume}
+              className="nhOptionsSoundToggleTrack"
+              data-action-text={spec.actionText}
+              data-current-volume={volume}
+              data-options-volume={volume}
+              data-setting-id={spec.id}
+              data-source-client-script={spec.sourceClientScript}
+              data-source-proc="options_allsounds"
+              data-source-varp-id={spec.varpId}
+              key={`${spec.id}:track`}
+              onKeyDown={applyKeyboardVolume}
+              onPointerDown={(event) => {
+                if (event.button !== 0) {
+                  return;
+                }
+                event.preventDefault();
+                event.stopPropagation();
+                event.currentTarget.setPointerCapture(event.pointerId);
+                applyPointerVolume(event);
+              }}
+              onPointerMove={(event) => {
+                if ((event.buttons & 1) === 0) {
+                  return;
+                }
+                event.preventDefault();
+                event.stopPropagation();
+                applyPointerVolume(event);
+              }}
+              onPointerUp={(event) => {
+                if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                  event.currentTarget.releasePointerCapture(event.pointerId);
+                }
+              }}
+              role="slider"
+              style={{ ...rectStyle(trackRect), zIndex: 4 }}
+              tabIndex={0}
+              title={spec.label}
+            />
+          ) : null
+        ];
+      })}
+    </div>
+  );
+}
+
+const nhOptionsSoundToggleSpecs = [
+  {
+    id: "sound-effects",
+    label: "Sound effects",
+    actionText: "Adjust Sound Effect Volume",
+    varpId: 169,
+    sourceClientScript: "options_sounds_op",
+    iconChildId: 50,
+    currentVolume: (hud: RuntimeHudState): number => hud.soundEffectVolume ?? 4,
+    stops: [
+      { childId: 51, spriteId: 692, sourceVarpValue: 0 },
+      { childId: 52, spriteId: 693, sourceVarpValue: 1 },
+      { childId: 53, spriteId: 694, sourceVarpValue: 2 },
+      { childId: 54, spriteId: 695, sourceVarpValue: 3 },
+      { childId: 55, spriteId: 696, sourceVarpValue: 4 }
+    ]
+  },
+  {
+    id: "area-sounds",
+    label: "Area sounds",
+    actionText: "Adjust Area Sound Effect Volume",
+    varpId: 872,
+    sourceClientScript: "options_areasounds_op",
+    iconChildId: 56,
+    currentVolume: (hud: RuntimeHudState): number => hud.areaSoundEffectVolume ?? 4,
+    stops: [
+      { childId: 57, spriteId: 692, sourceVarpValue: 0 },
+      { childId: 58, spriteId: 693, sourceVarpValue: 1 },
+      { childId: 59, spriteId: 694, sourceVarpValue: 2 },
+      { childId: 60, spriteId: 695, sourceVarpValue: 3 },
+      { childId: 61, spriteId: 696, sourceVarpValue: 4 }
+    ]
+  }
+] as const satisfies readonly {
+  readonly id: NhOptionsSoundToggleCommand["id"];
+  readonly label: NhOptionsSoundToggleCommand["label"];
+  readonly actionText: NhOptionsSoundToggleCommand["actionText"];
+  readonly varpId: NhOptionsSoundToggleCommand["varpId"];
+  readonly sourceClientScript: string;
+  readonly iconChildId: number;
+  readonly currentVolume: (hud: RuntimeHudState) => number;
+  readonly stops: readonly {
+    readonly childId: number;
+    readonly spriteId: number;
+    readonly sourceVarpValue: number;
+  }[];
+}[];
+
+type NhOptionsSoundToggleStop = (typeof nhOptionsSoundToggleSpecs)[number]["stops"][number];
+
+function normalizeOptionsSoundVolume(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 4;
+  }
+  return Math.max(0, Math.min(4, Math.trunc(value)));
+}
+
+function nhOptionsSoundToggleSpriteAliasForStop(
+  stops: readonly NhOptionsSoundToggleStop[],
+  volume: number,
+  stop: NhOptionsSoundToggleStop
+): string {
+  const stopIndex = stops.findIndex((candidate) => candidate.childId === stop.childId);
+  const activeFrameByVolume = [0, 1, 2, 3, 4] as const;
+  const inactiveFrameByIndex = [5, 6, 7, 8, 9] as const;
+  const activeFrame = activeFrameByVolume[normalizeOptionsSoundVolume(volume)];
+  const frame = stopIndex === activeFrame ? stopIndex : inactiveFrameByIndex[Math.max(0, Math.min(4, stopIndex))];
+  return `options_slider_five_${frame}`;
 }
 
 function NhOptionsKeybindingControlLayer({
@@ -2587,12 +3043,9 @@ function NhOptionsKeybindingControlLayer({
   if (!keybindingWidget) {
     return null;
   }
-  const placementWidget =
-    layout.widgets.find((widget) => widget.widget.childId === nhOptionsKeybindingPlacementChildId) ?? keybindingWidget;
-  const keybindingFrameSprite = findSpriteById(
-    atlas,
-    placementWidget.widget.spriteId > 0 ? placementWidget.widget.spriteId : keybindingWidget.widget.spriteId
-  );
+  const rootRect = nhOptionsRootRect(layout);
+  const buttonRect = nhOptionsCuratedButtonRect(rootRect, 76, nhOptionsCuratedRowOffsets.keybinding);
+  const keybindingFrameSprite = findSpriteById(atlas, nhOptionsKeybindingFrameSpriteId);
 
   return (
     <div className="nhOptionsKeybindingControlLayer">
@@ -2603,10 +3056,17 @@ function NhOptionsKeybindingControlLayer({
           data-action-child-id={keybindingWidget.widget.childId}
           data-source-handler="TabOptions h.actions[83] = Keybinding::open"
           data-source-interface="Interface.OPTIONS child 83 opens Interface.KEYBINDING 121"
-          data-source-placement-child-id={placementWidget.widget.childId}
+          data-source-placement="curated-options-row"
           data-sprite-id={keybindingFrameSprite.spriteId}
-          data-widget-id={placementWidget.widget.id}
-          style={widgetSpriteStyle(atlas, keybindingFrameSprite, placementWidget, 0)}
+          data-widget-id={keybindingWidget.widget.id}
+          style={{
+            ...spriteStyle(atlas, keybindingFrameSprite),
+            left: buttonRect.x,
+            top: buttonRect.y,
+            width: buttonRect.width,
+            height: buttonRect.height,
+            zIndex: 2
+          }}
         />
       ) : null}
       <span
@@ -2616,8 +3076,8 @@ function NhOptionsKeybindingControlLayer({
         data-generated-with="imagegen"
         data-icon-path={nhOptionsKeybindingGeneratedIconPath}
         data-source-interface="Interface.OPTIONS child 83 opens Interface.KEYBINDING 121"
-        data-source-placement-child-id={placementWidget.widget.childId}
-        style={nhOptionsKeybindingGeneratedIconStyle(placementWidget.rect)}
+        data-source-placement="curated-options-row"
+        style={nhOptionsKeybindingGeneratedIconStyle(buttonRect)}
       />
       <button
         aria-label="Keybinding"
@@ -2629,7 +3089,7 @@ function NhOptionsKeybindingControlLayer({
         data-source-client-script="options_keybind_op"
         data-source-handler="TabOptions h.actions[83] = Keybinding::open"
         data-source-interface="Interface.OPTIONS child 83 opens Interface.KEYBINDING 121"
-        data-source-placement-child-id={placementWidget.widget.childId}
+        data-source-placement="curated-options-row"
         data-widget-id={keybindingWidget.widget.id}
         onPointerDown={(event) => {
           if (event.button !== 0) {
@@ -2639,7 +3099,7 @@ function NhOptionsKeybindingControlLayer({
           event.stopPropagation();
           onOpen();
         }}
-        style={{ ...rectStyle(placementWidget.rect), zIndex: 3 }}
+        style={{ ...rectStyle(buttonRect), zIndex: 3 }}
         type="button"
       />
     </div>
@@ -2647,9 +3107,8 @@ function NhOptionsKeybindingControlLayer({
 }
 
 const nhOptionsKeybindingActionChildId = 83;
-const nhOptionsKeybindingPlacementChildId = 100;
+const nhOptionsKeybindingFrameSpriteId = 761;
 const nhOptionsKeybindingGeneratedIconPath = "render/sprites/nh_fkey_icon.png";
-const nhOptionsKeybindingSuppressedChildIds = new Set([83, 84, 87, 88, 100, 101]);
 
 function nhOptionsKeybindingGeneratedIconStyle(rect: NhRect): CSSProperties {
   return {

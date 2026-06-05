@@ -82,6 +82,7 @@ const runtimeCombat = loadTsModule("src/sim/runtimePlayerCombat.ts");
 const locks = loadTsModule("src/sim/entity/locks.ts");
 const freezeTimers = loadTsModule("src/ui/runeliteFreezeTimers.ts");
 const runtimeSource = readFileSync(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
+const styleSource = readFileSync(path.join(projectRoot, "src", "ui", "styles.css"), "utf8");
 
 assert(
   runtimeSource.includes("actor.getCanvasImageLocation(image, 0) + xOffset; overlaysDrawn * 18") &&
@@ -205,8 +206,15 @@ assert(localInfoBox?.text === "20", `local freeze infobox should use RuneLite ti
 assert(
   runtimeSource.includes("TimersPlugin.onChatMessage FROZEN_MESSAGE createGameTimer(ICEBARRAGE)") &&
     runtimeSource.includes("TimerTimer(GameTimer.ICEBARRAGE)") &&
-    runtimeSource.includes("InfoBoxOverlay"),
-  "local freeze timer should render as the RuneLite TimersPlugin infobox overlay."
+    runtimeSource.includes("InfoBoxOverlay") &&
+    runtimeSource.includes('data-trainer-default-position="top-left fixed game viewport when no saved InfoBoxOverlay location exists"'),
+  "local freeze timer should render as the RuneLite TimersPlugin infobox overlay and default away from the Vengeance/chat edge."
+);
+assert(
+  styleSource.includes(".runeliteFreezeTimerInfoBox") &&
+    styleSource.includes("border: 1px solid rgba(72, 58, 36, 0.95)") &&
+    styleSource.includes("background: rgba(28, 24, 18, 0.9)"),
+  "local freeze timer infobox should keep a visible RuneLite-style box backing."
 );
 
 console.log("RuneLite Freeze Timers verifier passed: source assets, freeze lock, hit spotanim, and overlay snapshots are wired.");

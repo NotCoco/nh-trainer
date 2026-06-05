@@ -410,7 +410,7 @@ body {
   gap: 12px;
   align-content: start;
   justify-self: center;
-  width: min(100%, 765px);
+  width: min(100%, 1296px);
 }
 
 .nhAimTrainerHeader {
@@ -453,7 +453,7 @@ body {
 
 .nhAimTrainerStats {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 6px;
 }
 
@@ -470,10 +470,188 @@ body {
   text-transform: uppercase;
 }
 
+.nhAimTrainerStage {
+  display: grid;
+  grid-template-columns: 236px max-content;
+  gap: 16px;
+  align-items: start;
+}
+
+.nhAimTrainerSidebar {
+  display: grid;
+  gap: 12px;
+}
+
+.nhAimTrainerLegend {
+  display: grid;
+  gap: 8px;
+  padding-top: 8px;
+  color: #202020;
+  font: 700 12px Arial, sans-serif;
+  line-height: 1.15;
+}
+
+.nhAimTrainerLegendItem {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.nhAimTrainerLegendSwatch {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border: 1px solid rgb(0 0 0 / 0.85);
+  background: #050505;
+}
+
+.nhAimTrainerLegendSwatch[data-required-button="right"] {
+  border-color: #12658d;
+  background: #85dcff;
+}
+
+.nhAimTrainerSave {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64px;
+  gap: 6px;
+  color: #202020;
+  font: 700 11px Arial, sans-serif;
+  line-height: 1.1;
+}
+
+.nhAimTrainerSave label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.nhAimTrainerSave label span,
+.nhAimTrainerSave > span {
+  color: #333333;
+  text-transform: uppercase;
+}
+
+.nhAimTrainerSave input {
+  width: 100%;
+  min-width: 0;
+  min-height: 28px;
+  border: 1px solid #9c9c9c;
+  border-radius: 2px;
+  padding: 5px 7px;
+  background: #eeeeee;
+  color: #202020;
+  font: 700 12px Arial, sans-serif;
+  line-height: 1.1;
+}
+
+.nhAimTrainerSave button {
+  align-self: end;
+  min-height: 28px;
+  border: 1px solid #5b4a31;
+  border-radius: 2px;
+  padding: 5px 8px;
+  background: linear-gradient(#40392d, #29241d);
+  color: #f6c769;
+  font: 700 11px Arial, sans-serif;
+  line-height: 1;
+  text-shadow: 1px 1px 0 #000000;
+  cursor: pointer;
+}
+
+.nhAimTrainerSave button:disabled {
+  border-color: #9c9c9c;
+  background: #d0d0d0;
+  color: #666666;
+  text-shadow: none;
+  cursor: default;
+}
+
+.nhAimTrainerSave > span {
+  grid-column: 1 / -1;
+  min-height: 16px;
+}
+
+.nhAimTrainerLeaderboard {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.nhAimTrainerLeaderboardTabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.nhAimTrainerLeaderboardTabs button {
+  min-width: 0;
+  min-height: 26px;
+  border: 1px solid #9c9c9c;
+  border-radius: 2px;
+  padding: 4px 5px;
+  background: #eeeeee;
+  color: #202020;
+  font: 700 10px Arial, sans-serif;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.nhAimTrainerLeaderboardTabs button[aria-pressed="true"] {
+  border-color: #5b4a31;
+  background: #2f2a22;
+  color: #f6c769;
+  text-shadow: 1px 1px 0 #000000;
+}
+
+.nhAimTrainerLeaderboard ol {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nhAimTrainerLeaderboard li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px 30px;
+  gap: 6px;
+  align-items: center;
+  min-height: 24px;
+  border: 1px solid #b4b4b4;
+  padding: 4px 6px;
+  background: #eeeeee;
+  color: #202020;
+  font: 700 11px Arial, sans-serif;
+  line-height: 1.1;
+}
+
+.nhAimTrainerLeaderboard li span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nhAimTrainerLeaderboard li strong,
+.nhAimTrainerLeaderboard li small {
+  text-align: right;
+}
+
+.nhAimTrainerLeaderboard li small {
+  color: #555555;
+}
+
+.nhAimTrainerLeaderboard .nhAimTrainerLeaderboardEmpty {
+  grid-template-columns: 1fr;
+  color: #555555;
+}
+
 .nhAimTrainerClient {
   position: relative;
   width: min(100%, 765px);
-  aspect-ratio: 765 / 503;
+  box-sizing: border-box;
   border: 1px solid #9c9c9c;
   background: #cfcfcf;
   overflow: hidden;
@@ -491,11 +669,17 @@ body {
   display: block;
   z-index: 1;
   background: #050505;
-  opacity: 1;
+  opacity: 0;
+  transition: opacity 500ms ease-out;
   box-shadow:
     0 0 0 1px rgb(0 0 0 / 0.85),
     0 0 12px rgb(0 0 0 / 0.22);
   pointer-events: none;
+  will-change: opacity;
+}
+
+.nhAimTrainerTarget[data-entered="true"] {
+  opacity: 1;
 }
 
 .nhAimTrainerTarget[data-required-button="right"] {
@@ -503,6 +687,100 @@ body {
   box-shadow:
     0 0 0 2px #12658d,
     0 0 14px rgb(18 101 141 / 0.35);
+}
+
+.nhAimTrainerResult {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 6px;
+  color: #050505;
+  pointer-events: none;
+  text-align: center;
+}
+
+.nhAimTrainerResult span {
+  font: 900 18px Arial, sans-serif;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.nhAimTrainerResult strong {
+  font: 900 86px Arial, sans-serif;
+  line-height: 0.9;
+}
+
+.nhAimTrainerResizeHandle {
+  position: absolute;
+  bottom: 0;
+  z-index: 3;
+  display: block;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.nhAimTrainerResizeHandle[data-resize-side="left"] {
+  left: 0;
+  cursor: nesw-resize;
+}
+
+.nhAimTrainerResizeHandle[data-resize-side="right"] {
+  right: 0;
+  cursor: nwse-resize;
+}
+
+.nhAimTrainerResizeHandle::before {
+  content: "";
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 15px;
+  height: 15px;
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0,
+    transparent 3px,
+    rgb(70 70 70 / 0.75) 3px,
+    rgb(70 70 70 / 0.75) 5px
+  );
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+
+.nhAimTrainerResizeHandle[data-resize-side="left"]::before {
+  right: auto;
+  left: 4px;
+  transform: scaleX(-1);
+}
+
+@media (max-width: 900px) {
+  .nhAimTrainerPanel {
+    width: min(100%, 765px);
+  }
+
+  .nhAimTrainerStage {
+    grid-template-columns: 1fr;
+  }
+
+  .nhAimTrainerLegend {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding-top: 0;
+  }
+
+  .nhAimTrainerSave {
+    grid-template-columns: minmax(0, 1fr) 76px;
+  }
+
+  .nhAimTrainerStats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .header {
@@ -2236,11 +2514,96 @@ h3 {
   color: #d4ff70;
 }
 
+.runtimeVengeanceTrinketIndicator {
+  position: absolute;
+  z-index: 77;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 72px;
+  height: 30px;
+  box-sizing: border-box;
+  padding: 2px 6px 2px 2px;
+  border: 1px solid rgba(72, 58, 36, 0.95);
+  border-radius: 2px;
+  background: rgba(28, 24, 18, 0.9);
+  color: #f6d37a;
+  font: 11px Arial, sans-serif;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.runtimeVengeanceTrinketIndicator[data-vengeance-status="ready"] {
+  color: #d4ff70;
+}
+
+.runtimeVengeanceTrinketIndicator[data-vengeance-status="active"] {
+  color: #ffdf8a;
+}
+
+.runtimeVengeanceTrinketIcon {
+  display: block;
+  flex: 0 0 auto;
+  image-rendering: pixelated;
+}
+
+.runtimeVengeanceTrinketText {
+  flex: 0 0 auto;
+  min-width: 30px;
+  text-align: right;
+  white-space: nowrap;
+}
+
 .runtimeTemporaryDevStatus {
   max-width: 96px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.runtimeSetupSelector {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  flex: 0 0 auto;
+  gap: 10px;
+  width: 224px;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid rgba(98, 78, 42, 0.96);
+  border-radius: 2px;
+  background: rgba(23, 20, 15, 0.94);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.48);
+  color: #f2d287;
+  font: 12px Arial, sans-serif;
+  pointer-events: auto;
+}
+
+.runtimeSetupSelectorTitle {
+  color: #ffdf8a;
+  font-weight: 700;
+  text-align: center;
+}
+
+.runtimeSetupSelectorActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.runtimeSetupSelector button {
+  min-height: 28px;
+  border: 1px solid #6a552f;
+  border-radius: 2px;
+  background: linear-gradient(#514433, #312820);
+  color: #f6c769;
+  font: inherit;
+  cursor: pointer;
+}
+
+.runtimeSetupSelector button:hover {
+  border-color: #a0823f;
+  color: #ffe29c;
 }
 
 .nhClientHud {
@@ -2311,6 +2674,13 @@ h3 {
   pointer-events: none;
 }
 
+.nhOptionsSoundToggleLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
 .nhOptionsCameraZoomLayer {
   position: absolute;
   inset: 0;
@@ -2327,6 +2697,10 @@ h3 {
 
 .nhOptionsKeybindingSourceFrame,
 .nhOptionsKeybindingGeneratedIcon,
+.nhOptionsCameraZoomIcon,
+.nhOptionsCameraZoomStopSprite,
+.nhOptionsSoundToggleIcon,
+.nhOptionsSoundToggleStopSprite,
 .nhOptionsWindowModeIcon {
   position: absolute;
   display: block;
@@ -2338,6 +2712,7 @@ h3 {
 .nhOptionsCameraZoomTrack,
 .nhOptionsCameraZoomReset,
 .nhOptionsWindowModeButton,
+.nhOptionsSoundToggleTrack,
 .nhOptionsKeybindingButton,
 .nhChatboxButton,
 .nhEquipmentItemButton,
@@ -2352,10 +2727,29 @@ h3 {
   pointer-events: auto;
 }
 
+.nhChatboxMessageLayer {
+  position: absolute;
+  z-index: 7;
+  box-sizing: border-box;
+  overflow: hidden;
+  color: #111;
+  font: 12px Arial, sans-serif;
+  line-height: 16px;
+  pointer-events: none;
+  text-shadow: 1px 1px rgba(255, 255, 255, 0.35);
+}
+
+.nhChatboxGameMessage {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .nhSideTabButton:focus-visible,
 .nhOptionsCameraZoomTrack:focus-visible,
 .nhOptionsCameraZoomReset:focus-visible,
 .nhOptionsWindowModeButton:focus-visible,
+.nhOptionsSoundToggleTrack:focus-visible,
 .nhOptionsKeybindingButton:focus-visible,
 .nhChatboxButton:focus-visible,
 .nhEquipmentItemButton:focus-visible,
@@ -3261,6 +3655,23 @@ h3 {
   background-repeat: no-repeat;
 }
 
+.nhActorOverlayText {
+  contain: layout style;
+  overflow: visible;
+}
+
+.nhActorOverlayTextLabel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  transform: translateX(-50%);
+  font: 700 12px Arial, sans-serif;
+  line-height: 15px;
+  white-space: nowrap;
+  text-shadow: 1px 1px 0 #000000;
+}
+
 .runeliteFreezeTimerOverlay {
   position: absolute;
   display: flex;
@@ -3299,21 +3710,76 @@ h3 {
   z-index: 220000;
 }
 
-.runtimeFightStartOverlay {
+.runtimeStartupControls {
   position: absolute;
   z-index: 220001;
+  display: grid;
+  grid-template-columns: 190px 224px;
+  align-items: flex-start;
+  align-content: center;
+  justify-content: center;
+  justify-items: center;
+  column-gap: 32px;
+  row-gap: 12px;
+  width: max-content;
+  max-width: none;
+  pointer-events: none;
+}
+
+.runtimeStartupControls[data-manual-fight-start-pending="true"][data-runtime-setup-selector-open="true"] .runtimeFightStartOverlay {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.runtimeStartupControls[data-manual-fight-start-pending="true"][data-runtime-setup-selector-open="true"] .runtimeSetupSelector {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.runtimeStartupControls[data-manual-fight-start-pending="true"][data-runtime-setup-selector-open="false"] {
+  grid-template-columns: 190px;
+}
+
+.runtimeStartupControls[data-manual-fight-start-pending="false"][data-runtime-setup-selector-open="true"] {
+  grid-template-columns: 224px;
+}
+
+.runtimeFightStartOverlay {
+  position: relative;
+  z-index: 1;
   display: flex;
+  flex: 0 0 auto;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  width: max-content;
-  max-width: 220px;
+  width: 190px;
+  box-sizing: border-box;
   pointer-events: none;
 }
 
+@media (max-width: 560px) {
+  .runtimeStartupControls {
+    grid-template-columns: max-content;
+    justify-items: center;
+    align-content: center;
+    row-gap: 10px;
+  }
+
+  .runtimeStartupControls[data-manual-fight-start-pending="true"][data-runtime-setup-selector-open="true"] {
+    grid-template-columns: max-content;
+  }
+
+  .runtimeStartupControls[data-manual-fight-start-pending="true"][data-runtime-setup-selector-open="true"] .runtimeFightStartOverlay,
+  .runtimeStartupControls[data-manual-fight-start-pending="true"][data-runtime-setup-selector-open="true"] .runtimeSetupSelector {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
 .runtimeBotDifficultySelector {
-  min-width: 176px;
+  width: 176px;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -3747,6 +4213,15 @@ h3 {
   position: absolute;
   right: 1px;
   bottom: 1px;
+}
+
+.runeliteFreezeTimerInfoBox {
+  border: 1px solid rgba(72, 58, 36, 0.95);
+  border-radius: 2px;
+  background: rgba(28, 24, 18, 0.9);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 231, 150, 0.14),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.7);
 }
 
 .runeliteFreezeTimerInfoBoxIcon {

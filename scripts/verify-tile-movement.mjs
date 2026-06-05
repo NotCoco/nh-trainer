@@ -275,6 +275,18 @@ assert(
   nhSceneTargetRouteReached(meleeRouteEnd, meleeTarget, 1, targetCollision),
   `TargetRoute-style melee routing should stop cardinal-adjacent: ${JSON.stringify({ meleeRouteEnd, meleeTarget })}`
 );
+const halberdTargetWaypoints = findNhTargetRouteWaypoints(targetStart, meleeTarget, 2, targetCollision);
+const halberdTargetSteps = expandWaypointPath("halberd target route", targetCollision, targetStart, halberdTargetWaypoints);
+const halberdRouteEnd = halberdTargetSteps.at(-1) ?? targetStart;
+assert(!sameTile(halberdRouteEnd, meleeTarget), "HALBERD TargetRoute should not walk onto the target tile");
+assert(
+  !nhSceneTargetRouteReached(halberdRouteEnd, meleeTarget, 1, targetCollision),
+  `HALBERD TargetRoute should not pull into one-tile melee range: ${JSON.stringify({ halberdRouteEnd, meleeTarget })}`
+);
+assert(
+  nhSceneTargetRouteReached(halberdRouteEnd, meleeTarget, 2, targetCollision),
+  `HALBERD TargetRoute should stop at two-tile reach: ${JSON.stringify({ halberdRouteEnd, meleeTarget })}`
+);
 const sameTileTargetWaypoints = findNhTargetRouteWaypoints(meleeTarget, meleeTarget, 1, targetCollision);
 const sameTileTargetSteps = expandWaypointPath("same-tile target route", targetCollision, meleeTarget, sameTileTargetWaypoints);
 const sameTileRouteEnd = sameTileTargetSteps.at(-1) ?? meleeTarget;

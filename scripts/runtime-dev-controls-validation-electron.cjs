@@ -101,11 +101,35 @@ async function clickTemporaryButton(window, label) {
   await delay(100);
 }
 
+async function clickSetupOption(window, setupId) {
+  const result = await evalInWindow(window, `
+    (() => {
+      const button = document.querySelector(${JSON.stringify(`[data-runtime-setup-option="${setupId}"]`)});
+      if (!button) {
+        return {
+          ok: false,
+          error: "missing setup option",
+          setupId: ${JSON.stringify(setupId)},
+          options: Array.from(document.querySelectorAll("[data-runtime-setup-option]"))
+            .map((candidate) => candidate.getAttribute("data-runtime-setup-option") ?? "")
+        };
+      }
+      button.click();
+      return { ok: true };
+    })()
+  `);
+  if (!result.ok) {
+    throw new Error(JSON.stringify(result));
+  }
+  await delay(100);
+}
+
 async function readState(window) {
   return evalInWindow(window, `
     (() => {
       const viewport = document.querySelector(".runtimeViewport");
       const controls = document.querySelector(".runtimeTemporaryDevControls");
+      const setupSelector = document.querySelector("[data-runtime-setup-selector]");
       const temporaryButtonLabels = Array.from(document.querySelectorAll(".runtimeTemporaryDevControls button"))
         .map((candidate) => candidate.textContent?.trim() ?? "");
       const freezeButton = Array.from(document.querySelectorAll(".runtimeTemporaryDevControls button"))
@@ -127,6 +151,10 @@ async function readState(window) {
       return {
         ready: Boolean(document.querySelector(".glbStatus-ready")),
         controlsVisible: Boolean(controls),
+        setupSelectorVisible: Boolean(setupSelector),
+        setupSelectorOptions: Array.from(document.querySelectorAll("[data-runtime-setup-option]"))
+          .map((candidate) => candidate.getAttribute("data-runtime-setup-option") ?? "")
+          .join(","),
         temporaryButtonLabels,
         inventoryItemIds,
         equipmentItemIds,
@@ -141,6 +169,7 @@ async function readState(window) {
         nhStakeInventoryItemIds: viewport?.dataset.lastNhStakeInventoryItemIds ?? "",
         nhStakeEquipmentItemIds: viewport?.dataset.lastNhStakeEquipmentItemIds ?? "",
         nhStakeOpponentWeapon: viewport?.dataset.lastNhStakeOpponentEquipmentWeapon ?? "",
+        runtimeSetupPreset: viewport?.dataset.lastRuntimeSetupPreset ?? "",
         setupStorageVersion: savedSetup?.version ?? null,
         setupInventoryCount: Array.isArray(savedSetup?.inventory) ? savedSetup.inventory.filter(Boolean).length : 0,
         setupEquipmentCount: Array.isArray(savedSetup?.equipment) ? savedSetup.equipment.length : 0,
@@ -178,6 +207,17 @@ app.whenReady().then(async () => {
   try {
     const runtimeReadyMessage = await window.loadFile(path.join(projectRoot, "dist", "index.html")).then(() => waitForReady(window));
     const defaultInventoryState = await readState(window);
+    assert(defaultInventoryState.setupSelectorVisible, `setup selector should be visible on startup: ${JSON.stringify(defaultInventoryState)}`);
+    assert(defaultInventoryState.setupSelectorOptions === "nh-stake,dmm", `startup setup selector should expose NH stake and DMM: ${JSON.stringify(defaultInventoryState)}`);
+    await clickSetupOption(window, "dmm");
+    const dmmInventoryState = await readState(window);
+    assert(!dmmInventoryState.setupSelectorVisible, `setup selector should close after choosing DMM: ${JSON.stringify(dmmInventoryState)}`);
+    assert(dmmInventoryState.setupSource === "dmm", `DMM setup should record setup source: ${JSON.stringify(dmmInventoryState)}`);
+    assert(dmmInventoryState.runtimeSetupPreset === "dmm", `DMM setup should record active preset: ${JSON.stringify(dmmInventoryState)}`);
+    assert(
+      dmmInventoryState.inventoryItemIds.split(",").includes("29796"),
+      `DMM setup should put Noxious halberd in the inventory: ${JSON.stringify(dmmInventoryState)}`
+    );
     await pointerDownSelector(window, '.nhSideTabButton[data-tab-id="equipment"]');
     const defaultEquipmentState = await readState(window);
     await clickTemporaryButton(window, "Spec 100");
@@ -189,7 +229,6 @@ app.whenReady().then(async () => {
     const beforeReload = await readState(window);
 
     assert(beforeReload.controlsVisible, "temporary dev controls should render in the runtime viewport");
-    assert(!defaultInventoryState.temporaryButtonLabels.includes("NH stake"), `NH stake preset button should not be visible: ${JSON.stringify(defaultInventoryState)}`);
     assert(
       defaultInventoryState.inventoryItemIds ===
         "12695,22461,6685,6685,13441,391,391,10925,391,6685,391,10925,4736,21902,391,391,4759,22322,391,391,11802,12006,391,391,391,391,391,12791",
@@ -202,9 +241,9 @@ app.whenReady().then(async () => {
     assert(beforeReload.temporarySpecRestore === "100", `spec restore button did not update runtime state: ${JSON.stringify(beforeReload)}`);
     assert(beforeReload.temporaryFreezeBypass === "true", `freeze bypass button did not update runtime state: ${JSON.stringify(beforeReload)}`);
     assert(beforeReload.freezeButtonPressed === "true", `freeze bypass button did not stay pressed: ${JSON.stringify(beforeReload)}`);
-    assert(beforeReload.setupLoadoutId === "kodai-robes", `NH stake setup did not use the mage base loadout: ${JSON.stringify(beforeReload)}`);
-    assert(beforeReload.setupRuntimeInventoryCount === "28", `NH stake setup did not load 28 inventory slots: ${JSON.stringify(beforeReload)}`);
-    assert(beforeReload.setupRuntimeEquipmentCount === "11", `NH stake setup did not load 11 equipment slots: ${JSON.stringify(beforeReload)}`);
+    assert(beforeReload.setupLoadoutId === "kodai-robes", `DMM setup did not use the mage base loadout: ${JSON.stringify(beforeReload)}`);
+    assert(beforeReload.setupRuntimeInventoryCount === "28", `DMM setup did not load 28 inventory slots: ${JSON.stringify(beforeReload)}`);
+    assert(beforeReload.setupRuntimeEquipmentCount === "11", `DMM setup did not load 11 equipment slots: ${JSON.stringify(beforeReload)}`);
     assert(beforeReload.setupSaved === "true", `save setup button did not report success: ${JSON.stringify(beforeReload)}`);
     assert(beforeReload.setupStorageVersion === 1, `saved setup was not stored as v1 JSON: ${JSON.stringify(beforeReload)}`);
     assert(beforeReload.setupInventoryCount > 0, `saved setup did not include inventory items: ${JSON.stringify(beforeReload)}`);

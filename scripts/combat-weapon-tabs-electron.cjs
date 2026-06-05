@@ -532,8 +532,8 @@ const expectedCases = {
     specOrbFillerTransparency: 25,
     specOrbSourceDrawState: "orbs_spec_draw_button:toggle",
     specOrbHitboxCount: 1,
-    specialDrainPercent: 40,
-    specialDrainSource: "nh-server:combat.special.ranged.ArmadylCrossbow",
+    specialDrainPercent: 50,
+    specialDrainSource: "current-osrs:armadyl-crossbow",
     styles: [
       {
         slotIndex: 0,

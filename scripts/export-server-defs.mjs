@@ -163,8 +163,8 @@ const specialAttackByItemId = {
     source: "nh-server:combat.special.melee.GraniteMaul"
   },
   11785: {
-    drainPercent: 40,
-    source: "nh-server:combat.special.ranged.ArmadylCrossbow"
+    drainPercent: 50,
+    source: "osrs-wiki:armadyl-crossbow"
   },
   11791: {
     drainPercent: 100,

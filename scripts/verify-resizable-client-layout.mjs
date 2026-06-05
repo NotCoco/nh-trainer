@@ -167,6 +167,23 @@ assertSame("resizable CSS layout", scaled, {
 });
 
 assert(hudSource.includes("function NhOptionsWindowModeLayer"), "HUD should render a settings-tab window-mode layer");
+assert(!hudSource.includes("optionsSoundControlsActive"), "HUD should not hide fixed/resizable window-mode controls when options sound sliders are mounted");
+assert(hudSource.includes("nhOptionsWindowModeSeparatedOffsetY = 74"), "HUD should move window-mode icons below options sliders without clipping the bottom tab row");
+assert(
+  hudSource.includes("nhOptionsWindowModeSuppressedChildIds.has(widget.widget.childId)") &&
+    hudSource.includes("const nhOptionsWindowModeSuppressedChildIds") &&
+    hudSource.includes("nhOptionsWindowModeFixedContainerChildId") &&
+    hudSource.includes("nhOptionsWindowModeResizableContainerChildId"),
+  "HUD should suppress source window-mode widgets when rendering the separated generated controls so they cannot overlap sound sliders"
+);
+assert(
+  hudSource.includes("{ childId: 51, spriteId: 692, sourceVarpValue: 0 }") &&
+    hudSource.includes("{ childId: 55, spriteId: 696, sourceVarpValue: 4 }") &&
+    hudSource.includes("{ childId: 57, spriteId: 692, sourceVarpValue: 0 }") &&
+    hudSource.includes("{ childId: 61, spriteId: 696, sourceVarpValue: 4 }") &&
+    hudSource.includes("const activeFrameByVolume = [0, 1, 2, 3, 4] as const"),
+  "options sound sliders should map left-to-right from muted 0 to full volume 4"
+);
 assert(hudSource.includes("options_windowmode_init/options_windowmode_draw/options_windowmode_set"), "HUD should keep source script anchors for window-mode buttons");
 assert(hudSource.includes("nhOptionsWindowModeFixedSpriteId = 1169"), "HUD should use the source fixed-mode disabled icon");
 assert(hudSource.includes("nhOptionsWindowModeResizableSpriteId = 1170"), "HUD should use the source resizable-mode disabled icon");

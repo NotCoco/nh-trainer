@@ -320,5 +320,126 @@
       1660,
       1661
     ]
+  },
+  "HALBERD": {
+    "config": 12,
+    "maxDistance": 2,
+    "attackTicks": 5,
+    "attackAnimation": 428,
+    "defendAnimation": 430,
+    "equipSound": -1,
+    "attackSound": -1,
+    "attackSets": [
+      {
+        "child": 3,
+        "type": "CONTROLLED",
+        "style": "STAB"
+      },
+      {
+        "child": 7,
+        "type": "AGGRESSIVE",
+        "style": "SLASH",
+        "attackAnimation": 440
+      },
+      {
+        "child": 15,
+        "type": "DEFENSIVE",
+        "style": "STAB"
+      }
+    ],
+    "renderAnimations": [
+      813,
+      1209,
+      1205,
+      1206,
+      1207,
+      1208,
+      1210
+    ],
+    "source": "kronos-server:data/items/weapon_types.json:HALBERD + osrs-wiki:noxious-halberd-speed"
+  },
+  "SWORD": {
+    "config": 17,
+    "maxDistance": 1,
+    "attackTicks": 4,
+    "attackAnimation": 386,
+    "defendAnimation": 388,
+    "equipSound": 2242,
+    "attackSound": 2500,
+    "attackSets": [
+      {
+        "child": 3,
+        "type": "ACCURATE",
+        "style": "STAB"
+      },
+      {
+        "child": 7,
+        "type": "AGGRESSIVE",
+        "style": "STAB"
+      },
+      {
+        "child": 11,
+        "type": "AGGRESSIVE",
+        "style": "SLASH",
+        "attackAnimation": 390
+      },
+      {
+        "child": 15,
+        "type": "DEFENSIVE",
+        "style": "STAB"
+      }
+    ],
+    "renderAnimations": [
+      808,
+      823,
+      819,
+      820,
+      821,
+      822,
+      824
+    ],
+    "source": "kronos-server:data/items/weapon_types.json:SWORD"
+  },
+  "VESTA_LONGSWORD": {
+    "config": 9,
+    "maxDistance": 1,
+    "attackTicks": 5,
+    "attackAnimation": 390,
+    "defendAnimation": 388,
+    "equipSound": 2242,
+    "attackSound": 2500,
+    "attackSets": [
+      {
+        "child": 3,
+        "type": "ACCURATE",
+        "style": "SLASH"
+      },
+      {
+        "child": 7,
+        "type": "AGGRESSIVE",
+        "style": "SLASH"
+      },
+      {
+        "child": 11,
+        "type": "CONTROLLED",
+        "style": "STAB",
+        "attackAnimation": 386
+      },
+      {
+        "child": 15,
+        "type": "DEFENSIVE",
+        "style": "SLASH"
+      }
+    ],
+    "renderAnimations": [
+      809,
+      823,
+      819,
+      820,
+      821,
+      822,
+      824
+    ],
+    "source": "kronos-server:data/items/weapon_types.json:VESTA_LONGSWORD"
   }
 }

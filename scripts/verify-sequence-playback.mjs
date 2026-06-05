@@ -249,6 +249,7 @@ const renderSequenceDefinitions = [
   { name: "gmaul_walk", ...nhRenderSequenceFromRawSequence(rawSequences["1663"]) },
   { name: "gmaul_run", ...nhRenderSequenceFromRawSequence(rawSequences["1664"]) },
   readJson("fixtures/render/sequences/gmaul_special.json"),
+  { name: "halberd_attack", ...nhRenderSequenceFromRawSequence(rawSequences["440"]) },
   { name: "crossbow_ready", ...nhRenderSequenceFromRawSequence(rawSequences["4591"]) },
   { name: "crossbow_walk", ...nhRenderSequenceFromRawSequence(rawSequences["4226"]) },
   { name: "crossbow_run", ...nhRenderSequenceFromRawSequence(rawSequences["4228"]) },
@@ -295,6 +296,7 @@ assert(actorSequenceDefinitions.get(823) === "turn", "shared turn sequence id sh
 assert(actorSequenceDefinitions.get(4591) === "crossbow_ready", "actor sequence store should resolve weapon-ready crossbow pose from Nh render animations");
 assert(actorSequenceDefinitions.get(4226) === "crossbow_walk", "actor sequence store should resolve weapon-specific crossbow walk from Nh render animations");
 assert(actorSequenceDefinitions.get(813) === "wand_ready", "actor sequence store should resolve weapon-ready wand pose from Nh render animations");
+assert(actorSequenceDefinitions.get(440) === "halberd_attack", "actor sequence store should resolve HALBERD attack animation 440");
 
 const walking = resolveNhActorSequence({ pose: 808, movement: 819 }, actorSequenceDefinitions);
 assert(walking.sequenceName === "walk", "movement sequence should drive model when it differs from ready pose");
@@ -482,10 +484,15 @@ assert(
     serverEquipmentSource.includes("// player.resetAnimation();"),
   "Nh equipment source no longer matches the assumption that equipping does not reset the current animation sequence"
 );
-const applyLoadoutMutationSource = extractBlockSource(
-  runtimeSceneViewerSource,
-  "const applyInventoryActorLoadoutMutation ="
+const applyLoadoutMutationMarker = "const applyInventoryActorLoadoutMutation =";
+const applyLoadoutMutationIndex = runtimeSceneViewerSource.indexOf(applyLoadoutMutationMarker);
+const applyLoadoutMutationEndIndex = runtimeSceneViewerSource.indexOf(
+  "  const emptyInventoryMutationResolution =",
+  applyLoadoutMutationIndex
 );
+assert(applyLoadoutMutationIndex !== -1, `Could not find source marker: ${applyLoadoutMutationMarker}`);
+assert(applyLoadoutMutationEndIndex !== -1, "Could not find applyInventoryActorLoadoutMutation end marker");
+const applyLoadoutMutationSource = runtimeSceneViewerSource.slice(applyLoadoutMutationIndex, applyLoadoutMutationEndIndex);
 const cacheRuntimeActorModelsSource = extractBlockSource(
   runtimeSceneViewerSource,
   "const cacheRuntimeActorModels ="
@@ -502,6 +509,7 @@ for (const snippet of [
   "wasManualControl ? manualActorRef.current : snapshotActor",
   "loadoutId",
   "appearance",
+  "sequenceName: manualActorBaseSequenceName",
   "setRuntimePlayerCombatLoadout",
   "manualActorRef.current = nextActor",
   "setManualActor(nextActor)"
@@ -529,9 +537,9 @@ for (const forbiddenSnippet of [
   );
 }
 assert(
-  cacheRuntimeActorModelsSource.includes("modelsRef.current = currentModels") &&
+    cacheRuntimeActorModelsSource.includes("modelsRef.current = currentModels") &&
     cacheRuntimeActorModelsSource.includes("setModels(currentModels)") &&
-    ensureLocalActorEquipmentModelSource.includes("cacheRuntimeActorModels([pose])") &&
+    ensureLocalActorEquipmentModelSource.includes("cacheRuntimeActorModels(poses, false)") &&
     !ensureLocalActorEquipmentModelSource.includes("composeNhPlayerModel(") &&
     equipmentOverrideModelEffectSource.includes("cacheRuntimeActorModels([localPose])") &&
     !equipmentOverrideModelEffectSource.includes("composeNhPlayerModel(") &&
@@ -590,6 +598,10 @@ const advancePrimarySequenceCursorSource = extractBlockSource(
   runtimeSceneViewerSource,
   "function nhAdvancePrimarySequenceCursor"
 );
+const movementStateHelperSource = extractBlockSource(
+  runtimeSceneViewerSource,
+  "function manualActorWithMovementState"
+);
 const authoritativeSequenceCursorSource = extractBlockSource(
   runtimeSceneViewerSource,
   "function manualActorWithAuthoritativeSequenceCursor"
@@ -606,25 +618,28 @@ assert(
     authoritativeSequenceCursorSource.includes("React state must not erase that client cursor") &&
     authoritativeSequenceCursorSource.includes("lastMovementClientCycle") &&
     authoritativeSequenceCursorSource.includes("same-sequence stale React state") &&
-    authoritativeSequenceCursorSource.includes("routeWaypoints: current.routeWaypoints") &&
-    authoritativeSequenceCursorSource.includes("logicalRouteWaypoints: current.logicalRouteWaypoints") &&
-    authoritativeSequenceCursorSource.includes("serverRouteWaypoints: current.serverRouteWaypoints") &&
-    authoritativeSequenceCursorSource.includes("clientTargetIndexUntilClientCycle: current.clientTargetIndexUntilClientCycle") &&
-    authoritativeSequenceCursorSource.includes("movementStallTicks: current.movementStallTicks") &&
-    authoritativeSequenceCursorSource.includes("movementBlockedBySequence: current.movementBlockedBySequence") &&
+    authoritativeSequenceCursorSource.includes("manualActorWithMovementState(incoming, current") &&
+    movementStateHelperSource.includes("routeWaypoints: current.routeWaypoints") &&
+    movementStateHelperSource.includes("logicalRouteWaypoints: current.logicalRouteWaypoints") &&
+    movementStateHelperSource.includes("serverRouteWaypoints: current.serverRouteWaypoints") &&
+    movementStateHelperSource.includes("clientTargetIndexUntilClientCycle: current.clientTargetIndexUntilClientCycle") &&
+    movementStateHelperSource.includes("movementStallTicks: current.movementStallTicks") &&
+    movementStateHelperSource.includes("movementBlockedBySequence: current.movementBlockedBySequence") &&
     movementBlockedBySequenceSource.includes("manualActorActiveSequenceContext") &&
     !movementBlockedBySequenceSource.includes("runtimePlayerCombatActionActive"),
   "client primary sequences must outlive combat action timers and keep movement/path blocking until class329-style frame playback finishes"
 );
 assert(
-  authoritativeSequenceCursorSource.includes("current.completedSequenceKey && current.completedSequenceKey === incoming.activeSequenceKey") &&
+    authoritativeSequenceCursorSource.includes("current.completedSequenceKey &&") &&
+    authoritativeSequenceCursorSource.includes("current.completedSequenceKey === incoming.activeSequenceKey") &&
     authoritativeSequenceCursorSource.includes("after the primary sequence ended, it must still not roll back the slingshot") &&
-    authoritativeSequenceCursorSource.includes("routeWaypoints: current.routeWaypoints") &&
-    authoritativeSequenceCursorSource.includes("logicalRouteWaypoints: current.logicalRouteWaypoints") &&
-    authoritativeSequenceCursorSource.includes("serverRouteWaypoints: current.serverRouteWaypoints") &&
-    authoritativeSequenceCursorSource.includes("clientTargetIndexUntilClientCycle: current.clientTargetIndexUntilClientCycle") &&
-    authoritativeSequenceCursorSource.includes("movementStallTicks: current.movementStallTicks") &&
-    authoritativeSequenceCursorSource.includes("lastMovementClientCycle: current.lastMovementClientCycle"),
+    authoritativeSequenceCursorSource.includes("manualActorWithMovementState(incoming, current") &&
+    movementStateHelperSource.includes("routeWaypoints: current.routeWaypoints") &&
+    movementStateHelperSource.includes("logicalRouteWaypoints: current.logicalRouteWaypoints") &&
+    movementStateHelperSource.includes("serverRouteWaypoints: current.serverRouteWaypoints") &&
+    movementStateHelperSource.includes("clientTargetIndexUntilClientCycle: current.clientTargetIndexUntilClientCycle") &&
+    movementStateHelperSource.includes("movementStallTicks: current.movementStallTicks") &&
+    movementStateHelperSource.includes("lastMovementClientCycle: current.lastMovementClientCycle"),
   "late equipment appearance state should preserve the completed-sequence slingshot path/catch-up cursor"
 );
 assert(

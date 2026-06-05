@@ -19,7 +19,8 @@ const canonicalNhLoadoutItemIds = {
   "acb-hides": [12929, 22109, 19547, 11785, 11828, 6889, 11830, 7462, 11840, 19710, 21948],
   "tentacle-bandos": [12929, 6570, 19553, 12006, 11832, 22322, 11834, 7462, 11840, 19710, 21948],
   "ags-bandos": [12929, 6570, 19553, 11802, 11832, 11834, 7462, 11840, 19710, 21948],
-  "gmaul-bandos": [12929, 6570, 19553, 4153, 11832, 11834, 7462, 11840, 19710, 21948]
+  "gmaul-bandos": [12929, 6570, 19553, 4153, 11832, 11834, 7462, 11840, 19710, 21948],
+  "noxious-halberd": [10828, 6570, 19553, 29796, 11832, 11834, 7462, 11840, 11770, 21932]
 };
 
 const gearExports = [
@@ -28,6 +29,7 @@ const gearExports = [
   { output: "armadyl_godsword.glb", label: "Armadyl godsword", itemIds: [11802] },
   { output: "kodai_wand.glb", label: "Kodai wand", itemIds: [21006] },
   { output: "granite_maul.glb", label: "Granite maul", itemIds: [4153] },
+  { output: "noxious_halberd.glb", label: "Noxious halberd", itemIds: [29796] },
   { output: "ahrims_magic_gear.glb", label: "Canonical NH magic gear", itemIds: canonicalNhLoadoutItemIds["kodai-robes"] },
   { output: "armadyl_ranged_gear.glb", label: "Canonical NH ranged gear", itemIds: canonicalNhLoadoutItemIds["acb-hides"] },
   { output: "bandos_tentacle_gear.glb", label: "Canonical NH tentacle gear", itemIds: canonicalNhLoadoutItemIds["tentacle-bandos"] },
@@ -41,6 +43,7 @@ const loadoutExports = [
   { output: "tentacle-bandos.glb", label: "Tentacle Bandos NH bot loadout", itemIds: canonicalNhLoadoutItemIds["tentacle-bandos"] },
   { output: "ags-bandos.glb", label: "Armadyl godsword Bandos NH bot loadout", itemIds: canonicalNhLoadoutItemIds["ags-bandos"] },
   { output: "gmaul-bandos.glb", label: "Granite maul Bandos NH bot loadout", itemIds: canonicalNhLoadoutItemIds["gmaul-bandos"] },
+  { output: "noxious-bandos.glb", label: "Noxious halberd NH bot loadout", itemIds: canonicalNhLoadoutItemIds["noxious-halberd"] },
   { output: "acb-hides.glb", label: "Armadyl crossbow NH bot loadout", itemIds: canonicalNhLoadoutItemIds["acb-hides"] },
   { output: "kodai-robes.glb", label: "Kodai Ahrim's NH bot loadout", itemIds: canonicalNhLoadoutItemIds["kodai-robes"] }
 ];
@@ -55,11 +58,16 @@ const spotanimExports = [
   { output: "blood_barrage_hit.glb", label: "Blood barrage hit spotanim", spotanimId: 377 },
   { output: "ags_special.glb", label: "Armadyl godsword special spotanim", spotanimId: 1211 },
   { output: "gmaul_special.glb", label: "Granite maul special spotanim", spotanimId: 340 },
+  { output: "vengeance_cast.glb", label: "Vengeance cast spotanim", spotanimId: 726 },
   { output: "acb_special_projectile.glb", label: "Armadyl crossbow special projectile spotanim", spotanimId: 301 },
   { output: "bolt_projectile.glb", label: "Bolt projectile spotanim", spotanimId: 27 },
-  { output: "dragon_bolt_projectile.glb", label: "Dragon bolt projectile spotanim", spotanimId: 1468 }
+  { output: "dragon_bolt_projectile.glb", label: "Dragon bolt projectile spotanim", spotanimId: 1468 },
+  { output: "onyx_bolt_proc.glb", label: "Onyx bolt proc spotanim", spotanimId: 753 },
+  { output: "dragonstone_bolt_proc.glb", label: "Dragonstone bolt proc spotanim", spotanimId: 756 },
+  { output: "diamond_bolt_proc.glb", label: "Diamond bolt proc spotanim", spotanimId: 758 }
 ];
 
+const onlyOutputNames = parseOnlyOutputNames(process.argv.slice(2));
 const itemModelFields = ["maleModel0", "maleModel1", "maleModel2"];
 const rasterizer3dBrightness = 0.9;
 const rasterizer3dColorPalette = buildRasterizer3dColorPalette(rasterizer3dBrightness, 0, 512);
@@ -767,6 +775,45 @@ async function writeGlb(outputDir, exportDef, mesh) {
   };
 }
 
+function parseOnlyOutputNames(args) {
+  const onlyIndex = args.indexOf("--only");
+  if (onlyIndex === -1) {
+    return null;
+  }
+  const value = args[onlyIndex + 1];
+  if (!value) {
+    throw new Error("--only requires a comma-separated output file list");
+  }
+  return new Set(value.split(",").map((name) => name.trim()).filter(Boolean));
+}
+
+function filteredExports(exports) {
+  return onlyOutputNames ? exports.filter((exportDef) => onlyOutputNames.has(exportDef.output)) : exports;
+}
+
+async function writeCacheGlbManifest(manifestPath, generatedEntries) {
+  if (!onlyOutputNames) {
+    await writeFile(manifestPath, `${JSON.stringify({ generatedBy: "scripts/export-cache-glbs.mjs", exports: generatedEntries }, null, 2)}\n`);
+    return;
+  }
+
+  let existingEntries = [];
+  try {
+    existingEntries = JSON.parse(await readFile(manifestPath, "utf8")).exports ?? [];
+  } catch {
+    existingEntries = [];
+  }
+
+  const mergedByOutput = new Map(existingEntries.map((entry) => [entry.output, entry]));
+  for (const entry of generatedEntries) {
+    mergedByOutput.set(entry.output, entry);
+  }
+  await writeFile(
+    manifestPath,
+    `${JSON.stringify({ generatedBy: "scripts/export-cache-glbs.mjs", exports: [...mergedByOutput.values()] }, null, 2)}\n`
+  );
+}
+
 const cacheItems = JSON.parse(await readFile(cacheItemsPath, "utf8"));
 const serverItems = Object.fromEntries(
   JSON.parse(await readFile(serverItemsPath, "utf8")).map((item) => [item.id, item])
@@ -780,23 +827,26 @@ await mkdir(modelOutputDir, { recursive: true });
 await mkdir(loadoutOutputDir, { recursive: true });
 await mkdir(spotanimOutputDir, { recursive: true });
 
-for (const exportDef of gearExports) {
+for (const exportDef of filteredExports(gearExports)) {
   manifest.push(await writeGlb(modelOutputDir, exportDef, buildGearMesh(cacheItems, models, exportDef)));
 }
 
-for (const exportDef of loadoutExports) {
+for (const exportDef of filteredExports(loadoutExports)) {
   manifest.push(
     await writeGlb(loadoutOutputDir, exportDef, buildLoadoutMesh(cacheItems, serverItems, kits, models, exportDef))
   );
 }
 
-for (const exportDef of spotanimExports) {
+for (const exportDef of filteredExports(spotanimExports)) {
   manifest.push(await writeGlb(spotanimOutputDir, exportDef, buildSpotanimMesh(spotanims, models, exportDef)));
 }
 
-await writeFile(
-  path.join(modelOutputDir, "cache-glb-manifest.json"),
-  `${JSON.stringify({ generatedBy: "scripts/export-cache-glbs.mjs", exports: manifest }, null, 2)}\n`
-);
+if (onlyOutputNames && manifest.length !== onlyOutputNames.size) {
+  const generatedOutputs = new Set(manifest.map((entry) => path.basename(entry.output)));
+  const missingOutputs = [...onlyOutputNames].filter((output) => !generatedOutputs.has(output));
+  throw new Error(`unknown --only GLB output${missingOutputs.length === 1 ? "" : "s"}: ${missingOutputs.join(", ")}`);
+}
+
+await writeCacheGlbManifest(path.join(modelOutputDir, "cache-glb-manifest.json"), manifest);
 
 console.log(`exported ${manifest.length} cache-backed GLBs`);

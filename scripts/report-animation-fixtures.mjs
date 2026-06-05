@@ -21,7 +21,8 @@ const meshMetadataPaths = [
   "fixtures/render/player-loadouts/acb-hides.mesh.json",
   "fixtures/render/player-loadouts/tentacle-bandos.mesh.json",
   "fixtures/render/player-loadouts/ags-bandos.mesh.json",
-  "fixtures/render/player-loadouts/gmaul-bandos.mesh.json"
+  "fixtures/render/player-loadouts/gmaul-bandos.mesh.json",
+  "fixtures/render/player-loadouts/noxious-bandos.mesh.json"
 ];
 
 async function exists(relativePath) {

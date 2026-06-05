@@ -74,7 +74,9 @@ function nhAttackRangeForOffenceStyle(actor: NhDuelActorState, style: NhOffenceS
     const profile = nhWeaponProfiles[weaponId];
     return profile.style === "ranged" ? Math.min(profile.attackRange + 2, 10) : 10;
   }
-  return 1;
+  const weaponId = actor.gearProfile?.meleeWeaponId ?? actor.weaponId;
+  const profile = nhWeaponProfiles[weaponId];
+  return profile.style === "stab" || profile.style === "slash" || profile.style === "crush" ? profile.attackRange : 1;
 }
 
 export function nhCombatStyleForOffence(style: NhOffenceStyle): CombatStyle {

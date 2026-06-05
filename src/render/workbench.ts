@@ -27,11 +27,13 @@ export const renderWorkbench = {
         "fixtures/render/player-loadouts/tentacle-bandos.glb",
         "fixtures/render/player-loadouts/ags-bandos.glb",
         "fixtures/render/player-loadouts/gmaul-bandos.glb",
+        "fixtures/render/player-loadouts/noxious-bandos.glb",
         "fixtures/render/player-loadouts/kodai-robes.mesh.json",
         "fixtures/render/player-loadouts/acb-hides.mesh.json",
         "fixtures/render/player-loadouts/tentacle-bandos.mesh.json",
         "fixtures/render/player-loadouts/ags-bandos.mesh.json",
-        "fixtures/render/player-loadouts/gmaul-bandos.mesh.json"
+        "fixtures/render/player-loadouts/gmaul-bandos.mesh.json",
+        "fixtures/render/player-loadouts/noxious-bandos.mesh.json"
       ],
       acceptanceGate: "A real player mesh changes helmet, body, legs, cape, weapon, shield, and body colors from a Nh appearance packet and sequence override path."
     },
@@ -54,7 +56,8 @@ export const renderWorkbench = {
         "fixtures/render/player-loadouts/acb-hides.mesh.json",
         "fixtures/render/player-loadouts/tentacle-bandos.mesh.json",
         "fixtures/render/player-loadouts/ags-bandos.mesh.json",
-        "fixtures/render/player-loadouts/gmaul-bandos.mesh.json"
+        "fixtures/render/player-loadouts/gmaul-bandos.mesh.json",
+        "fixtures/render/player-loadouts/noxious-bandos.mesh.json"
       ],
       acceptanceGate: "Frame lengths, label transforms, dual sequence application, and loadout vertex-group bindings match the Nh client for idle, walk, attack, and spell casts."
     },
@@ -85,6 +88,7 @@ export const renderWorkbench = {
         "fixtures/render/spotanims/dragon_bolt_projectile.glb",
         "fixtures/render/spotanims/ags_special.glb",
         "fixtures/render/spotanims/gmaul_special.glb",
+        "fixtures/render/spotanims/vengeance_cast.glb",
         "fixtures/render/projectiles/ice_barrage_projectile.json"
       ],
       acceptanceGate: "Barrage, Blitz, ACB, standard bolt, dragon bolt, and Gmaul visuals use Nh ids, start/end heights, delay, duration, curve, yaw, pitch, frame timing, and packet lifecycle semantics."

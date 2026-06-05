@@ -137,13 +137,16 @@ function resolveLoadout(equipment: VisibleEquipment): RuntimeLoadoutId {
   if (ids.has(4153)) {
     return "gmaul-bandos";
   }
+  if (ids.has(29796)) {
+    return "noxious-halberd";
+  }
   if (ids.has(12006)) {
     return "tentacle-bandos";
   }
   if (ids.has(11802)) {
     return "ags-bandos";
   }
-  if (ids.has(11785) || ids.has(21902)) {
+  if (ids.has(11785) || ids.has(21902) || ids.has(26374)) {
     return "acb-hides";
   }
   if (ids.has(21006) || ids.has(6914) || ids.has(11791) || ids.has(22296) || ids.has(21021) || ids.has(21024)) {

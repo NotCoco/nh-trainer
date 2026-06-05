@@ -23,6 +23,8 @@ const cohortPatterns = [
   "PANIC_EATER",
   "STAND_UNDER_FREEZE",
   "LONG_RANGE_CROSSBOW",
+  "CLOSE_FAKE_RANGE_MAGE_MELEE",
+  "CLOSE_FAKE_MELEE_RANGE_MAGE",
   "ONE_TICK_FAKER",
   "TWO_TICK_FAKER",
   "DELAYED_REACTOR"
@@ -361,6 +363,9 @@ function applyLocalCohortAction(state, action) {
   );
   nextState = applyLocalCohortSupply(nextState, action.supplyIntent);
   nextState = moveLocalCohort(nextState, action);
+  if (action.holdAttack) {
+    return runtime.resetRuntimePlayerCombatActorTarget(nextState, "local-player");
+  }
   return action.offenceStyle === "magic"
     ? runtime.requestRuntimePlayerCombatSpell(nextState, "local-player", "opponent", "ice-barrage")
     : runtime.requestRuntimePlayerCombatAttack(nextState, "local-player", "opponent");
@@ -383,6 +388,13 @@ function applyLocalCohortSupply(state, supplyIntent) {
 function moveLocalCohort(state, action) {
   const actor = state.actors["local-player"];
   const target = state.actors.opponent;
+  if (action.movementIntent === "close_range") {
+    if (!isFrozenAt(actor, state.tick) && chebyshevDistance(actor.tile, target.tile) > 1) {
+      const nextTile = stepToward(actor.tile, target.tile, false);
+      return runtime.syncRuntimePlayerCombatStateToInput(state, { tiles: { "local-player": nextTile } });
+    }
+    return state;
+  }
   if (action.movementIntent === "step_out") {
     const nextTile = stepAway(actor.tile, target.tile);
     return runtime.syncRuntimePlayerCombatStateToInput(state, { tiles: { "local-player": nextTile } });
@@ -400,13 +412,14 @@ function moveLocalCohort(state, action) {
 function chooseCohortAction(pattern, state, memory) {
   const context = cohortContext(state, memory);
   const phaseTick = state.tick;
-  const offenceStyle = cohortStyle(pattern, phaseTick, context);
+  const offenceStyle = cohortStyle(pattern, phaseTick, context, memory);
   return {
     offenceStyle,
     defencePrayer: cohortDefencePrayer(pattern, phaseTick, context),
     movementIntent: cohortMovement(pattern, context, offenceStyle),
     supplyIntent: cohortSupply(pattern, context),
     specIntent: cohortSpec(pattern, offenceStyle, context),
+    holdAttack: cohortHoldAttack(pattern, context, offenceStyle),
     extendedSupplyAction: false
   };
 }
@@ -440,9 +453,12 @@ function cohortActorContext(id, actor, lastStyle) {
   };
 }
 
-function cohortStyle(pattern, phaseTick, context) {
+function cohortStyle(pattern, phaseTick, context, memory) {
   const phase = mod(phaseTick + actorSalt(context.self.id), 12);
   switch (pattern) {
+    case "CLOSE_FAKE_RANGE_MAGE_MELEE":
+    case "CLOSE_FAKE_MELEE_RANGE_MAGE":
+      return cohortCloseRangeBaitStyle(pattern, phaseTick, context, memory);
     case "MELEE_CAMP_UNFROZEN":
       return isFrozenAt(context.self, context.tick) ? "ranged" : "melee";
     case "AGS_REPEAT_SPEC":
@@ -477,6 +493,53 @@ function cohortStyle(pattern, phaseTick, context) {
     default:
       return "magic";
   }
+}
+
+function cohortCloseRangeBaitStyle(pattern, phaseTick, context, memory) {
+  const bait = activeCloseRangeBait(pattern, phaseTick, context, memory);
+  const readyInMeleeRange = attackReady(context.self, context.tick) && context.meleeReachable;
+  if (pattern === "CLOSE_FAKE_RANGE_MAGE_MELEE") {
+    if (readyInMeleeRange) {
+      recordCloseRangeBaitAttack(memory, context.tick);
+      return "melee";
+    }
+    return bait.style;
+  }
+  if (readyInMeleeRange) {
+    recordCloseRangeBaitAttack(memory, context.tick);
+    return bait.style;
+  }
+  return "melee";
+}
+
+function activeCloseRangeBait(pattern, phaseTick, context, memory) {
+  const current = memory.closeRangeBait;
+  if (current?.pattern === pattern && current.remaining > 0) {
+    return current;
+  }
+  const generation = Number(memory.closeRangeBaitGeneration ?? 0) + 1;
+  memory.closeRangeBaitGeneration = generation;
+  const seed = mod(
+    phaseTick + actorSalt(context.self.id) * 17 + generation * 31 + (pattern === "CLOSE_FAKE_RANGE_MAGE_MELEE" ? 101 : 211),
+    997
+  );
+  const bait = {
+    pattern,
+    style: seed % 2 === 0 ? "ranged" : "magic",
+    remaining: 3 + mod(Math.floor(seed / 2), 3),
+    lastAttackTick: -1
+  };
+  memory.closeRangeBait = bait;
+  return bait;
+}
+
+function recordCloseRangeBaitAttack(memory, tick) {
+  const bait = memory.closeRangeBait;
+  if (!bait || bait.lastAttackTick === tick) {
+    return;
+  }
+  bait.remaining -= 1;
+  bait.lastAttackTick = tick;
 }
 
 function cohortOneTickFakerStyle(phaseTick, context) {
@@ -526,6 +589,9 @@ function cohortDefencePrayer(pattern, phaseTick, context) {
 function cohortMovement(pattern, context, style) {
   const distance = chebyshevDistance(context.self.tile, context.opponent.tile);
   switch (pattern) {
+    case "CLOSE_FAKE_RANGE_MAGE_MELEE":
+    case "CLOSE_FAKE_MELEE_RANGE_MAGE":
+      return !isFrozenAt(context.self, context.tick) && distance > 1 ? "close_range" : "pressure";
     case "STAND_UNDER_FREEZE":
       return !isFrozenAt(context.self, context.tick) && isFrozenAt(context.opponent, context.tick) && distance > 0
         ? "stand_under"
@@ -540,6 +606,16 @@ function cohortMovement(pattern, context, style) {
     default:
       return "pressure";
   }
+}
+
+function cohortHoldAttack(pattern, context, style) {
+  if (pattern === "CLOSE_FAKE_RANGE_MAGE_MELEE") {
+    return !(style === "melee" && attackReady(context.self, context.tick) && context.meleeReachable);
+  }
+  if (pattern === "CLOSE_FAKE_MELEE_RANGE_MAGE") {
+    return !((style === "ranged" || style === "magic") && attackReady(context.self, context.tick) && context.meleeReachable);
+  }
+  return false;
 }
 
 function cohortSupply(pattern, context) {

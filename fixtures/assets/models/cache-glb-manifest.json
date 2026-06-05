@@ -92,6 +92,24 @@
       "triangles": 104
     },
     {
+      "output": "fixtures/assets/models/noxious_halberd.glb",
+      "meshMetadata": "fixtures/assets/models/noxious_halberd.mesh.json",
+      "label": "Noxious halberd",
+      "itemIds": [
+        29796
+      ],
+      "sourceModels": [
+        {
+          "kind": "item",
+          "itemId": 29796,
+          "itemName": "Noxious halberd",
+          "modelId": 54316
+        }
+      ],
+      "vertices": 366,
+      "triangles": 122
+    },
+    {
       "output": "fixtures/assets/models/ahrims_magic_gear.glb",
       "meshMetadata": "fixtures/assets/models/ahrims_magic_gear.mesh.json",
       "label": "Canonical NH magic gear",
@@ -855,6 +873,117 @@
       "triangles": 1730
     },
     {
+      "output": "fixtures/render/player-loadouts/noxious-bandos.glb",
+      "meshMetadata": "fixtures/render/player-loadouts/noxious-bandos.mesh.json",
+      "label": "Noxious halberd Bandos NH bot loadout",
+      "itemIds": [
+        10828,
+        6570,
+        19553,
+        29796,
+        11832,
+        11834,
+        7462,
+        11840,
+        11770,
+        21932
+      ],
+      "sourceModels": [
+        {
+          "kind": "kit",
+          "kitId": 10,
+          "bodyPartId": 1,
+          "label": "jaw",
+          "modelId": 249
+        },
+        {
+          "kind": "item",
+          "itemId": 10828,
+          "itemName": "Helm of neitiznot",
+          "modelId": 21873
+        },
+        {
+          "kind": "item",
+          "itemId": 6570,
+          "itemName": "Fire cape",
+          "modelId": 9638
+        },
+        {
+          "kind": "item",
+          "itemId": 19553,
+          "itemName": "Amulet of torture",
+          "modelId": 31227
+        },
+        {
+          "kind": "item",
+          "itemId": 29796,
+          "itemName": "Noxious halberd",
+          "modelId": 54316
+        },
+        {
+          "kind": "item",
+          "itemId": 11832,
+          "itemName": "Bandos chestplate",
+          "modelId": 27636
+        },
+        {
+          "kind": "item",
+          "itemId": 11832,
+          "itemName": "Bandos chestplate",
+          "modelId": 28826
+        },
+        {
+          "kind": "item",
+          "itemId": 11834,
+          "itemName": "Bandos tassets",
+          "modelId": 27625
+        },
+        {
+          "kind": "item",
+          "itemId": 7462,
+          "itemName": "Barrows gloves",
+          "modelId": 13307
+        },
+        {
+          "kind": "item",
+          "itemId": 11840,
+          "itemName": "Dragon boots",
+          "modelId": 27638
+        },
+        {
+          "kind": "loadout-rule",
+          "hiddenKitSlots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6,
+            7,
+            8,
+            9,
+            10,
+            12,
+            13
+          ],
+          "equippedSlots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            7,
+            9,
+            10,
+            12,
+            13
+          ]
+        }
+      ],
+      "vertices": 5319,
+      "triangles": 1773
+    },
+    {
       "output": "fixtures/render/player-loadouts/acb-hides.glb",
       "meshMetadata": "fixtures/render/player-loadouts/acb-hides.mesh.json",
       "label": "Armadyl crossbow NH bot loadout",
@@ -1321,6 +1450,82 @@
       ],
       "vertices": 102,
       "triangles": 34
+    },
+    {
+      "output": "fixtures/render/spotanims/vengeance_cast.glb",
+      "meshMetadata": "fixtures/render/spotanims/vengeance_cast.mesh.json",
+      "label": "Vengeance cast spotanim",
+      "spotanimId": 726,
+      "sourceModels": [
+        {
+          "kind": "spotanim",
+          "spotanimId": 726,
+          "modelId": 16828,
+          "animationId": 4417,
+          "resizeX": 128,
+          "resizeY": 128,
+          "rotation": 0
+        }
+      ],
+      "vertices": 1182,
+      "triangles": 394
+    },
+    {
+      "output": "fixtures/render/spotanims/onyx_bolt_proc.glb",
+      "meshMetadata": "fixtures/render/spotanims/onyx_bolt_proc.mesh.json",
+      "label": "Onyx bolt proc spotanim",
+      "spotanimId": 753,
+      "sourceModels": [
+        {
+          "kind": "spotanim",
+          "spotanimId": 753,
+          "modelId": 16939,
+          "animationId": 4447,
+          "resizeX": 128,
+          "resizeY": 128,
+          "rotation": 0
+        }
+      ],
+      "vertices": 1197,
+      "triangles": 399
+    },
+    {
+      "output": "fixtures/render/spotanims/dragonstone_bolt_proc.glb",
+      "meshMetadata": "fixtures/render/spotanims/dragonstone_bolt_proc.mesh.json",
+      "label": "Dragonstone bolt proc spotanim",
+      "spotanimId": 756,
+      "sourceModels": [
+        {
+          "kind": "spotanim",
+          "spotanimId": 756,
+          "modelId": 16935,
+          "animationId": 4450,
+          "resizeX": 128,
+          "resizeY": 128,
+          "rotation": 0
+        }
+      ],
+      "vertices": 1560,
+      "triangles": 520
+    },
+    {
+      "output": "fixtures/render/spotanims/diamond_bolt_proc.glb",
+      "meshMetadata": "fixtures/render/spotanims/diamond_bolt_proc.mesh.json",
+      "label": "Diamond bolt proc spotanim",
+      "spotanimId": 758,
+      "sourceModels": [
+        {
+          "kind": "spotanim",
+          "spotanimId": 758,
+          "modelId": 16943,
+          "animationId": 4452,
+          "resizeX": 128,
+          "resizeY": 128,
+          "rotation": 0
+        }
+      ],
+      "vertices": 660,
+      "triangles": 220
     }
   ]
 }

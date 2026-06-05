@@ -7,6 +7,7 @@ import { canonicalNhGear, canonicalNhLoadoutEquipment } from "./canonicalGear";
 import type { NhWeaponId } from "./loadouts";
 
 export type NhCandidateVisibleStyle = "magic" | "ranged" | "slash";
+export type NhGearProfileSpecialWeaponKind = "granite_maul" | "armadyl_godsword" | "voidwaker" | "vesta_longsword";
 
 export interface NhSelectedGearProfile {
   readonly magicWeaponId: NhWeaponId;
@@ -62,25 +63,43 @@ const javaBotMeleeWeaponCandidates: readonly NhWeaponId[] = ["tentacle_whip", "a
 
 // Trainer weapon recognition can cover more local weapons, but copied bot
 // source layouts are still gated by Java's narrower candidate sets below.
-const magicWeaponCandidates: readonly NhWeaponId[] = javaBotMagicWeaponCandidates;
-const rangedWeaponCandidates: readonly NhWeaponId[] = javaBotRangedWeaponCandidates;
-const meleeWeaponCandidates: readonly NhWeaponId[] = javaBotMeleeWeaponCandidates;
+const magicWeaponCandidates: readonly NhWeaponId[] = ["zuriels_staff", ...javaBotMagicWeaponCandidates];
+const rangedWeaponCandidates: readonly NhWeaponId[] = ["zaryte_crossbow", ...javaBotRangedWeaponCandidates];
+const meleeWeaponCandidates: readonly NhWeaponId[] = ["noxious_halberd", "vesta_longsword", "voidwaker", ...javaBotMeleeWeaponCandidates];
 
 const weaponItemById = {
   kodai: canonicalNhGear.kodaiWand,
   ancient_staff: canonicalNhGear.ancientStaff,
   staff_of_the_dead: canonicalNhGear.staffOfTheDead,
+  zuriels_staff: canonicalNhGear.zurielsStaff,
   armadyl_crossbow: canonicalNhGear.armadylCrossbow,
+  zaryte_crossbow: canonicalNhGear.zaryteCrossbow,
   rune_crossbow: canonicalNhGear.runeCrossbow,
   magic_shortbow: canonicalNhGear.magicShortbow,
   dragon_crossbow: canonicalNhGear.dragonCrossbow,
   tentacle_whip: canonicalNhLoadoutEquipment["tentacle-bandos"].weapon,
   abyssal_whip: canonicalNhGear.abyssalWhip,
+  noxious_halberd: canonicalNhGear.noxiousHalberd,
+  voidwaker: canonicalNhGear.voidwaker,
+  vesta_longsword: canonicalNhGear.vestaLongsword,
   armadyl_godsword: canonicalNhLoadoutEquipment["ags-bandos"].weapon,
   granite_maul: canonicalNhLoadoutEquipment["gmaul-bandos"].weapon
 } as const satisfies Readonly<Record<NhWeaponId, VisibleEquipmentItem>>;
 
 const vestaLongswordItemId = 22613;
+const dmmIndependentGearItemIds = new Set<number>([
+  22613, // Vesta's longsword
+  22647, // Zuriel's staff
+  26374, // Zaryte crossbow
+  27690, // Voidwaker
+  29796, // Noxious halberd
+  26382,
+  26243,
+  27251,
+  26245,
+  31106,
+  31097
+]);
 
 export function inferNhSelectedGearProfile(input: {
   readonly equipment: VisibleEquipment;
@@ -232,8 +251,13 @@ export function nhGearProfileActionEquipment(input: {
   readonly hitpoints: number;
   readonly allowFlexibleGear?: boolean;
   readonly flexibleGearPasses?: number;
+  readonly specialEnergy?: number;
+  readonly specialWeaponKind?: NhGearProfileSpecialWeaponKind | null;
 }): VisibleEquipment {
-  let equipment = applyJavaStyleLoadout(input.currentEquipment, input.profile, { ...input.action, specIntent: "none" });
+  const independentGear = nhGearProfileUsesIndependentGear(input.profile);
+  let equipment = independentGear
+    ? applyIndependentStyleWeapon(input.currentEquipment, input.profile, input.action.offenceStyle)
+    : applyJavaStyleLoadout(input.currentEquipment, input.profile, { ...input.action, specIntent: "none" });
   if (input.allowFlexibleGear ?? true) {
     const passes = Math.max(1, Math.trunc(input.flexibleGearPasses ?? 1));
     for (let pass = 0; pass < passes; pass += 1) {
@@ -243,21 +267,38 @@ export function nhGearProfileActionEquipment(input: {
         offenceStyle: input.action.offenceStyle,
         threatStyle: input.threatStyle,
         underPressure: input.underPressure,
-        hitpoints: input.hitpoints
+        hitpoints: input.hitpoints,
+        lockCoreOffenceSlots: !independentGear
       });
     }
   }
-  if (input.action.specIntent !== "none" && nhGearProfileCanEquipGraniteMaul(input.profile)) {
+  const specialWeaponKind =
+    input.action.specIntent === "none"
+      ? null
+      : input.specialWeaponKind ?? nhGearProfileSpecialWeaponKind(input.profile, input.specialEnergy);
+  if (specialWeaponKind === "granite_maul") {
     return {
       ...equipment,
       weapon: weaponItemById.granite_maul
     };
   }
-  if (input.action.specIntent === "use_special" && nhGearProfileCanEquipArmadylGodsword(input.profile)) {
+  if (specialWeaponKind === "armadyl_godsword") {
     const { shield: _shield, ...equipmentWithoutShield } = equipment;
     return {
       ...equipmentWithoutShield,
       weapon: weaponItemById.armadyl_godsword
+    };
+  }
+  if (specialWeaponKind === "voidwaker") {
+    return {
+      ...equipment,
+      weapon: weaponItemById.voidwaker
+    };
+  }
+  if (specialWeaponKind === "vesta_longsword") {
+    return {
+      ...equipment,
+      weapon: weaponItemById.vesta_longsword
     };
   }
   return equipment;
@@ -284,6 +325,14 @@ export function isNhArmadylGodswordItemId(itemId: number): boolean {
   return itemId === 11802;
 }
 
+export function isNhVoidwakerItemId(itemId: number): boolean {
+  return itemId === 27690;
+}
+
+export function isNhVestaLongswordItemId(itemId: number): boolean {
+  return itemId === vestaLongswordItemId;
+}
+
 export function nhGearProfileCanEquipGraniteMaul(profile: NhSelectedGearProfile): boolean {
   return profile.ownedItems.some((item) => isNhGraniteMaulItemId(item.itemId));
 }
@@ -292,14 +341,65 @@ export function nhGearProfileCanEquipArmadylGodsword(profile: NhSelectedGearProf
   return profile.ownedItems.some((item) => isNhArmadylGodswordItemId(item.itemId));
 }
 
+export function nhGearProfileCanEquipVoidwaker(profile: NhSelectedGearProfile): boolean {
+  return profile.ownedItems.some((item) => isNhVoidwakerItemId(item.itemId));
+}
+
+export function nhGearProfileCanEquipVestaLongsword(profile: NhSelectedGearProfile): boolean {
+  return profile.ownedItems.some((item) => isNhVestaLongswordItemId(item.itemId));
+}
+
 export function nhGearProfileAvailableSpecialWeaponKind(
   profile: NhSelectedGearProfile
-): "granite_maul" | "armadyl_godsword" | null {
+): NhGearProfileSpecialWeaponKind | null {
+  return nhGearProfileSpecialWeaponKind(profile);
+}
+
+export function nhGearProfileAvailableSpecialWeaponKinds(
+  profile: NhSelectedGearProfile,
+  specialEnergy = Number.POSITIVE_INFINITY
+): readonly NhGearProfileSpecialWeaponKind[] {
+  const kinds: NhGearProfileSpecialWeaponKind[] = [];
+  if (nhGearProfileCanEquipGraniteMaul(profile) && specialEnergy >= 50) {
+    kinds.push("granite_maul");
+  }
+  if (nhGearProfileCanEquipArmadylGodsword(profile) && specialEnergy >= 50) {
+    kinds.push("armadyl_godsword");
+  }
+  if (nhGearProfileCanEquipVoidwaker(profile) && specialEnergy >= 50) {
+    kinds.push("voidwaker");
+  }
+  if (nhGearProfileCanEquipVestaLongsword(profile) && specialEnergy >= 25) {
+    kinds.push("vesta_longsword");
+  }
+  return kinds;
+}
+
+export function nhGearProfileUsesIndependentGear(profile: NhSelectedGearProfile): boolean {
+  return profile.ownedItems.some((item) => dmmIndependentGearItemIds.has(item.itemId));
+}
+
+export function nhGearProfileSpecialWeaponKind(
+  profile: NhSelectedGearProfile,
+  specialEnergy = Number.POSITIVE_INFINITY
+): NhGearProfileSpecialWeaponKind | null {
   if (nhGearProfileCanEquipGraniteMaul(profile)) {
     return "granite_maul";
   }
   if (nhGearProfileCanEquipArmadylGodsword(profile)) {
     return "armadyl_godsword";
+  }
+  if (nhGearProfileCanEquipVoidwaker(profile) && specialEnergy >= 50) {
+    return "voidwaker";
+  }
+  if (nhGearProfileCanEquipVestaLongsword(profile) && specialEnergy >= 25) {
+    return "vesta_longsword";
+  }
+  if (nhGearProfileCanEquipVoidwaker(profile)) {
+    return "voidwaker";
+  }
+  if (nhGearProfileCanEquipVestaLongsword(profile)) {
+    return "vesta_longsword";
   }
   return null;
 }
@@ -565,6 +665,30 @@ function applyJavaStyleLoadout(
   };
 }
 
+function applyIndependentStyleWeapon(
+  currentEquipment: VisibleEquipment,
+  profile: NhSelectedGearProfile,
+  style: NhOffenceStyle
+): VisibleEquipment {
+  if (style === "magic") {
+    return {
+      ...currentEquipment,
+      weapon: weaponItemById[profile.magicWeaponId]
+    };
+  }
+  if (style === "ranged") {
+    return {
+      ...currentEquipment,
+      weapon: weaponItemById[profile.rangedWeaponId],
+      ammo: profile.rangedAmmoItem
+    };
+  }
+  return {
+    ...currentEquipment,
+    weapon: weaponItemById[profile.meleeWeaponId]
+  };
+}
+
 export function nhGearProfileOptimizeFlexibleEquipment(input: {
   readonly equipment: VisibleEquipment;
   readonly profile: NhSelectedGearProfile;
@@ -587,6 +711,7 @@ function optimizeFlexibleGear(input: {
   readonly threatStyle: NhOffenceStyle | null;
   readonly underPressure: boolean;
   readonly hitpoints: number;
+  readonly lockCoreOffenceSlots?: boolean;
 }): VisibleEquipment {
   let equipment: Partial<Record<EquipmentSlot, VisibleEquipmentItem>> = { ...input.equipment };
   const candidates = collectFlexibleSwapCandidates(input).sort((left, right) => right.netGain - left.netGain);
@@ -608,10 +733,11 @@ function collectFlexibleSwapCandidates(input: {
   readonly threatStyle: NhOffenceStyle | null;
   readonly underPressure: boolean;
   readonly hitpoints: number;
+  readonly lockCoreOffenceSlots?: boolean;
 }): Array<{ readonly slot: EquipmentSlot; readonly item: VisibleEquipmentItem; readonly netGain: number }> {
   const candidates: Array<{ readonly slot: EquipmentSlot; readonly item: VisibleEquipmentItem; readonly netGain: number }> = [];
   for (const slot of flexibleGearSlots) {
-    if (isCoreOffenceSlot(input.offenceStyle, slot)) {
+    if ((input.lockCoreOffenceSlots ?? !nhGearProfileUsesIndependentGear(input.profile)) && isCoreOffenceSlot(input.offenceStyle, slot)) {
       continue;
     }
     const candidate = selectFlexibleItemForSlot({

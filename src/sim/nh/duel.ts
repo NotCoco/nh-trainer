@@ -690,12 +690,14 @@ export function createNhDuelControllerContext(
   const meleeReach = canMeleeReachThisTick({
     attacker: self.tile,
     defender: opponent.tile,
-    attackerFrozen: isFrozen(self.locks, tick)
+    attackerFrozen: isFrozen(self.locks, tick),
+    attackRange: nhDuelMeleeAttackRange(self)
   });
   const opponentMeleeReach = canMeleeReachThisTick({
     attacker: opponent.tile,
     defender: self.tile,
-    attackerFrozen: isFrozen(opponent.locks, tick)
+    attackerFrozen: isFrozen(opponent.locks, tick),
+    attackRange: nhDuelMeleeAttackRange(opponent)
   });
   const evs = estimateCandidateVisibleStyleEvs(self, opponent);
   const melee = evs.find((estimate) => estimate.style === "slash");
@@ -1852,7 +1854,7 @@ function combatProfileForNhDuelAction(
 
 function attackRangeForNhDuelAction(action: NhPolicyAction, weaponId: NhWeaponId, distance: number): number {
   if (action.offenceStyle === "melee") {
-    return 1;
+    return nhWeaponProfiles[weaponId].attackRange;
   }
   if (action.offenceStyle === "magic") {
     return 10;
@@ -1860,6 +1862,12 @@ function attackRangeForNhDuelAction(action: NhPolicyAction, weaponId: NhWeaponId
   const baseRange = nhWeaponProfiles[weaponId].attackRange;
   const longRange = Math.min(baseRange + 2, 10);
   return distance > baseRange && distance <= longRange ? longRange : baseRange;
+}
+
+function nhDuelMeleeAttackRange(actor: NhDuelActorState): number {
+  const weaponId = actor.gearProfile?.meleeWeaponId ?? actor.weaponId;
+  const profile = nhWeaponProfiles[weaponId];
+  return profile.style === "stab" || profile.style === "slash" || profile.style === "crush" ? profile.attackRange : 1;
 }
 
 function combatStyleForOffence(style: NhOffenceStyle): CombatStyle {

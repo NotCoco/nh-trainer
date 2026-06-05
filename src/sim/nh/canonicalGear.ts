@@ -38,6 +38,11 @@ export const canonicalNhGear = {
   abyssalWhip: item(4151, "Abyssal whip"),
   dragonDefender: item(12954, "Dragon defender"),
   avernicDefender: item(22322, "Avernic defender"),
+  noxiousHalberd: item(29796, "Noxious halberd"),
+  zurielsStaff: item(22647, "Zuriel's staff (Deadman Mode)"),
+  zaryteCrossbow: item(26374, "Zaryte crossbow"),
+  voidwaker: item(27690, "Voidwaker"),
+  vestaLongsword: item(22613, "Vesta's longsword (Deadman Mode)"),
   fireCape: item(6570, "Fire cape"),
   amuletOfTorture: item(19553, "Amulet of torture"),
   bandosChestplate: item(11832, "Bandos chestplate"),
@@ -89,6 +94,14 @@ export const canonicalNhLoadoutEquipment = {
     weapon: canonicalNhGear.graniteMaul,
     body: canonicalNhGear.karilsLeathertop,
     legs: canonicalNhGear.veracsPlateskirt
+  },
+  "noxious-halberd": {
+    ...commonNhEquipment,
+    weapon: canonicalNhGear.noxiousHalberd,
+    cape: canonicalNhGear.fireCape,
+    amulet: canonicalNhGear.amuletOfTorture,
+    body: canonicalNhGear.bandosChestplate,
+    legs: canonicalNhGear.bandosTassets
   }
 } as const satisfies Readonly<Record<string, VisibleEquipment>>;
 
@@ -97,7 +110,8 @@ export const canonicalNhLoadoutItemIds = {
   "acb-hides": [10828, 21791, 6585, 21902, 4736, 12831, 4759, 7462, 11840, 11770, 21932],
   "tentacle-bandos": [10828, 21791, 6585, 12006, 4736, 22322, 4759, 7462, 11840, 11770, 21932],
   "ags-bandos": [10828, 21791, 6585, 11802, 4736, 4759, 7462, 11840, 11770, 21932],
-  "gmaul-bandos": [10828, 21791, 6585, 4153, 4736, 4759, 7462, 11840, 11770, 21932]
+  "gmaul-bandos": [10828, 21791, 6585, 4153, 4736, 4759, 7462, 11840, 11770, 21932],
+  "noxious-halberd": [10828, 6570, 19553, 29796, 11832, 11834, 7462, 11840, 11770, 21932]
 } as const;
 
 export const canonicalNhSwitchItemIds = [
@@ -117,10 +131,15 @@ export const canonicalNhSwitchItemIds = [
   9185,
   861,
   21902,
+  26374,
   4736,
   4759,
   12006,
   4151,
+  29796,
+  22647,
+  27690,
+  22613,
   12954,
   22322,
   11802,
