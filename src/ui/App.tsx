@@ -161,12 +161,22 @@ export function App(): JSX.Element {
             </div>
           </div>
           <div className="nhSiteUpdates" aria-label="Recent updates">
-            <span>Updates - June 4, 2026</span>
-            <ul>
-              <li>Hard mode updated with the latest cohort and self-play trained policy.</li>
-              <li>Future training keeps a smaller scripted cohort so hard mode is harder to cheese without overfitting to it.</li>
-              <li>Camera zoom focus, animation-stall movement, melee pull-in, and freeze/pathing teleports were tightened.</li>
-            </ul>
+            <section className="nhSiteUpdateCard" aria-label="Updates - June 4, 2026">
+              <span>Updates - June 4, 2026</span>
+              <ul>
+                <li>Hard mode updated with the latest cohort and self-play trained policy.</li>
+                <li>Future training keeps a smaller scripted cohort so hard mode is harder to cheese without overfitting to it.</li>
+                <li>Camera zoom focus, animation-stall movement, melee pull-in, and freeze/pathing teleports were tightened.</li>
+              </ul>
+            </section>
+            <section className="nhSiteUpdateCard" aria-label="Updates - June 5, 2026">
+              <span>Updates - June 5, 2026</span>
+              <ul>
+                <li>DMM setup added with the captured inventory, new gear, and its own hard-mode policy.</li>
+                <li>Noxious halberd, Voidwaker, VLS, Zaryte crossbow, trinket of vengeance, and bolt procs are wired in.</li>
+                <li>Game sounds, audio sliders, and the options tab layout were cleaned up.</li>
+              </ul>
+            </section>
           </div>
           <details className="nhSiteMoreInfo">
             <summary>More info</summary>

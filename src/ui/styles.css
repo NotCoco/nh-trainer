@@ -187,32 +187,46 @@ body {
   display: grid;
   grid-column: 3;
   grid-row: 1 / span 4;
-  gap: 5px;
-  width: min(310px, 100%);
+  grid-template-columns: repeat(2, minmax(230px, 310px));
+  gap: 18px;
+  width: max-content;
   margin-top: 8px;
-  padding: 0 0 0 14px;
-  border-left: 1px solid rgb(171 129 62 / 0.24);
   color: #a99c84;
   font-size: 12px;
   line-height: 1.4;
 }
 
-.nhSiteUpdates > span {
+.nhSiteUpdateCard {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 0 0 0 14px;
+  border-left: 1px solid rgb(171 129 62 / 0.24);
+}
+
+.nhSiteUpdateCard > span {
   color: #7e7667;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
 }
 
-.nhSiteUpdates ul {
+.nhSiteUpdateCard ul {
   display: grid;
   gap: 3px;
   margin: 0;
   padding-left: 16px;
 }
 
-.nhSiteUpdates li::marker {
+.nhSiteUpdateCard li::marker {
   color: #8e7442;
+}
+
+@media (max-width: 1460px) and (min-width: 901px) {
+  .nhSiteUpdates {
+    grid-template-columns: minmax(230px, 310px);
+    width: min(310px, 100%);
+  }
 }
 
 .nhSiteMoreInfo {
@@ -303,8 +317,12 @@ body {
   .nhSiteUpdates {
     grid-column: 1;
     grid-row: auto;
+    grid-template-columns: minmax(0, 1fr);
     width: auto;
     margin-top: 0;
+  }
+
+  .nhSiteUpdateCard {
     padding: 9px 0 0;
     border-top: 1px solid rgb(171 129 62 / 0.18);
     border-left: 0;
