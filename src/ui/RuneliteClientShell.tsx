@@ -29,6 +29,19 @@ import {
   type RuneliteOverlayPreferredLocation,
   type RuneliteOverlayPreferredLocations
 } from "./runeliteOverlayPosition";
+import {
+  RUNELITE_LINE_OF_SIGHT_CONFIG_GROUP,
+  RUNELITE_LINE_OF_SIGHT_DEFAULT_ASYMMETRICAL_BORDER_COLOR,
+  RUNELITE_LINE_OF_SIGHT_DEFAULT_ASYMMETRICAL_FILL_RGBA,
+  RUNELITE_LINE_OF_SIGHT_DEFAULT_BORDER_COLOR,
+  RUNELITE_LINE_OF_SIGHT_DEFAULT_FILL_RGBA,
+  RUNELITE_LINE_OF_SIGHT_DEFAULT_RANGE,
+  RUNELITE_LINE_OF_SIGHT_PLUGIN_HUB_PATH,
+  RUNELITE_LINE_OF_SIGHT_PLUGIN_ID,
+  RUNELITE_LINE_OF_SIGHT_SOURCE_REPOSITORY,
+  runeliteLineOfSightClampedBorderWidth,
+  runeliteLineOfSightClampedRange
+} from "./runeliteLineOfSight";
 
 export const RUNELITE_FIXED_CLIENT_WIDTH = 765;
 export const RUNELITE_FIXED_CLIENT_HEIGHT = 503;
@@ -438,6 +451,22 @@ export interface RuneliteTileIndicatorsConfigSnapshot {
   readonly thinHoveredTile: boolean;
 }
 
+export interface RuneliteLineOfSightConfigSnapshot {
+  readonly enabled: boolean;
+  readonly overlayRange: number;
+  readonly outlineOnly: boolean;
+  readonly includePlayerTile: boolean;
+  readonly borderColor: string;
+  readonly borderWidth: number;
+  readonly showFill: boolean;
+  readonly fillColor: string;
+  readonly includeAsymmetrical: boolean;
+  readonly asymmetricalBorderColor: string;
+  readonly asymmetricalBorderWidth: number;
+  readonly showAsymmetricalFill: boolean;
+  readonly asymmetricalFillColor: string;
+}
+
 export type RuneliteBoostsDisplayChangeMode = "ALWAYS" | "BOOSTED" | "NEVER";
 export type RuneliteBoostsDisplayBoosts = "NONE" | "COMBAT" | "NON_COMBAT" | "BOTH";
 
@@ -553,6 +582,7 @@ export interface RuneliteClientConfigSnapshot {
   readonly opponentInfo: RuneliteOpponentInfoConfigSnapshot;
   readonly playerIndicators: RunelitePlayerIndicatorsConfigSnapshot;
   readonly tileIndicators: RuneliteTileIndicatorsConfigSnapshot;
+  readonly lineOfSight: RuneliteLineOfSightConfigSnapshot;
   readonly boosts: RuneliteBoostsConfigSnapshot;
   readonly pvpPerformanceTracker: RunelitePvpPerformanceTrackerConfigSnapshot;
   readonly suppliesTracker: RuneliteSuppliesTrackerConfigSnapshot;
@@ -778,6 +808,21 @@ export const RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT: RuneliteClientConfigSnapsh
     highlightHoveredColor: "rgba(0, 0, 0, 0)",
     highlightHoveredTile: false,
     thinHoveredTile: false
+  },
+  lineOfSight: {
+    enabled: false,
+    overlayRange: RUNELITE_LINE_OF_SIGHT_DEFAULT_RANGE,
+    outlineOnly: false,
+    includePlayerTile: false,
+    borderColor: RUNELITE_LINE_OF_SIGHT_DEFAULT_BORDER_COLOR,
+    borderWidth: 2,
+    showFill: false,
+    fillColor: RUNELITE_LINE_OF_SIGHT_DEFAULT_FILL_RGBA,
+    includeAsymmetrical: false,
+    asymmetricalBorderColor: RUNELITE_LINE_OF_SIGHT_DEFAULT_ASYMMETRICAL_BORDER_COLOR,
+    asymmetricalBorderWidth: 2,
+    showAsymmetricalFill: false,
+    asymmetricalFillColor: RUNELITE_LINE_OF_SIGHT_DEFAULT_ASYMMETRICAL_FILL_RGBA
   },
   boosts: {
     enabled: false,
@@ -1520,6 +1565,18 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
     pluginBacked: true,
     configurable: true,
     sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/tileindicators/TileIndicatorsPlugin.java"
+  },
+  {
+    id: RUNELITE_LINE_OF_SIGHT_PLUGIN_ID,
+    name: "Line of Sight",
+    description: "Shows the player's line of sight.",
+    pluginType: "utility",
+    tags: ["line", "sight", "tiles", "markers", "range"],
+    pinnedByDefault: false,
+    enabledByDefault: false,
+    pluginBacked: true,
+    configurable: true,
+    sourcePath: `${RUNELITE_LINE_OF_SIGHT_SOURCE_REPOSITORY} / ${RUNELITE_LINE_OF_SIGHT_PLUGIN_HUB_PATH}`
   },
   {
     id: "pvp-performance-tracker",
@@ -4390,6 +4447,142 @@ const runeliteConfigDescriptors: readonly RuneliteConfigDescriptorModel[] = [
         defaultValue: false
       }
     ]
+  },
+  {
+    id: RUNELITE_LINE_OF_SIGHT_PLUGIN_ID,
+    group: RUNELITE_LINE_OF_SIGHT_CONFIG_GROUP,
+    sourcePath: `${RUNELITE_LINE_OF_SIGHT_SOURCE_REPOSITORY}/blob/master/src/main/java/com/krazune/lineofsight/LineOfSightPluginConfig.java`,
+    titleSections: [],
+    sections: [
+      {
+        keyName: "generalSection",
+        name: "General",
+        description: "General configurations",
+        position: 0
+      },
+      {
+        keyName: "asymmetricalSection",
+        name: "Asymmetrical/PVP",
+        description: "Asymmetrical/PVP configurations",
+        position: 1
+      }
+    ],
+    items: [
+      {
+        keyName: "overlayRange",
+        name: "Range",
+        description: "Maximum range of the line of sight overlay.",
+        position: 0,
+        section: "generalSection",
+        type: "range",
+        min: 1,
+        max: 10,
+        defaultValue: RUNELITE_LINE_OF_SIGHT_DEFAULT_RANGE
+      },
+      {
+        keyName: "outlineOnly",
+        name: "Outline only",
+        description: "Only show the outer borders.",
+        position: 1,
+        section: "generalSection",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        keyName: "includePlayerTile",
+        name: "Include player tile",
+        description: "Include the current player's tile in the line of sight area.",
+        position: 2,
+        section: "generalSection",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        keyName: "borderColor",
+        name: "Border color",
+        description: "Color of the overlay's border.",
+        position: 3,
+        section: "generalSection",
+        type: "color",
+        defaultValue: RUNELITE_LINE_OF_SIGHT_DEFAULT_BORDER_COLOR
+      },
+      {
+        keyName: "borderWidth",
+        name: "Border width",
+        description: "Width of the overlay's border.",
+        position: 4,
+        section: "generalSection",
+        type: "number",
+        min: 1,
+        max: 12,
+        defaultValue: 2
+      },
+      {
+        keyName: "showFill",
+        name: "Tile fill",
+        description: "Add fill color to tiles.",
+        position: 5,
+        section: "generalSection",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        keyName: "fillColor",
+        name: "Fill color",
+        description: "Color of the overlay's tiles.",
+        position: 6,
+        section: "generalSection",
+        type: "color",
+        defaultValue: RUNELITE_LINE_OF_SIGHT_DEFAULT_FILL_RGBA
+      },
+      {
+        keyName: "includeAsymmetrical",
+        name: "Include asymmetrical/PVP tiles",
+        description: "Includes tiles that have line of sight to the player.",
+        position: 0,
+        section: "asymmetricalSection",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        keyName: "asymmetricalBorderColor",
+        name: "Border color",
+        description: "Color of the overlay's border.",
+        position: 1,
+        section: "asymmetricalSection",
+        type: "color",
+        defaultValue: RUNELITE_LINE_OF_SIGHT_DEFAULT_ASYMMETRICAL_BORDER_COLOR
+      },
+      {
+        keyName: "asymmetricalBorderWidth",
+        name: "Border width",
+        description: "Width of the overlay's border.",
+        position: 2,
+        section: "asymmetricalSection",
+        type: "number",
+        min: 1,
+        max: 12,
+        defaultValue: 2
+      },
+      {
+        keyName: "showAsymmetricalFill",
+        name: "Tile fill",
+        description: "Add fill color to tiles.",
+        position: 3,
+        section: "asymmetricalSection",
+        type: "boolean",
+        defaultValue: false
+      },
+      {
+        keyName: "asymmetricalFillColor",
+        name: "Fill color",
+        description: "Color of the overlay's tiles.",
+        position: 4,
+        section: "asymmetricalSection",
+        type: "color",
+        defaultValue: RUNELITE_LINE_OF_SIGHT_DEFAULT_ASYMMETRICAL_FILL_RGBA
+      }
+    ]
   }
 ];
 
@@ -6666,6 +6859,7 @@ function buildRuneliteClientConfigSnapshot(
   const opponentInfoValues = configValuesByPluginId["opponent-info"] ?? {};
   const playerIndicatorsValues = configValuesByPluginId["player-indicators"] ?? {};
   const tileIndicatorsValues = configValuesByPluginId["tile-indicators"] ?? {};
+  const lineOfSightValues = configValuesByPluginId[RUNELITE_LINE_OF_SIGHT_PLUGIN_ID] ?? {};
   const pvpPerformanceTrackerValues = configValuesByPluginId["pvp-performance-tracker"] ?? {};
   const suppliesTrackerValues = configValuesByPluginId["supplies-tracker"] ?? {};
   const pvpToolsValues = configValuesByPluginId["pvp-tools"] ?? {};
@@ -6731,6 +6925,7 @@ function buildRuneliteClientConfigSnapshot(
   const opponentInfoEnabled = enabledPluginIds.has("opponent-info");
   const playerIndicatorsEnabled = enabledPluginIds.has("player-indicators");
   const tileIndicatorsEnabled = enabledPluginIds.has("tile-indicators");
+  const lineOfSightEnabled = enabledPluginIds.has(RUNELITE_LINE_OF_SIGHT_PLUGIN_ID);
   const pvpPerformanceTrackerEnabled = enabledPluginIds.has("pvp-performance-tracker");
   const suppliesTrackerEnabled = enabledPluginIds.has("supplies-tracker");
   const pvpToolsEnabled = enabledPluginIds.has("pvp-tools");
@@ -7398,6 +7593,63 @@ function buildRuneliteClientConfigSnapshot(
       thinHoveredTile: runeliteConfigBoolean(
         tileIndicatorsValues.thinHoveredTile,
         RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT.tileIndicators.thinHoveredTile
+      )
+    },
+    lineOfSight: {
+      enabled: lineOfSightEnabled,
+      overlayRange: runeliteLineOfSightClampedRange(
+        runeliteConfigNumber(
+          lineOfSightValues.overlayRange,
+          RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT.lineOfSight.overlayRange
+        )
+      ),
+      outlineOnly: runeliteConfigBoolean(
+        lineOfSightValues.outlineOnly,
+        RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT.lineOfSight.outlineOnly
+      ),
+      includePlayerTile: runeliteConfigBoolean(
+        lineOfSightValues.includePlayerTile,
+        RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT.lineOfSight.includePlayerTile
+      ),
+      borderColor: runeliteConfigString(
+        lineOfSightValues.borderColor,
+        RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT.lineOfSight.borderColor
+      ),
+      borderWidth: runeliteLineOfSightClampedBorderWidth(
+        runeliteConfigNumber(
+          lineOfSightValues.borderWidth,
+          RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT.lineOfSight.borderWidth
+        )
+      ),
+      showFill: runeliteConfigBoolean(
+        lineOfSightValues.showFill,
+        RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT.lineOfSight.showFill
+      ),
+      fillColor: runeliteConfigString(
+        lineOfSightValues.fillColor,
+        RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT.lineOfSight.fillColor
+      ),
+      includeAsymmetrical: runeliteConfigBoolean(
+        lineOfSightValues.includeAsymmetrical,
+        RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT.lineOfSight.includeAsymmetrical
+      ),
+      asymmetricalBorderColor: runeliteConfigString(
+        lineOfSightValues.asymmetricalBorderColor,
+        RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT.lineOfSight.asymmetricalBorderColor
+      ),
+      asymmetricalBorderWidth: runeliteLineOfSightClampedBorderWidth(
+        runeliteConfigNumber(
+          lineOfSightValues.asymmetricalBorderWidth,
+          RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT.lineOfSight.asymmetricalBorderWidth
+        )
+      ),
+      showAsymmetricalFill: runeliteConfigBoolean(
+        lineOfSightValues.showAsymmetricalFill,
+        RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT.lineOfSight.showAsymmetricalFill
+      ),
+      asymmetricalFillColor: runeliteConfigString(
+        lineOfSightValues.asymmetricalFillColor,
+        RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT.lineOfSight.asymmetricalFillColor
       )
     },
     pvpPerformanceTracker: {

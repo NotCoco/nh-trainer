@@ -58,6 +58,7 @@ const spotanimExports = [
   { output: "blood_barrage_hit.glb", label: "Blood barrage hit spotanim", spotanimId: 377 },
   { output: "ags_special.glb", label: "Armadyl godsword special spotanim", spotanimId: 1211 },
   { output: "gmaul_special.glb", label: "Granite maul special spotanim", spotanimId: 340 },
+  { output: "redemption_proc.glb", label: "Redemption prayer proc spotanim", spotanimId: 436 },
   { output: "vengeance_cast.glb", label: "Vengeance cast spotanim", spotanimId: 726 },
   { output: "acb_special_projectile.glb", label: "Armadyl crossbow special projectile spotanim", spotanimId: 301 },
   { output: "bolt_projectile.glb", label: "Bolt projectile spotanim", spotanimId: 27 },

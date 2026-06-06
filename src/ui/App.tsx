@@ -169,8 +169,8 @@ export function App(): JSX.Element {
                 <li>Camera zoom focus, animation-stall movement, melee pull-in, and freeze/pathing teleports were tightened.</li>
               </ul>
             </section>
-            <section className="nhSiteUpdateCard" aria-label="Updates - June 5, 2026">
-              <span>Updates - June 5, 2026</span>
+            <section className="nhSiteUpdateCard" aria-label="Updates - June 5th, 2026">
+              <span>Updates - June 5th, 2026</span>
               <ul>
                 <li>DMM setup added with the captured inventory, new gear, and its own hard-mode policy.</li>
                 <li>Noxious halberd, Voidwaker, VLS, Zaryte crossbow, trinket of vengeance, and bolt procs are wired in.</li>

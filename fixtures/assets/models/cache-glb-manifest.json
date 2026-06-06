@@ -1526,6 +1526,25 @@
       ],
       "vertices": 660,
       "triangles": 220
+    },
+    {
+      "output": "fixtures/render/spotanims/redemption_proc.glb",
+      "meshMetadata": "fixtures/render/spotanims/redemption_proc.mesh.json",
+      "label": "Redemption prayer proc spotanim",
+      "spotanimId": 436,
+      "sourceModels": [
+        {
+          "kind": "spotanim",
+          "spotanimId": 436,
+          "modelId": 9249,
+          "animationId": 2596,
+          "resizeX": 128,
+          "resizeY": 128,
+          "rotation": 0
+        }
+      ],
+      "vertices": 1920,
+      "triangles": 640
     }
   ]
 }

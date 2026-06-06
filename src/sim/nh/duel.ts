@@ -46,7 +46,13 @@ import {
 } from "../items/consumables";
 import type { NhMovementIntent, NhOffenceStyle, NhPolicyAction, NhSupplyIntent } from "./policy-bridge";
 import type { PrayerId, ProtectionPrayerId } from "../prayer/prayers";
-import { activeProtectionPrayer, applyProtectionDamageReduction, compatiblePrayerSet, protectPrayerForStyle } from "../prayer/prayers";
+import {
+  activeOverheadPrayer,
+  activeProtectionPrayer,
+  applyProtectionDamageReduction,
+  compatiblePrayerSet,
+  protectPrayerForStyle
+} from "../prayer/prayers";
 import type { TilePosition } from "../world/movement";
 import { canMeleeReachThisTick, chebyshevDistance, type MeleeReachResult } from "../world/movement";
 import { createNhClientAppearancePacket } from "../clientAppearancePacket";
@@ -1774,8 +1780,7 @@ function visibleAnimations(actor: NhDuelActorState): VisibleAnimationIds {
 }
 
 function prayerIcon(prayers: readonly PrayerId[]): PrayerIcon {
-  const protection = activeProtectionPrayer(prayers);
-  return protection ?? (prayers.includes("smite") ? "smite" : "none");
+  return activeOverheadPrayer(prayers) ?? "none";
 }
 
 function levelsFromStats(stats: SimStats): CombatLevels {

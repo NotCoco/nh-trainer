@@ -222,7 +222,7 @@ body {
   color: #8e7442;
 }
 
-@media (max-width: 1460px) and (min-width: 901px) {
+@media (max-width: 1199px) and (min-width: 901px) {
   .nhSiteUpdates {
     grid-template-columns: minmax(230px, 310px);
     width: min(310px, 100%);
@@ -4018,6 +4018,24 @@ h3 {
 }
 
 .runeliteTileIndicatorPolygon {
+  pointer-events: none;
+  shape-rendering: geometricPrecision;
+}
+
+.runeliteLineOfSightOverlay {
+  position: absolute;
+  z-index: 9;
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.runeliteLineOfSightPolygon {
+  pointer-events: none;
+  shape-rendering: geometricPrecision;
+}
+
+.runeliteLineOfSightLine {
   pointer-events: none;
   shape-rendering: geometricPrecision;
 }

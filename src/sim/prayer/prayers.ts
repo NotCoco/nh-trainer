@@ -32,6 +32,7 @@ export type PrayerId =
   | "preserve";
 
 export type ProtectionPrayerId = "protect_from_magic" | "protect_from_missiles" | "protect_from_melee";
+export type OverheadPrayerId = ProtectionPrayerId | "retribution" | "smite" | "redemption";
 
 export interface PrayerBoosts {
   readonly attack: number;
@@ -129,6 +130,23 @@ export function activeProtectionPrayer(activePrayers: readonly PrayerId[]): Prot
   }
   if (activePrayers.includes("protect_from_melee")) {
     return "protect_from_melee";
+  }
+  return undefined;
+}
+
+export function activeOverheadPrayer(activePrayers: readonly PrayerId[]): OverheadPrayerId | undefined {
+  const protection = activeProtectionPrayer(activePrayers);
+  if (protection) {
+    return protection;
+  }
+  if (activePrayers.includes("retribution")) {
+    return "retribution";
+  }
+  if (activePrayers.includes("redemption")) {
+    return "redemption";
+  }
+  if (activePrayers.includes("smite")) {
+    return "smite";
   }
   return undefined;
 }

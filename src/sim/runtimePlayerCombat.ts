@@ -45,6 +45,7 @@ import {
 } from "./magic/spellRequirements";
 import type { PrayerId, ProtectionPrayerId } from "./prayer/prayers";
 import {
+  activeOverheadPrayer,
   activeProtectionPrayer,
   applyProtectionDamageReduction,
   compatiblePrayerSet,
@@ -61,6 +62,11 @@ export type RuntimePlayerCombatSoundChannel = "sound-effects" | "area-sounds";
 
 export const runtimePlayerCombatFoodSoundId = 2393;
 export const runtimePlayerCombatDrinkSoundId = 2401;
+export const runtimePlayerCombatRedemptionSpotanimId = 436;
+export const runtimePlayerCombatRedemptionSpotanimArtifactUrl = "render/spotanims/redemption_proc.glb";
+export const runtimePlayerCombatRedemptionPrayerDrain = 99;
+export const runtimePlayerCombatRedemptionThresholdFraction = 0.1;
+export const runtimePlayerCombatRedemptionPrayerHealFraction = 0.25;
 
 export function runtimePlayerCombatConsumableSoundIds(item: ConsumableId): readonly number[] {
   const kind = consumableDefinitions[item].kind;
@@ -1856,6 +1862,10 @@ export function runtimePlayerCombatActiveProtectionPrayer(actor: RuntimePlayerCo
   return activeProtectionPrayer(actor.activePrayers);
 }
 
+export function runtimePlayerCombatActiveOverheadPrayer(actor: RuntimePlayerCombatActorState): ReturnType<typeof activeOverheadPrayer> {
+  return activeOverheadPrayer(actor.activePrayers);
+}
+
 export function isRuntimePlayerCombatActorDead(actor: RuntimePlayerCombatActorState, tick: number): boolean {
   return actor.hitpoints <= 0 || (actor.deadUntilTick !== null && actor.deadUntilTick > tick);
 }
@@ -2869,6 +2879,16 @@ function applyRuntimePlayerQueuedHit(
   const damage = runtimePlayerCombatQueuedHitDamage(actors, hit, tick);
   const nextHitpoints = Math.max(0, defender.hitpoints - damage);
   const dead = nextHitpoints <= 0;
+  const redemptionProc =
+    !dead &&
+    nextHitpoints <= defender.maxHitpoints * runtimePlayerCombatRedemptionThresholdFraction &&
+    defender.activePrayers.includes("redemption");
+  const redemptionHeal = redemptionProc
+    ? Math.trunc(defender.maxPrayerPoints * runtimePlayerCombatRedemptionPrayerHealFraction)
+    : 0;
+  const nextDefenderHitpoints = redemptionProc
+    ? Math.min(defender.maxHitpoints, nextHitpoints + redemptionHeal)
+    : nextHitpoints;
   const respawnTick = tick + deathResetDelayTicks;
   const hitsplatExpired = tick >= runtimePlayerCombatHitsplatEndTick(defender.lastHitsplatTick);
   const hitsplatSlotIndex = hitsplatExpired ? 0 : (defender.hitsplatSlotCursor % 4);
@@ -2879,9 +2899,13 @@ function applyRuntimePlayerQueuedHit(
   const resetDefender = dead ? resetRuntimePlayerCombatActorPolicyDeath(defender) : defender;
   const nextDefender: RuntimePlayerCombatActorState = {
     ...resetDefender,
-    hitpoints: nextHitpoints,
+    hitpoints: nextDefenderHitpoints,
     deadUntilTick: dead ? respawnTick : defender.deadUntilTick,
     locks: freezeLands ? applyFreeze(resetDefender.locks, tick, hit.freezeDurationTicks, hit.attackerId) : resetDefender.locks,
+    prayerPoints: redemptionProc
+      ? Math.max(0, resetDefender.prayerPoints - runtimePlayerCombatRedemptionPrayerDrain)
+      : resetDefender.prayerPoints,
+    activePrayers: redemptionProc ? [] : resetDefender.activePrayers,
     vengeanceActive: damage > 0 ? false : resetDefender.vengeanceActive,
     hitsplatSlotCursor: (hitsplatSlotIndex + 1) % 4,
     lastHitsplatTick: tick
@@ -2932,7 +2956,7 @@ function applyRuntimePlayerQueuedHit(
       hitChance: hit.hitChance,
       ...(defenderProtectionPrayer ? { defenderProtectionPrayer } : {}),
       previousHitpoints: defender.hitpoints,
-      nextHitpoints,
+      nextHitpoints: nextDefenderHitpoints,
       maxHitpoints: defender.maxHitpoints,
       slotIndex: hitsplatSlotIndex
     }
@@ -2984,6 +3008,16 @@ function applyRuntimePlayerQueuedHit(
       nextHitpoints: nextAttackerHitpoints,
       maxHitpoints: attacker.maxHitpoints,
       slotIndex: attackerHitsplatSlotIndex
+    });
+  }
+  if (redemptionProc) {
+    events.push({
+      kind: "spotanim",
+      id: `${hit.id}-redemption-spotanim`,
+      tick,
+      actorId: hit.defenderId,
+      spotanimId: runtimePlayerCombatRedemptionSpotanimId,
+      artifactUrl: runtimePlayerCombatRedemptionSpotanimArtifactUrl
     });
   }
   if (dead) {

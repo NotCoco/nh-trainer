@@ -183,6 +183,7 @@ import {
 import {
   buildNhSceneCollision,
   clientObjectFootprint,
+  NH_PROJECTILE_MASK,
   nhArenaTileSceneCorners,
   type NhArenaMetadata,
   type NhArenaObjectPlacement,
@@ -303,6 +304,7 @@ import {
   resetRuntimePlayerCombatActorPolicyDisengage,
   resetRuntimePlayerCombatActorTarget,
   runtimePlayerCombatActionDurationTicks,
+  runtimePlayerCombatActiveOverheadPrayer,
   runtimePlayerCombatActiveProtectionPrayer,
   runtimePlayerCombatConsumableSoundIds,
   runtimePlayerCombatDefaultLevels,
@@ -417,6 +419,7 @@ import {
   type RuneliteStatusBarsConfigSnapshot,
   type RuneliteStatusOrbsConfigSnapshot,
   type RuneliteTimersConfigSnapshot,
+  type RuneliteLineOfSightConfigSnapshot,
   type RuneliteTileIndicatorsConfigSnapshot,
   type RuneliteXpDropConfigSnapshot
 } from "./RuneliteClientShell";
@@ -566,6 +569,13 @@ import {
   runeliteTileIndicatorStrokeWidth,
   type RuneliteTileIndicatorKind
 } from "./runeliteTileIndicators";
+import {
+  RUNELITE_LINE_OF_SIGHT_OVERLAY_LAYER,
+  RUNELITE_LINE_OF_SIGHT_OVERLAY_POSITION,
+  RUNELITE_LINE_OF_SIGHT_PLUGIN_HUB_PATH,
+  RUNELITE_LINE_OF_SIGHT_SOURCE_REPOSITORY,
+  type RuneliteLineOfSightOverlayKind
+} from "./runeliteLineOfSight";
 import {
   RUNELITE_ENTITY_HIDER_CASTLE_WARS_REGION_ID,
   RUNELITE_ENTITY_HIDER_CONFIG_GROUP,
@@ -1471,6 +1481,20 @@ interface RuneliteTileIndicatorDomOverlay {
   readonly points: string;
   readonly strokeColor: string;
   readonly strokeWidth: number;
+  readonly renderOrder: number;
+  readonly sourceWidth: number;
+  readonly sourceHeight: number;
+}
+
+interface RuneliteLineOfSightDomOverlay {
+  readonly id: string;
+  readonly geometry: "polygon" | "line";
+  readonly kind: RuneliteLineOfSightOverlayKind;
+  readonly tile: RuntimeTile;
+  readonly points: string;
+  readonly strokeColor: string;
+  readonly strokeWidth: number;
+  readonly fillColor: string;
   readonly renderOrder: number;
   readonly sourceWidth: number;
   readonly sourceHeight: number;
@@ -2758,6 +2782,30 @@ function applyRuneliteTileIndicatorsConfig(canvas: HTMLCanvasElement | null, til
   canvas.dataset.sourceTileIndicatorsPlugin = "TileIndicatorsPlugin startUp updateConfig overlayManager.add(overlay)";
   canvas.dataset.sourceTileIndicatorsOverlay = "TileIndicatorsOverlay render client.getSelectedSceneTile client.getLocalDestinationLocation client.getLocalPlayer().getWorldLocation";
   canvas.dataset.sourceTileIndicatorsProjection = "Perspective.getCanvasTilePoly(client, dest)";
+}
+
+function applyRuneliteLineOfSightConfig(canvas: HTMLCanvasElement | null, lineOfSightConfig: RuneliteLineOfSightConfigSnapshot): void {
+  if (!canvas) {
+    return;
+  }
+
+  canvas.dataset.runeliteLineOfSightEnabled = String(lineOfSightConfig.enabled);
+  canvas.dataset.runeliteLineOfSightRange = String(lineOfSightConfig.overlayRange);
+  canvas.dataset.runeliteLineOfSightOutlineOnly = String(lineOfSightConfig.outlineOnly);
+  canvas.dataset.runeliteLineOfSightIncludePlayerTile = String(lineOfSightConfig.includePlayerTile);
+  canvas.dataset.runeliteLineOfSightBorderColor = lineOfSightConfig.borderColor;
+  canvas.dataset.runeliteLineOfSightBorderWidth = String(lineOfSightConfig.borderWidth);
+  canvas.dataset.runeliteLineOfSightShowFill = String(lineOfSightConfig.showFill);
+  canvas.dataset.runeliteLineOfSightFillColor = lineOfSightConfig.fillColor;
+  canvas.dataset.runeliteLineOfSightIncludeAsymmetrical = String(lineOfSightConfig.includeAsymmetrical);
+  canvas.dataset.runeliteLineOfSightAsymmetricalBorderColor = lineOfSightConfig.asymmetricalBorderColor;
+  canvas.dataset.runeliteLineOfSightAsymmetricalBorderWidth = String(lineOfSightConfig.asymmetricalBorderWidth);
+  canvas.dataset.runeliteLineOfSightShowAsymmetricalFill = String(lineOfSightConfig.showAsymmetricalFill);
+  canvas.dataset.runeliteLineOfSightAsymmetricalFillColor = lineOfSightConfig.asymmetricalFillColor;
+  canvas.dataset.sourceLineOfSightRepository = RUNELITE_LINE_OF_SIGHT_SOURCE_REPOSITORY;
+  canvas.dataset.sourceLineOfSightPluginHub = RUNELITE_LINE_OF_SIGHT_PLUGIN_HUB_PATH;
+  canvas.dataset.sourceLineOfSightOverlay = "TilesOverlay setPosition(OverlayPosition.DYNAMIC); setLayer(OverlayLayer.ABOVE_SCENE)";
+  canvas.dataset.sourceLineOfSightProjection = "Perspective.getCanvasTilePoly(client, localPoint)";
 }
 
 function applyRuneliteBoostsConfig(canvas: HTMLCanvasElement | null, boostsConfig: RuneliteBoostsConfigSnapshot): void {
@@ -10182,6 +10230,231 @@ function runeliteTileIndicatorDomOverlaySignature(overlays: readonly RuneliteTil
     .join("|");
 }
 
+function buildRuneliteLineOfSightDomOverlays(
+  boundary: RuntimeSceneBoundary,
+  snapshot: RuntimeSceneSnapshot,
+  config: RuneliteLineOfSightConfigSnapshot,
+  collisionMap: NhSceneCollision | null
+): readonly RuneliteLineOfSightDomOverlay[] {
+  const fixedLayout = boundary.fixedClientLayout;
+  if (!config.enabled || !fixedLayout || !collisionMap) {
+    return [];
+  }
+
+  const localPose = snapshot.actors.find((actor) => actor.actorId === "local-player") ?? null;
+  if (!localPose) {
+    return [];
+  }
+
+  const sourceTile = collisionMap.snapTile(localPose.tile);
+  const sourceWorld = collisionMap.sceneToWorldTile(sourceTile);
+  const regularWorldKeys = new Set<string>();
+  const regularTiles: RuntimeTile[] = [];
+  const asymmetricalTiles: RuntimeTile[] = [];
+  const range = config.overlayRange;
+
+  for (let x = sourceWorld.x - range; x <= sourceWorld.x + range; x += 1) {
+    for (let y = sourceWorld.y - range; y <= sourceWorld.y + range; y += 1) {
+      const candidateWorld: NhWorldTile = { x, y, plane: sourceWorld.plane };
+      const candidateTile = collisionMap.worldToSceneTile(candidateWorld);
+      const candidateKey = runeliteLineOfSightWorldTileKey(candidateWorld);
+      const localTile = sameNhTile(candidateTile, sourceTile);
+      const hasSight = !localTile && nhSceneProjectileRouteClear(sourceTile, candidateTile, collisionMap);
+
+      if (hasSight || (localTile && config.includePlayerTile)) {
+        regularWorldKeys.add(candidateKey);
+        regularTiles.push(candidateTile);
+        continue;
+      }
+
+      if (
+        config.includeAsymmetrical &&
+        !localTile &&
+        (collisionMap.getProjectileFlagWorld(x, y) & NH_PROJECTILE_MASK) === 0 &&
+        nhSceneProjectileRouteClear(candidateTile, sourceTile, collisionMap)
+      ) {
+        asymmetricalTiles.push(candidateTile);
+      }
+    }
+  }
+
+  const visibleAsymmetricalTiles = asymmetricalTiles.filter(
+    (tile) => !regularWorldKeys.has(runeliteLineOfSightWorldTileKey(collisionMap.sceneToWorldTile(tile)))
+  );
+  const overlays: RuneliteLineOfSightDomOverlay[] = [];
+  const addPolygon = (
+    kind: RuneliteLineOfSightOverlayKind,
+    tile: RuntimeTile,
+    idSuffix: string,
+    strokeColor: string,
+    strokeWidth: number,
+    fillColor: string
+  ): void => {
+    const snappedTile = collisionMap.snapTile(tile);
+    const points = runtimeTileCanvasPolygonPoints(boundary, snappedTile, collisionMap);
+    if (!points) {
+      return;
+    }
+
+    const world = collisionMap.sceneToWorldTile(snappedTile);
+    overlays.push({
+      id: `line-of-sight-${kind}-${idSuffix}-${world.x}-${world.y}-${world.plane}`,
+      geometry: "polygon",
+      kind,
+      tile: snappedTile,
+      points: points.map((point) => `${point.x},${point.y}`).join(" "),
+      strokeColor,
+      strokeWidth,
+      fillColor,
+      renderOrder: kind === "asymmetrical" ? overlays.length : 500 + overlays.length,
+      sourceWidth: fixedLayout.viewport.rect.width,
+      sourceHeight: fixedLayout.viewport.rect.height
+    });
+  };
+  const addLine = (
+    kind: RuneliteLineOfSightOverlayKind,
+    tile: RuntimeTile,
+    idSuffix: string,
+    strokeColor: string,
+    strokeWidth: number,
+    points: readonly RuntimeViewportSourcePoint[]
+  ): void => {
+    const snappedTile = collisionMap.snapTile(tile);
+    const world = collisionMap.sceneToWorldTile(snappedTile);
+    overlays.push({
+      id: `line-of-sight-${kind}-${idSuffix}-${world.x}-${world.y}-${world.plane}`,
+      geometry: "line",
+      kind,
+      tile: snappedTile,
+      points: points.map((point) => `${point.x},${point.y}`).join(" "),
+      strokeColor,
+      strokeWidth,
+      fillColor: "rgba(0, 0, 0, 0)",
+      renderOrder: kind === "asymmetrical" ? overlays.length : 500 + overlays.length,
+      sourceWidth: fixedLayout.viewport.rect.width,
+      sourceHeight: fixedLayout.viewport.rect.height
+    });
+  };
+  const addFullGrid = (
+    kind: RuneliteLineOfSightOverlayKind,
+    tiles: readonly RuntimeTile[],
+    strokeColor: string,
+    strokeWidth: number,
+    showFill: boolean,
+    fillColor: string
+  ): void => {
+    for (const tile of runeliteLineOfSightRenderableTiles(tiles, collisionMap, showFill)) {
+      addPolygon(kind, tile, "tile", strokeColor, strokeWidth, showFill ? fillColor : "rgba(0, 0, 0, 0)");
+    }
+  };
+  const addOutlineOnly = (
+    kind: RuneliteLineOfSightOverlayKind,
+    tiles: readonly RuntimeTile[],
+    strokeColor: string,
+    strokeWidth: number,
+    showFill: boolean,
+    fillColor: string
+  ): void => {
+    const tileKeys = new Set(tiles.map((tile) => runeliteLineOfSightWorldTileKey(collisionMap.sceneToWorldTile(tile))));
+    for (const tile of tiles) {
+      const snappedTile = collisionMap.snapTile(tile);
+      const points = runtimeTileCanvasPolygonPoints(boundary, snappedTile, collisionMap);
+      if (!points) {
+        continue;
+      }
+
+      if (showFill) {
+        addPolygon(kind, snappedTile, "fill", "rgba(0, 0, 0, 0)", 0, fillColor);
+      }
+
+      const world = collisionMap.sceneToWorldTile(snappedTile);
+      const topBorder = !tileKeys.has(runeliteLineOfSightWorldTileKey({ ...world, y: world.y + 1 }));
+      const rightBorder = !tileKeys.has(runeliteLineOfSightWorldTileKey({ ...world, x: world.x + 1 }));
+      const bottomBorder = !tileKeys.has(runeliteLineOfSightWorldTileKey({ ...world, y: world.y - 1 }));
+      const leftBorder = !tileKeys.has(runeliteLineOfSightWorldTileKey({ ...world, x: world.x - 1 }));
+
+      if (topBorder) {
+        addLine(kind, snappedTile, "top", strokeColor, strokeWidth, [points[3], points[2]]);
+      }
+      if (rightBorder) {
+        addLine(kind, snappedTile, "right", strokeColor, strokeWidth, [points[1], points[2]]);
+      }
+      if (bottomBorder) {
+        addLine(kind, snappedTile, "bottom", strokeColor, strokeWidth, [points[0], points[1]]);
+      }
+      if (leftBorder) {
+        addLine(kind, snappedTile, "left", strokeColor, strokeWidth, [points[0], points[3]]);
+      }
+    }
+  };
+  const addTiles = (
+    kind: RuneliteLineOfSightOverlayKind,
+    tiles: readonly RuntimeTile[],
+    strokeColor: string,
+    strokeWidth: number,
+    showFill: boolean,
+    fillColor: string
+  ): void => {
+    if (config.outlineOnly) {
+      addOutlineOnly(kind, tiles, strokeColor, strokeWidth, showFill, fillColor);
+      return;
+    }
+    addFullGrid(kind, tiles, strokeColor, strokeWidth, showFill, fillColor);
+  };
+
+  addTiles(
+    "asymmetrical",
+    visibleAsymmetricalTiles,
+    config.asymmetricalBorderColor,
+    config.asymmetricalBorderWidth,
+    config.showAsymmetricalFill,
+    config.asymmetricalFillColor
+  );
+  addTiles(
+    "regular",
+    regularTiles,
+    config.borderColor,
+    config.borderWidth,
+    config.showFill,
+    config.fillColor
+  );
+  return overlays;
+}
+
+function runeliteLineOfSightRenderableTiles(
+  tiles: readonly RuntimeTile[],
+  collisionMap: NhSceneCollision,
+  includeFilledTiles: boolean
+): readonly RuntimeTile[] {
+  if (includeFilledTiles) {
+    return tiles;
+  }
+
+  const tileKeys = new Set(tiles.map((tile) => runeliteLineOfSightWorldTileKey(collisionMap.sceneToWorldTile(tile))));
+  return tiles.filter((tile) => {
+    const world = collisionMap.sceneToWorldTile(tile);
+    return (
+      !tileKeys.has(runeliteLineOfSightWorldTileKey({ ...world, x: world.x - 1 })) ||
+      !tileKeys.has(runeliteLineOfSightWorldTileKey({ ...world, x: world.x + 1 })) ||
+      !tileKeys.has(runeliteLineOfSightWorldTileKey({ ...world, y: world.y - 1 })) ||
+      !tileKeys.has(runeliteLineOfSightWorldTileKey({ ...world, y: world.y + 1 }))
+    );
+  });
+}
+
+function runeliteLineOfSightWorldTileKey(tile: NhWorldTile): string {
+  return `${tile.x}:${tile.y}:${tile.plane}`;
+}
+
+function runeliteLineOfSightDomOverlaySignature(overlays: readonly RuneliteLineOfSightDomOverlay[]): string {
+  return overlays
+    .map(
+      (overlay) =>
+        `${overlay.id}:${overlay.geometry}:${overlay.kind}:${overlay.points}:${overlay.strokeColor}:${overlay.strokeWidth}:${overlay.fillColor}:${overlay.sourceWidth}:${overlay.sourceHeight}`
+    )
+    .join("|");
+}
+
 function buildRunelitePrayerBarDomOverlay(
   boundary: RuntimeSceneBoundary,
   snapshot: RuntimeSceneSnapshot,
@@ -11970,7 +12243,7 @@ function runtimePlayerCombatRenderEvents(
   }
 
   for (const actor of Object.values(combatState.actors)) {
-    const prayer = runtimePlayerCombatActiveProtectionPrayer(actor);
+    const prayer = runtimePlayerCombatActiveOverheadPrayer(actor);
     if (prayer) {
       const definition = nhPrayerOverheadDefinition(prayer, overheadIconDefinitions);
       if (definition) {
@@ -13637,6 +13910,8 @@ export function RuntimeSceneViewer({
   const [runelitePrayAgainstPlayerOverlays, setRunelitePrayAgainstPlayerOverlays] = useState<readonly RunelitePrayAgainstPlayerDomOverlay[]>([]);
   const runeliteTileIndicatorDomOverlaySignatureRef = useRef("");
   const [runeliteTileIndicatorOverlays, setRuneliteTileIndicatorOverlays] = useState<readonly RuneliteTileIndicatorDomOverlay[]>([]);
+  const runeliteLineOfSightDomOverlaySignatureRef = useRef("");
+  const [runeliteLineOfSightOverlays, setRuneliteLineOfSightOverlays] = useState<readonly RuneliteLineOfSightDomOverlay[]>([]);
   const runelitePrayerBarDomOverlaySignatureRef = useRef("");
   const runelitePrayerBarOverlayElementsRef = useRef(new Map<string, HTMLElement>());
   const [runelitePrayerBarOverlay, setRunelitePrayerBarOverlay] = useState<RunelitePrayerBarDomOverlay | null>(null);
@@ -14311,6 +14586,7 @@ export function RuntimeSceneViewer({
     applyRuneliteOpponentInfoConfig(canvasRef.current, runeliteClientConfig.opponentInfo);
     applyRunelitePlayerIndicatorsConfig(canvasRef.current, runeliteClientConfig.playerIndicators);
     applyRuneliteTileIndicatorsConfig(canvasRef.current, runeliteClientConfig.tileIndicators);
+    applyRuneliteLineOfSightConfig(canvasRef.current, runeliteClientConfig.lineOfSight);
     applyRuneliteBoostsConfig(canvasRef.current, runeliteClientConfig.boosts);
     applyRuneliteInfoBoxConfig(canvasRef.current, runeliteClientConfig.infoBox);
     applyRuneliteXpDropConfig(canvasRef.current, runeliteClientConfig.xpDrop);
@@ -14480,6 +14756,7 @@ export function RuntimeSceneViewer({
     applyRuneliteOpponentInfoConfig(canvas, runeliteClientConfigRef.current.opponentInfo);
     applyRunelitePlayerIndicatorsConfig(canvas, runeliteClientConfigRef.current.playerIndicators);
     applyRuneliteTileIndicatorsConfig(canvas, runeliteClientConfigRef.current.tileIndicators);
+    applyRuneliteLineOfSightConfig(canvas, runeliteClientConfigRef.current.lineOfSight);
     applyRuneliteBoostsConfig(canvas, runeliteClientConfigRef.current.boosts);
     applyRuneliteInfoBoxConfig(canvas, runeliteClientConfigRef.current.infoBox);
     applyRuneliteXpDropConfig(canvas, runeliteClientConfigRef.current.xpDrop);
@@ -14781,6 +15058,17 @@ export function RuntimeSceneViewer({
         runeliteTileIndicatorDomOverlaySignatureRef.current = nextTileIndicatorOverlaySignature;
         setRuneliteTileIndicatorOverlays(nextTileIndicatorOverlays);
       }
+      const nextLineOfSightOverlays = buildRuneliteLineOfSightDomOverlays(
+        boundary,
+        frameSnapshot,
+        runeliteClientConfigRef.current.lineOfSight,
+        collisionMapRef.current
+      );
+      const nextLineOfSightOverlaySignature = runeliteLineOfSightDomOverlaySignature(nextLineOfSightOverlays);
+      if (runeliteLineOfSightDomOverlaySignatureRef.current !== nextLineOfSightOverlaySignature) {
+        runeliteLineOfSightDomOverlaySignatureRef.current = nextLineOfSightOverlaySignature;
+        setRuneliteLineOfSightOverlays(nextLineOfSightOverlays);
+      }
       const prayerTickProgress = runelitePrayerTickProgressRadians(now);
       const nextPrayerBarOverlayRaw = buildRunelitePrayerBarDomOverlay(
         boundary,
@@ -14908,6 +15196,10 @@ export function RuntimeSceneViewer({
       setRunelitePrayAgainstPlayerOverlays([]);
       runelitePrayAgainstPlayerDomOverlaySignatureRef.current = "";
       runelitePrayAgainstPlayerOverlayElementsRef.current.clear();
+      setRuneliteTileIndicatorOverlays([]);
+      runeliteTileIndicatorDomOverlaySignatureRef.current = "";
+      setRuneliteLineOfSightOverlays([]);
+      runeliteLineOfSightDomOverlaySignatureRef.current = "";
       setRunelitePrayerBarOverlay(null);
       runelitePrayerBarDomOverlaySignatureRef.current = "";
       runelitePrayerBarOverlayElementsRef.current.clear();
@@ -21572,6 +21864,57 @@ export function RuntimeSceneViewer({
                   data-source-stroke-width={overlay.strokeWidth}
                 />
               ))}
+            </svg>
+          ) : null}
+          {runeliteLineOfSightOverlays.length > 0 ? (
+            <svg
+              className="runeliteLineOfSightOverlay"
+              viewBox={`0 0 ${runeliteLineOfSightOverlays[0]?.sourceWidth ?? 0} ${runeliteLineOfSightOverlays[0]?.sourceHeight ?? 0}`}
+              preserveAspectRatio="none"
+              aria-hidden="true"
+              data-source-plugin="LineOfSightPlugin"
+              data-source-overlay="TilesOverlay"
+              data-source-repository={RUNELITE_LINE_OF_SIGHT_SOURCE_REPOSITORY}
+              data-source-plugin-hub={RUNELITE_LINE_OF_SIGHT_PLUGIN_HUB_PATH}
+              data-source-overlay-position={RUNELITE_LINE_OF_SIGHT_OVERLAY_POSITION}
+              data-source-overlay-layer={RUNELITE_LINE_OF_SIGHT_OVERLAY_LAYER}
+              data-source-los="WorldArea.hasLineOfSightTo / ProjectileRoute-backed trainer collision"
+              data-source-polygon="Perspective.getCanvasTilePoly(client, localPoint)"
+              style={runeliteTileIndicatorsSvgStyle(fixedClientCssLayout)}
+            >
+              {runeliteLineOfSightOverlays.map((overlay) =>
+                overlay.geometry === "line" ? (
+                  <polyline
+                    key={overlay.id}
+                    className={`runeliteLineOfSightLine runeliteLineOfSightLine-${overlay.kind}`}
+                    points={overlay.points}
+                    fill="none"
+                    stroke={overlay.strokeColor}
+                    strokeWidth={overlay.strokeWidth}
+                    vectorEffect="non-scaling-stroke"
+                    data-line-of-sight-kind={overlay.kind}
+                    data-line-of-sight-geometry={overlay.geometry}
+                    data-tile-x={overlay.tile.x}
+                    data-tile-z={overlay.tile.z}
+                    data-source-stroke-width={overlay.strokeWidth}
+                  />
+                ) : (
+                  <polygon
+                    key={overlay.id}
+                    className={`runeliteLineOfSightPolygon runeliteLineOfSightPolygon-${overlay.kind}`}
+                    points={overlay.points}
+                    fill={overlay.fillColor}
+                    stroke={overlay.strokeColor}
+                    strokeWidth={overlay.strokeWidth}
+                    vectorEffect="non-scaling-stroke"
+                    data-line-of-sight-kind={overlay.kind}
+                    data-line-of-sight-geometry={overlay.geometry}
+                    data-tile-x={overlay.tile.x}
+                    data-tile-z={overlay.tile.z}
+                    data-source-stroke-width={overlay.strokeWidth}
+                  />
+                )
+              )}
             </svg>
           ) : null}
           {runtimeDomOverlays.map((overlay) => (

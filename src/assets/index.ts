@@ -127,9 +127,10 @@ export const assetCatalog: readonly AssetRecord[] = [
       "fixtures/render/spotanims/dragonstone_bolt_proc.glb",
       "fixtures/render/spotanims/diamond_bolt_proc.glb",
       "fixtures/render/spotanims/ags_special.glb",
-      "fixtures/render/spotanims/gmaul_special.glb"
+      "fixtures/render/spotanims/gmaul_special.glb",
+      "fixtures/render/spotanims/redemption_proc.glb"
     ],
-    acceptanceGate: "Barrage, Blitz, Blood spells, ACB, standard bolt, dragon bolt, and Gmaul spotanim visuals use cache ids plus server payload timing, not approximate particles.",
+    acceptanceGate: "Barrage, Blitz, Blood spells, ACB, standard bolt, dragon bolt, Gmaul, and Redemption spotanim visuals use cache ids plus server payload timing, not approximate particles.",
     notes: "This is the visual layer that makes NH readable rather than just two models swapping gear."
   },
   {

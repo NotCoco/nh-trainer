@@ -235,6 +235,7 @@ const meshBySpotanim = new Map([
   [374, { meshPath: "fixtures/render/spotanims/blood_blitz_projectile.mesh.json", playbackMode: "loop" }],
   [375, { meshPath: "fixtures/render/spotanims/blood_blitz_hit.mesh.json", playbackMode: "primary" }],
   [377, { meshPath: "fixtures/render/spotanims/blood_barrage_hit.mesh.json", playbackMode: "primary" }],
+  [436, { meshPath: "fixtures/render/spotanims/redemption_proc.mesh.json", playbackMode: "primary" }],
   [726, { meshPath: "fixtures/render/spotanims/vengeance_cast.mesh.json", playbackMode: "primary" }],
   [753, { meshPath: "fixtures/render/spotanims/onyx_bolt_proc.mesh.json", playbackMode: "primary" }],
   [756, { meshPath: "fixtures/render/spotanims/dragonstone_bolt_proc.mesh.json", playbackMode: "primary" }],
