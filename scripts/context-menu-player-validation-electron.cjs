@@ -171,7 +171,7 @@ async function openPlayerContextMenu(window) {
             clientX: rect.left + x,
             clientY: rect.top + y
           }));
-          await delayFrame();
+          await new Promise((resolve) => setTimeout(resolve, 40));
           if (!document.querySelector(".nhContextMenu")) {
             canvas.dispatchEvent(new MouseEvent("contextmenu", {
               bubbles: true,
@@ -182,7 +182,7 @@ async function openPlayerContextMenu(window) {
               clientX: rect.left + x,
               clientY: rect.top + y
             }));
-            await delayFrame();
+            await new Promise((resolve) => setTimeout(resolve, 40));
           }
           const menu = document.querySelector(".nhContextMenu");
           if (!menu) {

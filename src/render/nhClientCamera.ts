@@ -55,11 +55,25 @@ export const NH_CAMERA_OUTER_ZOOM_LIMIT =
   NH_CAMERA_SOURCE_OUTER_ZOOM_LIMIT - NH_CAMERA_ZOOM_PLUGIN_OUTER_LIMIT;
 export const NH_CAMERA_INNER_ZOOM_LIMIT = 896;
 export const NH_CAMERA_SCROLL_WHEEL_INCREMENT = 25;
-export const NH_CAMERA_DEFAULT_ZOOM_HEIGHT = 512;
-export const NH_CAMERA_DEFAULT_ZOOM_WIDTH = 512;
+export const NH_CAMERA_DEFAULT_FOV_ZOOM_HEIGHT = 512;
+export const NH_CAMERA_DEFAULT_FOV_ZOOM_WIDTH = 512;
+export const NH_CAMERA_DEFAULT_ZOOM_HEIGHT = NH_CAMERA_DEFAULT_FOV_ZOOM_HEIGHT;
+export const NH_CAMERA_DEFAULT_ZOOM_WIDTH = NH_CAMERA_DEFAULT_FOV_ZOOM_WIDTH;
+// Source: ScrollWheelZoomHandler.rs2asm seeds viewport_getfov with 512/512
+// before script 42 applies viewport_setfov. This is the scroll/FOV state, not
+// Client.zoomHeight/zoomWidth for NPCDefinition.method4403 camera distance.
 export const NH_CAMERA_DEFAULT_ZOOM: NhCameraZoom = {
   zoomHeight: NH_CAMERA_DEFAULT_ZOOM_HEIGHT,
   zoomWidth: NH_CAMERA_DEFAULT_ZOOM_WIDTH
+};
+export const NH_CAMERA_DEFAULT_DISTANCE_ZOOM_HEIGHT = 256;
+export const NH_CAMERA_DEFAULT_DISTANCE_ZOOM_WIDTH = 320;
+// Source: Client.java initializes zoomHeight=256 and zoomWidth=320. Scroll
+// wheel zoom does not update those fields; they feed method4403's camera orbit
+// distance separately from viewport_setfov projection zoom.
+export const NH_CAMERA_DEFAULT_DISTANCE_ZOOM: NhCameraZoom = {
+  zoomHeight: NH_CAMERA_DEFAULT_DISTANCE_ZOOM_HEIGHT,
+  zoomWidth: NH_CAMERA_DEFAULT_DISTANCE_ZOOM_WIDTH
 };
 export const NH_CLIENT_TILE_UNITS = 128;
 export const NH_SCENE_TILE_UNITS = 0.5;
@@ -117,11 +131,11 @@ export function nhViewportZoomToFovDegrees(viewportHeight: number, viewportZoom:
 export function nhClientCameraOffset(
   angles: Pick<NhCameraAngles, "yaw" | "pitch">,
   viewportHeight: number,
-  zoom: NhCameraZoom = NH_CAMERA_DEFAULT_ZOOM
+  distanceZoom: NhCameraZoom = NH_CAMERA_DEFAULT_DISTANCE_ZOOM
 ): NhClientCameraOffset {
   const pitch = clampPitch(angles.pitch);
   const yaw = wrapClientUnits(angles.yaw);
-  const zoomScale = nhCameraZoomScale(viewportHeight, zoom);
+  const zoomScale = nhCameraDistanceZoomScale(viewportHeight, distanceZoom);
   const distance = Math.trunc((nhClientCameraBaseDistance(pitch) * zoomScale) / 256);
   const pitchRotation = wrapClientUnits(NH_CAMERA_UNITS - pitch);
   const yawRotation = wrapClientUnits(NH_CAMERA_UNITS - yaw);
@@ -157,9 +171,9 @@ export function nhClientCameraOffset(
 export function nhClientSceneCameraOffset(
   angles: Pick<NhCameraAngles, "yaw" | "pitch">,
   viewportHeight: number,
-  zoom: NhCameraZoom = NH_CAMERA_DEFAULT_ZOOM
+  distanceZoom: NhCameraZoom = NH_CAMERA_DEFAULT_DISTANCE_ZOOM
 ): NhClientSceneCameraOffset {
-  const offset = nhClientCameraOffset(angles, viewportHeight, zoom);
+  const offset = nhClientCameraOffset(angles, viewportHeight, distanceZoom);
   return {
     x: offset.x * NH_CLIENT_TO_SCENE_UNITS,
     y: offset.y * NH_CLIENT_TO_SCENE_UNITS,
@@ -184,19 +198,19 @@ export function nhRuntimeCameraPreset(name: NhRuntimeCameraPresetName): NhCamera
 }
 
 export function nhCameraFollowHeightUnits(
-  zoom: NhCameraZoom = NH_CAMERA_DEFAULT_ZOOM,
+  fovZoom: NhCameraZoom = NH_CAMERA_DEFAULT_ZOOM,
   viewportHeight: number = NH_CAMERA_DEFAULT_VIEWPORT_HEIGHT
 ): number {
   // Source: ZoomHandler.rs2asm script 42 computes the follow height as
   // 25 + (25 * effectiveZoom / 256) after viewport_setfov.
-  return 25 + truncateClientInt((25 * nhCameraZoomScale(viewportHeight, zoom)) / 256);
+  return 25 + truncateClientInt((25 * nhCameraZoomScale(viewportHeight, fovZoom)) / 256);
 }
 
 export function nhCameraFollowHeightSceneUnits(
-  zoom: NhCameraZoom = NH_CAMERA_DEFAULT_ZOOM,
+  fovZoom: NhCameraZoom = NH_CAMERA_DEFAULT_ZOOM,
   viewportHeight: number = NH_CAMERA_DEFAULT_VIEWPORT_HEIGHT
 ): number {
-  return nhCameraFollowHeightUnits(zoom, viewportHeight) * NH_CLIENT_TO_SCENE_UNITS;
+  return nhCameraFollowHeightUnits(fovZoom, viewportHeight) * NH_CLIENT_TO_SCENE_UNITS;
 }
 
 export function smoothNhCameraFocusAxis(current: number, target: number): number {
@@ -353,6 +367,18 @@ function nhCameraZoomScale(viewportHeight: number, zoom: NhCameraZoom): number {
   const zoomHeight = nhClampCameraZoomValue(zoom.zoomHeight);
   const zoomWidth = nhClampCameraZoomValue(zoom.zoomWidth);
   return Math.trunc(((zoomWidth - zoomHeight) * heightDelta) / 100 + zoomHeight);
+}
+
+function nhCameraDistanceZoomScale(viewportHeight: number, zoom: NhCameraZoom): number {
+  const heightDelta = Math.max(0, Math.min(100, Math.trunc(viewportHeight) - viewportBaseHeight));
+  const zoomHeight = nhCameraDistanceZoomValue(zoom.zoomHeight, NH_CAMERA_DEFAULT_DISTANCE_ZOOM_HEIGHT);
+  const zoomWidth = nhCameraDistanceZoomValue(zoom.zoomWidth, NH_CAMERA_DEFAULT_DISTANCE_ZOOM_WIDTH);
+  return Math.trunc(((zoomWidth - zoomHeight) * heightDelta) / 100 + zoomHeight);
+}
+
+function nhCameraDistanceZoomValue(value: number, fallback: number): number {
+  const next = truncateClientInt(value);
+  return next > 0 ? next : fallback;
 }
 
 function clientSine(units: number): number {

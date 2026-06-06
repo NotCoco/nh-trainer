@@ -4,25 +4,25 @@ export const nhClientCameraPresets = {
   isometric: {
     yaw: 256,
     pitch: 128,
-    distance: 1968,
+    distance: 984,
     focalHeightOffset: 75
   },
   north: {
     yaw: 0,
     pitch: 128,
-    distance: 1968,
+    distance: 984,
     focalHeightOffset: 75
   },
   south: {
     yaw: 1024,
     pitch: 128,
-    distance: 1968,
+    distance: 984,
     focalHeightOffset: 75
   },
   top: {
     yaw: 256,
     pitch: 383,
-    distance: 3498,
+    distance: 1749,
     focalHeightOffset: 75
   }
 };

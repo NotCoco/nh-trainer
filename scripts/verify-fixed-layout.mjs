@@ -111,6 +111,10 @@ function assertAlmost(name, actual, expected, epsilon = 1e-9) {
   }
 }
 
+function runeliteViewportSetFov(value) {
+  return Math.max(1, Math.trunc(Math.pow(2, 7 + Math.trunc(value) / 256)));
+}
+
 const layout = resolveNhFixedClientLayout(definitions, spellbookDefinitions);
 assert(layout.viewportWidget.widget.groupId === NH_FIXED_ROOT_GROUP_ID, "viewport widget root group mismatch");
 assert(
@@ -132,6 +136,24 @@ assert(layout.compassWidget?.widget.contentType === NH_COMPASS_CONTENT_TYPE, "co
 assertSame("fixed canvas", layout.fixedCanvas, { width: 765, height: 503 });
 assertSame("game viewport rect", layout.viewport.rect, { x: 4, y: 4, width: 512, height: 334 });
 assert(layout.viewport.zoom === 256, `expected fixed viewport zoom 256, got ${layout.viewport.zoom}`);
+for (const [rawZoom, expectedViewportZoom] of [
+  [459, 443],
+  [641, 726],
+  [896, 1448]
+]) {
+  const capturedZoomLayout = resolveNhFixedClientLayout(definitions, spellbookDefinitions, {
+    viewportFovZoom: { zoomHeight: rawZoom, zoomWidth: rawZoom }
+  });
+  const sourceExpected = runeliteViewportSetFov(rawZoom);
+  assert(
+    sourceExpected === expectedViewportZoom,
+    `RuneLite viewport_setfov fixture for raw zoom ${rawZoom} drifted: expected ${expectedViewportZoom}, got ${sourceExpected}`
+  );
+  assert(
+    capturedZoomLayout.viewport.zoom === expectedViewportZoom,
+    `expected raw camera zoom ${rawZoom} to project as viewport zoom ${expectedViewportZoom}, got ${capturedZoomLayout.viewport.zoom}`
+  );
+}
 assert(
   clientUiAtlas.sprites.some((sprite) => sprite.spriteId === 4 && sprite.alias === "rs2_window_frame_edge_left"),
   "client_ui atlas should include Nh RS2_WINDOW_FRAME_EDGE_LEFT sprite 4 for the fixed viewport left border"

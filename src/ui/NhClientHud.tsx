@@ -840,7 +840,7 @@ const inventoryDefaultDragDelayClientTicks = 5;
 const inventoryDragAlpha = 0.5;
 // Nh opens right-click menus from one global last-pressed mouse position, not from later hover/drag positions.
 let nhInventorySuppressContextMenuUntilMs = 0;
-const inventoryContextMenuDuplicateWindowMs = 250;
+const inventoryContextMenuDuplicateWindowMs = 500;
 const hiddenWidgetSpriteIds = new Set([1183, 1184]);
 const equipmentSlotTileSpriteId = 170;
 const statsTileHalfLeftSpriteId = 174;

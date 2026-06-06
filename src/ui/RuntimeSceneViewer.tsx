@@ -35,6 +35,7 @@ import {
   type NhReplaySpotanimDefinition
 } from "../render/clientViewReplay";
 import {
+  NH_CAMERA_DEFAULT_DISTANCE_ZOOM,
   NH_CAMERA_DEFAULT_FOV_DEGREES,
   NH_CAMERA_DEFAULT_ZOOM,
   NH_CAMERA_DEFAULT_VIEWPORT_HEIGHT,
@@ -659,7 +660,8 @@ interface RuntimeCameraRig {
   readonly target: Vector3;
   followTarget: RuntimeFollowTarget;
   clientAngles: NhCameraAngles;
-  zoom: NhCameraZoom;
+  fovZoom: NhCameraZoom;
+  distanceZoom: NhCameraZoom;
 }
 
 interface RuntimeSceneTilePicker {
@@ -1800,6 +1802,11 @@ const NH_CLIENT_CYCLE_MS = 20;
 const NH_CLIENT_CYCLES_PER_GAME_TICK = NH_GAME_TICK_MS / NH_CLIENT_CYCLE_MS;
 // Source-backed by Nh NanoClock.vmethod3511: the client may process up to 10 client cycles before one draw.
 const NH_CLIENT_MAX_CYCLES_PER_RENDER_FRAME = 10;
+
+function nhNextClientCycleDelayMs(now: number): number {
+  const phase = now % NH_CLIENT_CYCLE_MS;
+  return Math.max(1, Math.min(NH_CLIENT_CYCLE_MS, NH_CLIENT_CYCLE_MS - phase));
+}
 // Source: GameShell runs at most NanoClock.vmethod3511() cycles before one draw,
 // and NanoClock caps that loop at 10. Movement must share that draw cadence so
 // held-path release keeps the same visual slingshot shape as the client.
@@ -2230,7 +2237,8 @@ function createRuntimeBoundary(canvas: HTMLCanvasElement): RuntimeSceneBoundary 
     target: new Vector3(0, 0, 0),
     followTarget: "local-player",
     clientAngles: initialClientCameraAngles,
-    zoom: NH_CAMERA_DEFAULT_ZOOM
+    fovZoom: NH_CAMERA_DEFAULT_ZOOM,
+    distanceZoom: NH_CAMERA_DEFAULT_DISTANCE_ZOOM
   };
 
   for (const actor of runtimeActors) {
@@ -2300,21 +2308,13 @@ function isNhSpellbookId(value: unknown): value is NhSpellbookId {
 }
 
 function runtimeCameraVisualFocusHeightSceneUnits(zoom: NhCameraZoom, viewportHeight: number): number {
-  const sourceFollowHeight = nhCameraFollowHeightSceneUnits(zoom, viewportHeight);
-  // Source bridge: ZoomHandler.rs2asm can drive camFollowHeight below the
-  // Player model midpoint at close zoom. Actor.defaultHeight starts at 200 and
-  // Player.getModel refreshes it from Model.height; Three's literal lookAt
-  // needs this upper-midbody floor so close zoom frames the torso instead of feet.
-  const actorUpperMidBodyHeight = nhClientUnitsToWorldUnits(
-    Math.trunc(NH_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS * 0.6)
-  );
-  return Math.max(sourceFollowHeight, actorUpperMidBodyHeight);
+  return nhCameraFollowHeightSceneUnits(zoom, viewportHeight);
 }
 
 function updateRuntimeCamera(boundary: RuntimeSceneBoundary): void {
-  const { target, clientAngles, zoom } = boundary.cameraRig;
+  const { target, clientAngles, distanceZoom } = boundary.cameraRig;
   const viewportHeight = boundary.fixedClientLayout?.viewport.rect.height ?? NH_CAMERA_DEFAULT_VIEWPORT_HEIGHT;
-  const offset = nhClientSceneCameraOffset(clientAngles, viewportHeight, zoom);
+  const offset = nhClientSceneCameraOffset(clientAngles, viewportHeight, distanceZoom);
   boundary.camera.position.set(
     target.x - offset.x,
     target.y + offset.y,
@@ -2932,7 +2932,7 @@ function updateRuntimeCameraFollowTarget(boundary: RuntimeSceneBoundary): void {
   const targetX = visibleTile?.x ?? slot.group.position.x;
   const targetZ = visibleTile?.z ?? slot.group.position.z;
   const groundY = boundary.cameraFollowGroundHeightOverrides.get(followTarget) ?? slot.group.position.y;
-  const targetY = groundY + runtimeCameraVisualFocusHeightSceneUnits(boundary.cameraRig.zoom, viewportHeight);
+  const targetY = groundY + runtimeCameraVisualFocusHeightSceneUnits(boundary.cameraRig.fovZoom, viewportHeight);
   boundary.cameraRig.target.set(
     smoothNhCameraFocusAxis(boundary.cameraRig.target.x, targetX),
     targetY,
@@ -2969,7 +2969,8 @@ function resolveRuntimeClientLayoutForBoundary(
   const displayMode = boundary.clientDisplayMode;
   const nextLayout = resolveNhFixedClientLayout(boundary.clientWidgetDefinitions, boundary.clientSpellbookDefinitions, {
     displayMode,
-    rootSize: displayMode === "resizable" ? rootSize : undefined
+    rootSize: displayMode === "resizable" ? rootSize : undefined,
+    viewportFovZoom: boundary.cameraRig.fovZoom
   });
   boundary.fixedClientLayout = nextLayout;
   return nextLayout;
@@ -8158,6 +8159,8 @@ async function loadAnimationFixtures(): Promise<NhAnimationFixtures> {
     "godsword_attack",
     "ags_special",
     "gmaul_special",
+    "sword_stab_attack",
+    "sword_slash_attack",
     "crossbow_attack",
     "blitz_cast",
     "barrage_cast"
@@ -9849,7 +9852,7 @@ function nhRuntimeOverlayClientCameraState(boundary: RuntimeSceneBoundary) {
   return {
     target: boundary.cameraRig.target,
     angles: boundary.cameraRig.clientAngles,
-    zoom: boundary.cameraRig.zoom
+    distanceZoom: boundary.cameraRig.distanceZoom
   };
 }
 
@@ -13125,7 +13128,7 @@ function nhWheelEventRotation(
     return { rotation: 0, accumulatedDelta: nextDelta };
   }
   return {
-    rotation: -sourceRotations,
+    rotation: sourceRotations,
     accumulatedDelta: nextDelta - sourceRotations * NH_BROWSER_WHEEL_PIXELS_PER_SOURCE_ROTATION
   };
 }
@@ -13543,6 +13546,8 @@ export function RuntimeSceneViewer({
   const cameraWheelDeltaAccumulatorRef = useRef(0);
   const suppressNextCanvasContextMenuRef = useRef(false);
   const suppressCanvasContextMenuUntilRef = useRef(0);
+  const contextMenuOpenTimerRef = useRef<number | null>(null);
+  const contextMenuPointerRef = useRef<{ readonly x: number; readonly y: number } | null>(null);
   const [cycle, setCycle] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [followLive, setFollowLive] = useState(false);
@@ -16789,6 +16794,7 @@ export function RuntimeSceneViewer({
       setPendingEquipSlotIndices(new Set());
       setPendingEquipmentRemoveSlotIds(new Set());
       setMinimapDestinationTile(null);
+      clearPendingContextMenuOpen();
       setContextMenu(null);
       setHudOverride((current) => ({
         ...(current?.attackSet === undefined ? {} : { attackSet: current.attackSet }),
@@ -20831,16 +20837,47 @@ export function RuntimeSceneViewer({
     );
   };
 
+  const clearPendingContextMenuOpen = (): void => {
+    if (contextMenuOpenTimerRef.current === null) {
+      return;
+    }
+    window.clearTimeout(contextMenuOpenTimerRef.current);
+    contextMenuOpenTimerRef.current = null;
+  };
+
+  const openContextMenuOnNextClientCycle = (menu: NhContextMenuState): void => {
+    clearPendingContextMenuOpen();
+    const openedFromMs = performance.now();
+    const delayMs = nhNextClientCycleDelayMs(openedFromMs);
+    const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
+    if (viewport) {
+      const rect = viewport.getBoundingClientRect();
+      contextMenuPointerRef.current = { x: rect.left + menu.x, y: rect.top + menu.y };
+    }
+    contextMenuOpenTimerRef.current = window.setTimeout(() => {
+      contextMenuOpenTimerRef.current = null;
+      setContextMenu(menu);
+      if (viewport) {
+        viewport.dataset.lastContextMenuOpenDelayMs = String(Math.round(performance.now() - openedFromMs));
+        viewport.dataset.lastContextMenuOpenSource = "MouseHandler_lastPressedX/Y -> Client.method1661 on next 20ms client cycle";
+      }
+    }, delayMs);
+  };
+
   const closeContextMenu = (): void => {
+    clearPendingContextMenuOpen();
     setContextMenu(null);
   };
 
   const closeContextMenuImmediately = (): void => {
+    clearPendingContextMenuOpen();
     // Source: Client.method1661 handles the chosen row from the pressed mouse
     // state and closes isMenuOpen before the next draw. A plain React state
     // update can leave one browser paint with a focused/hovered menu row.
     flushSync(() => setContextMenu(null));
   };
+
+  useEffect(() => () => clearPendingContextMenuOpen(), []);
 
   const dispatchVisibleContextMenuEntry = (
     entry: NhContextMenuEntry,
@@ -20917,14 +20954,19 @@ export function RuntimeSceneViewer({
       return;
     }
 
-    boundary.cameraRig.zoom = nextZoom;
+    boundary.cameraRig.fovZoom = nextZoom;
     setCameraZoom(nextZoom);
+    const cssLayout = resizeRuntimeBoundary(boundary, boundary.renderer.domElement);
+    setFixedClientCssLayout(cssLayout);
+    setFixedClientLayout(boundary.fixedClientLayout);
     updateRuntimeCameraFollowTarget(boundary);
     updateRuntimeCamera(boundary);
 
     const canvas = boundary.renderer.domElement;
     canvas.dataset.cameraZoomHeight = String(nextZoom.zoomHeight);
     canvas.dataset.cameraZoomWidth = String(nextZoom.zoomWidth);
+    canvas.dataset.cameraDistanceZoomHeight = String(boundary.cameraRig.distanceZoom.zoomHeight);
+    canvas.dataset.cameraDistanceZoomWidth = String(boundary.cameraRig.distanceZoom.zoomWidth);
     canvas.dataset.sourceCameraZoom = source;
     canvas.dataset.sourceCameraZoomScript = "ScrollWheelZoomHandler.rs2asm script 39 + ZoomHandler.rs2asm script 42";
   };
@@ -21012,10 +21054,11 @@ export function RuntimeSceneViewer({
         sceneObjectPlacements,
         collisionMap,
         playerModelSources?.cacheModels ?? null
-      );
+    );
     const targetTile = targetGroundItem?.item.tile ?? targetObject?.walkTile ?? clickedTile ?? targetActor?.tile;
     setRuneliteMouseHighlightTooltip(null);
-    setContextMenu({
+    closeContextMenu();
+    openContextMenuOnNextClientCycle({
       x: position.x,
       y: position.y,
       entries: withNhCancelContextMenuEntry([
@@ -21133,26 +21176,39 @@ export function RuntimeSceneViewer({
       return;
     }
 
-    const onWindowPointerMove = (event: PointerEvent): void => {
+    const closeIfPointerOutsideMenu = (): void => {
       const menuElement = document.querySelector(".runtimeViewport .nhContextMenu") as HTMLElement | null;
       if (!menuElement) {
+        return;
+      }
+      const pointer = contextMenuPointerRef.current;
+      if (!pointer) {
         return;
       }
 
       const rect = menuElement.getBoundingClientRect();
       const margin = NH_CONTEXT_MENU_MOUSE_LEAVE_MARGIN * (fixedClientCssLayout?.scale ?? 1);
       if (
-        event.clientX < rect.left - margin ||
-        event.clientX > rect.right + margin ||
-        event.clientY < rect.top - margin ||
-        event.clientY > rect.bottom + margin
+        pointer.x < rect.left - margin ||
+        pointer.x > rect.right + margin ||
+        pointer.y < rect.top - margin ||
+        pointer.y > rect.bottom + margin
       ) {
         closeContextMenu();
       }
     };
 
+    const onWindowPointerMove = (event: PointerEvent): void => {
+      contextMenuPointerRef.current = { x: event.clientX, y: event.clientY };
+      closeIfPointerOutsideMenu();
+    };
+
+    const interval = window.setInterval(closeIfPointerOutsideMenu, NH_CLIENT_CYCLE_MS);
     window.addEventListener("pointermove", onWindowPointerMove);
-    return () => window.removeEventListener("pointermove", onWindowPointerMove);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("pointermove", onWindowPointerMove);
+    };
   }, [contextMenu, fixedClientCssLayout?.scale]);
 
   useEffect(() => {
@@ -21167,6 +21223,15 @@ export function RuntimeSceneViewer({
     manualCombatStateRef.current = nextCombatState;
     setManualCombatState(nextCombatState);
   }, [localFreezeBypass]);
+
+  useEffect(() => {
+    const onWindowPointerMove = (event: PointerEvent): void => {
+      contextMenuPointerRef.current = { x: event.clientX, y: event.clientY };
+    };
+
+    window.addEventListener("pointermove", onWindowPointerMove);
+    return () => window.removeEventListener("pointermove", onWindowPointerMove);
+  }, []);
 
   useEffect(() => {
     if (
@@ -21441,7 +21506,7 @@ export function RuntimeSceneViewer({
               closeContextMenu();
               updateRuneliteMouseHighlightTooltip(null);
               setRuntimeCameraZoom(
-                updateNhCameraZoomFromScrollWheel(boundary.cameraRig.zoom, wheelRotation),
+                updateNhCameraZoomFromScrollWheel(boundary.cameraRig.fovZoom, wheelRotation),
                 "canvas wheel"
               );
               boundary.renderer.domElement.dataset.lastCameraWheelRotation = String(wheelRotation);
@@ -21485,7 +21550,7 @@ export function RuntimeSceneViewer({
               if (entries.length === 0) {
                 return;
               }
-              setContextMenu({
+              openContextMenuOnNextClientCycle({
                 x: command.position.x,
                 y: command.position.y,
                 entries: withNhCancelContextMenuEntry(entries)
@@ -21494,7 +21559,7 @@ export function RuntimeSceneViewer({
             onInventoryEmptyContextMenu={(command) => {
               suppressNextCanvasContextMenu();
               closeContextMenu();
-              setContextMenu({
+              openContextMenuOnNextClientCycle({
                 x: command.position.x,
                 y: command.position.y,
                 entries: withNhCancelContextMenuEntry([])
@@ -21532,7 +21597,7 @@ export function RuntimeSceneViewer({
               if (entries.length === 0) {
                 return;
               }
-              setContextMenu({
+              openContextMenuOnNextClientCycle({
                 x: command.position.x,
                 y: command.position.y,
                 entries: withNhCancelContextMenuEntry(entries)
@@ -21573,7 +21638,7 @@ export function RuntimeSceneViewer({
             onXpDropOrbContextMenu={(command) => {
               suppressNextCanvasContextMenu();
               closeContextMenu();
-              setContextMenu({
+              openContextMenuOnNextClientCycle({
                 x: command.position.x,
                 y: command.position.y,
                 entries: withNhCancelContextMenuEntry(xpDropOrbContextEntries(command))
@@ -21600,7 +21665,7 @@ export function RuntimeSceneViewer({
               if (entries.length === 0) {
                 return;
               }
-              setContextMenu({
+              openContextMenuOnNextClientCycle({
                 x: command.position.x,
                 y: command.position.y,
                 entries: withNhCancelContextMenuEntry(entries)
@@ -21635,7 +21700,7 @@ export function RuntimeSceneViewer({
               if (entries.length === 0) {
                 return;
               }
-              setContextMenu({
+              openContextMenuOnNextClientCycle({
                 x: command.position.x,
                 y: command.position.y,
                 entries: withNhCancelContextMenuEntry(entries)

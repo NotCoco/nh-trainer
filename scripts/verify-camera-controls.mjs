@@ -7,6 +7,7 @@ import { nhClientCameraPresets } from "./render-reference-targets.mjs";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sourcePath = path.join(projectRoot, "src", "render", "nhClientCamera.ts");
+const fixedLayoutPath = path.join(projectRoot, "src", "render", "nhFixedLayout.ts");
 const runtimeViewerPath = path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx");
 const clientRoot = path.resolve(projectRoot, "..", "Kronos184-Client");
 const EXPECTED_SOURCE_OUTER_ZOOM_LIMIT = 128;
@@ -22,6 +23,28 @@ const clientCameraSourcePath = path.join(
   "runelite",
   "standalone",
   "Client.java"
+);
+const clientScriptOpcodesSourcePath = path.join(
+  clientRoot,
+  "runelite-client",
+  "src",
+  "main",
+  "java",
+  "net",
+  "runelite",
+  "standalone",
+  "Entity.java"
+);
+const clientSceneCameraSourcePath = path.join(
+  clientRoot,
+  "runelite-client",
+  "src",
+  "main",
+  "java",
+  "net",
+  "runelite",
+  "standalone",
+  "NPCDefinition.java"
 );
 const clientRasterizerSourcePath = path.join(
   clientRoot,
@@ -130,8 +153,11 @@ const clientPlayerSourcePath = path.join(
 );
 
 const source = await readFile(sourcePath, "utf8");
+const fixedLayoutSource = await readFile(fixedLayoutPath, "utf8");
 const runtimeViewerSource = await readFile(runtimeViewerPath, "utf8");
 const clientCameraSource = await readFile(clientCameraSourcePath, "utf8");
+const clientScriptOpcodesSource = await readFile(clientScriptOpcodesSourcePath, "utf8");
+const clientSceneCameraSource = await readFile(clientSceneCameraSourcePath, "utf8");
 const clientRasterizerSource = await readFile(clientRasterizerSourcePath, "utf8");
 const clientKeyHandlerSource = await readFile(clientKeyHandlerSourcePath, "utf8");
 const clientMouseWheelHandlerSource = await readFile(clientMouseWheelHandlerSourcePath, "utf8");
@@ -179,6 +205,7 @@ const {
   NH_CAMERA_DEFAULT_VIEWPORT_HEIGHT,
   NH_CAMERA_DEFAULT_VIEWPORT_ZOOM,
   NH_CAMERA_DEFAULT_ZOOM,
+  NH_CAMERA_DEFAULT_DISTANCE_ZOOM,
   NH_CAMERA_SOURCE_OUTER_ZOOM_LIMIT,
   NH_CAMERA_ZOOM_PLUGIN_OUTER_LIMIT,
   NH_CAMERA_OUTER_ZOOM_LIMIT,
@@ -230,12 +257,17 @@ function shift16(value) {
   return Math.floor(value / 65536);
 }
 
-function referenceCameraOffset(angles, viewportHeight, zoom = { zoomHeight: 512, zoomWidth: 512 }) {
+function referenceDistanceZoomValue(value, fallback) {
+  const next = Math.trunc(value);
+  return next > 0 ? next : fallback;
+}
+
+function referenceCameraOffset(angles, viewportHeight, zoom = NH_CAMERA_DEFAULT_DISTANCE_ZOOM) {
   const pitch = clampPitch(angles.pitch);
   const yaw = wrap(angles.yaw);
   const heightDelta = Math.max(0, Math.min(100, Math.trunc(viewportHeight) - 334));
-  const zoomHeight = Math.max(EXPECTED_ACTIVE_OUTER_ZOOM_LIMIT, Math.min(896, Math.trunc(zoom.zoomHeight)));
-  const zoomWidth = Math.max(EXPECTED_ACTIVE_OUTER_ZOOM_LIMIT, Math.min(896, Math.trunc(zoom.zoomWidth)));
+  const zoomHeight = referenceDistanceZoomValue(zoom.zoomHeight, 256);
+  const zoomWidth = referenceDistanceZoomValue(zoom.zoomWidth, 320);
   const zoomScale = Math.trunc(((zoomWidth - zoomHeight) * heightDelta) / 100 + zoomHeight);
   const distance = Math.trunc(((pitch * 3 + 600) * zoomScale) / 256);
   const pitchRotation = wrap(2048 - pitch);
@@ -488,9 +520,9 @@ for (const [name, expected] of Object.entries(nhClientCameraPresets)) {
     camAngleDX: 0,
     camAngleDY: 0
   });
-  const expectedZoomedDistance = Math.trunc((nhClientCameraBaseDistance(expected.pitch) * NH_CAMERA_DEFAULT_ZOOM.zoomHeight) / 256);
-  if (expectedZoomedDistance !== expected.distance) {
-    throw new Error(`camera zoomed distance for ${name} should be source base distance scaled by Client.zoomHeight`);
+  const expectedDistance = Math.trunc((nhClientCameraBaseDistance(expected.pitch) * NH_CAMERA_DEFAULT_DISTANCE_ZOOM.zoomHeight) / 256);
+  if (expectedDistance !== expected.distance) {
+    throw new Error(`camera distance for ${name} should be source base distance scaled by Client.zoomHeight`);
   }
   if (expected.focalHeightOffset !== NH_CAMERA_DEFAULT_FOLLOW_HEIGHT_UNITS) {
     throw new Error(`capture focal height for ${name} should match the client camFollowHeight bridge constant`);
@@ -525,9 +557,16 @@ assertIncludes("client scroll wheel zoom source callback", clientScrollWheelZoom
 assertIncludes("client scroll wheel zoom increment", clientScrollWheelZoomScript, "sconst                 \"scrollWheelZoomIncrement\"");
 assertIncludes("client scroll wheel zoom source delta", clientScrollWheelZoomScript, "sub");
 assertIncludes("client zoom handler source fov clamp", clientZoomHandlerScript, "sconst                 \"innerZoomLimit\"");
+assertIncludes("client zoom handler applies viewport fov", clientZoomHandlerScript, "viewport_setfov");
+assertIncludes("client zoom handler applies follow height", clientZoomHandlerScript, "cam_setfollowheight");
 assertIncludes("client zoom handler source varc height", clientZoomHandlerScript, "set_varc_int           74");
 assertIncludes("client zoom handler source varc width", clientZoomHandlerScript, "set_varc_int           73");
 assertIncludes("client options zoom updater source varc", clientOptionsZoomUpdaterScript, "get_varc_int           74");
+assertIncludes("client default distance zoom height", clientCameraSource, "zoomHeight = 256;");
+assertIncludes("client default distance zoom width", clientCameraSource, "zoomWidth = 320;");
+assertIncludes("client viewport_setfov opcode writes field1088", clientScriptOpcodesSource, "Client.field1088 = (short)PlayerAppearance.method4127");
+assertIncludes("client viewport_setzoom opcode writes zoomHeight", clientScriptOpcodesSource, "Client.zoomHeight = (short)Interpreter.Interpreter_intStack");
+assertIncludes("client scene camera distance zoom formula", clientSceneCameraSource, "(Client.zoomWidth - Client.zoomHeight) * var8 / 100 + Client.zoomHeight");
 assertIncludes("client zoom plugin source outer callback", clientZoomPluginSource, "\"outerZoomLimit\".equals(event.getEventName())");
 assertIncludes("client zoom plugin source outer formula", clientZoomPluginSource, "int outerZoomLimit = 128 - outerLimit;");
 assertIncludes("client zoom config source outer max", clientZoomConfigSource, "int OUTER_LIMIT_MAX = 400;");
@@ -547,8 +586,21 @@ assertIncludes(
 assertIncludes(
   "runtime camera source yaw orbit",
   runtimeViewerSource,
-  "const offset = nhClientSceneCameraOffset(clientAngles, viewportHeight, zoom);"
+  "const offset = nhClientSceneCameraOffset(clientAngles, viewportHeight, distanceZoom);"
 );
+assertIncludes(
+  "runtime camera rig keeps distance zoom separate",
+  runtimeViewerSource,
+  "distanceZoom: NH_CAMERA_DEFAULT_DISTANCE_ZOOM"
+);
+assertIncludes(
+  "runtime overlay projection keeps distance zoom separate",
+  runtimeViewerSource,
+  "distanceZoom: boundary.cameraRig.distanceZoom"
+);
+if (runtimeViewerSource.includes("boundary.cameraRig.zoom")) {
+  throw new Error("runtime camera rig should name viewport_setfov state as fovZoom and keep distanceZoom separate");
+}
 assertIncludes(
   "client trig table source",
   clientRasterizerSource,
@@ -585,7 +637,7 @@ assertIncludes("runtime browser wheel source accumulator", runtimeViewerSource, 
 assertIncludes("runtime browser wheel source line mode", runtimeViewerSource, "WheelEvent.DOM_DELTA_LINE");
 assertIncludes("runtime browser wheel source page mode", runtimeViewerSource, "WheelEvent.DOM_DELTA_PAGE");
 assertIncludes("runtime browser wheel source notches", runtimeViewerSource, "Math.trunc(Math.abs(nextDelta) / NH_BROWSER_WHEEL_PIXELS_PER_SOURCE_ROTATION)");
-assertIncludes("runtime browser wheel source direction", runtimeViewerSource, "rotation: -sourceRotations");
+assertIncludes("runtime browser wheel source direction", runtimeViewerSource, "rotation: sourceRotations");
 assertIncludes("runtime browser wheel accumulator ref", runtimeViewerSource, "cameraWheelDeltaAccumulatorRef.current = wheelUpdate.accumulatedDelta");
 if (runtimeViewerSource.includes("return event.deltaY > 0 ? -1 : 1;")) {
   throw new Error("runtime wheel zoom should accumulate browser pixel deltas into source wheel notches instead of treating every nonzero delta as one notch");
@@ -620,34 +672,45 @@ assertIncludes(
 assertIncludes(
   "runtime zoom follow-height source formula",
   source,
-  "25 + truncateClientInt((25 * nhCameraZoomScale(viewportHeight, zoom)) / 256)"
+  "25 + truncateClientInt((25 * nhCameraZoomScale(viewportHeight, fovZoom)) / 256)"
 );
-assertIncludes("client actor default height source", clientActorSource, "this.defaultHeight = 200;");
-assertIncludes("client player model height source", clientPlayerSource, "super.defaultHeight = var4.height;");
 assertIncludes(
-  "runtime close-zoom visual focal bridge",
+  "runtime zoom visual focal source helper",
   runtimeViewerSource,
   "function runtimeCameraVisualFocusHeightSceneUnits"
 );
 assertIncludes(
-  "runtime close-zoom actor midpoint source bridge",
+  "runtime close-zoom source follow height",
   runtimeViewerSource,
-  "NH_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS * 0.6"
+  "return nhCameraFollowHeightSceneUnits(zoom, viewportHeight);"
 );
-assertIncludes(
-  "runtime close-zoom source follow height preserved",
-  runtimeViewerSource,
-  "const sourceFollowHeight = nhCameraFollowHeightSceneUnits(zoom, viewportHeight);"
-);
-assertIncludes(
-  "runtime close-zoom midpoint floor",
-  runtimeViewerSource,
-  "return Math.max(sourceFollowHeight, actorUpperMidBodyHeight);"
-);
+if (runtimeViewerSource.includes("NH_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS * 0.6")) {
+  throw new Error("camera follow should not use the old close-zoom torso midpoint workaround.");
+}
 assertIncludes(
   "runtime camera target uses visual focal bridge",
   runtimeViewerSource,
-  "runtimeCameraVisualFocusHeightSceneUnits(boundary.cameraRig.zoom, viewportHeight)"
+  "runtimeCameraVisualFocusHeightSceneUnits(boundary.cameraRig.fovZoom, viewportHeight)"
+);
+assertIncludes(
+  "fixed layout viewport_setfov conversion",
+  fixedLayoutSource,
+  "Math.pow(2, 7 + Math.trunc(value) / 256)"
+);
+assertIncludes(
+  "runtime layout resolves with live camera zoom",
+  runtimeViewerSource,
+  "viewportFovZoom: boundary.cameraRig.fovZoom"
+);
+assertIncludes(
+  "runtime scroll zoom recomputes viewport projection",
+  runtimeViewerSource,
+  "resizeRuntimeBoundary(boundary, boundary.renderer.domElement)"
+);
+assertIncludes(
+  "runtime scroll zoom publishes fixed layout",
+  runtimeViewerSource,
+  "setFixedClientLayout(boundary.fixedClientLayout)"
 );
 const visibleCameraFunction =
   runtimeViewerSource.match(/function manualActorVisibleCameraTile\([\s\S]*?\n\}/)?.[0] ?? "";
@@ -694,8 +757,15 @@ if (
 if (nhCameraFollowHeightSceneUnits() !== NH_CAMERA_DEFAULT_FOLLOW_HEIGHT_UNITS * NH_CLIENT_TO_SCENE_UNITS) {
   throw new Error("camera follow height scene conversion drifted from the client default follow-height constant");
 }
-if (NH_CAMERA_DEFAULT_VIEWPORT_HEIGHT !== 334 || NH_CAMERA_DEFAULT_VIEWPORT_ZOOM !== 256 || NH_CAMERA_DEFAULT_ZOOM.zoomHeight !== 512 || NH_CAMERA_DEFAULT_ZOOM.zoomWidth !== 512) {
-  throw new Error("default runtime camera constants should match fixed viewport projection plus camera_do_zoom fallback");
+if (
+  NH_CAMERA_DEFAULT_VIEWPORT_HEIGHT !== 334 ||
+  NH_CAMERA_DEFAULT_VIEWPORT_ZOOM !== 256 ||
+  NH_CAMERA_DEFAULT_ZOOM.zoomHeight !== 512 ||
+  NH_CAMERA_DEFAULT_ZOOM.zoomWidth !== 512 ||
+  NH_CAMERA_DEFAULT_DISTANCE_ZOOM.zoomHeight !== 256 ||
+  NH_CAMERA_DEFAULT_DISTANCE_ZOOM.zoomWidth !== 320
+) {
+  throw new Error("default runtime camera constants should keep viewport_setfov zoom separate from Client.zoomHeight/zoomWidth distance zoom");
 }
 if (
   NH_CAMERA_SOURCE_OUTER_ZOOM_LIMIT !== EXPECTED_SOURCE_OUTER_ZOOM_LIMIT ||

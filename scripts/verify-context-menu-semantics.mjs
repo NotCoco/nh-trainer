@@ -693,12 +693,15 @@ for (const snippet of [
 }
 for (const snippet of [
   "NH_CONTEXT_MENU_MOUSE_LEAVE_MARGIN = 10",
+  "nhNextClientCycleDelayMs",
+  "openContextMenuOnNextClientCycle",
+  "window.setInterval(closeIfPointerOutsideMenu, NH_CLIENT_CYCLE_MS)",
   "event.button === 2",
   "openRuntimeSceneContextMenu(event.nativeEvent)",
-  "event.clientX < rect.left - margin",
-  "event.clientX > rect.right + margin",
-  "event.clientY < rect.top - margin",
-  "event.clientY > rect.bottom + margin",
+  "pointer.x < rect.left - margin",
+  "pointer.x > rect.right + margin",
+  "pointer.y < rect.top - margin",
+  "pointer.y > rect.bottom + margin",
   "data-source-close-margin"
 ]) {
   assert(runtimeViewerSource.includes(snippet), `RuntimeSceneViewer should mirror Nh context-menu open/close behavior: ${snippet}`);

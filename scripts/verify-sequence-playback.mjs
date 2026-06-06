@@ -233,6 +233,8 @@ const { clientViewTraceToRuntimeReplay } = loadTsModule("src/render/clientViewRe
 
 const walkSequence = readJson("fixtures/render/sequences/walk.json");
 const whipSequence = readJson("fixtures/render/sequences/whip_attack.json");
+const swordStabSequence = readJson("fixtures/render/sequences/sword_stab_attack.json");
+const swordSlashSequence = readJson("fixtures/render/sequences/sword_slash_attack.json");
 const rawSequences = readJson("fixtures/assets/animations/sequences.json");
 const renderSequenceDefinitions = [
   readJson("fixtures/render/sequences/idle.json"),
@@ -243,6 +245,8 @@ const renderSequenceDefinitions = [
   { name: "wand_run", ...nhRenderSequenceFromRawSequence(rawSequences["1210"]) },
   walkSequence,
   whipSequence,
+  swordStabSequence,
+  swordSlashSequence,
   { name: "whip_walk", ...nhRenderSequenceFromRawSequence(rawSequences["1660"]) },
   { name: "whip_run", ...nhRenderSequenceFromRawSequence(rawSequences["1661"]) },
   { name: "gmaul_ready", ...nhRenderSequenceFromRawSequence(rawSequences["1662"]) },
@@ -297,6 +301,8 @@ assert(actorSequenceDefinitions.get(4591) === "crossbow_ready", "actor sequence 
 assert(actorSequenceDefinitions.get(4226) === "crossbow_walk", "actor sequence store should resolve weapon-specific crossbow walk from Nh render animations");
 assert(actorSequenceDefinitions.get(813) === "wand_ready", "actor sequence store should resolve weapon-ready wand pose from Nh render animations");
 assert(actorSequenceDefinitions.get(440) === "halberd_attack", "actor sequence store should resolve HALBERD attack animation 440");
+assert(actorSequenceDefinitions.get(386) === "sword_stab_attack", "actor sequence store should resolve VLS controlled stab animation 386");
+assert(actorSequenceDefinitions.get(390) === "sword_slash_attack", "actor sequence store should resolve VLS slash animation 390");
 
 const walking = resolveNhActorSequence({ pose: 808, movement: 819 }, actorSequenceDefinitions);
 assert(walking.sequenceName === "walk", "movement sequence should drive model when it differs from ready pose");
@@ -314,6 +320,11 @@ assert(attacking.sequenceName === "crossbow_attack", "primary action should win 
 assert(attacking.movementSequenceName === "walk", "movement sequence should remain resolved beside primary action");
 assert(attacking.playbackMode === "primary", "primary action should use non-looping primary playback");
 
+const vlsStabbing = resolveNhActorSequence({ pose: 809, movement: 809, action: 386 }, actorSequenceDefinitions);
+assert(vlsStabbing.sequenceName === "sword_stab_attack", "VLS controlled stab action should resolve to sword_stab_attack instead of idle");
+const vlsSlashing = resolveNhActorSequence({ pose: 809, movement: 809, action: 390 }, actorSequenceDefinitions);
+assert(vlsSlashing.sequenceName === "sword_slash_attack", "VLS slash action should resolve to sword_slash_attack instead of idle");
+
 const walkTotalCycles = walkSequence.frames.reduce((total, frame) => total + frame.lengthClientCycles, 0);
 const wrappedWalk = sampleNhSequenceFrame(walkSequence, walkTotalCycles + 1, "loop");
 assert(wrappedWalk?.frameKey === walkSequence.frames[0].frameKey, "movement loop should wrap to first frame");
@@ -328,6 +339,14 @@ assert(nhSequencePlaybackMode("crossbow_ready") === "loop", "weapon-ready sequen
 assert(nhSequencePlaybackMode("crossbow_walk") === "loop", "weapon-walk sequence should default to loop playback");
 assert(nhSequencePlaybackMode("crossbow_run") === "loop", "weapon-run sequence should default to loop playback");
 assert(whipSequence.interleaveLeave?.includes(9999999), "whip attack render sequence should export client interleave labels");
+assert(swordStabSequence.sequenceId === 386 && swordStabSequence.frames.length === 6, "VLS stab render sequence should export sequence 386 frames");
+assert(swordSlashSequence.sequenceId === 390 && swordSlashSequence.frames.length === 10, "VLS slash render sequence should export sequence 390 frames");
+assert(rawSequences["386"]?.frameIDs?.length === swordStabSequence.frames.length, "raw VLS stab sequence should match exported render frame count");
+assert(rawSequences["390"]?.frameIDs?.length === swordSlashSequence.frames.length, "raw VLS slash sequence should match exported render frame count");
+assert(nhSequencePlaybackMode("sword_stab_attack") === "primary", "VLS stab action should use primary playback");
+assert(nhSequencePlaybackMode("sword_slash_attack") === "primary", "VLS slash action should use primary playback");
+assert(swordStabSequence.interleaveLeave?.includes(9999999), "VLS stab render sequence should export client interleave labels");
+assert(swordSlashSequence.interleaveLeave?.includes(9999999), "VLS slash render sequence should export client interleave labels");
 
 const rawCrossbowSequence = nhRenderSequenceFromRawSequence(rawSequences["4230"]);
 const rawWhipSequence = nhRenderSequenceFromRawSequence(rawSequences["1658"]);

@@ -100,6 +100,20 @@ export interface NhViewport {
   readonly zoom: number;
 }
 
+export interface NhViewportFovZoom {
+  readonly zoomHeight: number;
+  readonly zoomWidth: number;
+}
+
+interface NhViewportZoomFields {
+  readonly minHeightZoom: number;
+  readonly maxHeightZoom: number;
+  readonly minAspect: number;
+  readonly maxAspect: number;
+  readonly minWidthZoom: number;
+  readonly maxWidthZoom: number;
+}
+
 export type NhClientDisplayMode = "fixed" | "resizable";
 
 export interface NhInventoryGridLayout {
@@ -618,14 +632,14 @@ const combatSpecialBarFillChildId = 39;
 const combatSpecialBarTextChildId = 40;
 const combatSpecialBarBorderChildId = 41;
 
-const viewportZoomFields = {
+const viewportZoomFields: NhViewportZoomFields = {
   minHeightZoom: 256,
   maxHeightZoom: 205,
   minAspect: 1,
   maxAspect: 32767,
   minWidthZoom: 32767,
   maxWidthZoom: 1
-} as const;
+};
 
 const fixedSideTabDefaultId: NhFixedSideTabId = "inventory";
 const prayerContainerChildId = 4;
@@ -835,7 +849,12 @@ const resizableSideTabSpecs: typeof fixedSideTabSpecs = [
 export function resolveNhFixedClientLayout(
   definitions: NhClientWidgetDefinitions,
   spellbooks: NhSpellbookDefinitions | null = null,
-  options: { readonly displayMode?: NhClientDisplayMode; readonly rootSize?: NhSize } = {}
+  options: {
+    readonly displayMode?: NhClientDisplayMode;
+    readonly rootSize?: NhSize;
+    readonly viewportFovZoom?: NhViewportFovZoom;
+    readonly cameraZoom?: NhViewportFovZoom;
+  } = {}
 ): NhFixedClientLayout {
   const displayMode = options.displayMode ?? "fixed";
   const rootGroupId = displayMode === "resizable" ? NH_RESIZABLE_ROOT_GROUP_ID : NH_FIXED_ROOT_GROUP_ID;
@@ -873,7 +892,7 @@ export function resolveNhFixedClientLayout(
         rootGroupId,
         displayMode === "resizable" ? NH_RESIZABLE_VIEWPORT_INTERFACE_CONTAINER_CHILD_ID : NH_FIXED_VIEWPORT_INTERFACE_CONTAINER_CHILD_ID
       ) ?? null,
-    viewport: resolveNhViewport(viewportWidget.rect),
+    viewport: resolveNhViewport(viewportWidget.rect, options.viewportFovZoom ?? options.cameraZoom),
     minimapWidget: findWidgetByContentType(resolvedWidgets, NH_MINIMAP_CONTENT_TYPE),
     compassWidget: findWidgetByContentType(resolvedWidgets, NH_COMPASS_CONTENT_TYPE),
     chatbox: resolveNhChatbox(definitions, resolvedWidgets, displayMode, rootGroupId),
@@ -947,40 +966,40 @@ export function nhSelectedSpellName(spell: Pick<NhSpellbookSpellLayout, "dataTex
   return `${selectedSpellNameColorTag}${sourceName}${selectedSpellNameSuffix}`;
 }
 
-function resolveNhViewport(rawRect: NhRect): NhViewport {
+function resolveNhViewport(rawRect: NhRect, viewportFovZoom?: NhViewportFovZoom): NhViewport {
   let x = Math.round(rawRect.x);
   let y = Math.round(rawRect.y);
   let width = Math.max(1, Math.round(rawRect.width));
   let height = Math.max(1, Math.round(rawRect.height));
+  const fovFields = viewportFovZoom ? viewportZoomFieldsFromViewportFovZoom(viewportFovZoom) : viewportZoomFields;
 
   const heightDelta = height - viewportBaseHeight;
   let zoomScale: number;
   if (heightDelta < 0) {
-    zoomScale = viewportZoomFields.minHeightZoom;
+    zoomScale = fovFields.minHeightZoom;
   } else if (heightDelta >= 100) {
-    zoomScale = viewportZoomFields.maxHeightZoom;
+    zoomScale = fovFields.maxHeightZoom;
   } else {
     zoomScale = Math.trunc(
-      ((viewportZoomFields.maxHeightZoom - viewportZoomFields.minHeightZoom) * heightDelta) / 100 +
-        viewportZoomFields.minHeightZoom
+      ((fovFields.maxHeightZoom - fovFields.minHeightZoom) * heightDelta) / 100 + fovFields.minHeightZoom
     );
   }
 
   const aspect = Math.trunc((height * zoomScale * viewportBaseZoom) / (width * viewportBaseHeight));
-  if (aspect < viewportZoomFields.minAspect) {
-    zoomScale = Math.trunc((viewportZoomFields.minAspect * width * viewportBaseHeight) / (height * viewportBaseZoom));
-    if (zoomScale > viewportZoomFields.minWidthZoom) {
-      zoomScale = viewportZoomFields.minWidthZoom;
-      const adjustedWidth = Math.trunc((height * zoomScale * viewportBaseZoom) / (viewportZoomFields.minAspect * viewportBaseHeight));
+  if (aspect < fovFields.minAspect) {
+    zoomScale = Math.trunc((fovFields.minAspect * width * viewportBaseHeight) / (height * viewportBaseZoom));
+    if (zoomScale > fovFields.minWidthZoom) {
+      zoomScale = fovFields.minWidthZoom;
+      const adjustedWidth = Math.trunc((height * zoomScale * viewportBaseZoom) / (fovFields.minAspect * viewportBaseHeight));
       const margin = Math.trunc((width - adjustedWidth) / 2);
       x += margin;
       width -= margin * 2;
     }
-  } else if (aspect > viewportZoomFields.maxAspect) {
-    zoomScale = Math.trunc((viewportZoomFields.maxAspect * width * viewportBaseHeight) / (height * viewportBaseZoom));
-    if (zoomScale < viewportZoomFields.maxWidthZoom) {
-      zoomScale = viewportZoomFields.maxWidthZoom;
-      const adjustedHeight = Math.trunc((viewportZoomFields.maxAspect * width * viewportBaseHeight) / (zoomScale * viewportBaseZoom));
+  } else if (aspect > fovFields.maxAspect) {
+    zoomScale = Math.trunc((fovFields.maxAspect * width * viewportBaseHeight) / (height * viewportBaseZoom));
+    if (zoomScale < fovFields.maxWidthZoom) {
+      zoomScale = fovFields.maxWidthZoom;
+      const adjustedHeight = Math.trunc((fovFields.maxAspect * width * viewportBaseHeight) / (zoomScale * viewportBaseZoom));
       const margin = Math.trunc((height - adjustedHeight) / 2);
       y += margin;
       height -= margin * 2;
@@ -991,6 +1010,20 @@ function resolveNhViewport(rawRect: NhRect): NhViewport {
     rect: { x, y, width, height },
     zoom: Math.trunc((height * zoomScale) / viewportBaseHeight)
   };
+}
+
+function viewportZoomFieldsFromViewportFovZoom(viewportFovZoom: NhViewportFovZoom): NhViewportZoomFields {
+  return {
+    ...viewportZoomFields,
+    minHeightZoom: viewportSetFovValue(viewportFovZoom.zoomHeight),
+    maxHeightZoom: viewportSetFovValue(viewportFovZoom.zoomWidth)
+  };
+}
+
+function viewportSetFovValue(value: number): number {
+  // Source: VIEWPORT_SETFOV calls PlayerAppearance.method3978:
+  // (int)Math.pow(2.0D, 7.0F + rawFov / 256.0F).
+  return Math.max(1, Math.trunc(Math.pow(2, 7 + Math.trunc(value) / 256)));
 }
 
 function resolveWidgetSize(widget: NhInterfaceWidget, parentRect: NhRect): NhSize {

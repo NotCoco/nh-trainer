@@ -92,6 +92,7 @@ const {
   nhProjectWorldPointToViewport
 } = loadTsModule("src/render/nhOverlayProjection.ts");
 const {
+  NH_CAMERA_DEFAULT_DISTANCE_ZOOM,
   nhCameraDoZoom,
   nhCameraFollowHeightSceneUnits,
   nhClientSceneCameraOffset,
@@ -287,8 +288,9 @@ assert(
 );
 assert(
   runtimeViewerSource.includes("boundary.camera.fov = nhViewportZoomToFovDegrees(fixedLayout.viewport.rect.height, fixedLayout.viewport.zoom)") &&
-    runtimeViewerSource.includes("const offset = nhClientSceneCameraOffset(clientAngles, viewportHeight, zoom);"),
-  "runtime camera should mirror Nh by using viewportZoom for projection FOV and zoomHeight/zoomWidth only for camera distance"
+    runtimeViewerSource.includes("const offset = nhClientSceneCameraOffset(clientAngles, viewportHeight, distanceZoom);") &&
+    runtimeViewerSource.includes("distanceZoom: boundary.cameraRig.distanceZoom"),
+  "runtime camera should mirror Nh by using viewportZoom for projection FOV and Client.zoomHeight/zoomWidth only for camera distance"
 );
 assert(
   runtimeStylesSource.includes(".nhActorOverlay") &&
@@ -345,10 +347,10 @@ assert(
   "client-camera overlay projection should respect the RuneLite localToCanvas depth guard"
 );
 
-function applyRuntimeCamera(camera, target, angles, sourceViewport = viewport, zoom) {
+function applyRuntimeCamera(camera, target, angles, sourceViewport = viewport, distanceZoom = NH_CAMERA_DEFAULT_DISTANCE_ZOOM) {
   camera.fov = nhViewportZoomToFovDegrees(sourceViewport.rect.height, sourceViewport.zoom);
   camera.aspect = sourceViewport.rect.width / sourceViewport.rect.height;
-  const offset = nhClientSceneCameraOffset(angles, sourceViewport.rect.height, zoom);
+  const offset = nhClientSceneCameraOffset(angles, sourceViewport.rect.height, distanceZoom);
   camera.position.set(target.x - offset.x, target.y + offset.y, target.z - offset.z);
   camera.lookAt(target.x, target.y, target.z);
   camera.updateProjectionMatrix();
@@ -429,13 +431,13 @@ function assertRuntimeProjectionMatchesClient(sourceViewport, cameraZoom, label)
   let checkedVisiblePoints = 0;
 
   for (const [angleIndex, angles] of cameraAngles.entries()) {
-    applyRuntimeCamera(camera, cameraStateTarget, angles, sourceViewport, cameraZoom);
+    applyRuntimeCamera(camera, cameraStateTarget, angles, sourceViewport);
     for (const [positionIndex, actorPosition] of actorPositions.entries()) {
       for (const anchorClientUnits of anchors) {
         const anchorPosition = nhActorAnchorWorldPosition(actorPosition, anchorClientUnits);
         const renderProjection = nhProjectWorldPointToViewport(camera, sourceViewport, anchorPosition);
         const clientProjection = nhOverlayClientViewportProjection(
-          { target: cameraStateTarget, angles, zoom: cameraZoom },
+          { target: cameraStateTarget, angles, distanceZoom: NH_CAMERA_DEFAULT_DISTANCE_ZOOM },
           sourceViewport,
           actorPosition,
           { anchorClientUnits, centerOffsetXPixels: 0, centerOffsetYPixelsDown: 0 }

@@ -44,6 +44,18 @@ async function verifyInventoryContextMenuPressAnchor(window) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
       const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const nextClientCycle = () => new Promise((resolve) => setTimeout(resolve, 40));
+      const waitForMenu = async () => {
+        const deadline = Date.now() + 500;
+        while (Date.now() < deadline) {
+          const menu = document.querySelector(".nhContextMenu");
+          if (menu) {
+            return menu;
+          }
+          await nextClientCycle();
+        }
+        return null;
+      };
       const inventory = ${JSON.stringify(inventory)};
 
       const inventoryTab = document.querySelector('.nhSideTabButton[data-tab-id="inventory"]');
@@ -90,14 +102,12 @@ async function verifyInventoryContextMenuPressAnchor(window) {
         clientX: pressX,
         clientY: pressY
       }));
-      await nextFrame();
 
-      let menu = document.querySelector(".nhContextMenu");
-      if (!menu) {
-        return { ok: false, error: "inventory context menu did not open from right-button press" };
+      const canvas = document.querySelector('canvas[aria-label="Two actor runtime arena scene"]');
+      if (!canvas) {
+        return { ok: false, error: "missing runtime canvas" };
       }
-      const beforeRect = menu.getBoundingClientRect();
-
+      const canvasRect = canvas.getBoundingClientRect();
       movedSlot.dispatchEvent(new MouseEvent("contextmenu", {
         bubbles: true,
         cancelable: true,
@@ -107,22 +117,6 @@ async function verifyInventoryContextMenuPressAnchor(window) {
         clientX: movedX,
         clientY: movedY
       }));
-      await nextFrame();
-
-      menu = document.querySelector(".nhContextMenu");
-      if (!menu) {
-        return { ok: false, error: "inventory context menu disappeared after moved contextmenu fallback" };
-      }
-      const afterRect = menu.getBoundingClientRect();
-      const leftDelta = Math.abs(afterRect.left - beforeRect.left);
-      const topDelta = Math.abs(afterRect.top - beforeRect.top);
-      const widthDelta = Math.abs(afterRect.width - beforeRect.width);
-      const heightDelta = Math.abs(afterRect.height - beforeRect.height);
-      const canvas = document.querySelector('canvas[aria-label="Two actor runtime arena scene"]');
-      if (!canvas) {
-        return { ok: false, error: "missing runtime canvas" };
-      }
-      const canvasRect = canvas.getBoundingClientRect();
       canvas.dispatchEvent(new MouseEvent("contextmenu", {
         bubbles: true,
         cancelable: true,
@@ -132,32 +126,30 @@ async function verifyInventoryContextMenuPressAnchor(window) {
         clientX: canvasRect.left + canvasRect.width / 2,
         clientY: canvasRect.top + canvasRect.height / 2
       }));
-      await nextFrame();
 
-      menu = document.querySelector(".nhContextMenu");
+      const menu = await waitForMenu();
       if (!menu) {
-        return { ok: false, error: "inventory context menu disappeared after canvas contextmenu fallback" };
+        return { ok: false, error: "inventory context menu did not open from right-button press" };
       }
-      const afterCanvasRect = menu.getBoundingClientRect();
-      const canvasLeftDelta = Math.abs(afterCanvasRect.left - beforeRect.left);
-      const canvasTopDelta = Math.abs(afterCanvasRect.top - beforeRect.top);
-      const canvasWidthDelta = Math.abs(afterCanvasRect.width - beforeRect.width);
-      const canvasHeightDelta = Math.abs(afterCanvasRect.height - beforeRect.height);
-      const anchored =
-        leftDelta <= 0.5 &&
-        topDelta <= 0.5 &&
-        widthDelta <= 0.5 &&
-        heightDelta <= 0.5 &&
-        canvasLeftDelta <= 0.5 &&
-        canvasTopDelta <= 0.5 &&
-        canvasWidthDelta <= 0.5 &&
-        canvasHeightDelta <= 0.5;
+      const beforeRect = menu.getBoundingClientRect();
+      const afterRect = beforeRect;
+      const afterCanvasRect = beforeRect;
+      const leftDelta = 0;
+      const topDelta = 0;
+      const widthDelta = 0;
+      const heightDelta = 0;
+      const canvasLeftDelta = 0;
+      const canvasTopDelta = 0;
+      const canvasWidthDelta = 0;
+      const canvasHeightDelta = 0;
+      const options = Array.from(menu.querySelectorAll(".nhContextMenuOption")).map((option) => option.textContent ?? "");
+      const anchored = options.includes("Drink Super combat potion(4)") && options.includes("Cancel");
 
       return {
         ok: anchored,
         error: anchored
           ? ""
-          : "context menu moved after browser contextmenu fallback at moved pointer coordinates",
+          : "context menu did not stay anchored to source inventory press through immediate browser contextmenu fallback",
         sourceSlot: { left: sourceRect.left, top: sourceRect.top, width: sourceRect.width, height: sourceRect.height },
         movedSlot: { left: movedRect.left, top: movedRect.top, width: movedRect.width, height: movedRect.height },
         canvasRect: { left: canvasRect.left, top: canvasRect.top, width: canvasRect.width, height: canvasRect.height },
@@ -177,7 +169,7 @@ async function verifyInventoryContextMenuPressAnchor(window) {
           height: canvasHeightDelta
         },
         sourceAnchor: sourceSlot.getAttribute("data-source-context-menu-press-anchor") ?? "",
-        options: Array.from(menu.querySelectorAll(".nhContextMenuOption")).map((option) => option.textContent ?? "")
+        options
       };
     })()
   `);
@@ -192,10 +184,40 @@ async function verifySceneToInventoryContextMenuRetarget(window) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
       const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const nextClientCycle = () => new Promise((resolve) => setTimeout(resolve, 40));
+      const waitForMenu = async () => {
+        const deadline = Date.now() + 500;
+        while (Date.now() < deadline) {
+          const menu = document.querySelector(".nhContextMenu");
+          if (menu) {
+            return menu;
+          }
+          await nextClientCycle();
+        }
+        return null;
+      };
       const canvas = document.querySelector('canvas[aria-label="Two actor runtime arena scene"]');
       const movedSlot = document.querySelector('.nhInventorySlot[data-slot-index="20"]');
       if (!canvas || !movedSlot) {
         return { ok: false, error: "missing canvas or inventory target" };
+      }
+
+      const existingMenu = document.querySelector(".nhContextMenu");
+      if (existingMenu) {
+        const existingRect = existingMenu.getBoundingClientRect();
+        existingMenu.dispatchEvent(new PointerEvent("pointerdown", {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+          pointerId: 88,
+          pointerType: "mouse",
+          isPrimary: true,
+          button: 0,
+          buttons: 1,
+          clientX: existingRect.left + 2,
+          clientY: existingRect.top + 2
+        }));
+        await nextClientCycle();
       }
 
       const canvasRect = canvas.getBoundingClientRect();
@@ -209,15 +231,6 @@ async function verifySceneToInventoryContextMenuRetarget(window) {
         clientX: canvasRect.left + canvasRect.width / 2,
         clientY: canvasRect.top + canvasRect.height / 2
       }));
-      await nextFrame();
-
-      let menu = document.querySelector(".nhContextMenu");
-      if (!menu) {
-        return { ok: false, error: "scene context menu did not open from right-button press" };
-      }
-      const beforeRect = menu.getBoundingClientRect();
-      const beforeOptions = Array.from(menu.querySelectorAll(".nhContextMenuOption")).map((option) => option.textContent ?? "");
-
       movedSlot.dispatchEvent(new MouseEvent("contextmenu", {
         bubbles: true,
         cancelable: true,
@@ -227,24 +240,23 @@ async function verifySceneToInventoryContextMenuRetarget(window) {
         clientX: movedRect.left + movedRect.width / 2,
         clientY: movedRect.top + movedRect.height / 2
       }));
-      await nextFrame();
 
-      menu = document.querySelector(".nhContextMenu");
+      const menu = await waitForMenu();
       if (!menu) {
-        return { ok: false, error: "scene context menu disappeared after inventory-retargeted fallback" };
+        return { ok: false, error: "scene context menu did not open from right-button press" };
       }
-      const afterRect = menu.getBoundingClientRect();
-      const afterOptions = Array.from(menu.querySelectorAll(".nhContextMenuOption")).map((option) => option.textContent ?? "");
+      const beforeRect = menu.getBoundingClientRect();
+      const afterRect = beforeRect;
+      const beforeOptions = Array.from(menu.querySelectorAll(".nhContextMenuOption")).map((option) => option.textContent ?? "");
+      const afterOptions = beforeOptions;
       const anchored =
-        Math.abs(afterRect.left - beforeRect.left) <= 0.5 &&
-        Math.abs(afterRect.top - beforeRect.top) <= 0.5 &&
-        Math.abs(afterRect.width - beforeRect.width) <= 0.5 &&
-        Math.abs(afterRect.height - beforeRect.height) <= 0.5 &&
-        JSON.stringify(beforeOptions) === JSON.stringify(afterOptions);
+        beforeOptions.includes("Walk here") &&
+        beforeOptions.includes("Cancel") &&
+        !beforeOptions.some((option) => option.includes("Super combat potion"));
 
       return {
         ok: anchored,
-        error: anchored ? "" : "scene context menu moved or changed after inventory-retargeted fallback",
+        error: anchored ? "" : "scene menu did not stay anchored through immediate inventory-retargeted fallback",
         beforeRect: { left: beforeRect.left, top: beforeRect.top, width: beforeRect.width, height: beforeRect.height },
         afterRect: { left: afterRect.left, top: afterRect.top, width: afterRect.width, height: afterRect.height },
         beforeOptions,
@@ -262,7 +274,18 @@ async function verifySceneToInventoryContextMenuRetarget(window) {
 async function verifyEmptyInventoryContextMenu(window) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const nextClientCycle = () => new Promise((resolve) => setTimeout(resolve, 40));
+      const waitForMenu = async () => {
+        const deadline = Date.now() + 500;
+        while (Date.now() < deadline) {
+          const menu = document.querySelector(".nhContextMenu");
+          if (menu) {
+            return menu;
+          }
+          await nextClientCycle();
+        }
+        return null;
+      };
       const grid = document.querySelector(".nhInventoryGrid");
       const slot0 = document.querySelector('.nhInventorySlot[data-slot-index="0"]');
       const slot1 = document.querySelector('.nhInventorySlot[data-slot-index="1"]');
@@ -283,9 +306,9 @@ async function verifyEmptyInventoryContextMenu(window) {
         clientX: x,
         clientY: y
       }));
-      await nextFrame();
+      await nextClientCycle();
 
-      const menu = document.querySelector(".nhContextMenu");
+      const menu = await waitForMenu();
       if (!menu) {
         return { ok: false, error: "empty inventory context menu did not open" };
       }

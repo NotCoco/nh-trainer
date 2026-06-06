@@ -26,7 +26,7 @@ interface NhVector3Like {
 export interface NhOverlayClientCameraState {
   readonly target: NhVector3Like;
   readonly angles: Pick<NhCameraAngles, "yaw" | "pitch">;
-  readonly zoom?: NhCameraZoom;
+  readonly distanceZoom?: NhCameraZoom;
 }
 
 export const NH_TILE_CLIENT_UNITS = NH_CLIENT_TILE_UNITS;
@@ -107,7 +107,7 @@ export function nhProjectWorldPointToClientViewport(
   viewport: NhViewport,
   worldPosition: NhVector3Like
 ): NhViewportProjection | null {
-  const cameraOffset = nhClientCameraOffset(cameraState.angles, viewport.rect.height, cameraState.zoom);
+  const cameraOffset = nhClientCameraOffset(cameraState.angles, viewport.rect.height, cameraState.distanceZoom);
   const cameraX = nhSceneUnitsToClientInt(cameraState.target.x) - cameraOffset.x;
   const cameraY = nhSceneHeightToClientInt(cameraState.target.y) - cameraOffset.y;
   const cameraZ = nhSceneUnitsToClientInt(cameraState.target.z) - cameraOffset.z;

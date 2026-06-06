@@ -150,6 +150,13 @@ for (const rows of [weaponTypes, generatedWeaponTypes]) {
   assert(halberd.attackTicks === 5, "HALBERD attack speed should be 5 ticks");
   assert(halberd.attackSets?.[1]?.style === "SLASH", "HALBERD aggressive style should be slash");
   assert(halberd.attackSets?.[1]?.attackAnimation === 440, "HALBERD aggressive slash should use animation 440");
+
+  const vestaLongsword = rows.VESTA_LONGSWORD;
+  assert(vestaLongsword?.attackTicks === 5, "Vesta's longsword attack speed should be 5 ticks");
+  assert(vestaLongsword.attackAnimation === 390, "Vesta's longsword slash attacks should use animation 390");
+  assert(vestaLongsword.attackSound === 2500, "Vesta's longsword should use attack sound 2500");
+  assert(vestaLongsword.attackSets?.[2]?.style === "STAB", "Vesta's longsword controlled style should be stab");
+  assert(vestaLongsword.attackSets?.[2]?.attackAnimation === 386, "Vesta's longsword controlled stab should use animation 386");
 }
 
 assert(spriteSheet.sprites.filter((sprite) => sprite.itemId === 29796).length === 2, "Noxious halberd icon should have normal and selected item sprites");
@@ -158,6 +165,17 @@ assert(halberdSequence?.frameIDs?.length > 0, "Noxious halberd attack sequence 4
 for (const packedFrameId of halberdSequence.frameIDs) {
   const frameKey = `${packedFrameId >>> 16}:${packedFrameId & 0xffff}`;
   assert(frameStore.frames[frameKey], `Noxious halberd attack sequence should include frame ${frameKey}`);
+}
+for (const [sequenceId, label] of [
+  ["386", "Vesta's longsword controlled stab"],
+  ["390", "Vesta's longsword slash"]
+]) {
+  const sequence = rawSequences[sequenceId];
+  assert(sequence?.frameIDs?.length > 0, `${label} sequence ${sequenceId} should be imported from current cache`);
+  for (const packedFrameId of sequence.frameIDs) {
+    const frameKey = `${packedFrameId >>> 16}:${packedFrameId & 0xffff}`;
+    assert(frameStore.frames[frameKey], `${label} sequence should include frame ${frameKey}`);
+  }
 }
 
 assert(nhWeaponProfiles.noxious_halberd.attackRange === 2, "Noxious halberd weapon profile should attack from 2 tiles");

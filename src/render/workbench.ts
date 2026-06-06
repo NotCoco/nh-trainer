@@ -49,6 +49,8 @@ export const renderWorkbench = {
         "fixtures/render/sequences/godsword_attack.json",
         "fixtures/render/sequences/ags_special.json",
         "fixtures/render/sequences/gmaul_special.json",
+        "fixtures/render/sequences/sword_stab_attack.json",
+        "fixtures/render/sequences/sword_slash_attack.json",
         "fixtures/render/sequences/crossbow_attack.json",
         "fixtures/render/sequences/blitz_cast.json",
         "fixtures/render/sequences/barrage_cast.json",
