@@ -23,7 +23,8 @@ type BotPolicyLoadState =
 type BotPolicyAssetFormat = "tsv" | "neural-json";
 type BotPolicyAsset = {
   readonly label: string;
-  readonly staticUrl: string;
+  readonly staticUrl?: string;
+  readonly staticUrls?: readonly string[];
   readonly format: BotPolicyAssetFormat;
 };
 
@@ -37,6 +38,11 @@ const BOT_DIFFICULTY_POLICIES: Record<BotDifficulty, BotPolicyAsset> = {
   hard: {
     label: "Hard",
     staticUrl: "./ai/nh-neural-policy-hard.json",
+    staticUrls: [
+      "./ai/nh-neural-policy-hard.json.part-001",
+      "./ai/nh-neural-policy-hard.json.part-002",
+      "./ai/nh-neural-policy-hard.json.part-003"
+    ],
     format: "neural-json"
   },
   test: {
@@ -77,7 +83,7 @@ export function App(): JSX.Element {
 
   useEffect(() => {
     let cancelled = false;
-    void readStaticPolicyUrl(DMM_HARD_POLICY.staticUrl)
+    void readStaticPolicyAsset(DMM_HARD_POLICY)
       .then((result) => {
         if (!cancelled) {
           setLoadedDmmHardPolicy(parseDifficultyPolicy(result, DMM_HARD_POLICY));
@@ -259,6 +265,22 @@ async function loadDifficultyPolicy(difficulty: BotDifficulty): Promise<DefaultP
 
 async function readStaticDifficultyPolicy(difficulty: BotDifficulty): Promise<DefaultPolicyReadResult> {
   const policyInfo = BOT_DIFFICULTY_POLICIES[difficulty];
+  return readStaticPolicyAsset(policyInfo);
+}
+
+async function readStaticPolicyAsset(policyInfo: BotPolicyAsset): Promise<DefaultPolicyReadResult> {
+  if (policyInfo.staticUrls?.length) {
+    const chunks = await Promise.all(policyInfo.staticUrls.map((url) => readStaticPolicyUrl(url)));
+    return {
+      path: policyInfo.staticUrl ?? chunks.map((chunk) => chunk.path).join("+"),
+      text: chunks.map((chunk) => chunk.text).join(""),
+      source: "static-chunked",
+      bytes: chunks.reduce((sum, chunk) => sum + (chunk.bytes ?? 0), 0)
+    };
+  }
+  if (!policyInfo.staticUrl) {
+    throw new Error(`No static URL configured for ${policyInfo.label}.`);
+  }
   return readStaticPolicyUrl(policyInfo.staticUrl);
 }
 

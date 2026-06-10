@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
+import { createHash } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,6 +14,11 @@ const packageSource = readFileSync(path.join(projectRoot, "package.json"), "utf8
 const staticPolicyPath = path.join(projectRoot, "fixtures", "ai", "nhstaker-selfplay-policy-hard.tsv");
 const tsvPolicyVariantPaths = [staticPolicyPath];
 const hardNeuralPolicyPath = path.join(projectRoot, "fixtures", "ai", "nh-neural-policy-hard.json");
+const hardNeuralChunkPaths = [
+  "fixtures/ai/nh-neural-policy-hard.json.part-001",
+  "fixtures/ai/nh-neural-policy-hard.json.part-002",
+  "fixtures/ai/nh-neural-policy-hard.json.part-003"
+].map((relativePath) => path.join(projectRoot, relativePath));
 const dmmHardNeuralPolicyPath = path.join(projectRoot, "fixtures", "ai", "nh-neural-policy-dmm-candidate.json");
 
 function assert(condition, message) {
@@ -31,8 +37,11 @@ assert(
 assert(
   appSource.includes('hard:') &&
     appSource.includes('staticUrl: "./ai/nh-neural-policy-hard.json"') &&
+    appSource.includes('staticUrls: [') &&
+    appSource.includes('"./ai/nh-neural-policy-hard.json.part-001"') &&
+    appSource.includes('"./ai/nh-neural-policy-hard.json.part-003"') &&
     appSource.includes('format: "neural-json"'),
-  "Hard difficulty should load the promoted neural JSON, not the legacy hard TSV."
+  "Hard difficulty should load the promoted chunked neural JSON, not the legacy hard TSV."
 );
 assert(
   appSource.includes("DMM_HARD_POLICY") &&
@@ -58,7 +67,7 @@ const policySummaries = tsvPolicyVariantPaths.map((policyPath) => {
     bytes: policyStat.size
   };
 });
-policySummaries.push(validateNeuralPolicy(hardNeuralPolicyPath, 44_550));
+policySummaries.push(validateChunkedNeuralPolicy(hardNeuralPolicyPath, hardNeuralChunkPaths, 44_550));
 policySummaries.push(validateNeuralPolicy(dmmHardNeuralPolicyPath, 51_114));
 
 const child = spawn(electronPath, [validatorPath, projectRoot], {
@@ -99,8 +108,32 @@ console.log(
   )
 );
 
+function sha256(text) {
+  return createHash("sha256").update(text).digest("hex");
+}
+
+function validateChunkedNeuralPolicy(policyPath, chunkPaths, expectedActionCount) {
+  const fullText = readFileSync(policyPath, "utf8");
+  const chunkTexts = chunkPaths.map((chunkPath) => readFileSync(chunkPath, "utf8"));
+  const joinedText = chunkTexts.join("");
+  assert(sha256(joinedText) === sha256(fullText), `${policyPath} chunks should reassemble to the full neural policy.`);
+  const summary = validateNeuralPolicyText(policyPath, joinedText, expectedActionCount);
+  return {
+    ...summary,
+    chunks: chunkPaths.map((chunkPath, index) => ({
+      path: chunkPath,
+      bytes: statSync(chunkPath).size,
+      index: index + 1
+    }))
+  };
+}
+
 function validateNeuralPolicy(policyPath, expectedActionCount) {
-  const policy = JSON.parse(readFileSync(policyPath, "utf8"));
+  return validateNeuralPolicyText(policyPath, readFileSync(policyPath, "utf8"), expectedActionCount);
+}
+
+function validateNeuralPolicyText(policyPath, text, expectedActionCount) {
+  const policy = JSON.parse(text);
   const policyStat = statSync(policyPath);
   const actionCount = policy.schema?.actionCount;
   const actionIds = policy.schema?.actionIds;

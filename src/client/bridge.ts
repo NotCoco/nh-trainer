@@ -13,7 +13,7 @@ export interface ClientViewTraceSummary {
 export interface DefaultPolicyReadResult {
   readonly path: string;
   readonly text: string;
-  readonly source: "electron-bridge" | "static-fallback";
+  readonly source: "electron-bridge" | "static-fallback" | "static-chunked";
   readonly bytes?: number;
   readonly mtimeMs?: number;
 }

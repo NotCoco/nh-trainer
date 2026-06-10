@@ -6,6 +6,7 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 const distRoot = path.resolve(projectRoot, "dist");
 const brandSource = ["kro", "nos"].join("");
 const brandTarget = "source";
+const maxPublicFileBytes = 100_000_000;
 const textExtensions = new Set([
   ".css",
   ".csv",
@@ -150,6 +151,20 @@ function renamePath(currentPath, variants) {
 
 assertDistRoot();
 
+let removedOversizedFiles = 0;
+for (const filePath of walk(distRoot).files) {
+  const relativePath = path.relative(distRoot, filePath).replace(/\\/g, "/");
+  const stat = fs.statSync(filePath);
+  if (
+    stat.size > maxPublicFileBytes &&
+    relativePath.startsWith("ai/nh-neural-policy-") &&
+    relativePath.endsWith(".json")
+  ) {
+    fs.unlinkSync(filePath);
+    removedOversizedFiles += 1;
+  }
+}
+
 const variants = brandVariants();
 const { files, dirs } = walk(distRoot);
 let changedFiles = 0;
@@ -175,12 +190,13 @@ for (const dirPath of dirs.sort((a, b) => b.length - a.length)) {
 
 console.log(
   JSON.stringify(
-    {
-      distRoot,
-      changedFiles,
-      renamedPaths,
-      publicDebugAttrs: "data-source-* -> data-ref-*"
-    },
+      {
+        distRoot,
+        changedFiles,
+        renamedPaths,
+        removedOversizedFiles,
+        publicDebugAttrs: "data-source-* -> data-ref-*"
+      },
     null,
     2
   )

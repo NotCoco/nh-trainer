@@ -7,6 +7,7 @@ const distRoot = path.resolve(projectRoot, "dist");
 const forbiddenTerms = [[..."kro"].join("") + [..."nos"].join("")];
 const forbiddenTextMarkers = ["data-source-"];
 const maxFindings = 50;
+const maxPublicFileBytes = 100_000_000;
 
 function assertDistRoot() {
   if (!fs.existsSync(distRoot) || !fs.statSync(distRoot).isDirectory()) {
@@ -43,6 +44,11 @@ function addFinding(findings, finding) {
 function verifyPath(findings, itemPath) {
   const relativePath = path.relative(distRoot, itemPath).replace(/\\/g, "/");
   const lowerPath = relativePath.toLowerCase();
+  const stat = fs.statSync(itemPath);
+
+  if (stat.isFile() && stat.size > maxPublicFileBytes) {
+    addFinding(findings, { type: "oversized-file", path: relativePath, bytes: stat.size, maxBytes: maxPublicFileBytes });
+  }
 
   for (const term of forbiddenTerms) {
     if (lowerPath.includes(term)) {
