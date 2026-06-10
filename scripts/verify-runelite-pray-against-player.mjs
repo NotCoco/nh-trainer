@@ -18,7 +18,7 @@ function readNhClient(relativePath) {
     path.resolve(
       projectRoot,
       "..",
-      "Nh184-Client",
+      "Kronos184-Client",
       "runelite-client",
       "src",
       "main",
@@ -182,7 +182,7 @@ for (const trainerAnchor of [
   'group: RUNELITE_PRAY_AGAINST_PLAYER_CONFIG_GROUP',
   'RunelitePrayAgainstPlayerConfigSnapshot',
   'drawTargetPrayAgainstPrayerTab',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/prayagainstplayer/PrayAgainstPlayerPlugin.java"'
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/prayagainstplayer/PrayAgainstPlayerPlugin.java"'
 ]) {
   assert(shellSource.includes(trainerAnchor), `RuneliteClientShell missing Pray Against Player anchor ${trainerAnchor}`);
 }

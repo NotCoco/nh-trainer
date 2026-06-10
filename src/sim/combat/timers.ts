@@ -40,6 +40,10 @@ export function delayAttack(state: AttackTimerState, ticks: number): AttackTimer
   };
 }
 
+export function shouldDelayFirstReadyAttackTick(state: AttackTimerState, currentTick: number): boolean {
+  return state.lastAttackTick + state.weaponCooldownTicks + state.additiveAttackDelayTicks === currentTick;
+}
+
 export function getAttackDelayStatus(state: AttackTimerState, currentTick: number): AttackDelayStatus {
   const totalDelayTicks = state.weaponCooldownTicks + state.additiveAttackDelayTicks;
   const remainingTicks = Math.max(0, state.lastAttackTick + totalDelayTicks - currentTick);

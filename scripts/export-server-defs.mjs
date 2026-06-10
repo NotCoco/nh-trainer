@@ -160,7 +160,7 @@ const bonusKeys = [
 const specialAttackByItemId = {
   4153: {
     drainPercent: 50,
-    source: "nh-server:combat.special.melee.GraniteMaul"
+    source: "kronos-server:combat.special.melee.GraniteMaul"
   },
   11785: {
     drainPercent: 50,
@@ -168,19 +168,19 @@ const specialAttackByItemId = {
   },
   11791: {
     drainPercent: 100,
-    source: "nh-server:combat.special.magic.StaffOfTheDead"
+    source: "kronos-server:combat.special.magic.StaffOfTheDead"
   },
   11802: {
     drainPercent: 50,
-    source: "nh-server:combat.special.melee.ArmadylGodsword"
+    source: "kronos-server:combat.special.melee.ArmadylGodsword"
   },
   12006: {
     drainPercent: 50,
-    source: "nh-server:combat.special.melee.AbyssalTentacle"
+    source: "kronos-server:combat.special.melee.AbyssalTentacle"
   },
   22296: {
     drainPercent: 100,
-    source: "nh-server:combat.special.magic.StaffOfTheDead"
+    source: "kronos-server:combat.special.magic.StaffOfTheDead"
   }
 };
 
@@ -192,7 +192,7 @@ function pickItemFields(item) {
   const picked = {
     id: item.id,
     name: itemNames[item.id] ?? item.name ?? item.examine?.replace(" - Examine not set.", "") ?? `item-${item.id}`,
-    source: "nh-server:item_info",
+    source: "kronos-server:item_info",
     tradeable: item.tradeable ?? false,
     equipSlot: item.equip_slot ?? null,
     weaponType: item.weapon_type ?? null,
@@ -225,7 +225,7 @@ function customConsumable(id) {
   return {
     id,
     name: itemNames[id],
-    source: "nh-server:Consumable.registerBastionPotion",
+    source: "kronos-server:Consumable.registerBastionPotion",
     tradeable: true,
     equipSlot: null,
     weaponType: null,

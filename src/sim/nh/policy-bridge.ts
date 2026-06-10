@@ -25,6 +25,19 @@ export type NhSupplyIntent =
   | "offence_strip_two"
   | "regear_style";
 export type NhSpecIntent = "none" | "use_special" | "use_special_double";
+export type NhAttackIntent = "attack" | "hold" | "off_tick";
+export type NhEquipmentIntent =
+  | "style_loadout"
+  | "weapon_only"
+  | "unequip_feet"
+  | "unequip_head"
+  | "unequip_cape"
+  | "unequip_amulet"
+  | "unequip_body"
+  | "unequip_shield"
+  | "unequip_legs"
+  | "unequip_hands"
+  | "unequip_ring";
 
 export interface NhPolicyAction {
   readonly offenceStyle: NhOffenceStyle;
@@ -33,10 +46,13 @@ export interface NhPolicyAction {
   readonly supplyIntent: NhSupplyIntent;
   readonly specIntent: NhSpecIntent;
   readonly extendedSupplyAction: boolean;
+  readonly attackIntent?: NhAttackIntent;
+  readonly equipmentIntent?: NhEquipmentIntent;
 }
 
 export const nhPolicyLegacyV12InputSize = 86;
-export const nhPolicyInputSize = 90;
+export const nhPolicyPreviousInputSize = 90;
+export const nhPolicyInputSize = 92;
 export const nhPolicyReservoirSize = 48;
 
 // Keep these arrays in lockstep with Java NhStakerSelfPlayPolicyBridge; trained policy action ids depend on the order.
@@ -72,24 +88,45 @@ export const nhSupplyIntents = [
 ] as const;
 export const nhExtraSupplyIntents = ["offence_strip_one", "offence_strip_two", "regear_style"] as const;
 export const nhSpecIntents = ["none", "use_special", "use_special_double"] as const;
+export const nhAttackIntents = ["attack", "hold", "off_tick"] as const;
+export const nhEquipmentIntents = [
+  "style_loadout",
+  "weapon_only",
+  "unequip_feet",
+  "unequip_head",
+  "unequip_cape",
+  "unequip_amulet",
+  "unequip_body",
+  "unequip_shield",
+  "unequip_legs",
+  "unequip_hands",
+  "unequip_ring"
+] as const;
 
 export const nhBaseActionCount =
   nhOffenceStyles.length * nhDefencePrayers.length * nhMovementIntents.length * nhSupplyIntents.length;
 export const nhExtraBaseActionCount =
   nhOffenceStyles.length * nhDefencePrayers.length * nhMovementIntents.length * nhExtraSupplyIntents.length;
 export const nhLegacyActionCount = nhBaseActionCount * nhSpecIntents.length;
-export const nhPolicyActionCount = nhLegacyActionCount + nhExtraBaseActionCount * nhSpecIntents.length;
+export const nhExtendedSupplyActionCount = nhExtraBaseActionCount * nhSpecIntents.length;
+export const nhPolicyV1ActionCount = nhLegacyActionCount + nhExtendedSupplyActionCount;
+export const nhPolicyActionCount = nhPolicyV1ActionCount * nhAttackIntents.length * nhEquipmentIntents.length;
+export const nhPolicyPreviousFeatureSize = nhPolicyReservoirSize + nhPolicyPreviousInputSize + 1;
 export const nhPolicyFeatureSize = nhPolicyReservoirSize + nhPolicyInputSize + 1;
 
 export function decodeNhPolicyAction(action: number): NhPolicyAction {
   const normalizedAction = clampInt(action, 0, nhPolicyActionCount - 1);
-  const extendedSupplyAction = normalizedAction >= nhLegacyActionCount;
+  const legacyAction = normalizedAction % nhPolicyV1ActionCount;
+  const variantIndex = Math.floor(normalizedAction / nhPolicyV1ActionCount);
+  const attackIndex = variantIndex % nhAttackIntents.length;
+  const equipmentIndex = Math.floor(variantIndex / nhAttackIntents.length) % nhEquipmentIntents.length;
+  const extendedSupplyAction = legacyAction >= nhLegacyActionCount;
   const baseAction = extendedSupplyAction
-    ? (normalizedAction - nhLegacyActionCount) % nhExtraBaseActionCount
-    : normalizedAction % nhBaseActionCount;
+    ? (legacyAction - nhLegacyActionCount) % nhExtraBaseActionCount
+    : legacyAction % nhBaseActionCount;
   const specIndex = extendedSupplyAction
-    ? Math.floor((normalizedAction - nhLegacyActionCount) / nhExtraBaseActionCount)
-    : Math.floor(normalizedAction / nhBaseActionCount);
+    ? Math.floor((legacyAction - nhLegacyActionCount) / nhExtraBaseActionCount)
+    : Math.floor(legacyAction / nhBaseActionCount);
   const supplyPool = extendedSupplyAction ? nhExtraSupplyIntents : nhSupplyIntents;
 
   const supplyIndex = baseAction % supplyPool.length;
@@ -106,7 +143,9 @@ export function decodeNhPolicyAction(action: number): NhPolicyAction {
     movementIntent: nhMovementIntents[movementIndex],
     supplyIntent: supplyPool[supplyIndex],
     specIntent: nhSpecIntents[clampInt(specIndex, 0, nhSpecIntents.length - 1)],
-    extendedSupplyAction
+    extendedSupplyAction,
+    attackIntent: nhAttackIntents[attackIndex],
+    equipmentIntent: nhEquipmentIntents[equipmentIndex]
   };
 }
 
@@ -115,6 +154,8 @@ export function encodeNhPolicyAction(action: NhPolicyAction): number {
   const defenceIndex = indexOfOrZero(nhDefencePrayers, action.defencePrayer);
   const movementIndex = indexOfOrZero(nhMovementIntents, action.movementIntent);
   const specIndex = indexOfOrZero(nhSpecIntents, action.specIntent);
+  const attackIndex = indexOfOrZero(nhAttackIntents, action.attackIntent ?? "attack");
+  const equipmentIndex = indexOfOrZero(nhEquipmentIntents, action.equipmentIntent ?? "style_loadout");
   const supplyPool = action.extendedSupplyAction ? nhExtraSupplyIntents : nhSupplyIntents;
   const supplyIndex = indexOfOrZero(supplyPool, action.supplyIntent as (typeof supplyPool)[number]);
 
@@ -123,17 +164,18 @@ export function encodeNhPolicyAction(action: NhPolicyAction): number {
       supplyPool.length) +
     supplyIndex;
 
-  return action.extendedSupplyAction
+  const legacyAction = action.extendedSupplyAction
     ? nhLegacyActionCount + specIndex * nhExtraBaseActionCount + baseAction
     : specIndex * nhBaseActionCount + baseAction;
+  return (equipmentIndex * nhAttackIntents.length + attackIndex) * nhPolicyV1ActionCount + legacyAction;
 }
 
 export function assertNhPolicyShape(inputSize: number, actionCount: number): void {
   if (inputSize !== nhPolicyInputSize) {
     throw new Error(`NH policy input size mismatch: expected ${nhPolicyInputSize}, got ${inputSize}`);
   }
-  if (actionCount !== nhPolicyActionCount) {
-    throw new Error(`NH policy action count mismatch: expected ${nhPolicyActionCount}, got ${actionCount}`);
+  if (actionCount !== nhPolicyActionCount && actionCount !== nhPolicyV1ActionCount) {
+    throw new Error(`NH policy action count mismatch: expected ${nhPolicyActionCount} or legacy ${nhPolicyV1ActionCount}, got ${actionCount}`);
   }
 }
 

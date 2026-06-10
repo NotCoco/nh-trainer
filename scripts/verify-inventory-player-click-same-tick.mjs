@@ -8,7 +8,16 @@ const require = createRequire(import.meta.url);
 const electronPath = require("electron");
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const scriptPath = path.join(projectRoot, "scripts", "inventory-player-click-same-tick-electron.cjs");
-const nhRoot = path.resolve(projectRoot, "..", "nh-osrs-184-master", "nh-osrs-184-master", "Nh-master");
+const workspaceRoot = path.resolve(projectRoot, "..");
+const sourceRoot = process.env.NH_SOURCE_ROOT
+  ? path.resolve(process.env.NH_SOURCE_ROOT)
+  : path.resolve(workspaceRoot, "kronos-osrs-184-master", "kronos-osrs-184-master", "Kronos-master");
+const apiRoot = process.env.NH_API_JAVA_RUIN_ROOT
+  ? path.resolve(process.env.NH_API_JAVA_RUIN_ROOT)
+  : path.join(sourceRoot, "kronos-api", "src", "main", "java", "io", "ruin");
+const serverRoot = process.env.NH_SERVER_JAVA_RUIN_ROOT
+  ? path.resolve(process.env.NH_SERVER_JAVA_RUIN_ROOT)
+  : path.join(sourceRoot, "kronos-server", "src", "main", "java", "io", "ruin");
 
 const runtimeSource = await readFile(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
 for (const snippet of [
@@ -17,15 +26,26 @@ for (const snippet of [
   "MessageDecoder keeps incoming packets in insertion order",
   "decoder.process(this, 250)",
   "processReadyPlayerCombatPackets(readyPlayerPackets)",
-  "lastPlayerQueuedAfterPendingInventory"
+  "lastPlayerQueuedAfterPendingInventory",
+  "appearance: nextActorAppearance ?? finalConsumableSourceActor.appearance"
 ]) {
   if (!runtimeSource.includes(snippet)) {
     throw new Error(`RuntimeSceneViewer missing same-tick inventory/player packet snippet: ${snippet}`);
   }
 }
 
+const electronVerifierSource = await readFile(scriptPath, "utf8");
+for (const snippet of [
+  "foodSlot",
+  "state.localPose.appearanceItemIds.includes(sameTickWeaponItemId)"
+]) {
+  if (!electronVerifierSource.includes(snippet)) {
+    throw new Error(`same-tick Electron verifier missing food/equipment appearance assertion: ${snippet}`);
+  }
+}
+
 const messageDecoderSource = await readFile(
-  path.join(nhRoot, "nh-api", "src", "main", "java", "io", "ruin", "api", "netty", "MessageDecoder.java"),
+  path.join(apiRoot, "api", "netty", "MessageDecoder.java"),
   "utf8"
 );
 for (const snippet of [
@@ -39,7 +59,7 @@ for (const snippet of [
 }
 
 const playerSource = await readFile(
-  path.join(nhRoot, "nh-server", "src", "main", "java", "io", "ruin", "model", "entity", "player", "Player.java"),
+  path.join(serverRoot, "model", "entity", "player", "Player.java"),
   "utf8"
 );
 for (const snippet of [
@@ -53,7 +73,7 @@ for (const snippet of [
 }
 
 const playerActionSource = await readFile(
-  path.join(nhRoot, "nh-server", "src", "main", "java", "io", "ruin", "network", "incoming", "handlers", "PlayerActionHandler.java"),
+  path.join(serverRoot, "network", "incoming", "handlers", "PlayerActionHandler.java"),
   "utf8"
 );
 for (const snippet of [
@@ -66,7 +86,7 @@ for (const snippet of [
 }
 
 const actionButtonSource = await readFile(
-  path.join(nhRoot, "nh-server", "src", "main", "java", "io", "ruin", "network", "incoming", "handlers", "ActionButtonHandler.java"),
+  path.join(serverRoot, "network", "incoming", "handlers", "ActionButtonHandler.java"),
   "utf8"
 );
 if (!actionButtonSource.includes("handleAction(player, option, interfaceHash, slot, itemId, false);")) {

@@ -9,7 +9,7 @@ function read(relativePath) {
 }
 
 function readNhClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
 }
 
 function assert(condition, message) {
@@ -99,8 +99,8 @@ for (const sourceAnchor of ['SELF', 'TARGET', 'OTHER']) {
 for (const trainerAnchor of [
   'id: "player-indicators"',
   'name: "Player Indicators"',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicatorsPlugin.java"',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicatorsConfig.java"',
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicatorsPlugin.java"',
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/playerindicators/PlayerIndicatorsConfig.java"',
   'group: "playerindicators"',
   'drawTargetsNames',
   'targetColor: "#136ef7"',

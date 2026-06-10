@@ -70,12 +70,14 @@ function nhAttackRangeForOffenceStyle(actor: NhDuelActorState, style: NhOffenceS
     return 10;
   }
   if (style === "ranged") {
-    const weaponId = actor.gearProfile?.rangedWeaponId ?? actor.weaponId;
-    const profile = nhWeaponProfiles[weaponId];
+    const fallbackWeaponId = nhLoadouts[candidateLoadoutForVisibleStyle.ranged].weaponId;
+    const weaponId = actor.gearProfile?.rangedWeaponId ?? actor.weaponId ?? fallbackWeaponId;
+    const profile = nhWeaponProfiles[weaponId] ?? nhWeaponProfiles[fallbackWeaponId];
     return profile.style === "ranged" ? Math.min(profile.attackRange + 2, 10) : 10;
   }
-  const weaponId = actor.gearProfile?.meleeWeaponId ?? actor.weaponId;
-  const profile = nhWeaponProfiles[weaponId];
+  const fallbackWeaponId = nhLoadouts[candidateLoadoutForVisibleStyle.slash].weaponId;
+  const weaponId = actor.gearProfile?.meleeWeaponId ?? actor.weaponId ?? fallbackWeaponId;
+  const profile = nhWeaponProfiles[weaponId] ?? nhWeaponProfiles[fallbackWeaponId];
   return profile.style === "stab" || profile.style === "slash" || profile.style === "crush" ? profile.attackRange : 1;
 }
 

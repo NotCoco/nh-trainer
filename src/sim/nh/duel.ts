@@ -25,7 +25,7 @@ import type { BonusTable, CombatLevels, CombatStyle, StyleEvEstimate } from "../
 import { bestStyleByEv, styleAdvantage } from "../combat/formulas";
 import { dispatchPlayerAttack, nhWeaponProfiles } from "../combat/player-combat";
 import type { AttackTimerState } from "../combat/timers";
-import { consumeExpiredAttackDelay, createAttackTimerState } from "../combat/timers";
+import { consumeExpiredAttackDelay, createAttackTimerState, delayAttack, shouldDelayFirstReadyAttackTick } from "../combat/timers";
 import {
   consumeQueuedGmaulSpecs,
   createGmaulSpecState,
@@ -44,7 +44,7 @@ import {
   type SimStats,
   type SupplyDelayState
 } from "../items/consumables";
-import type { NhMovementIntent, NhOffenceStyle, NhPolicyAction, NhSupplyIntent } from "./policy-bridge";
+import type { NhEquipmentIntent, NhMovementIntent, NhOffenceStyle, NhPolicyAction, NhSupplyIntent } from "./policy-bridge";
 import type { PrayerId, ProtectionPrayerId } from "../prayer/prayers";
 import {
   activeOverheadPrayer,
@@ -57,6 +57,7 @@ import type { TilePosition } from "../world/movement";
 import { canMeleeReachThisTick, chebyshevDistance, type MeleeReachResult } from "../world/movement";
 import { createNhClientAppearancePacket } from "../clientAppearancePacket";
 import {
+  loadoutForWeapon,
   nhLoadouts,
   type NhLoadoutId,
   type NhWeaponId
@@ -97,6 +98,8 @@ export interface NhDuelActorState {
   readonly rewardTotal: number;
   readonly rewardDps: number;
   readonly observedInfoKnown?: boolean;
+  readonly lastVengeanceTrinketCastTick?: number;
+  readonly vengeanceTrinketCasts?: number;
   readonly lastOffenceStyle: NhOffenceStyle | null;
   readonly lastVisibleOpponentStyle: NhOffenceStyle | null;
 }
@@ -978,48 +981,63 @@ function applyActorAction(
   const weaponId = weaponForAction(action, actor);
   actor = applyPrayerChoice(actor, action);
   actor = applyMovement(actor, opponent, currentTick, action, weaponId);
-  actor = equipWeapon(actor, currentTick, weaponId, visibleEquipmentForAction(actor, action, weaponId));
+  actor = equipWeapon(actor, currentTick, weaponId, equipmentPlanForAction(actor, action, weaponId));
   const supply = applySupplyIntent(actor, opponent, currentTick, action);
   actor = supply.actor;
   healed += supply.healed;
 
-  const attack = dispatchPlayerAttack({
-    currentTick,
-    attackerTile: actor.tile,
-    defenderTile: opponent.tile,
-    attackerFrozen: isFrozen(actor.locks, currentTick),
-    locks: actor.locks,
-    attackTimer: actor.attackTimer,
-    weapon: combatProfileForNhDuelAction(action, weaponId, actor.tile, opponent.tile)
-  });
-
+  const attackIntent = action.attackIntent ?? "attack";
+  if (attackIntent === "off_tick") {
+    if (shouldDelayFirstReadyAttackTick(actor.attackTimer, currentTick)) {
+      actor = {
+        ...actor,
+        attackTimer: delayAttack(actor.attackTimer, 1)
+      };
+    }
+  }
   actor = {
     ...actor,
-    attackTimer: attack.attackTimer,
     lastOffenceStyle: action.offenceStyle
   };
 
-  if (attack.canAttack) {
-    const hit = rollHit(actor, opponent, action.offenceStyle, randomSeed);
-    randomSeed = hit.seed;
-    nextQueuedHits.push({
-      id: `${currentTick}-${actorId}-${action.offenceStyle}-hit`,
-      dueTick: currentTick + hitDelayForStyle(action.offenceStyle),
-      attackerId: actorId,
-      defenderId: opponentId,
-      style: combatStyleForOffence(action.offenceStyle),
-      rawDamage: hit.damage,
-      source: weaponId === "granite_maul" ? "gmaul" : "weapon",
-      freezeTicks: action.offenceStyle === "magic" && hit.damage > 0 ? 32 : undefined
+  if (attackIntent !== "hold") {
+    const attack = dispatchPlayerAttack({
+      currentTick,
+      attackerTile: actor.tile,
+      defenderTile: opponent.tile,
+      attackerFrozen: isFrozen(actor.locks, currentTick),
+      locks: actor.locks,
+      attackTimer: actor.attackTimer,
+      weapon: combatProfileForNhDuelAction(action, weaponId, actor.tile, opponent.tile)
     });
-    events.push(...attackStartEvents(currentTick, actorId, opponentId, actor.tile, opponent.tile, action.offenceStyle));
+
     actor = {
       ...actor,
-      animationAction: animationForAttack(action.offenceStyle, weaponId === "granite_maul")
+      attackTimer: attack.attackTimer
     };
+
+    if (attack.canAttack) {
+      const hit = rollHit(actor, opponent, action.offenceStyle, randomSeed);
+      randomSeed = hit.seed;
+      nextQueuedHits.push({
+        id: `${currentTick}-${actorId}-${action.offenceStyle}-hit`,
+        dueTick: currentTick + hitDelayForStyle(action.offenceStyle),
+        attackerId: actorId,
+        defenderId: opponentId,
+        style: combatStyleForOffence(action.offenceStyle),
+        rawDamage: hit.damage,
+        source: weaponId === "granite_maul" ? "gmaul" : "weapon",
+        freezeTicks: action.offenceStyle === "magic" && hit.damage > 0 ? 32 : undefined
+      });
+      events.push(...attackStartEvents(currentTick, actorId, opponentId, actor.tile, opponent.tile, action.offenceStyle));
+      actor = {
+        ...actor,
+        animationAction: animationForAttack(action.offenceStyle, weaponId === "granite_maul")
+      };
+    }
   }
 
-  if (action.specIntent !== "none") {
+  if (action.specIntent !== "none" && attackIntent !== "hold") {
     const queued = queueGmaulSpec(actor.gmaul, currentTick, action.specIntent === "use_special_double" ? 2 : 1);
     actor = { ...actor, gmaul: queued.state, specialActive: queued.event.outcome === "queued" };
     if (queued.event.outcome === "queued") {
@@ -1405,7 +1423,7 @@ function equipWeapon(
   actor: NhDuelActorState,
   currentTick: number,
   weaponId: NhWeaponId,
-  targetEquipment: VisibleEquipment
+  equipmentPlan: NhDuelEquipmentPlan
 ): NhDuelActorState {
   const previousWeapon = nhWeaponProfiles[actor.weaponId];
   const gmaul = updateGmaulEquipment(actor.gmaul, currentTick, {
@@ -1413,14 +1431,14 @@ function equipWeapon(
     previousWeaponHadVisibleSpecBar: previousWeapon.hasVisibleSpecBar
   });
   const loadout = loadoutForWeaponId(weaponId);
-  const equipped = equipVisibleEquipment(actor, targetEquipment);
+  const equipped = equipVisibleEquipment(actor, equipmentPlan.targetEquipment, equipmentPlan.clearSlots);
 
   return {
     ...equipped,
     previousWeaponId: actor.weaponId,
     weaponId,
     loadoutId: loadout,
-    strippedEquipmentSlots: [],
+    strippedEquipmentSlots: equipmentPlan.clearSlots,
     gmaul
   };
 }
@@ -1429,7 +1447,32 @@ function visibleEquipmentForWeaponId(weaponId: NhWeaponId): VisibleEquipment {
   return nhLoadouts[loadoutForWeaponId(weaponId)].equipment;
 }
 
-function visibleEquipmentForAction(
+interface NhDuelEquipmentPlan {
+  readonly targetEquipment: VisibleEquipment;
+  readonly clearSlots: readonly EquipmentSlot[];
+}
+
+function equipmentPlanForAction(
+  actor: NhDuelActorState,
+  action: NhPolicyAction,
+  weaponId: NhWeaponId
+): NhDuelEquipmentPlan {
+  const equipmentIntent = action.equipmentIntent ?? "style_loadout";
+  const styleEquipment = styleEquipmentForAction(actor, action, weaponId);
+  const clearSlot = equipmentSlotForEquipmentIntent(equipmentIntent);
+  if (equipmentIntent === "weapon_only") {
+    return {
+      targetEquipment: weaponOnlyEquipmentForWeaponId(weaponId),
+      clearSlots: []
+    };
+  }
+  return {
+    targetEquipment: styleEquipment,
+    clearSlots: clearSlot ? [clearSlot] : []
+  };
+}
+
+function styleEquipmentForAction(
   actor: NhDuelActorState,
   action: NhPolicyAction,
   weaponId: NhWeaponId
@@ -1441,32 +1484,71 @@ function visibleEquipmentForAction(
   return actor.candidateEquipmentByStyle?.[candidateStyle] ?? visibleEquipmentForWeaponId(weaponId);
 }
 
-function loadoutForWeaponId(weaponId: NhWeaponId): NhLoadoutId {
-  if (weaponId === "kodai" || weaponId === "ancient_staff" || weaponId === "staff_of_the_dead") {
-    return "kodai-robes";
-  }
-  if (
-    weaponId === "armadyl_crossbow" ||
-    weaponId === "rune_crossbow" ||
-    weaponId === "magic_shortbow" ||
-    weaponId === "dragon_crossbow"
-  ) {
-    return "acb-hides";
-  }
-  if (weaponId === "granite_maul") {
-    return "gmaul-bandos";
-  }
-  if (weaponId === "armadyl_godsword") {
-    return "ags-bandos";
-  }
-  return "tentacle-bandos";
+function weaponOnlyEquipmentForWeaponId(weaponId: NhWeaponId): VisibleEquipment {
+  const source = visibleEquipmentForWeaponId(weaponId);
+  return {
+    ...(source.weapon ? { weapon: source.weapon } : {}),
+    ...(source.ammo ? { ammo: source.ammo } : {})
+  };
 }
 
-function equipVisibleEquipment(actor: NhDuelActorState, targetEquipment: VisibleEquipment): NhDuelActorState {
+function equipmentSlotForEquipmentIntent(intent: NhEquipmentIntent): EquipmentSlot | null {
+  switch (intent) {
+    case "unequip_head":
+      return "head";
+    case "unequip_cape":
+      return "cape";
+    case "unequip_amulet":
+      return "amulet";
+    case "unequip_body":
+      return "body";
+    case "unequip_shield":
+      return "shield";
+    case "unequip_legs":
+      return "legs";
+    case "unequip_hands":
+      return "hands";
+    case "unequip_feet":
+      return "feet";
+    case "unequip_ring":
+      return "ring";
+    default:
+      return null;
+  }
+}
+
+function loadoutForWeaponId(weaponId: NhWeaponId): NhLoadoutId {
+  return loadoutForWeapon(weaponId).id;
+}
+
+function equipVisibleEquipment(
+  actor: NhDuelActorState,
+  targetEquipment: VisibleEquipment,
+  clearSlots: readonly EquipmentSlot[] = []
+): NhDuelActorState {
   let inventorySlots = normalizeInventorySlots(actor.inventorySlots);
   const equipment: Partial<Record<EquipmentSlot, VisibleEquipmentItem>> = { ...actor.equipment };
+  const clearSlotSet = new Set(clearSlots);
+
+  for (const slot of clearSlotSet) {
+    const wornItem = equipment[slot];
+    if (!wornItem) {
+      continue;
+    }
+    const emptyInventorySlot = inventorySlots.findIndex((inventorySlot) => inventorySlot === null);
+    if (emptyInventorySlot === -1) {
+      continue;
+    }
+    const nextInventorySlots = [...inventorySlots];
+    nextInventorySlots[emptyInventorySlot] = { itemId: wornItem.itemId, quantity: 1 };
+    inventorySlots = normalizeInventorySlots(nextInventorySlots);
+    delete equipment[slot];
+  }
 
   for (const slot of equipmentSwitchSlotOrder) {
+    if (clearSlotSet.has(slot)) {
+      continue;
+    }
     const targetItem = targetEquipment[slot];
     if (!targetItem || equipment[slot]?.itemId === targetItem.itemId) {
       continue;
@@ -1816,12 +1898,12 @@ function weaponForAction(action: NhPolicyAction, actor: NhDuelActorState): NhWea
     return actor.gearProfile ? nhGearProfileAvailableSpecialWeaponKind(actor.gearProfile) ?? "granite_maul" : "granite_maul";
   }
   if (action.offenceStyle === "magic") {
-    return actor.gearProfile?.magicWeaponId ?? "kodai";
+    return actor.gearProfile?.magicWeaponId ?? nhLoadouts["kodai-robes"].weaponId;
   }
   if (action.offenceStyle === "ranged") {
-    return actor.gearProfile?.rangedWeaponId ?? "armadyl_crossbow";
+    return actor.gearProfile?.rangedWeaponId ?? nhLoadouts["acb-hides"].weaponId;
   }
-  return actor.gearProfile?.meleeWeaponId ?? "tentacle_whip";
+  return actor.gearProfile?.meleeWeaponId ?? nhLoadouts["tentacle-bandos"].weaponId;
 }
 
 function combatProfileForNhDuelAction(
@@ -1870,7 +1952,7 @@ function attackRangeForNhDuelAction(action: NhPolicyAction, weaponId: NhWeaponId
 }
 
 function nhDuelMeleeAttackRange(actor: NhDuelActorState): number {
-  const weaponId = actor.gearProfile?.meleeWeaponId ?? actor.weaponId;
+  const weaponId = actor.weaponId ?? actor.gearProfile?.meleeWeaponId;
   const profile = nhWeaponProfiles[weaponId];
   return profile.style === "stab" || profile.style === "slash" || profile.style === "crush" ? profile.attackRange : 1;
 }

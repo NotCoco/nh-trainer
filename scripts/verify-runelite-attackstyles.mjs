@@ -9,7 +9,7 @@ function read(relativePath) {
 }
 
 function readNhClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
 }
 
 function assert(condition, message) {
@@ -98,8 +98,8 @@ for (const trainerAnchor of [
   'id: "attack-styles"',
   'name: "Attack Styles"',
   'group: "attackIndicator"',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStylesPlugin.java"',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStylesConfig.java"',
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStylesPlugin.java"',
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/attackstyles/AttackStylesConfig.java"',
   'keyName: "warnForDefensive"',
   'keyName: "hideAutoRetaliate"',
   'keyName: "removeWarnedStyles"',

@@ -10,7 +10,7 @@ function read(relativePath) {
 }
 
 function readNhClient(relativePath) {
-  return fs.readFileSync(path.resolve(root, "..", "Nh184-Client", relativePath), "utf8");
+  return fs.readFileSync(path.resolve(root, "..", "Kronos184-Client", relativePath), "utf8");
 }
 
 function check(condition, message) {
@@ -112,7 +112,7 @@ for (const trainerAnchor of [
   "RuneliteAntiDragConfigSnapshot",
   'id: "anti-drag"',
   'group: "antiDrag"',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/antidrag/AntiDragConfig.java"',
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/antidrag/AntiDragConfig.java"',
   'keyName: "alwaysOn"',
   'hideWhen: ["toggleKeyBind", "holdKeyBind"]',
   'keyName: "toggleKeyBind"',
@@ -145,12 +145,12 @@ for (const trainerAnchor of [
   "runeliteClientPanelStyle",
   "runeliteClientPanelCursorCss",
   'data-source-anti-drag-cursor="AntiDragPlugin toggleListener/holdListener call clientUI.setCursor(selectedCursor.getCursorImage(), selectedCursor.toString()); release/reset calls clientUI.resetCursor()"',
-  'data-source-anti-drag-cursor-assets="Nh184-Client/runelite-client/src/main/resources/net/runelite/client/plugins/customcursor/cursor-*.png"',
+  'data-source-anti-drag-cursor-assets="Kronos184-Client/runelite-client/src/main/resources/net/runelite/client/plugins/customcursor/cursor-*.png"',
   "config.enabled && !config.alwaysOn && config.changeCursor && config.hotkeyActive",
   'url("runelite-ui/customcursor/${asset.fileName}") 0 0, auto',
   "RUNELITE_ANTI_DRAG_DEFAULT_DELAY_CLIENT_TICKS",
   "RuneliteAntiDragOverlay",
-  "data-source-overlay-file=\"Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/antidrag/AntiDragOverlay.java\"",
+  "data-source-overlay-file=\"Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/antidrag/AntiDragOverlay.java\"",
   "data-source-overlay-position=\"OverlayPosition.TOOLTIP\"",
   "data-source-overlay-priority=\"OverlayPriority.HIGHEST\"",
   "data-source-overlay-layer=\"OverlayLayer.ALWAYS_ON_TOP\"",

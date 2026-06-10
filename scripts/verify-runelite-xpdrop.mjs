@@ -15,10 +15,10 @@ function firstExistingPath(relativePaths) {
   throw new Error(`Missing source root; checked ${relativePaths.join(", ")}`);
 }
 
-const sourceClientRoot = firstExistingPath(["Kronos184-Client", "Nh184-Client"]);
+const sourceClientRoot = firstExistingPath(["Kronos184-Client", "Kronos184-Client"]);
 const sourceServerRoot = firstExistingPath([
   path.join("kronos-osrs-184-master", "kronos-osrs-184-master", "Kronos-master"),
-  path.join("nh-osrs-184-master", "nh-osrs-184-master", "Nh-master")
+  path.join("kronos-osrs-184-master", "kronos-osrs-184-master", "Kronos-master")
 ]);
 
 function read(relativePath) {
@@ -38,8 +38,8 @@ function readNhServer(relativePath) {
   if (fs.existsSync(candidate)) {
     return fs.readFileSync(candidate, "utf8");
   }
-  if (relativePath.startsWith("nh-server/")) {
-    const kronosCandidate = path.resolve(sourceServerRoot, relativePath.replace(/^nh-server\//, "kronos-server/"));
+  if (relativePath.startsWith("kronos-server/")) {
+    const kronosCandidate = path.resolve(sourceServerRoot, relativePath.replace(/^kronos-server\//, "kronos-server/"));
     if (fs.existsSync(kronosCandidate)) {
       return fs.readFileSync(kronosCandidate, "utf8");
     }
@@ -70,10 +70,10 @@ const setPositionSource = readNhServerScript("[proc,xpdrops_setposition].cs2");
 const setDropSizeSource = readNhServerScript("[proc,xpdrops_setdropsize].cs2");
 const orbUpdateSource = readNhServerScript("[proc,orbs_xpdrops_update].cs2");
 const orbOpSource = readNhServerScript("[clientscript,orbs_xpdrops_op].cs2");
-const xpCounterSource = readNhServer("nh-server/src/main/java/io/ruin/model/inter/handlers/XpCounter.java");
-const combatUtilsSource = readNhServer("nh-server/src/main/java/io/ruin/model/combat/CombatUtils.java");
-const iceBarrageSource = readNhServer("nh-server/src/main/java/io/ruin/model/skills/magic/spells/ancient/IceBarrage.java");
-const bloodBarrageSource = readNhServer("nh-server/src/main/java/io/ruin/model/skills/magic/spells/ancient/BloodBarrage.java");
+const xpCounterSource = readNhServer("kronos-server/src/main/java/io/ruin/model/inter/handlers/XpCounter.java");
+const combatUtilsSource = readNhServer("kronos-server/src/main/java/io/ruin/model/combat/CombatUtils.java");
+const iceBarrageSource = readNhServer("kronos-server/src/main/java/io/ruin/model/skills/magic/spells/ancient/IceBarrage.java");
+const bloodBarrageSource = readNhServer("kronos-server/src/main/java/io/ruin/model/skills/magic/spells/ancient/BloodBarrage.java");
 
 for (const sourceAnchor of [
   'name = "XP Drop"',
@@ -157,7 +157,7 @@ for (const trainerAnchor of [
   'name: "Native XP drop size"',
   'Config.XP_DROPS_SIZE varbit 4693',
   'Trainer extension: start the source-backed XP-drop plugin enabled',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/experiencedrop/XpDropPlugin.java"'
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/experiencedrop/XpDropPlugin.java"'
 ]) {
   assert(shellSource.includes(trainerAnchor), `RuneliteClientShell missing XP Drop anchor ${trainerAnchor}`);
 }

@@ -41,7 +41,7 @@ const clientSource = await readFile(
   path.resolve(
     projectRoot,
     "..",
-    "Nh184-Client",
+    "Kronos184-Client",
     "runelite-client",
     "src",
     "main",

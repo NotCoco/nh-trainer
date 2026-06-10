@@ -114,7 +114,8 @@ export const mechanicContracts: readonly VerifiedMechanicContract[] = [
       "server-nh-reward-contract"
     ],
     modulePath: "src/sim/nh/policy-bridge.ts",
-    implementationRule: "The standalone trainer must preserve the 77-feature observation and 4950-action policy interface or explicitly version the bridge.",
+    implementationRule:
+      "The standalone trainer must preserve the versioned NH observation/action bridge; old action ids remain stable and new axes must be explicit.",
     acceptanceGate: "A trained NH policy can be loaded and evaluated by the trainer without changing observation/action meaning."
   }
 ];

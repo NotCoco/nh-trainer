@@ -10,7 +10,7 @@ function read(relativePath) {
 }
 
 function readNhClient(relativePath) {
-  return fs.readFileSync(path.resolve(root, "..", "Nh184-Client", relativePath), "utf8");
+  return fs.readFileSync(path.resolve(root, "..", "Kronos184-Client", relativePath), "utf8");
 }
 
 function check(condition, message) {

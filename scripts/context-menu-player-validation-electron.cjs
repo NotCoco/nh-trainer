@@ -57,8 +57,8 @@ async function focusRuntimeSectionForCapture(window) {
       section.style.paddingTop = "0";
       section.style.borderTop = "0";
       window.scrollTo(0, 0);
-      window.dispatchEvent(new CustomEvent("nh-runtime-camera", { detail: { camera: "isometric" } }));
-      window.dispatchEvent(new CustomEvent("nh-runtime-cycle", { detail: { cycle: 3 } }));
+      window.dispatchEvent(new CustomEvent("nh-runtime-camera", { detail: { camera: "top" } }));
+      window.dispatchEvent(new CustomEvent("nh-runtime-cycle", { detail: { cycle: 200 } }));
       return { ok: true };
     })()
   `);
@@ -68,11 +68,89 @@ async function focusRuntimeSectionForCapture(window) {
   return result;
 }
 
+async function clickStartAndWaitForGo(window) {
+  await window.webContents.executeJavaScript(`
+    (() => {
+      const button = document.querySelector(".runtimeFightStartButton");
+      if (!button) {
+        return;
+      }
+      const rect = button.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      button.dispatchEvent(new PointerEvent("pointerdown", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        pointerId: 121,
+        pointerType: "mouse",
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+        clientX: x,
+        clientY: y
+      }));
+      button.dispatchEvent(new PointerEvent("pointerup", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        pointerId: 121,
+        pointerType: "mouse",
+        isPrimary: true,
+        button: 0,
+        buttons: 0,
+        clientX: x,
+        clientY: y
+      }));
+      button.click();
+    })()
+  `);
+  const deadline = Date.now() + 7000;
+  while (Date.now() < deadline) {
+    const ready = await window.webContents.executeJavaScript(`
+      (() => !document.querySelector(".runtimeFightStartButton") && !document.querySelector(".runtimeFightCountdownOverlay"))()
+    `);
+    if (ready) {
+      return;
+    }
+    await delay(100);
+  }
+  throw new Error("Timed out waiting for fight countdown to finish.");
+}
+
+async function setRuntimeFollowTarget(window, target) {
+  const result = await window.webContents.executeJavaScript(`
+    (() => {
+      const select = document.querySelector("#runtime-follow");
+      if (!select) {
+        return { ok: false, error: "missing runtime follow selector" };
+      }
+      select.value = ${JSON.stringify(target)};
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      return { ok: true };
+    })()
+  `);
+  if (!result.ok) {
+    throw new Error(result.error);
+  }
+}
+
 async function openPlayerContextMenu(window) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
       let canvasRect = null;
       const delayFrame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const waitForMenu = async () => {
+        const deadline = Date.now() + 700;
+        while (Date.now() < deadline) {
+          const menu = document.querySelector(".nhContextMenu");
+          if (menu) {
+            return menu;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 20));
+        }
+        return null;
+      };
       const menuSnapshot = (menu, click, rect) => {
         const options = Array.from(menu.querySelectorAll(".nhContextMenuOption")).map((option) => {
           const optionRect = option.getBoundingClientRect();
@@ -134,69 +212,82 @@ async function openPlayerContextMenu(window) {
           width: rect.width,
           height: rect.height
         };
-        const baseX = 260;
-        const baseY = 180;
-        const offsets = [
-          [0, 0],
-          [-20, 0],
-          [20, 0],
-          [0, -20],
-          [0, 20],
-          [-40, 0],
-          [40, 0],
-          [0, -40],
-          [0, 40],
-          [-40, -30],
-          [40, -30],
-          [-40, 30],
-          [40, 30],
-          [-70, 0],
-          [70, 0],
-          [0, -70],
-          [0, 70]
-        ];
-        const attempts = [];
-        for (const [dx, dy] of offsets) {
-          const x = baseX + dx;
-          const y = baseY + dy;
-          canvas.dispatchEvent(new PointerEvent("pointerdown", {
-            bubbles: true,
-            cancelable: true,
-            view: window,
-            pointerId: 99,
-            pointerType: "mouse",
-            isPrimary: true,
-            button: 2,
-            buttons: 2,
-            clientX: rect.left + x,
-            clientY: rect.top + y
-          }));
-          await new Promise((resolve) => setTimeout(resolve, 40));
-          if (!document.querySelector(".nhContextMenu")) {
-            canvas.dispatchEvent(new MouseEvent("contextmenu", {
-              bubbles: true,
-              cancelable: true,
-              view: window,
-              button: 2,
-              buttons: 2,
-              clientX: rect.left + x,
-              clientY: rect.top + y
-            }));
-            await new Promise((resolve) => setTimeout(resolve, 40));
-          }
-          const menu = document.querySelector(".nhContextMenu");
-          if (!menu) {
-            attempts.push({ x, y, options: [] });
-            continue;
-          }
-          const snapshot = menuSnapshot(menu, { x, y, clientX: rect.left + x, clientY: rect.top + y }, rect);
-          attempts.push({ x, y, options: snapshot.options.map((option) => option.text) });
-          if (snapshot.options.some((option) => option.text.includes("Opponent (level-126)"))) {
-            return { ...snapshot, source: "canvas-model-contextmenu", attempts };
+        const cameraModes = ["top", "north", "south", "isometric"];
+        const cameraAttempts = [];
+        for (const camera of cameraModes) {
+          window.dispatchEvent(new CustomEvent("nh-runtime-camera", { detail: { camera } }));
+          await delayFrame();
+          for (let attempt = 0; attempt < 20; attempt += 1) {
+            const motion = window.__nhRuntimeDebug?.motion;
+            const opponent = motion?.actors?.find((actor) => actor.actorId === "opponent");
+            if (opponent?.clickbox?.dom) {
+              const clientX = opponent.clickbox.dom.centerX;
+              const clientY = opponent.clickbox.dom.centerY;
+              canvas.dispatchEvent(new PointerEvent("pointerdown", {
+                bubbles: true,
+                cancelable: true,
+                view: window,
+                pointerId: 99,
+                pointerType: "mouse",
+                isPrimary: true,
+                button: 2,
+                buttons: 2,
+                clientX,
+                clientY
+              }));
+              let menu = await waitForMenu();
+              if (!menu) {
+                canvas.dispatchEvent(new MouseEvent("contextmenu", {
+                  bubbles: true,
+                  cancelable: true,
+                  view: window,
+                  button: 2,
+                  buttons: 0,
+                  clientX,
+                  clientY
+                }));
+                menu = await waitForMenu();
+              }
+              if (!menu) {
+                return { ok: false, error: "right-click at opponent debug clickbox did not open context menu", canvasRect, camera, opponent };
+              }
+              const snapshot = menuSnapshot(
+                menu,
+                {
+                  x: opponent.clickbox.canvas.centerX,
+                  y: opponent.clickbox.canvas.centerY,
+                  clientX,
+                  clientY
+                },
+                rect
+              );
+              if (snapshot.options.some((option) => option.text.includes("Opponent (level-126)"))) {
+                return { ...snapshot, source: "debug-clickbox-contextmenu", camera, opponent };
+              }
+              return {
+                ok: false,
+                error: "right-click at opponent debug clickbox opened a menu without opponent entries",
+                canvasRect,
+                camera,
+                opponent,
+                options: snapshot.options.map((option) => option.text)
+              };
+            }
+            if (attempt === 19) {
+              cameraAttempts.push({ camera, opponent: opponent ?? null, layout: motion?.layout ?? null });
+            }
+            await new Promise((resolve) => setTimeout(resolve, 50));
           }
         }
 
-        return { ok: false, error: "actual canvas right-click never hit the opponent actor model", canvasRect, attempts };
+        return {
+          ok: false,
+          error: "could not locate opponent debug clickbox",
+          canvasRect,
+          layout: window.__nhRuntimeDebug?.motion?.layout ?? null,
+          opponent: window.__nhRuntimeDebug?.motion?.actors?.find((actor) => actor.actorId === "opponent") ?? null,
+          cameraAttempts
+        };
       } catch (error) {
         return { ok: false, error: error instanceof Error ? error.message : String(error), canvasRect };
       }
@@ -244,11 +335,20 @@ async function hoverTopContextMenuOption(window, menu) {
 }
 
 async function verifyContextMenuClosesOutsideSourceMargin(window, menu) {
-  window.webContents.sendInputEvent({
-    type: "mouseMove",
-    x: Math.round(menu.menuRect.left - 24),
-    y: Math.round(menu.menuRect.top - 24)
-  });
+  await window.webContents.executeJavaScript(`
+    (() => {
+      window.dispatchEvent(new PointerEvent("pointermove", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        pointerId: 82,
+        pointerType: "mouse",
+        isPrimary: true,
+        clientX: ${JSON.stringify(Math.round(menu.menuRect.left - 24))},
+        clientY: ${JSON.stringify(Math.round(menu.menuRect.top - 24))}
+      }));
+    })()
+  `);
   await delay(80);
   const result = await window.webContents.executeJavaScript(`
     (() => ({
@@ -299,16 +399,40 @@ async function clickSpell(window, spellId) {
         return { ok: false, error: "missing spell" };
       }
       const rect = spell.getBoundingClientRect();
+      const clientX = rect.left + rect.width / 2;
+      const clientY = rect.top + rect.height / 2;
       spell.dispatchEvent(new PointerEvent("pointerdown", {
         bubbles: true,
         cancelable: true,
         view: window,
         pointerId: 1,
         pointerType: "mouse",
+        isPrimary: true,
         button: 0,
         buttons: 1,
-        clientX: rect.left + rect.width / 2,
-        clientY: rect.top + rect.height / 2
+        clientX,
+        clientY
+      }));
+      spell.dispatchEvent(new PointerEvent("pointerup", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        pointerId: 1,
+        pointerType: "mouse",
+        isPrimary: true,
+        button: 0,
+        buttons: 0,
+        clientX,
+        clientY
+      }));
+      spell.dispatchEvent(new MouseEvent("click", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        button: 0,
+        buttons: 0,
+        clientX,
+        clientY
       }));
       await new Promise((resolve) => requestAnimationFrame(resolve));
       const viewport = document.querySelector(".runtimeViewport");
@@ -404,7 +528,42 @@ async function clickContextMenuOption(window, optionIndex) {
       if (!option) {
         return { ok: false, error: "missing context menu option" };
       }
-      option.click();
+      const rect = option.getBoundingClientRect();
+      const clientX = rect.left + rect.width / 2;
+      const clientY = rect.top + rect.height / 2;
+      option.dispatchEvent(new PointerEvent("pointerdown", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        pointerId: 81,
+        pointerType: "mouse",
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+        clientX,
+        clientY
+      }));
+      option.dispatchEvent(new PointerEvent("pointerup", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        pointerId: 81,
+        pointerType: "mouse",
+        isPrimary: true,
+        button: 0,
+        buttons: 0,
+        clientX,
+        clientY
+      }));
+      option.dispatchEvent(new MouseEvent("click", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        button: 0,
+        buttons: 0,
+        clientX,
+        clientY
+      }));
       await new Promise((resolve) => requestAnimationFrame(resolve));
       const viewport = document.querySelector(".runtimeViewport");
       return { ok: true, dataset: { ...viewport?.dataset } };
@@ -439,12 +598,17 @@ app.whenReady().then(async () => {
     );
     await focusRuntimeSectionForCapture(window);
     await delay(300);
+    await clickStartAndWaitForGo(window);
+    await setRuntimeFollowTarget(window, "opponent");
+    await delay(300);
     const menu = await openPlayerContextMenu(window);
     const expected = [
       "Attack Opponent (level-126)",
       "Walk here Opponent (level-126)",
+      "Inspect inventory Opponent (level-126)",
       "Follow Opponent (level-126)",
-      "Trade with Opponent (level-126)"
+      "Trade with Opponent (level-126)",
+      "Cancel"
     ];
     const actual = menu.options.map((option) => option.text);
     if (JSON.stringify(actual) !== JSON.stringify(expected)) {
@@ -557,7 +721,7 @@ app.whenReady().then(async () => {
       throw new Error(`Inventory Use did not enter selected-item state before player targeting: ${JSON.stringify(itemSelection)}`);
     }
     const selectedItemMenu = await openPlayerContextMenu(window);
-    const selectedItemExpected = ["Use Armadyl crossbow -> Opponent (level-126)"];
+    const selectedItemExpected = ["Use Armadyl crossbow -> Opponent (level-126)", "Cancel"];
     const selectedItemActual = selectedItemMenu.options.map((option) => option.text);
     if (JSON.stringify(selectedItemActual) !== JSON.stringify(selectedItemExpected)) {
       throw new Error(`unexpected selected-item player menu options: ${JSON.stringify(selectedItemActual)}`);
@@ -600,7 +764,7 @@ app.whenReady().then(async () => {
       throw new Error(`Smoke Rush did not enter selected-spell state before player targeting: ${JSON.stringify(spellSelection)}`);
     }
     const selectedSpellMenu = await openPlayerContextMenu(window);
-    const selectedSpellExpected = ["Cast Smoke Rush -> Opponent (level-126)"];
+    const selectedSpellExpected = ["Cast Smoke Rush -> Opponent (level-126)", "Cancel"];
     const selectedSpellActual = selectedSpellMenu.options.map((option) => option.text);
     if (JSON.stringify(selectedSpellActual) !== JSON.stringify(selectedSpellExpected)) {
       throw new Error(`unexpected selected-spell player menu options: ${JSON.stringify(selectedSpellActual)}`);

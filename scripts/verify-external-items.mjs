@@ -248,8 +248,8 @@ assert(
   "Runtime policy melee pressure should pass the derived melee route distance into TargetRoute"
 );
 assert(
-  runtimePolicySource.includes("meleeRouteDistance <= 1"),
-  "Runtime policy spec pull-in should be limited to one-tile melee weapons"
+  runtimePolicySource.includes("chebyshevPolicyDistance(input.context.self.tile, input.context.opponent.tile) === 2"),
+  "Runtime policy spec pull-in should use the Java two-tile shouldApproachForSpec window"
 );
 assert(
   runtimePolicySource.includes("return loadoutForWeapon(gearProfile.meleeWeaponId).id;"),

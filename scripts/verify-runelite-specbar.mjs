@@ -15,11 +15,11 @@ function assert(condition, message) {
 }
 
 const sourceSpecBarPlugin = fs.readFileSync(
-  "C:\\Nh\\Nh184-Client\\runelite-client\\src\\main\\java\\net\\runelite\\client\\plugins\\specbar\\SpecBarPlugin.java",
+  "C:\\Kronos\\Kronos184-Client\\runelite-client\\src\\main\\java\\net\\runelite\\client\\plugins\\specbar\\SpecBarPlugin.java",
   "utf8"
 );
 const sourceSpecOrbDrawButton = fs.readFileSync(
-  "C:\\Nh\\nh-osrs-184-master\\nh-osrs-184-master\\Nh-master\\scripts\\[proc,orbs_spec_draw_button].cs2",
+  "C:\\Kronos\\kronos-osrs-184-master\\kronos-osrs-184-master\\Kronos-master\\scripts\\[proc,orbs_spec_draw_button].cs2",
   "utf8"
 );
 const shellSource = readText("src/ui/RuneliteClientShell.tsx");
@@ -43,7 +43,7 @@ assert(
 );
 
 assert(shellSource.includes('id: "spec-bar"'), "RuneLite shell plugin list should include Spec Bar.");
-assert(shellSource.includes('sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/specbar/SpecBarPlugin.java"'), "Spec Bar plugin item should carry the source path.");
+assert(shellSource.includes('sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/specbar/SpecBarPlugin.java"'), "Spec Bar plugin item should carry the source path.");
 assert(shellSource.includes('configurable: false'), "Spec Bar has no config descriptor and should not expose a fake config panel.");
 assert(shellSource.includes("readonly specBar: RuneliteSpecBarConfigSnapshot"), "Config snapshot should include Spec Bar state.");
 assert(shellSource.includes("drawSpecbarAnyway: enabledPluginIds.has(\"spec-bar\")"), "Spec Bar snapshot should be driven by plugin enabled state.");

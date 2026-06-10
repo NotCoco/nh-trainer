@@ -11,7 +11,7 @@ import {
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const defaultSourceRoot = path.join(process.env.NH_TRAINER_ARTIFACT_DIR ?? "C:\\nh-trainer-artifacts", "nh-client-reference");
 const defaultOutputRoot = path.join(projectRoot, "fixtures", "reference", "client-render");
-const nhClientRoot = path.resolve(projectRoot, "..", "Nh184-Client");
+const nhClientRoot = path.resolve(projectRoot, "..", "Kronos184-Client");
 const clientMinimapDotKinds = new Set(["item", "npc", "player", "friend", "team", "friends-chat"]);
 const clientSkillKeys = [
   "attack",

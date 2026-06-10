@@ -9,7 +9,7 @@ function read(relativePath) {
 }
 
 function readNhClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
 }
 
 function assert(condition, message) {
@@ -137,8 +137,8 @@ for (const trainerAnchor of [
   'id: "boosts-information"',
   'name: "Boosts Information"',
   'group: "boosts"',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/boosts/BoostsPlugin.java"',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/boosts/BoostsConfig.java"',
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/boosts/BoostsPlugin.java"',
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/boosts/BoostsConfig.java"',
   'keyName: "infoBoxVertical"',
   'keyName: "infoBoxWrap"',
   'keyName: "infoBoxSize"',

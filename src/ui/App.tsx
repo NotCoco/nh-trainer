@@ -1,6 +1,10 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { Analytics } from "@vercel/analytics/react";
-import { parseNhPolicyTsv, type ParsedNhPolicy } from "../bot";
+import {
+  parseNhNeuralPolicyJson,
+  parseNhPolicyTsv,
+  type NhRuntimePolicy
+} from "../bot";
 import type { DefaultPolicyReadResult } from "../client/bridge";
 import { NhAimTrainer } from "./NhAimTrainer";
 import "./styles.css";
@@ -9,28 +13,36 @@ const RuntimeSceneViewer = lazy(() =>
   import("./RuntimeSceneViewer").then((module) => ({ default: module.RuntimeSceneViewer }))
 );
 
-type BotDifficulty = "easy" | "medium" | "hard";
+type BotDifficulty = "hard" | "test";
 
 type BotPolicyLoadState =
   | { readonly status: "loading"; readonly label: string }
   | { readonly status: "loaded"; readonly label: string }
   | { readonly status: "error"; readonly label: string };
 
-const DEFAULT_STATIC_POLICY_URL = "./ai/nhstaker-selfplay-policy-nhstake-ags.tsv";
-const DMM_HARD_STATIC_POLICY_URL = "./ai/nhstaker-selfplay-policy-dmm-hard.tsv";
+type BotPolicyAssetFormat = "tsv" | "neural-json";
+type BotPolicyAsset = {
+  readonly label: string;
+  readonly staticUrl: string;
+  readonly format: BotPolicyAssetFormat;
+};
+
+const DMM_HARD_POLICY: BotPolicyAsset = {
+  label: "DMM Hard",
+  staticUrl: "./ai/nh-neural-policy-dmm-candidate.json",
+  format: "neural-json"
+};
 const BOT_DIFFICULTY_STORAGE_KEY = "nh-trainer.bot-difficulty";
-const BOT_DIFFICULTY_POLICIES: Record<BotDifficulty, { readonly label: string; readonly staticUrl: string }> = {
-  easy: {
-    label: "Easy",
-    staticUrl: "./ai/nhstaker-selfplay-policy-easy.tsv"
-  },
-  medium: {
-    label: "Medium",
-    staticUrl: "./ai/nhstaker-selfplay-policy-medium.tsv"
-  },
+const BOT_DIFFICULTY_POLICIES: Record<BotDifficulty, BotPolicyAsset> = {
   hard: {
     label: "Hard",
-    staticUrl: "./ai/nhstaker-selfplay-policy-hard.tsv"
+    staticUrl: "./ai/nh-neural-policy-hard.json",
+    format: "neural-json"
+  },
+  test: {
+    label: "Test",
+    staticUrl: "./ai/nh-neural-policy-test.json",
+    format: "neural-json"
   }
 };
 
@@ -54,21 +66,21 @@ function RuntimeSceneViewerFallback(): JSX.Element {
 }
 
 export function App(): JSX.Element {
-  const [loadedPolicy, setLoadedPolicy] = useState<ParsedNhPolicy | null>(null);
-  const [loadedDmmHardPolicy, setLoadedDmmHardPolicy] = useState<ParsedNhPolicy | null>(null);
+  const [loadedPolicy, setLoadedPolicy] = useState<NhRuntimePolicy | null>(null);
+  const [loadedDmmHardPolicy, setLoadedDmmHardPolicy] = useState<NhRuntimePolicy | null>(null);
   const [botDifficulty, setBotDifficulty] = useState<BotDifficulty>(() => readStoredBotDifficulty());
   const [policyLoadState, setPolicyLoadState] = useState<BotPolicyLoadState>({
     status: "loading",
     label: BOT_DIFFICULTY_POLICIES[botDifficulty].label
   });
-  const policyCacheRef = useRef(new Map<BotDifficulty, ParsedNhPolicy>());
+  const policyCacheRef = useRef(new Map<BotDifficulty, NhRuntimePolicy>());
 
   useEffect(() => {
     let cancelled = false;
-    void readStaticPolicyUrl(DMM_HARD_STATIC_POLICY_URL)
+    void readStaticPolicyUrl(DMM_HARD_POLICY.staticUrl)
       .then((result) => {
         if (!cancelled) {
-          setLoadedDmmHardPolicy(parseNhPolicyTsv(result.text, formatPolicySourceLabel(result)));
+          setLoadedDmmHardPolicy(parseDifficultyPolicy(result, DMM_HARD_POLICY));
         }
       })
       .catch((error: unknown) => {
@@ -103,7 +115,7 @@ export function App(): JSX.Element {
         if (cancelled) {
           return;
         }
-        const parsed = parseNhPolicyTsv(result.text, formatPolicySourceLabel(result));
+        const parsed = parseDifficultyPolicy(result, policyInfo);
         policyCacheRef.current.set(botDifficulty, parsed);
         setLoadedPolicy(parsed);
         setPolicyLoadState({ status: "loaded", label: policyInfo.label });
@@ -161,20 +173,20 @@ export function App(): JSX.Element {
             </div>
           </div>
           <div className="nhSiteUpdates" aria-label="Recent updates">
-            <section className="nhSiteUpdateCard" aria-label="Updates - June 4, 2026">
-              <span>Updates - June 4, 2026</span>
+            <section className="nhSiteUpdateCard" aria-label="Updates - June 10, 2026">
+              <span>Updates - June 10, 2026</span>
               <ul>
-                <li>Hard mode updated with the latest cohort and self-play trained policy.</li>
-                <li>Future training keeps a smaller scripted cohort so hard mode is harder to cheese without overfitting to it.</li>
-                <li>Camera zoom focus, animation-stall movement, melee pull-in, and freeze/pathing teleports were tightened.</li>
+                <li>Public opponents now use one Hard option, with separate neural models for NH stake and DMM setups.</li>
+                <li>NH stake Hard uses the expanded continuation model: 11,604,230 parameters, three 256-unit hidden layers, and 44,550 action outputs.</li>
+                <li>DMM Hard uses the restored pre-trinket re-equip checkpoint: 3,332,394 parameters, two 64-unit hidden layers, and 51,114 action outputs.</li>
               </ul>
             </section>
-            <section className="nhSiteUpdateCard" aria-label="Updates - June 5th, 2026">
-              <span>Updates - June 5th, 2026</span>
+            <section className="nhSiteUpdateCard" aria-label="Updates - June 5, 2026">
+              <span>Updates - June 5, 2026</span>
               <ul>
                 <li>DMM setup added with the captured inventory, new gear, and its own hard-mode policy.</li>
                 <li>Noxious halberd, Voidwaker, VLS, Zaryte crossbow, trinket of vengeance, and bolt procs are wired in.</li>
-                <li>Game sounds, audio sliders, and the options tab layout were cleaned up.</li>
+                <li>Game sounds, continuous audio sliders, aim training, camera zoom, right-click timing, and combat animation parity were tightened.</li>
               </ul>
             </section>
           </div>
@@ -215,55 +227,39 @@ function readStoredBotDifficulty(): BotDifficulty {
   }
   const params = new URLSearchParams(window.location.search);
   const queryDifficulty = params.get("bot") ?? params.get("difficulty");
-  if (queryDifficulty === "easy" || queryDifficulty === "medium" || queryDifficulty === "hard") {
+  if (isBotDifficulty(queryDifficulty)) {
     return queryDifficulty;
   }
   const stored = window.localStorage?.getItem(BOT_DIFFICULTY_STORAGE_KEY);
-  return stored === "easy" || stored === "medium" || stored === "hard" ? stored : "hard";
+  return isBotDifficulty(stored) ? stored : "hard";
+}
+
+function isBotDifficulty(value: unknown): value is BotDifficulty {
+  if (value === "test") {
+    return isLocalNhTrainerDevSurface();
+  }
+  return value === "hard";
+}
+
+function isLocalNhTrainerDevSurface(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  const params = new URLSearchParams(window.location.search);
+  return params.get("watchPanel") === "1" && (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname === "::1"
+  );
 }
 
 async function loadDifficultyPolicy(difficulty: BotDifficulty): Promise<DefaultPolicyReadResult> {
-  if (difficulty === "medium") {
-    const bridge = window.nhTrainer;
-    if (bridge?.readDefaultPolicy) {
-      try {
-        return {
-          ...(await bridge.readDefaultPolicy()),
-          path: BOT_DIFFICULTY_POLICIES.medium.staticUrl
-        };
-      } catch (error) {
-        const fallback = await readStaticDifficultyPolicy(difficulty);
-        return {
-          ...fallback,
-          path: `${fallback.path} (bridge failed: ${error instanceof Error ? error.message : "unknown error"})`
-        };
-      }
-    }
-  }
-
   return readStaticDifficultyPolicy(difficulty);
 }
 
 async function readStaticDifficultyPolicy(difficulty: BotDifficulty): Promise<DefaultPolicyReadResult> {
   const policyInfo = BOT_DIFFICULTY_POLICIES[difficulty];
-  try {
-    return await readStaticPolicyUrl(policyInfo.staticUrl);
-  } catch (error) {
-    if (difficulty === "medium") {
-      const fallback = await readStaticDefaultPolicy();
-      return {
-        ...fallback,
-        path: `${fallback.path} (${policyInfo.staticUrl} failed: ${
-          error instanceof Error ? error.message : "unknown error"
-        })`
-      };
-    }
-    throw error;
-  }
-}
-
-async function readStaticDefaultPolicy(): Promise<DefaultPolicyReadResult> {
-  return readStaticPolicyUrl(DEFAULT_STATIC_POLICY_URL);
+  return readStaticPolicyUrl(policyInfo.staticUrl);
 }
 
 async function readStaticPolicyUrl(url: string): Promise<DefaultPolicyReadResult> {
@@ -278,6 +274,13 @@ async function readStaticPolicyUrl(url: string): Promise<DefaultPolicyReadResult
     source: "static-fallback",
     bytes: new TextEncoder().encode(text).length
   };
+}
+
+function parseDifficultyPolicy(result: DefaultPolicyReadResult, policyInfo: BotPolicyAsset): NhRuntimePolicy {
+  const sourceLabel = formatPolicySourceLabel(result);
+  return policyInfo.format === "neural-json"
+    ? parseNhNeuralPolicyJson(result.text, sourceLabel)
+    : parseNhPolicyTsv(result.text, sourceLabel);
 }
 
 function formatPolicySourceLabel(result: DefaultPolicyReadResult): string {

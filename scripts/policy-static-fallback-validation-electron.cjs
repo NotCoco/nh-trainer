@@ -51,28 +51,6 @@ app.whenReady().then(async () => {
   try {
     await window.loadFile(path.join(projectRoot, "dist", "index.html"));
     const policyStatus = await waitForPolicy(window, rendererMessages);
-    const easyStatus = await window.webContents.executeJavaScript(`
-      (async () => {
-        const easyButton = Array.from(document.querySelectorAll(".runtimeBotDifficultyButtons button"))
-          .find((button) => button.textContent?.trim() === "Easy");
-        easyButton?.click();
-        const deadline = Date.now() + 15000;
-        let last = {};
-        while (Date.now() < deadline) {
-          const shell = document.querySelector("main.clientOnlyShell");
-          last = {
-            loaded: shell?.dataset.defaultPolicyLoaded ?? "",
-            difficulty: shell?.dataset.botDifficulty ?? "",
-            status: shell?.dataset.botPolicyStatus ?? ""
-          };
-          if (last.loaded === "true" && last.difficulty === "easy" && last.status === "loaded") {
-            return last;
-          }
-          await new Promise((resolve) => setTimeout(resolve, 250));
-        }
-        return last;
-      })()
-    `);
     const hardStatus = await window.webContents.executeJavaScript(`
       (async () => {
         const hardButton = Array.from(document.querySelectorAll(".runtimeBotDifficultyButtons button"))
@@ -95,6 +73,10 @@ app.whenReady().then(async () => {
         return last;
       })()
     `);
+    const selectorButtons = await window.webContents.executeJavaScript(`
+      Array.from(document.querySelectorAll(".runtimeBotDifficultyButtons button"))
+        .map((button) => button.textContent?.trim() ?? "")
+    `);
     const result = await window.webContents.executeJavaScript(`
       (() => {
         return {
@@ -104,6 +86,7 @@ app.whenReady().then(async () => {
           botPolicyStatus: document.querySelector("main.clientOnlyShell")?.dataset.botPolicyStatus ?? "",
           difficultySelector: document.querySelector(".runtimeBotDifficultySelector") !== null,
           visiblePolicyWorkbench: document.querySelector("#policy-workbench") !== null,
+          botWatchDevPanel: document.querySelector(".runtimeBotWatchDevPanel") !== null,
           runtimeClientSection: document.querySelector(".runtimeClientSection") !== null
         };
       })()
@@ -115,15 +98,21 @@ app.whenReady().then(async () => {
       throw new Error(`Default policy did not load into the client shell: ${JSON.stringify(result)}`);
     }
     if (result.botDifficulty !== "hard" || result.botPolicyStatus !== "loaded" || !result.difficultySelector) {
-      throw new Error(`Difficulty policies did not load into the client shell: ${JSON.stringify(result)}, easy=${JSON.stringify(easyStatus)}, hard=${JSON.stringify(hardStatus)}`);
+      throw new Error(`Difficulty policies did not load into the client shell: ${JSON.stringify(result)}, hard=${JSON.stringify(hardStatus)}`);
+    }
+    if (selectorButtons.includes("Easy") || selectorButtons.includes("Medium")) {
+      throw new Error(`Removed TSV difficulties should not appear in the selector: ${JSON.stringify(selectorButtons)}`);
     }
     if (result.visiblePolicyWorkbench) {
       throw new Error(`Policy workbench should be internal in the client shell: ${JSON.stringify(result)}`);
     }
+    if (result.botWatchDevPanel) {
+      throw new Error(`Local bot watch panel should be hidden on the default client surface: ${JSON.stringify(result)}`);
+    }
     if (!result.runtimeClientSection) {
       throw new Error(`Runtime client section did not render: ${JSON.stringify(result)}`);
     }
-    console.log(JSON.stringify({ policyStatus, easyStatus, hardStatus, result }, null, 2));
+    console.log(JSON.stringify({ policyStatus, hardStatus, selectorButtons, result }, null, 2));
     app.quit();
   } catch (error) {
     console.error(error);

@@ -9,7 +9,7 @@ function read(relativePath) {
 }
 
 function readNhClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
 }
 
 function readNhServerScript(fileName) {
@@ -17,9 +17,9 @@ function readNhServerScript(fileName) {
     path.resolve(
       projectRoot,
       "..",
-      "nh-osrs-184-master",
-      "nh-osrs-184-master",
-      "Nh-master",
+      "kronos-osrs-184-master",
+      "kronos-osrs-184-master",
+      "Kronos-master",
       "scripts",
       fileName
     ),
@@ -104,8 +104,8 @@ for (const trainerAnchor of [
   'id: "prayer"',
   'name: "Prayer"',
   'group: "prayer"',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerPlugin.java"',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerConfig.java"',
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerPlugin.java"',
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/prayer/PrayerConfig.java"',
   'prayerFlickLocation: "NONE"',
   'showPrayerDoseIndicator: true',
   'hideIfNotPraying: true',

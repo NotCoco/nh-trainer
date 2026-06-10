@@ -2718,6 +2718,7 @@ h3 {
 .nhOptionsCameraZoomIcon,
 .nhOptionsCameraZoomStopSprite,
 .nhOptionsSoundToggleIcon,
+.nhOptionsSoundToggleKnob,
 .nhOptionsSoundToggleStopSprite,
 .nhOptionsWindowModeIcon {
   position: absolute;
@@ -3827,12 +3828,13 @@ h3 {
 }
 
 .runtimeBotDifficultyButtons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  justify-content: center;
   gap: 4px;
 }
 
 .runtimeBotDifficultyButtons button {
+  min-width: 78px;
   min-height: 22px;
   border: 1px solid #5b4a31;
   border-radius: 2px;
@@ -3906,6 +3908,91 @@ h3 {
   line-height: 1.2;
   text-align: center;
   text-shadow: 1px 1px 0 #000000;
+}
+
+.runtimeBotWatchDevPanel {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 220002;
+  display: grid;
+  grid-template-columns: 1fr;
+  row-gap: 6px;
+  box-sizing: border-box;
+  width: 228px;
+  padding: 7px;
+  border: 1px solid #5b4a31;
+  border-radius: 2px;
+  background: rgba(18, 17, 15, 0.92);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 231, 150, 0.13),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.75),
+    0 2px 10px rgba(0, 0, 0, 0.55);
+  color: #f6c769;
+  font: 700 11px Arial, sans-serif;
+  text-shadow: 1px 1px 0 #000000;
+  pointer-events: auto;
+}
+
+.runtimeBotWatchTitle {
+  color: #ffd65a;
+  line-height: 1;
+  text-align: center;
+}
+
+.runtimeBotWatchCandidateRow,
+.runtimeBotWatchActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 4px;
+  align-items: center;
+}
+
+.runtimeBotWatchCandidateRow span {
+  color: #d9c491;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.runtimeBotWatchDevPanel .runtimeBotWatchButtons {
+  grid-template-columns: 1fr 1fr;
+}
+
+.runtimeBotWatchCandidateRow button,
+.runtimeBotWatchActions button {
+  min-height: 22px;
+  border: 1px solid #5b4a31;
+  border-radius: 2px;
+  background: linear-gradient(#4b4335, #2f2a22);
+  color: #f6c769;
+  font: inherit;
+  line-height: 1;
+  text-shadow: 1px 1px 0 #000000;
+  cursor: pointer;
+}
+
+.runtimeBotWatchCandidateRow button[aria-pressed="true"],
+.runtimeBotWatchActions button[aria-pressed="true"] {
+  border-color: #8a6d29;
+  background: linear-gradient(#745b2c, #3a2e17);
+  color: #ffd65a;
+}
+
+.runtimeBotWatchCandidateRow button:disabled,
+.runtimeBotWatchActions button:disabled {
+  color: #8b8064;
+  background: linear-gradient(#383229, #24211d);
+  cursor: default;
+}
+
+.runtimeBotWatchActions {
+  grid-template-columns: 48px 1fr 58px;
+}
+
+.runtimeBotWatchDevPanel .runtimeBotWatchStatus {
+  max-width: none;
+  min-height: 24px;
+  text-align: left;
 }
 
 .runtimeFightStartButton {

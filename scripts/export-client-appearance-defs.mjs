@@ -6,9 +6,9 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 const clientSource = path.resolve(
   projectRoot,
   "..",
-  "nh-osrs-184-master",
-  "nh-osrs-184-master",
-  "Nh-master",
+  "kronos-osrs-184-master",
+  "kronos-osrs-184-master",
+  "Kronos-master",
   "runelite",
   "runescape-client",
   "src",

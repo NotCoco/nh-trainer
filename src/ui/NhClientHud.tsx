@@ -481,6 +481,7 @@ export interface NhOptionsSoundToggleCommand {
   readonly previousVolume: number;
   readonly nextVolume: number;
   readonly sourceVarpValue: number;
+  readonly previewSound?: boolean;
   readonly position: {
     readonly x: number;
     readonly y: number;
@@ -2787,22 +2788,29 @@ function NhOptionsSoundToggleLayer({
           return widget ? [{ stop, widget }] : [];
         });
         const trackRect = rowWidgets.length > 0 ? nhOptionsCuratedSliderTrackRect(rootRect, rowOffset) : null;
-        const commandForStop = (
+        const knobSprite = findSprite(atlas, "options_slider_knob") ?? findSpriteById(atlas, nhOptionsSoundSliderKnobSpriteId);
+        const nearestStopForVolume = (nextVolume: number): NhOptionsSoundToggleStop =>
+          spec.stops.reduce((best, stop) =>
+            Math.abs(stop.sourceVarpValue - nextVolume) < Math.abs(best.sourceVarpValue - nextVolume) ? stop : best
+          );
+        const commandForVolume = (
           event: ReactPointerEvent<HTMLElement>,
-          stop: NhOptionsSoundToggleStop
+          nextVolume: number,
+          previewSound: boolean
         ): NhOptionsSoundToggleCommand => ({
           id: spec.id,
           label: spec.label,
           actionText: spec.actionText,
-          childId: stop.childId,
-          spriteId: stop.spriteId,
+          childId: nearestStopForVolume(nextVolume).childId,
+          spriteId: nearestStopForVolume(nextVolume).spriteId,
           varpId: spec.varpId,
           previousVolume: volume,
-          nextVolume: stop.sourceVarpValue,
-          sourceVarpValue: stop.sourceVarpValue,
+          nextVolume: normalizeOptionsSoundVolume(nextVolume),
+          sourceVarpValue: nearestStopForVolume(nextVolume).sourceVarpValue,
+          previewSound,
           position: runtimeViewportPointerPosition(event)
         });
-        const stopFromPointerEvent = (event: ReactPointerEvent<HTMLElement>): NhOptionsSoundToggleStop | null => {
+        const volumeFromPointerEvent = (event: ReactPointerEvent<HTMLElement>): number | null => {
           if (!trackRect || rowWidgets.length === 0) {
             return null;
           }
@@ -2810,47 +2818,36 @@ function NhOptionsSoundToggleLayer({
           if (rect.width <= 0) {
             return null;
           }
-          const sourceX = trackRect.x + Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)) * trackRect.width;
-          let nearest = rowWidgets[0];
-          let nearestDistance = Number.POSITIVE_INFINITY;
-          for (let index = 0; index < rowWidgets.length; index += 1) {
-            const entry = rowWidgets[index];
-            const stopRect = nhOptionsCuratedSliderStopRect(rootRect, rowOffset, index);
-            const centerX = stopRect.x + stopRect.width / 2;
-            const distance = Math.abs(sourceX - centerX);
-            if (distance < nearestDistance) {
-              nearest = entry;
-              nearestDistance = distance;
-            }
-          }
-          return nearest.stop;
+          const knobWidth = knobSprite?.maxWidth ?? knobSprite?.width ?? nhOptionsSoundSliderKnobWidth;
+          const sourceX = ((event.clientX - rect.left) / rect.width) * trackRect.width;
+          const sliderRange = Math.max(1, trackRect.width - knobWidth);
+          return normalizeOptionsSoundVolumeFromSliderRatio((sourceX - knobWidth / 2) / sliderRange);
         };
-        const applyPointerVolume = (event: ReactPointerEvent<HTMLElement>): void => {
-          const stop = stopFromPointerEvent(event);
-          if (!stop) {
+        const applyPointerVolume = (event: ReactPointerEvent<HTMLElement>, previewSound: boolean): void => {
+          const nextVolume = volumeFromPointerEvent(event);
+          if (nextVolume === null) {
             return;
           }
-          onToggle(commandForStop(event, stop));
+          onToggle(commandForVolume(event, nextVolume, previewSound));
         };
         const applyKeyboardVolume = (event: ReactKeyboardEvent<HTMLDivElement>): void => {
-          const currentIndex = spec.stops.findIndex((stop) => stop.sourceVarpValue === volume);
-          const resolvedIndex = currentIndex >= 0 ? currentIndex : 0;
-          const nextIndex =
+          const keyboardStep = 0.25;
+          const nextVolume =
             event.key === "ArrowLeft" || event.key === "ArrowUp"
-              ? Math.max(0, resolvedIndex - 1)
+              ? Math.max(0, volume - keyboardStep)
               : event.key === "ArrowRight" || event.key === "ArrowDown"
-                ? Math.min(spec.stops.length - 1, resolvedIndex + 1)
+                ? Math.min(4, volume + keyboardStep)
                 : event.key === "Home"
                   ? 0
-                  : event.key === "End"
-                    ? spec.stops.length - 1
+                : event.key === "End"
+                    ? 4
                     : -1;
-          if (nextIndex < 0) {
+          if (nextVolume < 0) {
             return;
           }
           event.preventDefault();
           event.stopPropagation();
-          const stop = spec.stops[nextIndex];
+          const stop = nearestStopForVolume(nextVolume);
           onToggle({
             id: spec.id,
             label: spec.label,
@@ -2859,7 +2856,7 @@ function NhOptionsSoundToggleLayer({
             spriteId: stop.spriteId,
             varpId: spec.varpId,
             previousVolume: volume,
-            nextVolume: stop.sourceVarpValue,
+            nextVolume: normalizeOptionsSoundVolume(nextVolume),
             sourceVarpValue: stop.sourceVarpValue,
             position: {
               x: trackRect ? trackRect.x + trackRect.width / 2 : 0,
@@ -2886,7 +2883,7 @@ function NhOptionsSoundToggleLayer({
             />
           ) : null,
           ...rowWidgets.map(({ stop }, index) => {
-            const renderedSpriteAlias = nhOptionsSoundToggleSpriteAliasForStop(spec.stops, volume, stop);
+            const renderedSpriteAlias = nhOptionsSoundToggleTrackSpriteAliasForStop(spec.stops, stop);
             const sprite = findSprite(atlas, renderedSpriteAlias) ?? findSpriteById(atlas, stop.spriteId);
             const stopRect = nhOptionsCuratedSliderStopRect(rootRect, rowOffset, index);
             return sprite ? (
@@ -2907,6 +2904,22 @@ function NhOptionsSoundToggleLayer({
               />
             ) : null;
           }),
+          trackRect && knobSprite ? (
+            <span
+              aria-hidden="true"
+              className="nhOptionsSoundToggleKnob"
+              data-setting-id={spec.id}
+              data-source-sprite-alias="options_slider_knob"
+              data-source-sprite-id={knobSprite.spriteId}
+              data-volume-ratio={String(normalizeOptionsSoundVolume(volume) / 4)}
+              key={`${spec.id}:knob`}
+              style={{
+                ...spriteStyle(atlas, knobSprite),
+                ...rectStyle(nhOptionsSoundToggleKnobRect(trackRect, knobSprite, volume)),
+                zIndex: 4
+              }}
+            />
+          ) : null,
           trackRect ? (
             <div
               aria-label={`${spec.label} ${volume === 0 ? "muted" : `level ${volume}`}`}
@@ -2930,7 +2943,7 @@ function NhOptionsSoundToggleLayer({
                 event.preventDefault();
                 event.stopPropagation();
                 event.currentTarget.setPointerCapture(event.pointerId);
-                applyPointerVolume(event);
+                applyPointerVolume(event, true);
               }}
               onPointerMove={(event) => {
                 if ((event.buttons & 1) === 0) {
@@ -2938,7 +2951,7 @@ function NhOptionsSoundToggleLayer({
                 }
                 event.preventDefault();
                 event.stopPropagation();
-                applyPointerVolume(event);
+                applyPointerVolume(event, false);
               }}
               onPointerUp={(event) => {
                 if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -2946,7 +2959,7 @@ function NhOptionsSoundToggleLayer({
                 }
               }}
               role="slider"
-              style={{ ...rectStyle(trackRect), zIndex: 4 }}
+              style={{ ...rectStyle(trackRect), zIndex: 5 }}
               tabIndex={0}
               title={spec.label}
             />
@@ -3006,25 +3019,50 @@ const nhOptionsSoundToggleSpecs = [
 }[];
 
 type NhOptionsSoundToggleStop = (typeof nhOptionsSoundToggleSpecs)[number]["stops"][number];
+const nhOptionsSoundSliderKnobSpriteId = 1201;
+const nhOptionsSoundSliderKnobWidth = 16;
 
 function normalizeOptionsSoundVolume(value: number): number {
   if (!Number.isFinite(value)) {
     return 4;
   }
-  return Math.max(0, Math.min(4, Math.trunc(value)));
+  return Math.round(Math.max(0, Math.min(4, value)) * 100) / 100;
 }
 
-function nhOptionsSoundToggleSpriteAliasForStop(
+const nhOptionsSoundSliderEndpointSnapRatio = 0.02;
+
+function normalizeOptionsSoundVolumeFromSliderRatio(ratio: number): number {
+  if (!Number.isFinite(ratio)) {
+    return 4;
+  }
+  if (ratio <= nhOptionsSoundSliderEndpointSnapRatio) {
+    return 0;
+  }
+  if (ratio >= 1 - nhOptionsSoundSliderEndpointSnapRatio) {
+    return 4;
+  }
+  return normalizeOptionsSoundVolume(Math.max(0, Math.min(1, ratio)) * 4);
+}
+
+function nhOptionsSoundToggleKnobRect(trackRect: NhRect, knobSprite: NhHudSprite, volume: number): NhRect {
+  const knobWidth = knobSprite.maxWidth || knobSprite.width || nhOptionsSoundSliderKnobWidth;
+  const knobHeight = knobSprite.maxHeight || knobSprite.height || trackRect.height;
+  const ratio = normalizeOptionsSoundVolume(volume) / 4;
+  return {
+    x: trackRect.x + Math.max(0, trackRect.width - knobWidth) * ratio,
+    y: trackRect.y,
+    width: knobWidth,
+    height: knobHeight
+  };
+}
+
+function nhOptionsSoundToggleTrackSpriteAliasForStop(
   stops: readonly NhOptionsSoundToggleStop[],
-  volume: number,
   stop: NhOptionsSoundToggleStop
 ): string {
   const stopIndex = stops.findIndex((candidate) => candidate.childId === stop.childId);
-  const activeFrameByVolume = [0, 1, 2, 3, 4] as const;
   const inactiveFrameByIndex = [5, 6, 7, 8, 9] as const;
-  const activeFrame = activeFrameByVolume[normalizeOptionsSoundVolume(volume)];
-  const frame = stopIndex === activeFrame ? stopIndex : inactiveFrameByIndex[Math.max(0, Math.min(4, stopIndex))];
-  return `options_slider_five_${frame}`;
+  return `options_slider_five_${inactiveFrameByIndex[Math.max(0, Math.min(4, stopIndex))]}`;
 }
 
 function NhOptionsKeybindingControlLayer({

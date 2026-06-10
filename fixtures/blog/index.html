@@ -163,6 +163,21 @@
         </section>
 
         <section>
+          <h2>June hard-mode refresh</h2>
+          <p>
+            The public trainer now keeps the opponent selection simple: one Hard option, with the
+            active setup choosing the model. NH stake uses the expanded continuation neural model,
+            while DMM uses the restored pre-trinket re-equip checkpoint that was already performing
+            well before the later experimental run.
+          </p>
+          <ul>
+            <li>NH stake Hard: 11,604,230 parameters, three 256-unit hidden layers, 44,550 action outputs.</li>
+            <li>DMM Hard: 3,332,394 parameters, two 64-unit hidden layers, 51,114 action outputs.</li>
+            <li>DMM gear handling includes weapon-only and selected slot-unequip actions without forcing Masori body as a guaranteed ranged template.</li>
+          </ul>
+        </section>
+
+        <section>
           <h2>Where training got confusing</h2>
           <p>
             A lot of the hard parts were not glamorous model work. The confusing bugs were usually
@@ -180,11 +195,11 @@
         </section>
 
         <section>
-          <h2>Difficulty checkpoints</h2>
+          <h2>Difficulty setup</h2>
           <p>
-            The public client currently exposes multiple policy checkpoints. Easy, medium, and hard
-            are not hand-authored personalities; they are snapshots taken after different amounts
-            of training and then served as selectable opponents.
+            Older builds exposed several checkpoint difficulties. The current public build is
+            simpler: Hard is the supported opponent, and the NH stake or DMM setup determines which
+            neural weights are loaded.
           </p>
         </section>
       </article>

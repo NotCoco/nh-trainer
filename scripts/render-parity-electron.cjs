@@ -8,13 +8,13 @@ const simFixturesRoot = path.join(projectRoot, "fixtures", "sim");
 const nhRoot = path.resolve(projectRoot, "..");
 const defaultPolicyPath = path.join(
   nhRoot,
-  "nh-osrs-184-master",
-  "nh-osrs-184-master",
-  "Nh-master",
-  "nh-server",
+  "kronos-osrs-184-master",
+  "kronos-osrs-184-master",
+  "Kronos-master",
+  "kronos-server",
   "data",
   "ai",
-  "nhstaker-selfplay-policy-nhstake-ags.tsv"
+  "nhstaker-selfplay-policy-nhstake-ags-hard.tsv"
 );
 const defaultTolerance = {
   changedPixelThreshold: 24,

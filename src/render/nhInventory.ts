@@ -243,7 +243,7 @@ function normalizeInventorySpecialAttack(source: unknown): NhInventorySpecialAtt
   }
   return {
     drainPercent: Math.max(0, Math.min(100, record.drainPercent)),
-    source: typeof record.source === "string" ? record.source : "nh-server:combat.special.Special"
+    source: typeof record.source === "string" ? record.source : "kronos-server:combat.special.Special"
   };
 }
 

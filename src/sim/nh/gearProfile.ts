@@ -56,6 +56,18 @@ const equipmentSlotByCacheSlot: Readonly<Record<number, EquipmentSlot | undefine
   13: "ammo"
 };
 
+const unequipSlotByEquipmentIntent: Readonly<Partial<Record<NonNullable<NhPolicyAction["equipmentIntent"]>, EquipmentSlot>>> = {
+  unequip_head: "head",
+  unequip_cape: "cape",
+  unequip_amulet: "amulet",
+  unequip_body: "body",
+  unequip_shield: "shield",
+  unequip_legs: "legs",
+  unequip_hands: "hands",
+  unequip_feet: "feet",
+  unequip_ring: "ring"
+};
+
 // Source: NhStakerLoadout MAGIC/RANGED/MELEE_WEAPON_CANDIDATES.
 const javaBotMagicWeaponCandidates: readonly NhWeaponId[] = ["staff_of_the_dead", "kodai", "ancient_staff"];
 const javaBotRangedWeaponCandidates: readonly NhWeaponId[] = ["dragon_crossbow", "armadyl_crossbow", "rune_crossbow", "magic_shortbow"];
@@ -255,10 +267,11 @@ export function nhGearProfileActionEquipment(input: {
   readonly specialWeaponKind?: NhGearProfileSpecialWeaponKind | null;
 }): VisibleEquipment {
   const independentGear = nhGearProfileUsesIndependentGear(input.profile);
-  let equipment = independentGear
+  const equipmentIntent = input.action.equipmentIntent ?? "style_loadout";
+  let equipment = equipmentIntent === "weapon_only" || independentGear
     ? applyIndependentStyleWeapon(input.currentEquipment, input.profile, input.action.offenceStyle)
     : applyJavaStyleLoadout(input.currentEquipment, input.profile, { ...input.action, specIntent: "none" });
-  if (input.allowFlexibleGear ?? true) {
+  if ((input.allowFlexibleGear ?? true) && equipmentIntent === "style_loadout") {
     const passes = Math.max(1, Math.trunc(input.flexibleGearPasses ?? 1));
     for (let pass = 0; pass < passes; pass += 1) {
       equipment = optimizeFlexibleGear({
@@ -277,29 +290,32 @@ export function nhGearProfileActionEquipment(input: {
       ? null
       : input.specialWeaponKind ?? nhGearProfileSpecialWeaponKind(input.profile, input.specialEnergy);
   if (specialWeaponKind === "granite_maul") {
-    return {
+    equipment = {
       ...equipment,
       weapon: weaponItemById.granite_maul
     };
-  }
-  if (specialWeaponKind === "armadyl_godsword") {
+  } else if (specialWeaponKind === "armadyl_godsword") {
     const { shield: _shield, ...equipmentWithoutShield } = equipment;
-    return {
+    equipment = {
       ...equipmentWithoutShield,
       weapon: weaponItemById.armadyl_godsword
     };
-  }
-  if (specialWeaponKind === "voidwaker") {
-    return {
+  } else if (specialWeaponKind === "voidwaker") {
+    equipment = {
       ...equipment,
       weapon: weaponItemById.voidwaker
     };
-  }
-  if (specialWeaponKind === "vesta_longsword") {
-    return {
+  } else if (specialWeaponKind === "vesta_longsword") {
+    equipment = {
       ...equipment,
       weapon: weaponItemById.vesta_longsword
     };
+  }
+  const slotToUnequip = unequipSlotByEquipmentIntent[equipmentIntent];
+  if (slotToUnequip) {
+    const equipmentWithoutSlot = { ...equipment };
+    delete equipmentWithoutSlot[slotToUnequip];
+    return equipmentWithoutSlot;
   }
   return equipment;
 }

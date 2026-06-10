@@ -120,6 +120,8 @@ import {
   type NhFixedClientLayout,
   type NhFixedSideTabId,
   type NhPrayerId,
+  type NhRect,
+  type NhSize,
   type NhSpellbookDefinitions,
   type NhSpellbookId
 } from "../render/nhFixedLayout";
@@ -350,7 +352,7 @@ import {
 } from "../sim";
 import { canAttackThroughLock, createEntityLockState, movementGate, resetFreeze, type EntityLockState } from "../sim/entity/locks";
 import type { EquipmentSlot, VisibleEquipment, VisibleEquipmentItem } from "../sim/clientView";
-import { createNhPolicyController, type NhPolicyRuntimeController, type ParsedNhPolicy } from "../bot";
+import { createNhPolicyController, type NhPolicyRuntimeController, type NhRuntimePolicy } from "../bot";
 import { scriptedNhController, type NhDuelControllerContext } from "../sim/nh/duel";
 import {
   emptyRuntimePolicyTargetTrackingState,
@@ -753,7 +755,7 @@ const RUNTIME_OPTIONS_VOLUME_CLICK_SOUND_ID = 2266;
 const RUNTIME_PRAYER_DEACTIVATE_SOUND_ID = 2663;
 const RUNTIME_AREA_SOUND_RANGE_TILES = 15;
 const RUNTIME_ONYX_BOLT_PROC_SOUND_ID = 2917;
-const RUNTIME_ONYX_BOLT_PROC_VOLUME_SCALE = 0.35;
+const RUNTIME_ONYX_BOLT_PROC_VOLUME_SCALE = 0.2;
 type RuntimeGameSoundChannel = "sound-effects" | "area-sounds";
 interface RuntimeOptionsSoundVolumes {
   readonly soundEffects: number;
@@ -1358,6 +1360,16 @@ interface NhRuntimeMotionDebugSnapshot {
   readonly clientCycle: number;
   readonly actors: readonly NhRuntimeMotionDebugActor[];
   readonly inventory?: readonly (number | null)[];
+  readonly layout?: NhRuntimeMotionDebugLayout;
+}
+
+interface NhRuntimeMotionDebugLayout {
+  readonly sourceViewport: NhRect;
+  readonly cssViewport: NhRect | null;
+  readonly cssSurface: NhRect | null;
+  readonly scale: number;
+  readonly canvasClient: NhSize;
+  readonly canvasDom: NhRect;
 }
 
 interface NhRuntimeMotionDebugActor {
@@ -1372,6 +1384,7 @@ interface NhRuntimeMotionDebugActor {
   readonly renderTile: RuntimeTile;
   readonly world: { readonly x: number; readonly y: number; readonly z: number };
   readonly screen: { readonly x: number; readonly y: number; readonly depthClientUnits: number } | null;
+  readonly clickbox: NhRuntimeMotionDebugActorClickbox | null;
   readonly movementFrame?: number;
   readonly movementFrameCycle?: number;
   readonly routeCount?: number;
@@ -1379,6 +1392,34 @@ interface NhRuntimeMotionDebugActor {
   readonly movementStallTicks?: number;
   readonly clientTargetIndexUntilClientCycle?: number;
   readonly lastMovementClientCycle?: number | null;
+}
+
+interface NhRuntimeMotionDebugActorClickbox {
+  readonly source: {
+    readonly left: number;
+    readonly top: number;
+    readonly right: number;
+    readonly bottom: number;
+    readonly centerX: number;
+    readonly centerY: number;
+    readonly depthClientUnits: number;
+  };
+  readonly canvas: {
+    readonly left: number;
+    readonly top: number;
+    readonly right: number;
+    readonly bottom: number;
+    readonly centerX: number;
+    readonly centerY: number;
+  };
+  readonly dom: {
+    readonly left: number;
+    readonly top: number;
+    readonly right: number;
+    readonly bottom: number;
+    readonly centerX: number;
+    readonly centerY: number;
+  };
 }
 
 interface RuntimeOverlayAnchorData {
@@ -1806,6 +1847,17 @@ const NH_CLIENT_MAX_CYCLES_PER_RENDER_FRAME = 10;
 function nhNextClientCycleDelayMs(now: number): number {
   const phase = now % NH_CLIENT_CYCLE_MS;
   return Math.max(1, Math.min(NH_CLIENT_CYCLE_MS, NH_CLIENT_CYCLE_MS - phase));
+}
+
+function nhEventTimestampMs(event: Pick<Event, "timeStamp">): number {
+  const now = performance.now();
+  const timestamp = event.timeStamp;
+  return Number.isFinite(timestamp) && timestamp >= 0 && timestamp <= now + 1000 ? timestamp : now;
+}
+
+function nhNextClientCycleDelayFromPressMs(pressedAtMs: number, nowMs: number): number {
+  const targetMs = pressedAtMs + nhNextClientCycleDelayMs(pressedAtMs);
+  return Math.max(0, Math.min(NH_CLIENT_CYCLE_MS, targetMs - nowMs));
 }
 // Source: GameShell runs at most NanoClock.vmethod3511() cycles before one draw,
 // and NanoClock caps that loop at 10. Movement must share that draw cadence so
@@ -5828,6 +5880,8 @@ function manualPolicyActorAppearanceView(
     movedThisTick: movement.movedThisTick,
     lastMoveDx: movement.lastMoveDx,
     lastMoveDy: movement.lastMoveDy,
+    lastVengeanceTrinketCastTick: combatActor.lastVengeanceTrinketCastTick,
+    vengeanceTrinketCasts: combatActor.vengeanceTrinketCasts,
     observedInfoKnown: true
   };
 }
@@ -5860,6 +5914,8 @@ function manualPolicyUnknownOpponentInfoAppearanceView(
     movedThisTick: false,
     lastMoveDx: 0,
     lastMoveDy: 0,
+    lastVengeanceTrinketCastTick: -1,
+    vengeanceTrinketCasts: 0,
     observedInfoKnown: false
   };
 }
@@ -6170,12 +6226,15 @@ function actorSourceClickboxRect(
     new Vector3(center.x + halfX, maxY, center.z + halfZ),
     sourceDefaultFacePaddingPixels
   );
-  if (!coarseRect || (point && !pointInSourceRect(coarseRect, point))) {
-    return null;
-  }
 
   const modelClickbox = actorModelSourceClickboxRect(boundary, actorRoot, point);
-  return modelClickbox.rect ?? (modelClickbox.hadRenderableFaces ? null : coarseRect);
+  if (modelClickbox.rect) {
+    return modelClickbox.rect;
+  }
+  if (modelClickbox.hadRenderableFaces || !coarseRect || (point && !pointInSourceRect(coarseRect, point))) {
+    return null;
+  }
+  return coarseRect;
 }
 
 interface RuntimeActorModelClickboxResult {
@@ -6683,6 +6742,97 @@ function pointInSourceFaceRect(rect: RuntimeSourceFaceRect, point: RuntimeViewpo
   return point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom;
 }
 
+function runtimeClippedSourceRectCenter(
+  rect: RuntimeSourceHitRect,
+  sourceViewport: NhFixedClientLayout["viewport"]
+): RuntimeViewportSourcePoint | null {
+  const viewportRight = Math.max(0, sourceViewport.rect.width - 1);
+  const viewportBottom = Math.max(0, sourceViewport.rect.height - 1);
+  const visibleRects = (rect.sourceFaceRects && rect.sourceFaceRects.length > 0 ? rect.sourceFaceRects : [rect])
+    .map((candidate) => ({
+      left: Math.max(0, candidate.left),
+      top: Math.max(0, candidate.top),
+      right: Math.min(viewportRight, candidate.right),
+      bottom: Math.min(viewportBottom, candidate.bottom)
+    }))
+    .filter((candidate) => candidate.right >= candidate.left && candidate.bottom >= candidate.top);
+  const centerRect = visibleRects.reduce<RuntimeSourceFaceRect | null>((best, candidate) => {
+    if (!best) {
+      return candidate;
+    }
+    const bestArea = Math.max(0, best.right - best.left) * Math.max(0, best.bottom - best.top);
+    const candidateArea = Math.max(0, candidate.right - candidate.left) * Math.max(0, candidate.bottom - candidate.top);
+    return candidateArea > bestArea ? candidate : best;
+  }, null);
+  if (!centerRect) {
+    return null;
+  }
+  return {
+    x: (centerRect.left + centerRect.right) / 2,
+    y: (centerRect.top + centerRect.bottom) / 2
+  };
+}
+
+function runtimeActorDebugClickbox(
+  boundary: RuntimeSceneBoundary,
+  actorRoot: Group,
+  actor: RuntimeActorPose
+): NhRuntimeMotionDebugActorClickbox | null {
+  const cssLayout = boundary.fixedClientCssLayout;
+  const sourceViewport = boundary.fixedClientLayout?.viewport;
+  if (!cssLayout || !sourceViewport) {
+    return null;
+  }
+  const rect = actorSourceClickboxRect(boundary, actorRoot, actor);
+  if (!rect) {
+    return null;
+  }
+  const center = runtimeClippedSourceRectCenter(rect, sourceViewport);
+  if (!center) {
+    return null;
+  }
+  const { viewportRect, scale } = cssLayout;
+  const canvasLeft = viewportRect.x + rect.left * scale;
+  const canvasTop = viewportRect.y + rect.top * scale;
+  const canvasRight = viewportRect.x + rect.right * scale;
+  const canvasBottom = viewportRect.y + rect.bottom * scale;
+  const canvasCenterX = viewportRect.x + center.x * scale;
+  const canvasCenterY = viewportRect.y + center.y * scale;
+  const canvas = boundary.renderer.domElement;
+  const canvasRect = canvas.getBoundingClientRect();
+  const canvasWidth = Math.max(1, canvas.clientWidth);
+  const canvasHeight = Math.max(1, canvas.clientHeight);
+  const domX = (canvasX: number): number => canvasRect.left + (canvasX / canvasWidth) * canvasRect.width;
+  const domY = (canvasY: number): number => canvasRect.top + (canvasY / canvasHeight) * canvasRect.height;
+  return {
+    source: {
+      left: rect.left,
+      top: rect.top,
+      right: rect.right,
+      bottom: rect.bottom,
+      centerX: center.x,
+      centerY: center.y,
+      depthClientUnits: rect.depthClientUnits
+    },
+    canvas: {
+      left: canvasLeft,
+      top: canvasTop,
+      right: canvasRight,
+      bottom: canvasBottom,
+      centerX: canvasCenterX,
+      centerY: canvasCenterY
+    },
+    dom: {
+      left: domX(canvasLeft),
+      top: domY(canvasTop),
+      right: domX(canvasRight),
+      bottom: domY(canvasBottom),
+      centerX: domX(canvasCenterX),
+      centerY: domY(canvasCenterY)
+    }
+  };
+}
+
 function sourceHorizontalClientUnitsToSceneUnits(clientUnits: number): number {
   return (clientUnits / 128) * NH_TILE_WORLD_UNITS;
 }
@@ -6817,14 +6967,14 @@ function normalizeStoredOptionsSoundVolume(value: number): number {
   if (!Number.isFinite(value)) {
     return 4;
   }
-  return Math.max(0, Math.min(4, Math.trunc(value)));
+  return Math.round(Math.max(0, Math.min(4, value)) * 100) / 100;
 }
 
 function readStoredOptionsSoundVolume(key: string): number | null {
   try {
     const raw = window.localStorage.getItem(key);
     const parsed = raw === null ? Number.NaN : Number(raw);
-    return Number.isInteger(parsed) && parsed >= 0 && parsed <= 4 ? parsed : null;
+    return Number.isFinite(parsed) && parsed >= 0 && parsed <= 4 ? normalizeStoredOptionsSoundVolume(parsed) : null;
   } catch {
     // Non-fatal in restricted browser contexts.
   }
@@ -6843,20 +6993,19 @@ function runtimeOptionsSoundVolumeForChannel(
   channel: RuntimeGameSoundChannel,
   current: RuntimeOptionsSoundVolumes
 ): number {
-  const fallback = channel === "sound-effects" ? current.soundEffects : current.areaSounds;
-  const stored = readStoredOptionsSoundVolume(
-    channel === "sound-effects"
-      ? NH_SOUND_EFFECT_VOLUME_STORAGE_KEY
-      : NH_AREA_SOUND_EFFECT_VOLUME_STORAGE_KEY
-  );
-  return normalizeStoredOptionsSoundVolume(stored ?? fallback);
+  return normalizeStoredOptionsSoundVolume(channel === "sound-effects" ? current.soundEffects : current.areaSounds);
 }
 
 function runtimeOptionsHtmlVolumeForChannel(
   channel: RuntimeGameSoundChannel,
   current: RuntimeOptionsSoundVolumes
 ): number {
-  return Math.max(0, Math.min(1, runtimeOptionsSoundVolumeForChannel(channel, current) / 4));
+  return runtimeOptionsHtmlVolumeFromOptionsVolume(runtimeOptionsSoundVolumeForChannel(channel, current));
+}
+
+function runtimeOptionsHtmlVolumeFromOptionsVolume(volume: number): number {
+  const ratio = Math.max(0, Math.min(1, normalizeStoredOptionsSoundVolume(volume) / 4));
+  return ratio <= 0 ? 0 : ratio >= 1 ? 1 : ratio * ratio * (3 - 2 * ratio);
 }
 
 function runtimeAreaSoundVolumeScale(
@@ -11510,6 +11659,7 @@ function writeRuntimeMotionDebugSnapshot(
     const projection = position
       ? nhProjectWorldPointToViewport(boundary.camera, viewport, position)
       : null;
+    const clickbox = slot ? runtimeActorDebugClickbox(boundary, slot.group, pose) : null;
     return {
       actorId: pose.actorId,
       sequenceName: pose.sequenceName,
@@ -11532,6 +11682,7 @@ function writeRuntimeMotionDebugSnapshot(
           depthClientUnits: projection.depthClientUnits
         }
         : null,
+      clickbox,
       movementFrame: pose.movementFrame,
       movementFrameCycle: pose.movementFrameCycle,
       routeCount: manualActor?.routeWaypoints.length,
@@ -11541,11 +11692,32 @@ function writeRuntimeMotionDebugSnapshot(
       lastMovementClientCycle: manualActor?.lastMovementClientCycle
     };
   });
+  const canvas = boundary.renderer.domElement;
+  const canvasRect = canvas.getBoundingClientRect();
+  const layout: NhRuntimeMotionDebugLayout | undefined = boundary.fixedClientLayout
+    ? {
+      sourceViewport: boundary.fixedClientLayout.viewport.rect,
+      cssViewport: boundary.fixedClientCssLayout?.viewportRect ?? null,
+      cssSurface: boundary.fixedClientCssLayout?.surfaceRect ?? null,
+      scale: boundary.fixedClientCssLayout?.scale ?? 1,
+      canvasClient: {
+        width: canvas.clientWidth,
+        height: canvas.clientHeight
+      },
+      canvasDom: {
+        x: canvasRect.left,
+        y: canvasRect.top,
+        width: canvasRect.width,
+        height: canvasRect.height
+      }
+    }
+    : undefined;
   const motion: NhRuntimeMotionDebugSnapshot = {
     timeMs: now,
     clientCycle: Math.floor(now / NH_CLIENT_CYCLE_MS),
     actors,
-    inventory: snapshot.inventory.map((slot) => slot?.itemId ?? null)
+    inventory: snapshot.inventory.map((slot) => slot?.itemId ?? null),
+    layout
   };
   window.__nhRuntimeDebug = {
     ...window.__nhRuntimeDebug,
@@ -12937,7 +13109,10 @@ function clampRuneliteRatio(value: number): number {
 
 function formatManualOpponentPolicyAction(action: NhPolicyAction): string {
   const spec = action.specIntent === "none" ? "" : `,${action.specIntent}`;
-  return `${action.offenceStyle},${action.defencePrayer},${action.movementIntent},${action.supplyIntent}${spec}`;
+  const attack = (action.attackIntent ?? "attack") === "attack" ? "" : `,${action.attackIntent}`;
+  const equipment =
+    (action.equipmentIntent ?? "style_loadout") === "style_loadout" ? "" : `,${action.equipmentIntent}`;
+  return `${action.offenceStyle},${action.defencePrayer},${action.movementIntent},${action.supplyIntent}${spec}${attack}${equipment}`;
 }
 
 interface ManualOpponentCombatResponse {
@@ -12985,6 +13160,8 @@ interface ManualPolicyActorAppearanceView {
   readonly movedThisTick: boolean;
   readonly lastMoveDx: number;
   readonly lastMoveDy: number;
+  readonly lastVengeanceTrinketCastTick: number;
+  readonly vengeanceTrinketCasts: number;
   readonly observedInfoKnown?: boolean;
 }
 
@@ -13186,21 +13363,24 @@ function writeManualOpponentPolicyDataset(
 
 interface RuntimeSceneViewerProps {
   readonly liveTrace?: ClientViewTrace | null;
-  readonly policy?: ParsedNhPolicy | null;
-  readonly dmmHardPolicy?: ParsedNhPolicy | null;
-  readonly botDifficulty?: "easy" | "medium" | "hard";
+  readonly policy?: NhRuntimePolicy | null;
+  readonly dmmHardPolicy?: NhRuntimePolicy | null;
+  readonly botDifficulty?: "hard" | "test";
   readonly botPolicyLoadState?: "loading" | "loaded" | "error";
-  readonly onBotDifficultyChange?: (difficulty: "easy" | "medium" | "hard") => void;
+  readonly onBotDifficultyChange?: (difficulty: "hard" | "test") => void;
 }
 
 type RuntimeBotWatchCohortPattern =
   | "prayer-camp-melee"
   | "one-tick-faker"
   | "mage-range-alternate"
+  | "range-range-mage"
+  | "stand-under-freeze"
+  | "close-fake-melee-range-mage"
   | "long-range-crossbow";
 type RuntimeBotWatchMode = "off" | RuntimeBotWatchCohortPattern;
-type RuntimeBotWatchCohortOffenceStyle = "magic" | "ranged";
-type RuntimeBotWatchObservedOffenceStyle = RuntimeBotWatchCohortOffenceStyle | "melee";
+type RuntimeBotWatchCohortOffenceStyle = "magic" | "ranged" | "melee";
+type RuntimeBotWatchObservedOffenceStyle = RuntimeBotWatchCohortOffenceStyle;
 type RuntimeBotWatchSupplyIntent = "none" | "safe_eat" | "double_eat";
 interface RuntimeBotWatchFightStats {
   readonly startedTick: number | null;
@@ -13219,24 +13399,33 @@ interface RuntimeBotWatchFightStats {
   readonly cohortDeaths: number;
   readonly policyPrayerChecks: number;
   readonly policyPrayerMatches: number;
-  readonly lastWinner: "hard" | "cohort" | "draw" | null;
+  readonly lastWinner: "bot" | "cohort" | "draw" | null;
 }
 
 const RUNTIME_BOT_WATCH_QUERY_PARAM = "watch";
-const RUNTIME_BOT_WATCH_ENABLED = false;
+const RUNTIME_BOT_WATCH_ENABLE_QUERY_PARAM = "watchPanel";
 const RUNTIME_BOT_WATCH_COHORT_PATTERNS = [
+  "range-range-mage",
+  "stand-under-freeze",
+  "close-fake-melee-range-mage",
   "prayer-camp-melee",
   "one-tick-faker",
   "mage-range-alternate",
   "long-range-crossbow"
 ] as const satisfies readonly RuntimeBotWatchCohortPattern[];
 const RUNTIME_BOT_WATCH_COHORT_LABELS: Record<RuntimeBotWatchCohortPattern, string> = {
+  "range-range-mage": "Range/range/mage",
+  "stand-under-freeze": "Stand under",
+  "close-fake-melee-range-mage": "Close fake",
   "prayer-camp-melee": "Melee pray",
   "one-tick-faker": "1t faker",
   "mage-range-alternate": "Mage/range",
   "long-range-crossbow": "Long xbow"
 };
 const RUNTIME_BOT_WATCH_COHORT_EVAL_IDS: Record<RuntimeBotWatchCohortPattern, string> = {
+  "range-range-mage": "RANGE_RANGE_MAGE",
+  "stand-under-freeze": "STAND_UNDER_FREEZE",
+  "close-fake-melee-range-mage": "CLOSE_FAKE_MELEE_RANGE_MAGE",
   "prayer-camp-melee": "PRAYER_CAMP_MELEE",
   "one-tick-faker": "ONE_TICK_FAKER",
   "mage-range-alternate": "MAGE_RANGE_ALTERNATE",
@@ -13266,11 +13455,19 @@ function createRuntimeBotWatchFightStats(startedTick: number | null = null): Run
 }
 
 function initialRuntimeBotWatchMode(): RuntimeBotWatchMode {
-  if (!RUNTIME_BOT_WATCH_ENABLED || typeof window === "undefined") {
+  if (!runtimeBotWatchEnabled() || typeof window === "undefined") {
     return "off";
   }
   const queryMode = new URLSearchParams(window.location.search).get(RUNTIME_BOT_WATCH_QUERY_PARAM);
   return isRuntimeBotWatchCohortPattern(queryMode) ? queryMode : "off";
+}
+
+function runtimeBotWatchEnabled(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  const params = new URLSearchParams(window.location.search);
+  return params.get(RUNTIME_BOT_WATCH_ENABLE_QUERY_PARAM) === "1";
 }
 
 function isRuntimeBotWatchCohortPattern(value: string | null): value is RuntimeBotWatchCohortPattern {
@@ -13298,6 +13495,23 @@ function runtimeBotWatchCohortStyle(
   const phase = runtimeBotWatchMod(tick, 12);
   if (mode === "mage-range-alternate") {
     return (phase & 1) === 0 ? "magic" : "ranged";
+  }
+  if (mode === "range-range-mage") {
+    return phase % 3 === 2 ? "magic" : "ranged";
+  }
+  if (mode === "stand-under-freeze") {
+    return runtimeBotWatchIsFrozen(state.actors.opponent, tick) ? "melee" : "magic";
+  }
+  if (mode === "close-fake-melee-range-mage") {
+    const distance = runtimePlayerCombatDistance(
+      state.actors["local-player"].tile,
+      state.actors.opponent.tile,
+      NH_TILE_WORLD_UNITS
+    );
+    if (runtimeBotWatchAttackReady(state.actors["local-player"], tick) && distance <= 1) {
+      return phase % 3 === 2 ? "magic" : "ranged";
+    }
+    return "melee";
   }
   if (mode === "one-tick-faker") {
     if (!runtimeBotWatchAttackReady(state.actors["local-player"], tick)) {
@@ -13343,13 +13557,22 @@ function runtimeBotWatchDefencePrayer(
   if (mode === "mage-range-alternate") {
     return (tick & 1) === 0 ? "protect_from_magic" : "protect_from_missiles";
   }
+  if (mode === "range-range-mage") {
+    return runtimeBotWatchMod(tick, 3) === 2 ? "protect_from_magic" : "protect_from_missiles";
+  }
   return lastVisibleOpponentStyle
     ? runtimeBotWatchProtectionPrayerForStyle(lastVisibleOpponentStyle)
     : runtimeBotWatchActiveProtectionPrayer(activePrayers) ?? "protect_from_melee";
 }
 
 function runtimeBotWatchOffensivePrayerForStyle(style: RuntimeBotWatchCohortOffenceStyle): PrayerId {
-  return style === "magic" ? "augury" : "rigour";
+  if (style === "magic") {
+    return "augury";
+  }
+  if (style === "ranged") {
+    return "rigour";
+  }
+  return "piety";
 }
 
 function runtimeBotWatchPrayers(
@@ -13382,6 +13605,16 @@ function runtimeBotWatchStepAway(from: RuntimeTile, target: RuntimeTile): Runtim
   };
 }
 
+function runtimeBotWatchStepToward(from: RuntimeTile, target: RuntimeTile, allowTargetTile: boolean): RuntimeTile {
+  const dx = from.x === target.x ? 0 : Math.sign(target.x - from.x);
+  const dz = from.z === target.z ? 0 : Math.sign(target.z - from.z);
+  const next = {
+    x: from.x + dx * NH_TILE_WORLD_UNITS,
+    z: from.z + dz * NH_TILE_WORLD_UNITS
+  };
+  return !allowTargetTile && next.x === target.x && next.z === target.z ? from : next;
+}
+
 function runtimeBotWatchMovementTarget(
   mode: RuntimeBotWatchCohortPattern,
   style: RuntimeBotWatchCohortOffenceStyle,
@@ -13399,7 +13632,34 @@ function runtimeBotWatchMovementTarget(
   ) {
     return runtimeBotWatchStepAway(local.tile, opponent.tile);
   }
+  if (
+    mode === "stand-under-freeze" &&
+    runtimeBotWatchIsFrozen(opponent, state.tick) &&
+    !runtimeBotWatchIsFrozen(local, state.tick) &&
+    distance > 0
+  ) {
+    return opponent.tile;
+  }
+  if (mode === "close-fake-melee-range-mage" && !runtimeBotWatchIsFrozen(local, state.tick) && distance > 1) {
+    return runtimeBotWatchStepToward(local.tile, opponent.tile, false);
+  }
   return null;
+}
+
+function runtimeBotWatchShouldHoldAttack(
+  mode: RuntimeBotWatchCohortPattern,
+  style: RuntimeBotWatchCohortOffenceStyle,
+  state: RuntimePlayerCombatState
+): boolean {
+  if (mode !== "close-fake-melee-range-mage") {
+    return false;
+  }
+  const distance = runtimePlayerCombatDistance(
+    state.actors["local-player"].tile,
+    state.actors.opponent.tile,
+    NH_TILE_WORLD_UNITS
+  );
+  return style === "melee" || !runtimeBotWatchAttackReady(state.actors["local-player"], state.tick) || distance > 1;
 }
 
 function runtimeBotWatchPrayerStates(prayers: readonly PrayerId[]): NhPrayerStates {
@@ -13485,7 +13745,7 @@ function runtimeBotWatchStatsWithEvents(
       if (event.actorId === "opponent") {
         next = { ...next, policyDeaths: next.policyDeaths + 1, lastWinner: "cohort" };
       } else if (event.actorId === "local-player") {
-        next = { ...next, cohortDeaths: next.cohortDeaths + 1, lastWinner: "hard" };
+        next = { ...next, cohortDeaths: next.cohortDeaths + 1, lastWinner: "bot" };
       }
     } else if (event.kind === "attack" && event.attackerId === "local-player") {
       const expectedPrayer = protectPrayerForStyle(event.style);
@@ -13511,7 +13771,7 @@ function runtimeBotWatchStatsSummary(stats: RuntimeBotWatchFightStats): string {
       ? "n/a"
       : `${Math.round((stats.policyPrayerMatches / stats.policyPrayerChecks) * 100)}%`;
   const winner = stats.lastWinner ? `, winner ${stats.lastWinner}` : "";
-  return `Hard dmg ${stats.policyDamage}, cohort dmg ${stats.cohortDamage}; hard heals ${stats.policyHealing} (${stats.policyBrewUses} brew, ${stats.policyFoodUses} food), cohort heals ${stats.cohortHealing}; hard prayer ${prayerRate}${winner}`;
+  return `Bot dmg ${stats.policyDamage}, cohort dmg ${stats.cohortDamage}; bot heals ${stats.policyHealing} (${stats.policyBrewUses} brew, ${stats.policyFoodUses} food), cohort heals ${stats.cohortHealing}; bot prayer ${prayerRate}${winner}`;
 }
 
 function writeRuntimeBotWatchStatsDataset(viewport: HTMLElement, stats: RuntimeBotWatchFightStats): void {
@@ -13534,7 +13794,7 @@ export function RuntimeSceneViewer({
   liveTrace,
   policy,
   dmmHardPolicy,
-  botDifficulty = "medium",
+  botDifficulty = "hard",
   botPolicyLoadState = policy ? "loaded" : "loading",
   onBotDifficultyChange
 }: RuntimeSceneViewerProps): JSX.Element {
@@ -13548,6 +13808,7 @@ export function RuntimeSceneViewer({
   const suppressCanvasContextMenuUntilRef = useRef(0);
   const contextMenuOpenTimerRef = useRef<number | null>(null);
   const contextMenuPointerRef = useRef<{ readonly x: number; readonly y: number } | null>(null);
+  const lastRightButtonPressAtMsRef = useRef<number | null>(null);
   const [cycle, setCycle] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [followLive, setFollowLive] = useState(false);
@@ -13622,6 +13883,8 @@ export function RuntimeSceneViewer({
     movedThisTick: false,
     lastMoveDx: 0,
     lastMoveDy: 0,
+    lastVengeanceTrinketCastTick: initialRuntimePlayerCombatState.actors["local-player"].lastVengeanceTrinketCastTick,
+    vengeanceTrinketCasts: initialRuntimePlayerCombatState.actors["local-player"].vengeanceTrinketCasts,
     observedInfoKnown: true
   });
   const manualOpponentObservedSelfMovementRef = useRef<ManualPolicyActorMovementView>(
@@ -15655,7 +15918,7 @@ export function RuntimeSceneViewer({
             acceptedClientCycle
           );
           combatStateForTick = policyResponse.combatState;
-          if (RUNTIME_BOT_WATCH_ENABLED && botWatchModeRef.current !== "off" && policyResponse.policyEffectiveAction) {
+          if (runtimeBotWatchEnabled() && botWatchModeRef.current !== "off" && policyResponse.policyEffectiveAction) {
             botWatchLastVisibleOpponentStyleRef.current = policyResponse.policyEffectiveAction.offenceStyle;
           }
           opponent = manualActorFacingTarget(policyResponse.opponentActor, local);
@@ -15876,7 +16139,7 @@ export function RuntimeSceneViewer({
         }
         const currentTickEvents = nextTickCombatState.events.filter((event) => event.tick === combatStateForTick.tick);
         const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
-        if (RUNTIME_BOT_WATCH_ENABLED && botWatchModeRef.current !== "off") {
+        if (runtimeBotWatchEnabled() && botWatchModeRef.current !== "off") {
           const nextStats = runtimeBotWatchStatsWithEvents(
             botWatchStatsRef.current,
             currentTickEvents,
@@ -16977,7 +17240,10 @@ export function RuntimeSceneViewer({
   ): ManualOpponentCombatResponse => {
     const observedLocalAppearance = manualOpponentObservedLocalAppearanceRef.current;
     const policyMovementCollision = collisionMapRef.current;
-    const opponentPolicyInventorySlots = runtimeNhStakeInventorySlotsForSupplies(combatState.actors.opponent.supplies);
+    const opponentPolicyInventorySlots = runtimeSetupInventorySlotsForSupplies(
+      runtimeSetupPresetIdRef.current,
+      combatState.actors.opponent.supplies
+    );
     const opponentPolicyInventoryItems = visibleEquipmentItemsFromRuntimeInventory(
       opponentPolicyInventorySlots,
       inventoryItemDefinitionsRef.current
@@ -17004,6 +17270,8 @@ export function RuntimeSceneViewer({
         movedThisTick: observedLocalAppearance.movedThisTick,
         lastMoveDx: observedLocalAppearance.lastMoveDx,
         lastMoveDy: observedLocalAppearance.lastMoveDy,
+        lastVengeanceTrinketCastTick: observedLocalAppearance.lastVengeanceTrinketCastTick,
+        vengeanceTrinketCasts: observedLocalAppearance.vengeanceTrinketCasts,
         observedInfoKnown: observedLocalAppearance.observedInfoKnown
       },
       opponentActor: {
@@ -17149,7 +17417,7 @@ export function RuntimeSceneViewer({
   };
 
   const updateBotWatchMode = (mode: RuntimeBotWatchMode): void => {
-    if (!RUNTIME_BOT_WATCH_ENABLED) {
+    if (!runtimeBotWatchEnabled()) {
       mode = "off";
     }
     botWatchModeRef.current = mode;
@@ -17178,7 +17446,7 @@ export function RuntimeSceneViewer({
   };
 
   const applyBotWatchLocalCohortAction = (): void => {
-    if (!RUNTIME_BOT_WATCH_ENABLED) {
+    if (!runtimeBotWatchEnabled()) {
       return;
     }
     const mode = botWatchModeRef.current;
@@ -17196,7 +17464,8 @@ export function RuntimeSceneViewer({
     }
 
     const style = runtimeBotWatchCohortStyle(mode, combatState, botWatchLastOffenceStyleRef.current);
-    const loadoutId: RuntimeLoadoutId = style === "magic" ? "kodai-robes" : "acb-hides";
+    const loadoutId: RuntimeLoadoutId =
+      style === "magic" ? "kodai-robes" : style === "ranged" ? "acb-hides" : "tentacle-bandos";
     const equipment = nhLoadouts[loadoutId].equipment;
     const equipmentItems = runtimeItemIdsBySlotFromVisibleEquipment(equipment);
     const equipmentSignature = runtimeEquipmentItemsSignature(equipmentItems);
@@ -17248,9 +17517,12 @@ export function RuntimeSceneViewer({
         }
       });
     }
-    combatState = style === "magic"
-      ? requestRuntimePlayerCombatSpell(combatState, "local-player", "opponent", "ice-barrage")
-      : requestRuntimePlayerCombatAttack(combatState, "local-player", "opponent");
+    const holdAttack = runtimeBotWatchShouldHoldAttack(mode, style, combatState);
+    combatState = holdAttack
+      ? resetRuntimePlayerCombatActorTarget(combatState, "local-player")
+      : style === "magic"
+        ? requestRuntimePlayerCombatSpell(combatState, "local-player", "opponent", "ice-barrage")
+        : requestRuntimePlayerCombatAttack(combatState, "local-player", "opponent");
     botWatchLastOffenceStyleRef.current = style;
 
     const prayerSignature = prayers.join(",");
@@ -17324,6 +17596,7 @@ export function RuntimeSceneViewer({
       viewport.dataset.botWatchLocalPrayers = prayerSignature;
       viewport.dataset.botWatchLocalSupplyIntent = supplyIntent;
       viewport.dataset.botWatchLocalConsumedSupplies = consumedSupplies.join(",");
+      viewport.dataset.botWatchLocalHoldAttack = String(holdAttack);
       viewport.dataset.botWatchLocalMovementTarget = movementTarget
         ? `${movementTarget.x},${movementTarget.z}`
         : "";
@@ -18440,7 +18713,9 @@ export function RuntimeSceneViewer({
         : NH_AREA_SOUND_EFFECT_VOLUME_STORAGE_KEY,
       nextVolume
     );
-    playRuntimeGameSound(RUNTIME_OPTIONS_VOLUME_CLICK_SOUND_ID, "sound-effects");
+    if (command.previewSound !== false) {
+      playRuntimeGameSound(RUNTIME_OPTIONS_VOLUME_CLICK_SOUND_ID, "sound-effects");
+    }
 
     const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
     if (viewport) {
@@ -19442,7 +19717,7 @@ export function RuntimeSceneViewer({
   const resolveEquipmentRemoveMutation = (
     entry: NhEquipmentItemContextMenuEntry
   ): RuntimeEquipmentRemoveMutationResolution => {
-    const sourceInventorySlots = normalizeNhInventorySlots(visibleSnapshot.inventory);
+    const sourceInventorySlots = normalizeNhInventorySlots(inventoryOverrideRef.current ?? visibleSnapshotRef.current.inventory);
     const freeInventorySlot = sourceInventorySlots.findIndex((slot) => slot === null);
     if (entry.action !== "equipment-remove") {
       return emptyEquipmentRemoveMutationResolution("", freeInventorySlot);
@@ -19454,7 +19729,9 @@ export function RuntimeSceneViewer({
     const nextInventorySlots = [...sourceInventorySlots];
     nextInventorySlots[freeInventorySlot] = { itemId: entry.itemId, quantity: 1 };
     const currentEquipment =
-      equipmentOverride ?? localPlayerEquipmentItemIdsBySlot(visibleSnapshot, inventoryEquipmentDefinitionsRef.current);
+      equipmentOverrideRef.current ??
+      equipmentOverride ??
+      localPlayerEquipmentItemIdsBySlot(visibleSnapshotRef.current, inventoryEquipmentDefinitionsRef.current);
     const nextEquipment = new Map(currentEquipment);
     nextEquipment.delete(entry.serverSlot);
     return {
@@ -19658,7 +19935,7 @@ export function RuntimeSceneViewer({
     setFollowTarget("local-player");
     manualControlRef.current = true;
     setManualControl(true);
-    // Source: Equipment.equip() marks an appearance update; it does not resend
+    // Source: Equipment.equip()/unequip() marks an appearance update; it does not resend
     // or rewind Player.pathX/pathY/class329.field687. During active manual play,
     // keep the appearance packet ref-local so a delayed React state commit cannot
     // replace the held movement path while the stall is releasing.
@@ -20121,9 +20398,35 @@ export function RuntimeSceneViewer({
       }
       if (action.kind === "unequip") {
         const context = action.contextEntry as QueuedEquipmentRemoveContext | undefined;
-        if (context?.resolution) {
-          applyResolvedEquipmentRemoveMutation(context.resolution);
+        const resolution = context?.resolution;
+        if (!resolution || resolution.mutation !== "equipment-unequip") {
+          continue;
         }
+        if (resolution.inventorySlots) {
+          nextInventorySlots = resolution.inventorySlots;
+          inventoryChanged = true;
+        }
+        if (resolution.equipmentItems) {
+          nextEquipmentItems = resolution.equipmentItems;
+          equipmentChanged = true;
+        }
+        if (resolution.hud) {
+          nextHud = {
+            ...(nextHud ?? {}),
+            ...resolution.hud
+          };
+          weaponSlotEquipmentChanged = true;
+        } else if (context.slotId === "weapon") {
+          weaponSlotEquipmentChanged = true;
+        }
+        if (viewport) {
+          viewport.dataset.lastProcessedUnequipItemId = String(action.itemId);
+          viewport.dataset.lastProcessedUnequipSlot = String(action.slotIndex);
+          viewport.dataset.lastProcessedUnequipSlotId = context.slotId;
+          viewport.dataset.lastProcessedUnequipMutation = resolution.mutation;
+          viewport.dataset.lastProcessedUnequipTick = String(manualCombatStateRef.current.tick);
+        }
+        continue;
       }
     }
 
@@ -20177,7 +20480,7 @@ export function RuntimeSceneViewer({
       preAppearanceMovementActor !== null &&
       manualActorHasHeldActionMovement(preAppearanceMovementActor);
 
-    // Source-backed parity: Nh marks one Appearance update mask for the tick after Equipment.equip()
+    // Source-backed parity: Nh marks one Appearance update mask for the tick after Equipment.equip()/unequip()
     // has handled the queued packets, so React and Three receive one final local-player appearance too.
     unstable_batchedUpdates(() => {
       if (equipmentChanged && !heldAppearanceMovementActive) {
@@ -20219,9 +20522,16 @@ export function RuntimeSceneViewer({
         setFollowLive(false);
         manualControlRef.current = true;
         setManualControl(true);
+        const finalConsumableActorSource = equipmentChanged
+          ? {
+            ...finalConsumableSourceActor,
+            loadoutId: nextActorLoadoutId,
+            appearance: nextActorAppearance ?? finalConsumableSourceActor.appearance
+          }
+          : finalConsumableSourceActor;
         const nextManualActor = syncManualActorActionSequence(
           {
-            ...finalConsumableSourceActor,
+            ...finalConsumableActorSource,
             sequenceName: "idle",
             animationCycle: 0
           },
@@ -20845,20 +21155,34 @@ export function RuntimeSceneViewer({
     contextMenuOpenTimerRef.current = null;
   };
 
-  const openContextMenuOnNextClientCycle = (menu: NhContextMenuState): void => {
+  const recentRightButtonPressAtMs = (): number => {
+    const now = performance.now();
+    const pressedAtMs = lastRightButtonPressAtMsRef.current;
+    if (pressedAtMs !== null && pressedAtMs <= now + 100 && now - pressedAtMs <= 500) {
+      return pressedAtMs;
+    }
+    return now;
+  };
+
+  const openContextMenuOnNextClientCycle = (
+    menu: NhContextMenuState,
+    pressedAtMs: number = recentRightButtonPressAtMs()
+  ): void => {
     clearPendingContextMenuOpen();
-    const openedFromMs = performance.now();
-    const delayMs = nhNextClientCycleDelayMs(openedFromMs);
+    const scheduledAtMs = performance.now();
+    const delayMs = nhNextClientCycleDelayFromPressMs(pressedAtMs, scheduledAtMs);
     const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
     if (viewport) {
       const rect = viewport.getBoundingClientRect();
       contextMenuPointerRef.current = { x: rect.left + menu.x, y: rect.top + menu.y };
+      viewport.dataset.lastContextMenuPressedAtMs = String(Math.round(pressedAtMs));
+      viewport.dataset.lastContextMenuScheduledDelayMs = String(Math.round(delayMs));
     }
     contextMenuOpenTimerRef.current = window.setTimeout(() => {
       contextMenuOpenTimerRef.current = null;
       setContextMenu(menu);
       if (viewport) {
-        viewport.dataset.lastContextMenuOpenDelayMs = String(Math.round(performance.now() - openedFromMs));
+        viewport.dataset.lastContextMenuOpenDelayMs = String(Math.round(performance.now() - pressedAtMs));
         viewport.dataset.lastContextMenuOpenSource = "MouseHandler_lastPressedX/Y -> Client.method1661 on next 20ms client cycle";
       }
     }, delayMs);
@@ -21037,6 +21361,7 @@ export function RuntimeSceneViewer({
       return;
     }
 
+    const pressedAtMs = nhEventTimestampMs(event);
     const position = pointerEventToViewportPosition(boundary, event);
     const overlayEntries = runeliteOverlayConfigContextEntries(event, runeliteClientConfigRef.current.overlayMenu);
     const interactionSnapshot = runtimeInteractionSnapshotRef.current;
@@ -21073,7 +21398,7 @@ export function RuntimeSceneViewer({
               ? sceneContextEntries(targetTile)
             : [])
       ])
-      });
+      }, pressedAtMs);
   };
 
   const suppressNextCanvasContextMenu = (): void => {
@@ -21257,9 +21582,11 @@ export function RuntimeSceneViewer({
         ? "Unavailable"
         : botDifficulty === "hard"
           ? "Hard"
-          : botDifficulty === "easy"
-            ? "Easy"
-            : "Medium";
+          : botDifficulty === "test"
+            ? "Test"
+            : "Hard";
+  const botWatchDevPanelEnabled = runtimeBotWatchEnabled();
+  const botWatchStatsLabel = runtimeBotWatchStatsSummary(botWatchStats);
 
   return (
     <section className="workbenchSection runtimeClientSection" aria-labelledby="runtime-scene">
@@ -21291,7 +21618,12 @@ export function RuntimeSceneViewer({
               event.stopPropagation();
             }}
             onPointerCancelCapture={endClientMouseCameraDrag}
-            onPointerDownCapture={beginClientMouseCameraDrag}
+            onPointerDownCapture={(event) => {
+              if (event.button === 2) {
+                lastRightButtonPressAtMsRef.current = nhEventTimestampMs(event.nativeEvent);
+              }
+              beginClientMouseCameraDrag(event);
+            }}
             onPointerMoveCapture={updateClientMouseCameraDrag}
             onPointerUpCapture={endClientMouseCameraDrag}
           >
@@ -21402,7 +21734,15 @@ export function RuntimeSceneViewer({
               }
 
               const interactionSnapshot = runtimeInteractionSnapshotRef.current;
-              const hitActor = pointerEventToRuntimeActor(boundary, interactionSnapshot, event.nativeEvent);
+              const actorHits = pointerEventToRuntimeActorHits(boundary, interactionSnapshot, event.nativeEvent);
+              const hitActor = actorHits[0]?.actor ?? null;
+              const sourcePoint = pointerEventToSourceViewportPoint(boundary, event.nativeEvent);
+              const viewport = event.currentTarget.closest(".runtimeViewport") as HTMLElement | null;
+              if (viewport) {
+                viewport.dataset.lastPointerSourceX = sourcePoint ? String(sourcePoint.x) : "";
+                viewport.dataset.lastPointerSourceY = sourcePoint ? String(sourcePoint.y) : "";
+                viewport.dataset.lastPointerActorHits = actorHits.map((hit) => hit.actor.actorId).join(",");
+              }
               const clickedTile = pointerEventToRuntimeTile(boundary, event.nativeEvent);
               const targetGroundItem = hitActor?.actorId === "opponent"
                 ? null
@@ -21816,25 +22156,20 @@ export function RuntimeSceneViewer({
                       <div className="runtimeBotDifficultyButtons">
                         <button
                           type="button"
-                          aria-pressed={botDifficulty === "easy"}
-                          onClick={() => onBotDifficultyChange("easy")}
-                        >
-                          Easy
-                        </button>
-                        <button
-                          type="button"
-                          aria-pressed={botDifficulty === "medium"}
-                          onClick={() => onBotDifficultyChange("medium")}
-                        >
-                          Medium
-                        </button>
-                        <button
-                          type="button"
                           aria-pressed={botDifficulty === "hard"}
                           onClick={() => onBotDifficultyChange("hard")}
                         >
                           Hard
                         </button>
+                        {botWatchDevPanelEnabled ? (
+                          <button
+                            type="button"
+                            aria-pressed={botDifficulty === "test"}
+                            onClick={() => onBotDifficultyChange("test")}
+                          >
+                            Test
+                          </button>
+                        ) : null}
                       </div>
                       <span className="runtimeBotDifficultyStatus">{selectedBotPolicyStatusLabel}</span>
                     </div>
@@ -21870,6 +22205,56 @@ export function RuntimeSceneViewer({
                   </div>
                 </div>
               ) : null}
+            </div>
+          ) : null}
+          {botWatchDevPanelEnabled ? (
+            <div
+              className="runtimeBotWatchDevPanel"
+              aria-label="Local bot watch dev panel"
+              data-bot-watch-mode={botWatchMode}
+              data-bot-difficulty={botDifficulty}
+              data-bot-policy-status={botPolicyLoadState}
+            >
+              <div className="runtimeBotWatchTitle">Local watch</div>
+              <div className="runtimeBotWatchCandidateRow">
+                <button
+                  type="button"
+                  onClick={() => onBotDifficultyChange?.("test")}
+                  aria-pressed={botDifficulty === "test"}
+                  disabled={!onBotDifficultyChange}
+                >
+                  Test
+                </button>
+                <span>{selectedBotPolicyStatusLabel}</span>
+              </div>
+              <div className="runtimeBotWatchButtons" aria-label="Watch cohort scripts">
+                {RUNTIME_BOT_WATCH_COHORT_PATTERNS.map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    aria-pressed={botWatchMode === mode}
+                    onClick={() => updateBotWatchMode(mode)}
+                  >
+                    {RUNTIME_BOT_WATCH_COHORT_LABELS[mode]}
+                  </button>
+                ))}
+              </div>
+              <div className="runtimeBotWatchActions">
+                <button type="button" aria-pressed={botWatchMode === "off"} onClick={() => updateBotWatchMode("off")}>
+                  Off
+                </button>
+                <button type="button" onClick={() => applyRuntimeSetupPreset("nh-stake")}>
+                  Reset NH stake
+                </button>
+                <button type="button" onClick={startManualFightCountdown} disabled={!selectedBotPolicyReady}>
+                  Start
+                </button>
+              </div>
+              <div className="runtimeBotWatchStatus" aria-live="polite">
+                {botWatchMode === "off"
+                  ? "Pick a cohort script, select Test, then press Start."
+                  : `${RUNTIME_BOT_WATCH_COHORT_EVAL_IDS[botWatchMode]}: ${botWatchStatsLabel}`}
+              </div>
             </div>
           ) : null}
           <div

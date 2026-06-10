@@ -10,13 +10,10 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 const validatorPath = path.join(projectRoot, "scripts", "policy-static-fallback-validation-electron.cjs");
 const appSource = readFileSync(path.join(projectRoot, "src", "ui", "App.tsx"), "utf8");
 const packageSource = readFileSync(path.join(projectRoot, "package.json"), "utf8");
-const staticPolicyPath = path.join(projectRoot, "fixtures", "ai", "nhstaker-selfplay-policy-nhstake-ags.tsv");
-const policyVariantPaths = [
-  staticPolicyPath,
-  path.join(projectRoot, "fixtures", "ai", "nhstaker-selfplay-policy-easy.tsv"),
-  path.join(projectRoot, "fixtures", "ai", "nhstaker-selfplay-policy-medium.tsv"),
-  path.join(projectRoot, "fixtures", "ai", "nhstaker-selfplay-policy-hard.tsv")
-];
+const staticPolicyPath = path.join(projectRoot, "fixtures", "ai", "nhstaker-selfplay-policy-hard.tsv");
+const tsvPolicyVariantPaths = [staticPolicyPath];
+const hardNeuralPolicyPath = path.join(projectRoot, "fixtures", "ai", "nh-neural-policy-hard.json");
+const dmmHardNeuralPolicyPath = path.join(projectRoot, "fixtures", "ai", "nh-neural-policy-dmm-candidate.json");
 
 function assert(condition, message) {
   if (!condition) {
@@ -25,15 +22,23 @@ function assert(condition, message) {
 }
 
 assert(
-  appSource.includes('const DEFAULT_STATIC_POLICY_URL = "./ai/nhstaker-selfplay-policy-nhstake-ags.tsv"'),
-  "App should keep the browser-served default NH policy URL internal to the client shell."
-);
-assert(
-  appSource.includes("bridge?.readDefaultPolicy") &&
     appSource.includes("BOT_DIFFICULTY_POLICIES") &&
     appSource.includes("readStaticDifficultyPolicy") &&
-    appSource.includes("parseNhPolicyTsv"),
-  "App should load selectable bot difficulty policies while preferring the Electron bridge for the medium default."
+    appSource.includes("parseNhPolicyTsv") &&
+    appSource.includes("parseNhNeuralPolicyJson"),
+  "App should load selectable bot difficulty policies while using neural JSON for hard."
+);
+assert(
+  appSource.includes('hard:') &&
+    appSource.includes('staticUrl: "./ai/nh-neural-policy-hard.json"') &&
+    appSource.includes('format: "neural-json"'),
+  "Hard difficulty should load the promoted neural JSON, not the legacy hard TSV."
+);
+assert(
+  appSource.includes("DMM_HARD_POLICY") &&
+    appSource.includes('staticUrl: "./ai/nh-neural-policy-dmm-candidate.json"') &&
+    appSource.includes("setLoadedDmmHardPolicy(parseDifficultyPolicy(result, DMM_HARD_POLICY))"),
+  "DMM hard should load the promoted DMM neural JSON."
 );
 assert(
   packageSource.includes('"sync:policy": "node scripts/sync-default-policy.mjs"') &&
@@ -41,7 +46,7 @@ assert(
     packageSource.includes('"prebuild": "node scripts/sync-default-policy.mjs --optional"'),
   "package scripts should keep the web-served policy synced before local dev and local builds."
 );
-const policySummaries = policyVariantPaths.map((policyPath) => {
+const policySummaries = tsvPolicyVariantPaths.map((policyPath) => {
   const policy = readFileSync(policyPath, "utf8");
   const policyStat = statSync(policyPath);
   assert(policyStat.size > 100_000, `${policyPath} is too small to be a trained NH policy.`);
@@ -53,6 +58,8 @@ const policySummaries = policyVariantPaths.map((policyPath) => {
     bytes: policyStat.size
   };
 });
+policySummaries.push(validateNeuralPolicy(hardNeuralPolicyPath, 44_550));
+policySummaries.push(validateNeuralPolicy(dmmHardNeuralPolicyPath, 51_114));
 
 const child = spawn(electronPath, [validatorPath, projectRoot], {
   cwd: projectRoot,
@@ -91,3 +98,32 @@ console.log(
     2
   )
 );
+
+function validateNeuralPolicy(policyPath, expectedActionCount) {
+  const policy = JSON.parse(readFileSync(policyPath, "utf8"));
+  const policyStat = statSync(policyPath);
+  const actionCount = policy.schema?.actionCount;
+  const actionIds = policy.schema?.actionIds;
+  assert(policy.kind === "nh-neural-policy", `${policyPath} should be an NH neural policy.`);
+  assert(policyStat.size > 1_000_000, `${policyPath} is too small to be a trained NH neural policy.`);
+  assert(actionCount === expectedActionCount, `${policyPath} should expose ${expectedActionCount} neural action outputs.`);
+  assert(policy.schema?.inputSize >= 90, `${policyPath} should include the neural input schema.`);
+  assert(policy.schema?.featureSize >= 139, `${policyPath} should include the encoded feature schema.`);
+  if (actionIds !== undefined) {
+    assert(Array.isArray(actionIds), `${policyPath} actionIds should be an array when present.`);
+    assert(actionIds.length === actionCount, `${policyPath} actionIds should match actionCount.`);
+  }
+  assert(Array.isArray(policy.model?.layers) && policy.model.layers.length > 0, `${policyPath} should include hidden layers.`);
+  assert(Array.isArray(policy.model?.policy?.weight), `${policyPath} should include neural policy weights.`);
+  assert(Array.isArray(policy.model?.policy?.bias), `${policyPath} should include neural policy bias.`);
+  assert(policy.model.policy.weight.length === actionCount, `${policyPath} policy weight rows should match actionCount.`);
+  assert(policy.model.policy.bias.length === actionCount, `${policyPath} policy bias should match actionCount.`);
+  return {
+    policyPath,
+    bytes: policyStat.size,
+    format: "neural-json",
+    inputSize: policy.schema.inputSize,
+    featureSize: policy.schema.featureSize,
+    actionCount
+  };
+}

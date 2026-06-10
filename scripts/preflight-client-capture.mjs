@@ -9,7 +9,7 @@ import {
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const nhRoot = path.resolve(projectRoot, "..");
-const defaultClientRoot = path.join(nhRoot, "Nh184-Client");
+const defaultClientRoot = path.join(nhRoot, "Kronos184-Client");
 const defaultSourceRoot = path.join(process.env.NH_TRAINER_ARTIFACT_DIR ?? "C:\\nh-trainer-artifacts", "nh-client-reference");
 const defaultOutputRoot = path.join(projectRoot, "fixtures", "reference", "client-render");
 

@@ -142,20 +142,20 @@ async function locateOpponentClick(window) {
         await settle();
         const motion = window.__nhRuntimeDebug?.motion;
         const opponent = motion?.actors?.find((actor) => actor.actorId === "opponent");
-        if (opponent?.screen && opponent?.tile) {
+        if (opponent?.clickbox?.dom && opponent?.tile) {
           return {
             ok: true,
-            x: opponent.screen.x,
-            y: opponent.screen.y,
-            clientX: opponent.screen.x,
-            clientY: opponent.screen.y,
+            x: opponent.clickbox.dom.centerX,
+            y: opponent.clickbox.dom.centerY,
+            clientX: opponent.clickbox.dom.centerX,
+            clientY: opponent.clickbox.dom.centerY,
             tile: opponent.tile,
-            options: [],
+            clickbox: opponent.clickbox,
             attemptCount: 1
           };
         }
       }
-      return { ok: false, error: "could not locate opponent debug projection" };
+      return { ok: false, error: "could not locate opponent debug clickbox" };
     })()
   `);
   if (!result.ok) {
@@ -502,14 +502,13 @@ app.whenReady().then(async () => {
   try {
     await window.loadFile(path.join(projectRoot, "dist", "index.html"));
     await waitForReady(window);
-    await dispatchEvent(window, "nh-runtime-camera", { camera: "isometric" });
+    await dispatchEvent(window, "nh-runtime-camera", { camera: "top" });
     await dispatchEvent(window, "nh-runtime-cycle", { cycle: 200 });
     await dispatchEvent(window, "nh-runtime-spellbook", { spellbookId: "ancient" });
     await delay(200);
     await clickStartAndWaitForGo(window);
     await clickSideTab(window, "inventory");
     const opponent = await locateOpponentClick(window);
-    await dispatchEvent(window, "nh-runtime-reset-tick-origin", {});
     await installXpDropObserver(window);
     await installActionSequenceObserver(window);
     await delay(80);

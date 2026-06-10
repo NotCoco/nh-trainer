@@ -9,7 +9,7 @@ function read(relativePath) {
 }
 
 function readNhClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
 }
 
 const pluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/entityhider/EntityHiderPlugin.java");
@@ -57,8 +57,8 @@ for (const sourceAnchor of [
 for (const trainerAnchor of [
   'id: "entity-hider"',
   'name: "Entity Hider"',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/entityhider/EntityHiderPlugin.java"',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/entityhider/EntityHiderConfig.java"',
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/entityhider/EntityHiderPlugin.java"',
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/entityhider/EntityHiderConfig.java"',
   'group: "entityhider"',
   'RuneliteEntityHiderConfigSnapshot',
   'entityHider: {',

@@ -1,4 +1,21 @@
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from "react";
+import {
+  addAimLeaderboardEntry,
+  aimLeaderboardEntryId,
+  aimLeaderboardRows,
+  aimLeaderboardStorageKey,
+  aimPlayerNameMaxLength,
+  aimPlayerNameStorageKey,
+  cleanAimPlayerNameInput,
+  createEmptyAimLeaderboardSnapshot,
+  formatAimLeaderboardDate,
+  normalizeAimLeaderboardSnapshot,
+  normalizeAimPlayerName,
+  type AimCompletedRun,
+  type AimLeaderboardEntry,
+  type AimLeaderboardScope,
+  type AimLeaderboardSnapshot
+} from "../aimLeaderboard";
 
 type AimButton = "left" | "right";
 type AimShape = "rect";
@@ -52,19 +69,9 @@ interface AimStats {
   readonly streak: number;
 }
 
-type AimLeaderboardScope = "recent" | "week" | "all";
-
-interface AimCompletedRun {
-  readonly score: number;
-  readonly misses: number;
-  readonly streak: number;
-  readonly completedAtMs: number;
-}
-
-interface AimLeaderboardEntry extends AimCompletedRun {
-  readonly id: string;
-  readonly name: string;
-  readonly savedAtMs: number;
+interface AimLeaderboardFetchResult {
+  readonly shared: boolean;
+  readonly snapshot: AimLeaderboardSnapshot;
 }
 
 const aimClientWidth = 765;
@@ -75,12 +82,7 @@ const aimClientMaxWidth = 1000;
 const aimClientMaxHeight = 760;
 const aimRoundDurationMs = 30_000;
 const aimHighScoreStorageKey = "kronos-nh-aim-trainer-high-score";
-const aimLeaderboardStorageKey = "kronos-nh-aim-trainer-leaderboard";
-const aimPlayerNameStorageKey = "kronos-nh-aim-trainer-player-name";
-const aimLeaderboardMaxEntries = 80;
-const aimLeaderboardVisibleEntries = 8;
-const aimPlayerNameMaxLength = 18;
-const aimWeekMs = 7 * 24 * 60 * 60 * 1000;
+const aimLeaderboardEndpoint = "/api/aim-leaderboard";
 const visibleTargetCount = 2;
 const walkHereRow = { width: 92, height: 15, menuHeight: 37 } as const;
 
@@ -168,9 +170,9 @@ export function NhAimTrainer(): JSX.Element {
   const [highScore, setHighScore] = useState(readAimHighScore);
   const [playerName, setPlayerName] = useState(readAimPlayerName);
   const [leaderboardScope, setLeaderboardScope] = useState<AimLeaderboardScope>("recent");
-  const [leaderboardEntries, setLeaderboardEntries] = useState<readonly AimLeaderboardEntry[]>(
-    readAimLeaderboardEntries
-  );
+  const [leaderboardSnapshot, setLeaderboardSnapshot] = useState<AimLeaderboardSnapshot>(readAimLeaderboardSnapshot);
+  const [leaderboardMode, setLeaderboardMode] = useState<"local" | "shared">("local");
+  const [savingRun, setSavingRun] = useState(false);
   const [lastCompletedRun, setLastCompletedRun] = useState<AimCompletedRun | null>(null);
   const [savedRunId, setSavedRunId] = useState<string | null>(null);
   const [clientBounds, setClientBounds] = useState<AimClientBounds>({
@@ -182,7 +184,7 @@ export function NhAimTrainer(): JSX.Element {
   const statsRef = useRef<AimStats>({ hits: 0, misses: 0, streak: 0 });
   const roundDeadlineRef = useRef<number | null>(null);
   const resizeDragRef = useRef<AimResizeDrag | null>(null);
-  const leaderboardRows = aimLeaderboardRows(leaderboardEntries, leaderboardScope, Date.now());
+  const leaderboardRows = aimLeaderboardRows(leaderboardSnapshot, leaderboardScope);
 
   const start = (): void => {
     const initialCursor = randomAimCursor();
@@ -266,6 +268,26 @@ export function NhAimTrainer(): JSX.Element {
 
     return () => window.clearTimeout(timer);
   }, [running, targetQueue]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadSharedLeaderboard(): Promise<void> {
+      const response = await fetchAimLeaderboardSnapshot();
+      if (cancelled || !response) {
+        return;
+      }
+      setLeaderboardMode(response.shared ? "shared" : "local");
+      if (response.shared) {
+        setLeaderboardSnapshot(response.snapshot);
+      }
+    }
+
+    void loadSharedLeaderboard();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>): void => {
     if (!running || targetQueue.length === 0 || (event.button !== 0 && event.button !== 2)) {
@@ -398,12 +420,12 @@ export function NhAimTrainer(): JSX.Element {
     setPlayerName(cleanAimPlayerNameInput(value));
   };
 
-  const saveCompletedRun = (): void => {
-    if (!lastCompletedRun || lastCompletedRun.score <= 0 || savedRunId) {
+  const saveCompletedRun = async (): Promise<void> => {
+    if (!lastCompletedRun || lastCompletedRun.score <= 0 || savedRunId || savingRun) {
       return;
     }
     const cleanName = normalizeAimPlayerName(playerName);
-    const entry = {
+    const entry: AimLeaderboardEntry = {
       ...lastCompletedRun,
       id: aimLeaderboardEntryId(),
       name: cleanName,
@@ -411,8 +433,20 @@ export function NhAimTrainer(): JSX.Element {
     };
     setPlayerName(cleanName);
     saveAimPlayerName(cleanName);
-    setLeaderboardEntries((entries) => saveAimLeaderboardEntries([entry, ...entries]));
-    setSavedRunId(entry.id);
+    setSavingRun(true);
+    try {
+      const sharedSnapshot = leaderboardMode === "shared" ? await postAimLeaderboardEntry(entry) : null;
+      if (sharedSnapshot) {
+        setLeaderboardSnapshot(sharedSnapshot);
+        setLeaderboardMode("shared");
+      } else {
+        setLeaderboardSnapshot((snapshot) => saveAimLeaderboardSnapshot(addAimLeaderboardEntry(snapshot, entry)));
+        setLeaderboardMode("local");
+      }
+      setSavedRunId(entry.id);
+    } finally {
+      setSavingRun(false);
+    }
   };
 
   return (
@@ -464,12 +498,15 @@ export function NhAimTrainer(): JSX.Element {
               </label>
               <button
                 type="button"
-                onClick={saveCompletedRun}
-                disabled={!lastCompletedRun || lastCompletedRun.score <= 0 || savedRunId !== null}
+                onClick={() => void saveCompletedRun()}
+                disabled={!lastCompletedRun || lastCompletedRun.score <= 0 || savedRunId !== null || savingRun}
               >
-                {savedRunId ? "Saved" : "Save"}
+                {savingRun ? "Saving" : savedRunId ? "Saved" : "Save"}
               </button>
-              <span>{lastCompletedRun ? `${lastCompletedRun.score} ready` : "Finish a run"}</span>
+              <span>
+                {lastCompletedRun ? `${lastCompletedRun.score} ready` : "Finish a run"} -{" "}
+                {leaderboardMode === "shared" ? "Shared board" : "Local board"}
+              </span>
             </div>
             <div className="nhAimTrainerLeaderboard" aria-label="Aim trainer leaderboard">
               <div className="nhAimTrainerLeaderboardTabs">
@@ -785,99 +822,69 @@ function saveAimPlayerName(name: string): void {
   }
 }
 
-function readAimLeaderboardEntries(): readonly AimLeaderboardEntry[] {
+function readAimLeaderboardSnapshot(): AimLeaderboardSnapshot {
   try {
-    const storedEntries = JSON.parse(window.localStorage.getItem(aimLeaderboardStorageKey) ?? "[]");
-    return Array.isArray(storedEntries) ? normalizeAimLeaderboardEntries(storedEntries) : [];
+    const rawSnapshot = window.localStorage.getItem(aimLeaderboardStorageKey);
+    return rawSnapshot ? normalizeAimLeaderboardSnapshot(JSON.parse(rawSnapshot)) : createEmptyAimLeaderboardSnapshot();
   } catch {
-    return [];
+    return createEmptyAimLeaderboardSnapshot();
   }
 }
 
-function saveAimLeaderboardEntries(entries: readonly AimLeaderboardEntry[]): readonly AimLeaderboardEntry[] {
-  const normalizedEntries = normalizeAimLeaderboardEntries(entries);
+function saveAimLeaderboardSnapshot(snapshot: AimLeaderboardSnapshot): AimLeaderboardSnapshot {
+  const normalizedSnapshot = normalizeAimLeaderboardSnapshot(snapshot);
   try {
-    window.localStorage.setItem(aimLeaderboardStorageKey, JSON.stringify(normalizedEntries));
+    window.localStorage.setItem(aimLeaderboardStorageKey, JSON.stringify(normalizedSnapshot));
   } catch {
-    return normalizedEntries;
+    return normalizedSnapshot;
   }
-  return normalizedEntries;
+  return normalizedSnapshot;
 }
 
-function normalizeAimLeaderboardEntries(entries: readonly unknown[]): readonly AimLeaderboardEntry[] {
-  return entries
-    .filter(isAimLeaderboardEntry)
-    .sort((left, right) => right.savedAtMs - left.savedAtMs)
-    .slice(0, aimLeaderboardMaxEntries);
-}
-
-function isAimLeaderboardEntry(entry: unknown): entry is AimLeaderboardEntry {
-  if (typeof entry !== "object" || entry === null) {
-    return false;
+async function fetchAimLeaderboardSnapshot(): Promise<AimLeaderboardFetchResult | null> {
+  try {
+    const response = await fetch(aimLeaderboardEndpoint, { cache: "no-store" });
+    if (!response.ok) {
+      return null;
+    }
+    return parseAimLeaderboardResponse(await response.json());
+  } catch {
+    return null;
   }
-  const candidate = entry as Partial<AimLeaderboardEntry>;
-  return (
-    typeof candidate.id === "string" &&
-    typeof candidate.name === "string" &&
-    typeof candidate.score === "number" &&
-    Number.isFinite(candidate.score) &&
-    candidate.score >= 0 &&
-    typeof candidate.misses === "number" &&
-    Number.isFinite(candidate.misses) &&
-    candidate.misses >= 0 &&
-    typeof candidate.streak === "number" &&
-    Number.isFinite(candidate.streak) &&
-    candidate.streak >= 0 &&
-    typeof candidate.completedAtMs === "number" &&
-    Number.isFinite(candidate.completedAtMs) &&
-    typeof candidate.savedAtMs === "number" &&
-    Number.isFinite(candidate.savedAtMs)
-  );
 }
 
-function aimLeaderboardRows(
-  entries: readonly AimLeaderboardEntry[],
-  scope: AimLeaderboardScope,
-  nowMs: number
-): readonly AimLeaderboardEntry[] {
-  const scopedEntries =
-    scope === "week" ? entries.filter((entry) => nowMs - entry.savedAtMs <= aimWeekMs) : entries;
-  const sortedEntries =
-    scope === "recent"
-      ? [...scopedEntries].sort((left, right) => right.savedAtMs - left.savedAtMs)
-      : [...scopedEntries].sort(
-          (left, right) => right.score - left.score || left.misses - right.misses || right.savedAtMs - left.savedAtMs
-        );
-  return sortedEntries.slice(0, aimLeaderboardVisibleEntries);
-}
-
-function cleanAimPlayerNameInput(value: string): string {
-  return value.replace(/[\x00-\x1f\x7f]/g, "").slice(0, aimPlayerNameMaxLength);
-}
-
-function normalizeAimPlayerName(value: string): string {
-  const name = cleanAimPlayerNameInput(value).replace(/\s+/g, " ").trim();
-  return name.length > 0 ? name : "Anonymous";
-}
-
-function aimLeaderboardEntryId(): string {
-  return `${Date.now().toString(36)}-${Math.trunc(Math.random() * 1_000_000).toString(36)}`;
-}
-
-function formatAimLeaderboardDate(savedAtMs: number): string {
-  const elapsedMs = Math.max(0, Date.now() - savedAtMs);
-  const elapsedMinutes = Math.floor(elapsedMs / 60_000);
-  if (elapsedMinutes < 1) {
-    return "now";
+async function postAimLeaderboardEntry(entry: AimLeaderboardEntry): Promise<AimLeaderboardSnapshot | null> {
+  try {
+    const response = await fetch(aimLeaderboardEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(entry)
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const result = parseAimLeaderboardResponse(await response.json());
+    return result?.shared ? result.snapshot : null;
+  } catch {
+    return null;
   }
-  if (elapsedMinutes < 60) {
-    return `${elapsedMinutes}m`;
+}
+
+function parseAimLeaderboardResponse(value: unknown): AimLeaderboardFetchResult | null {
+  if (typeof value !== "object" || value === null) {
+    return null;
   }
-  const elapsedHours = Math.floor(elapsedMinutes / 60);
-  if (elapsedHours < 24) {
-    return `${elapsedHours}h`;
+  const candidate = value as Partial<{
+    readonly mode: unknown;
+    readonly leaderboard: unknown;
+  }>;
+  if (candidate.mode !== "shared" && candidate.mode !== "local") {
+    return null;
   }
-  return `${Math.floor(elapsedHours / 24)}d`;
+  return {
+    shared: candidate.mode === "shared",
+    snapshot: normalizeAimLeaderboardSnapshot(candidate.leaderboard)
+  };
 }
 
 function clamp(value: number, min: number, max: number): number {

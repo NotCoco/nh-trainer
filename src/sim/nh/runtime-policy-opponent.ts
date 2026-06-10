@@ -7,7 +7,7 @@ import type { CombatLevels, CombatStyle } from "../combat/formulas";
 import type { BonusTable } from "../combat/formulas";
 import { aggregateVisibleEquipmentBonuses, type EquipmentBonusRow } from "../equipment/equipment";
 import { updateGmaulEquipment } from "../combat/gmaul";
-import { canAttack as canAttackByTimer, createAttackTimerState } from "../combat/timers";
+import { canAttack as canAttackByTimer, createAttackTimerState, shouldDelayFirstReadyAttackTick } from "../combat/timers";
 import { canAct, canMove, createEntityLockState, isFrozen, resetFreeze, type EntityLockState } from "../entity/locks";
 import { consumableDefinitions, consumableUseCountForItemId, type ConsumableId, type SimStat, type SimStats } from "../items/consumables";
 import {
@@ -21,7 +21,9 @@ import { nhWeaponProfiles } from "../combat/player-combat";
 import {
   activateRuntimePlayerCombatVengeanceTrinket,
   consumeRuntimePlayerCombatSupply,
+  delayRuntimePlayerCombatActorAttack,
   requestRuntimePlayerCombatAttack,
+  resetRuntimePlayerCombatActorTarget,
   resetRuntimePlayerCombatActorPolicyDisengage,
   runtimePlayerCombatDefaultLevels,
   runtimePlayerCombatDefaultSupplies,
@@ -67,6 +69,8 @@ import {
 } from "./gearProfile";
 import {
   nhDefencePrayers,
+  nhAttackIntents,
+  nhEquipmentIntents,
   nhExtraSupplyIntents,
   nhMovementIntents,
   nhOffenceStyles,
@@ -130,6 +134,24 @@ export const runtimePolicyOpponentActionCoverage = {
     none: "no special packet",
     use_special: "queue one Granite maul packet or toggle AGS special when source client-spec-control gates allow it",
     use_special_double: "queue two Granite maul packets when source client-spec-control gates allow it; AGS drops double intent"
+  },
+  attackIntents: {
+    attack: "leave the runtime combat target/request set for this tick",
+    hold: "clear the runtime combat target after gear, prayer, supply, and movement updates so the tick is a deliberate no-attack fake",
+    off_tick: "keep the runtime combat target set, but only defer the first ready attack tick so repeated off_tick choices still attack"
+  },
+  equipmentIntents: {
+    style_loadout: "apply the source-backed style loadout and normal flexible-gear pass",
+    weapon_only: "equip only the weapon/ammo required for the chosen style and keep the rest of the current equipment",
+    unequip_feet: "apply the chosen style setup, then leave the feet slot empty for exploration",
+    unequip_head: "apply the chosen style setup, then leave the head slot empty for exploration",
+    unequip_cape: "apply the chosen style setup, then leave the cape slot empty for exploration",
+    unequip_amulet: "apply the chosen style setup, then leave the amulet slot empty for exploration",
+    unequip_body: "apply the chosen style setup, then leave the body slot empty for exploration",
+    unequip_shield: "apply the chosen style setup, then leave the shield slot empty for exploration",
+    unequip_legs: "apply the chosen style setup, then leave the legs slot empty for exploration",
+    unequip_hands: "apply the chosen style setup, then leave the hands slot empty for exploration",
+    unequip_ring: "apply the chosen style setup, then leave the ring slot empty for exploration"
   }
 } as const satisfies {
   readonly offenceStyles: RuntimePolicyIntentCoverage<NhOffenceStyle>;
@@ -137,6 +159,8 @@ export const runtimePolicyOpponentActionCoverage = {
   readonly movementIntents: RuntimePolicyIntentCoverage<NhMovementIntent>;
   readonly supplyIntents: RuntimePolicyIntentCoverage<NhPolicyAction["supplyIntent"]>;
   readonly specIntents: RuntimePolicyIntentCoverage<NhPolicyAction["specIntent"]>;
+  readonly attackIntents: RuntimePolicyIntentCoverage<NonNullable<NhPolicyAction["attackIntent"]>>;
+  readonly equipmentIntents: RuntimePolicyIntentCoverage<NonNullable<NhPolicyAction["equipmentIntent"]>>;
 };
 
 export interface RuntimePolicyOpponentActorView {
@@ -153,6 +177,8 @@ export interface RuntimePolicyOpponentActorView {
   readonly movedThisTick?: boolean;
   readonly lastMoveDx?: number;
   readonly lastMoveDy?: number;
+  readonly lastVengeanceTrinketCastTick?: number;
+  readonly vengeanceTrinketCasts?: number;
   readonly observedInfoKnown?: boolean;
 }
 
@@ -591,7 +617,17 @@ export function applyRuntimeOpponentPolicyAction(input: {
     projectileLineOfSight: input.projectileLineOfSight
   });
   state = runtimePolicyStateWithOpponentTile(magicLineOfSightResult.state, magicLineOfSightResult.opponentTile);
-  state = requestRuntimePlayerCombatAttack(state, "opponent", "local-player");
+  const attackIntent = effectiveAction.attackIntent ?? "attack";
+  if (attackIntent !== "hold") {
+    state = requestRuntimePlayerCombatAttack(state, "opponent", "local-player");
+    if (attackIntent === "off_tick") {
+      if (shouldDelayFirstReadyAttackTick(state.actors.opponent.attackTimer, state.tick)) {
+        state = delayRuntimePlayerCombatActorAttack(state, "opponent", 1);
+      }
+    }
+  } else {
+    state = resetRuntimePlayerCombatActorTarget(state, "opponent");
+  }
 
   return {
     state,
@@ -642,6 +678,8 @@ export function assertRuntimePolicyOpponentActionCoverage(): {
   readonly movementIntents: number;
   readonly supplyIntents: number;
   readonly specIntents: number;
+  readonly attackIntents: number;
+  readonly equipmentIntents: number;
 } {
   assertCovered("offence style", nhOffenceStyles, runtimePolicyOpponentActionCoverage.offenceStyles);
   assertCovered("defence prayer", nhDefencePrayers, runtimePolicyOpponentActionCoverage.defencePrayers);
@@ -652,6 +690,8 @@ export function assertRuntimePolicyOpponentActionCoverage(): {
     runtimePolicyOpponentActionCoverage.supplyIntents
   );
   assertCovered("spec intent", nhSpecIntents, runtimePolicyOpponentActionCoverage.specIntents);
+  assertCovered("attack intent", nhAttackIntents, runtimePolicyOpponentActionCoverage.attackIntents);
+  assertCovered("equipment intent", nhEquipmentIntents, runtimePolicyOpponentActionCoverage.equipmentIntents);
 
   return {
     actionCount: nhPolicyActionCount,
@@ -659,7 +699,9 @@ export function assertRuntimePolicyOpponentActionCoverage(): {
     defencePrayers: nhDefencePrayers.length,
     movementIntents: nhMovementIntents.length,
     supplyIntents: nhSupplyIntents.length + nhExtraSupplyIntents.length,
-    specIntents: nhSpecIntents.length
+    specIntents: nhSpecIntents.length,
+    attackIntents: nhAttackIntents.length,
+    equipmentIntents: nhEquipmentIntents.length
   };
 }
 
@@ -976,18 +1018,6 @@ function runtimePolicyApplyTickRewardShaping(
   const rewardSnapshot = runtimePolicyActorRewardSnapshot(state.events, "opponent", eventTick, undefined);
   let next = state;
 
-  const stylePressure = runtimePolicyStylePressureReward(state, context, "opponent", eventTick, previousDistance);
-  if (!runtimePolicyHasPolicyRewardEvent(next, "opponent", "style_pressure", eventTick)) {
-    next = appendRuntimePolicyRewardEvent(
-      next,
-      "opponent",
-      "style_pressure",
-      stylePressure.reward,
-      stylePressure.details,
-      eventTick
-    );
-  }
-
   const gearWeakness = runtimePolicyGearWeaknessPressureReward(context);
   if (gearWeakness !== 0 && !runtimePolicyHasPolicyRewardEvent(next, "opponent", "gear_weakness", eventTick)) {
     next = appendRuntimePolicyRewardEvent(next, "opponent", "gear_weakness", gearWeakness, {
@@ -1055,104 +1085,26 @@ function runtimePolicyApplyTickRewardShaping(
     );
   }
 
-  const actualPrayer = runtimePolicyActualPrayerHitReward(state.events, "opponent", eventTick);
+  const incomingPrayer = runtimePolicyIncomingPrayerOutcomeReward(state.events, "opponent", eventTick);
   if (
-    (actualPrayer.details.onPrayerHits || actualPrayer.details.offPrayerHits) &&
-    !runtimePolicyHasPolicyRewardEvent(next, "opponent", "actual_prayer", eventTick)
+    (incomingPrayer.details.correctPrayers || incomingPrayer.details.incorrectPrayers) &&
+    !runtimePolicyHasPolicyRewardEvent(next, "opponent", "incoming_prayer", eventTick)
   ) {
     next = appendRuntimePolicyRewardEvent(
       next,
       "opponent",
-      "actual_prayer",
-      actualPrayer.reward,
-      actualPrayer.details,
+      "incoming_prayer",
+      incomingPrayer.reward,
+      incomingPrayer.details,
       eventTick
     );
   }
-
   const deathSupply = runtimePolicyDeathSupplyReward(next, "opponent", eventTick, input.rewardEpisodeStartTick);
   if (deathSupply && !runtimePolicyHasPolicyRewardEvent(next, "opponent", "death_supply", eventTick)) {
     next = appendRuntimePolicyRewardEvent(next, "opponent", "death_supply", deathSupply.reward, deathSupply.details, eventTick);
   }
 
   return next;
-}
-
-function runtimePolicyStylePressureReward(
-  state: RuntimePlayerCombatState,
-  context: NhDuelControllerContext,
-  actorId: RuntimeActorId,
-  eventTick: number,
-  previousDistance: number | null
-): { readonly reward: number; readonly details: RuntimePolicyRewardDetails } {
-  const offenceStyle = context.self.lastOffenceStyle;
-  const distance = runtimePolicyObservedDistance(context);
-  if (!offenceStyle) {
-    return {
-      reward: 0,
-      details: { styleProtected: false, distance, previousDistance: previousDistance ?? undefined }
-    };
-  }
-  const protectedStyle = runtimePolicyProtectedStyleFromPrayer(activeProtectionPrayer(context.opponent.activePrayers));
-  if (!protectedStyle) {
-    return {
-      reward: 0,
-      details: { offenceStyle, styleProtected: false, distance, previousDistance: previousDistance ?? undefined }
-    };
-  }
-  const inRange = runtimePolicyStyleInOffensiveRange(context, offenceStyle);
-  const intoProtection = offenceStyle === protectedStyle;
-  let protectedStyleStreak = 0;
-  let reward = 0;
-  if (intoProtection) {
-    protectedStyleStreak = runtimePolicyPreviousProtectedStyleStreak(state, actorId, eventTick, offenceStyle, protectedStyle) + 1;
-    if (inRange) {
-      const penalizedTicks = protectedStyleStreak - runtimePolicyProtectedStyleStickGraceTicks;
-      if (penalizedTicks > 0) {
-        const stickyPenalty = runtimePolicyProtectedStyleStickPenalty * Math.min(3, penalizedTicks);
-        reward = -(runtimePolicyIntoPrayerPenalty + stickyPenalty);
-      }
-    }
-  } else if (inRange) {
-    reward = runtimePolicyOffPrayerBonus + runtimePolicyUnprotectedStylePressureBonus;
-  }
-
-  return {
-    reward,
-    details: {
-      offenceStyle,
-      protectedStyle,
-      protectedStyleStreak,
-      styleProtected: intoProtection,
-      distance,
-      previousDistance: previousDistance ?? undefined
-    }
-  };
-}
-
-function runtimePolicyPreviousProtectedStyleStreak(
-  state: RuntimePlayerCombatState,
-  actorId: RuntimeActorId,
-  eventTick: number,
-  offenceStyle: NhOffenceStyle,
-  protectedStyle: NhOffenceStyle
-): number {
-  const previous = [...state.events].reverse().find(
-    (event): event is Extract<RuntimePlayerCombatEvent, { readonly kind: "policy-reward" }> =>
-      event.kind === "policy-reward" &&
-      event.actorId === actorId &&
-      event.reason === "style_pressure" &&
-      event.tick === eventTick - 1
-  );
-  if (
-    !previous ||
-    previous.styleProtected !== true ||
-    previous.offenceStyle !== offenceStyle ||
-    previous.protectedStyle !== protectedStyle
-  ) {
-    return 0;
-  }
-  return previous.protectedStyleStreak ?? 0;
 }
 
 function runtimePolicyGearWeaknessPressureReward(context: NhDuelControllerContext): number {
@@ -1642,38 +1594,30 @@ function runtimePolicyObservedStyleInRange(
   return distance > 0 && distance <= runtimePolicyAttackRangeForThreat(context, style);
 }
 
-function runtimePolicyActualPrayerHitReward(
+function runtimePolicyIncomingPrayerOutcomeReward(
   events: readonly RuntimePlayerCombatEvent[],
   actorId: RuntimeActorId,
   eventTick: number
 ): { readonly reward: number; readonly details: RuntimePolicyRewardDetails } {
-  let onPrayerHits = 0;
-  let onPrayerDamage = 0;
-  let offPrayerHits = 0;
-  let offPrayerDamage = 0;
+  let correctPrayers = 0;
+  let incorrectPrayers = 0;
   for (const event of events) {
-    if (event.kind !== "hitsplat" || event.tick !== eventTick || event.targetActorId !== actorId) {
+    if (event.kind !== "attack" || event.tick !== eventTick || event.defenderId !== actorId) {
       continue;
     }
     if (event.defenderProtectionPrayer === protectPrayerForStyle(event.style)) {
-      onPrayerHits++;
-      onPrayerDamage += event.damage;
+      correctPrayers++;
     } else {
-      offPrayerHits++;
-      offPrayerDamage += event.damage;
+      incorrectPrayers++;
     }
   }
-  const reward =
-    onPrayerHits * runtimePolicyActualPrayerOnHitBonus +
-    onPrayerDamage * runtimePolicyActualPrayerOnDamageScale -
-    (offPrayerHits * runtimePolicyActualPrayerOffHitPenalty + offPrayerDamage * runtimePolicyActualPrayerOffDamageScale);
   return {
-    reward,
+    reward:
+      correctPrayers * runtimePolicyIncomingPrayerCorrectBonus -
+      incorrectPrayers * runtimePolicyIncomingPrayerIncorrectPenalty,
     details: {
-      onPrayerHits,
-      offPrayerHits,
-      onPrayerDamage,
-      offPrayerDamage
+      correctPrayers,
+      incorrectPrayers
     }
   };
 }
@@ -2204,11 +2148,11 @@ function runtimePolicyHasClientSpecControlForSpecial(
   context: NhDuelControllerContext,
   specialKind: RuntimePolicySpecialWeaponKind
 ): boolean {
-  return (
-    nhWeaponProfiles[context.self.weaponId].hasVisibleSpecBar ||
-    specialKind === "voidwaker" ||
-    specialKind === "vesta_longsword"
-  );
+  void specialKind;
+  // Source: NhStakerBot.hasClientSpecControlForSpecialThisTick() reads
+  // weaponShowsSpecialBar(tickStartWeaponId), so swapping into a spec weapon
+  // later in the tick cannot create client spec control.
+  return nhWeaponProfiles[context.self.weaponId].hasVisibleSpecBar;
 }
 
 function runtimePolicyAvailableSpecialWeaponKind(actor: NhDuelActorState): RuntimePolicySpecialWeaponKind | null {
@@ -2997,10 +2941,8 @@ const runtimePolicyDefenceBeliefHitScale = 0.02;
 const runtimePolicyDefenceBeliefBestGapScale = 0.05;
 const runtimePolicyDefenceBeliefBestMatchBonus = 0.01;
 const runtimePolicyDefenceBeliefMinPressure = 0.08;
-const runtimePolicyActualPrayerOnHitBonus = 0.7;
-const runtimePolicyActualPrayerOnDamageScale = 0.018;
-const runtimePolicyActualPrayerOffHitPenalty = 1.65;
-const runtimePolicyActualPrayerOffDamageScale = 0.075;
+const runtimePolicyIncomingPrayerCorrectBonus = 0.22;
+const runtimePolicyIncomingPrayerIncorrectPenalty = 0.42;
 
 interface RuntimePolicyServerItemRow {
   readonly id: number;
@@ -4069,8 +4011,19 @@ function runtimeCombatActorToNhDuelActor(
   const visibleGearStyle = runtimePolicyVisibleGearStyleFromEquipment(equipment, weaponStyle);
   const activePrayers = observedInfoKnown ? actorView.activePrayers ?? actor.activePrayers : [];
   const prayerStyle = runtimePolicyStyleFromOffensivePrayers(activePrayers);
-  const spellStyle = observedInfoKnown ? runtimePolicyReliableMagicSpellStyle(actor, weaponStyle) : null;
-  const attackStyle = observedInfoKnown ? runtimePolicyStyleFromAttackSet(actor, equipment, weaponStyle) : null;
+  const liveActorCombatStateVisible = policyRole === "policy-self";
+  const lastVengeanceTrinketCastTick = observedInfoKnown
+    ? actorView.lastVengeanceTrinketCastTick ?? (liveActorCombatStateVisible ? actor.lastVengeanceTrinketCastTick : -1)
+    : -1;
+  const vengeanceTrinketCasts = observedInfoKnown
+    ? actorView.vengeanceTrinketCasts ?? (liveActorCombatStateVisible ? actor.vengeanceTrinketCasts : 0)
+    : 0;
+  const spellStyle = observedInfoKnown && liveActorCombatStateVisible
+    ? runtimePolicyReliableMagicSpellStyle(actor, weaponStyle)
+    : null;
+  const attackStyle = observedInfoKnown && liveActorCombatStateVisible
+    ? runtimePolicyStyleFromAttackSet(actor, equipment, weaponStyle)
+    : null;
   const weaponOrAttackStyle = weaponStyle === "magic" && attackStyle === "melee"
     ? "magic"
     : weaponStyle ?? attackStyle;
@@ -4117,6 +4070,8 @@ function runtimeCombatActorToNhDuelActor(
     rewardTotal: observation.rewardTotal,
     rewardDps: observation.rewardDps,
     observedInfoKnown,
+    lastVengeanceTrinketCastTick,
+    vengeanceTrinketCasts,
     lastOffenceStyle: policyOffenceStyle,
     lastVisibleOpponentStyle: observedInfoKnown ? visibleGearStyle : null
   };
@@ -4175,11 +4130,6 @@ const runtimePolicyBrewedDownMax = 0.065;
 const runtimePolicyCombatDeficitPenaltyScale = 0.18;
 const runtimePolicyDeathUnusedHealingSupplyPenalty = 10;
 const runtimePolicyDeathNoGoodSupplyPenalty = 4;
-const runtimePolicyOffPrayerBonus = 0.075;
-const runtimePolicyIntoPrayerPenalty = 0.18;
-const runtimePolicyProtectedStyleStickPenalty = 0.038;
-const runtimePolicyProtectedStyleStickGraceTicks = 2;
-const runtimePolicyUnprotectedStylePressureBonus = 0.026;
 const runtimePolicyGearWeaknessPressureScale = 0.082;
 const runtimePolicyGearWeaknessGapScale = 0.06;
 const runtimePolicyAdjacentTentacleWeaknessBonus = 0.62;
@@ -4295,10 +4245,8 @@ interface RuntimePolicyRewardDetails {
   readonly averagePrayerDamage?: number;
   readonly expectedRisk?: number;
   readonly pressure?: number;
-  readonly onPrayerHits?: number;
-  readonly offPrayerHits?: number;
-  readonly onPrayerDamage?: number;
-  readonly offPrayerDamage?: number;
+  readonly correctPrayers?: number;
+  readonly incorrectPrayers?: number;
   readonly boostedCombatLevels?: number;
   readonly brewedDownCombatLevels?: number;
   readonly pottedStateBonus?: number;
@@ -6070,7 +6018,6 @@ function runtimePolicyPressureApproachTile(input: {
   const shouldRouteToOpponent =
     input.action.offenceStyle === "melee" && !input.context.meleeReachable;
   const shouldRouteForSpec =
-    meleeRouteDistance <= 1 &&
     chebyshevPolicyDistance(input.context.self.tile, input.context.opponent.tile) === 2 &&
     nhPolicyGmaulSpecApproachWindow(input.context, false) >= runtimePolicySpecApproachWindowFloor;
 
@@ -6529,11 +6476,17 @@ function runtimeLoadoutForPolicyAction(
 ): RuntimeLoadoutId {
   if (action.specIntent === "use_special" || action.specIntent === "use_special_double") {
     const specialKind = selectedSpecialKind ?? nhGearProfileAvailableSpecialWeaponKind(gearProfile);
+    if (specialKind === "granite_maul") {
+      if (action.offenceStyle === "magic") {
+        return "kodai-robes";
+      }
+      if (action.offenceStyle === "ranged") {
+        return "acb-hides";
+      }
+      return loadoutForWeapon(gearProfile.meleeWeaponId).id;
+    }
     if (specialKind === "armadyl_godsword") {
       return "ags-bandos";
-    }
-    if (specialKind === "granite_maul") {
-      return "gmaul-bandos";
     }
     if (specialKind === "voidwaker" || specialKind === "vesta_longsword") {
       return "tentacle-bandos";

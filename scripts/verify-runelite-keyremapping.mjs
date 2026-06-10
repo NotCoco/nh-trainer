@@ -47,7 +47,7 @@ const sourceConfig = fs.readFileSync(
   path.join(
     root,
     "..",
-    "Nh184-Client",
+    "Kronos184-Client",
     "runelite-client",
     "src",
     "main",
@@ -65,7 +65,7 @@ const sourceListener = fs.readFileSync(
   path.join(
     root,
     "..",
-    "Nh184-Client",
+    "Kronos184-Client",
     "runelite-client",
     "src",
     "main",
@@ -83,7 +83,7 @@ const sourceHotkeyButton = fs.readFileSync(
   path.join(
     root,
     "..",
-    "Nh184-Client",
+    "Kronos184-Client",
     "runelite-client",
     "src",
     "main",
@@ -101,7 +101,7 @@ const sourceConfigPanel = fs.readFileSync(
   path.join(
     root,
     "..",
-    "Nh184-Client",
+    "Kronos184-Client",
     "runelite-client",
     "src",
     "main",
@@ -122,10 +122,10 @@ const serverConfigSource = fs.readFileSync(
   path.join(
     root,
     "..",
-    "nh-osrs-184-master",
-    "nh-osrs-184-master",
-    "Nh-master",
-    "nh-server",
+    "kronos-osrs-184-master",
+    "kronos-osrs-184-master",
+    "Kronos-master",
+    "kronos-server",
     "src",
     "main",
     "java",
@@ -142,10 +142,10 @@ const tabOptionsSource = fs.readFileSync(
   path.join(
     root,
     "..",
-    "nh-osrs-184-master",
-    "nh-osrs-184-master",
-    "Nh-master",
-    "nh-server",
+    "kronos-osrs-184-master",
+    "kronos-osrs-184-master",
+    "Kronos-master",
+    "kronos-server",
     "src",
     "main",
     "java",
@@ -159,28 +159,28 @@ const tabOptionsSource = fs.readFileSync(
   "utf8"
 );
 const keybindGetSlotSource = fs.readFileSync(
-  path.join(root, "..", "nh-osrs-184-master", "nh-osrs-184-master", "Nh-master", "scripts", "[proc,keybind_get_slot].cs2"),
+  path.join(root, "..", "kronos-osrs-184-master", "kronos-osrs-184-master", "Kronos-master", "scripts", "[proc,keybind_get_slot].cs2"),
   "utf8"
 );
 const keybindScript984Source = fs.readFileSync(
-  path.join(root, "..", "nh-osrs-184-master", "nh-osrs-184-master", "Nh-master", "scripts", "script984.cs2"),
+  path.join(root, "..", "kronos-osrs-184-master", "kronos-osrs-184-master", "Kronos-master", "scripts", "script984.cs2"),
   "utf8"
 );
 const keybindOpenMenuSource = fs.readFileSync(
-  path.join(root, "..", "nh-osrs-184-master", "nh-osrs-184-master", "Nh-master", "scripts", "[clientscript,keybind_open_menu].cs2"),
+  path.join(root, "..", "kronos-osrs-184-master", "kronos-osrs-184-master", "Kronos-master", "scripts", "[clientscript,keybind_open_menu].cs2"),
   "utf8"
 );
 const keybindBuildDropdownSource = fs.readFileSync(
-  path.join(root, "..", "nh-osrs-184-master", "nh-osrs-184-master", "Nh-master", "scripts", "[proc,keybind_build_dropdown].cs2"),
+  path.join(root, "..", "kronos-osrs-184-master", "kronos-osrs-184-master", "Kronos-master", "scripts", "[proc,keybind_build_dropdown].cs2"),
   "utf8"
 );
 const trainerAssetExportSource = fs.readFileSync(
   path.join(
     root,
     "..",
-    "nh-osrs-184-master",
-    "nh-osrs-184-master",
-    "Nh-master",
+    "kronos-osrs-184-master",
+    "kronos-osrs-184-master",
+    "Kronos-master",
     "runelite",
     "cache",
     "src",
@@ -190,7 +190,7 @@ const trainerAssetExportSource = fs.readFileSync(
     "runelite",
     "cache",
     "tools",
-    "NhNhTrainerAssetExport.java"
+    "KronosNhTrainerAssetExport.java"
   ),
   "utf8"
 );

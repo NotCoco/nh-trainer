@@ -102,7 +102,8 @@
     "verify:overlay-projection": "node scripts/verify-overlay-projection.mjs",
     "verify:external-items": "node scripts/verify-external-items.mjs",
     "verify:policy-duel": "node scripts/verify-policy-duel.mjs",
-    "eval:policy-head-to-head": "node scripts/evaluate-policy-head-to-head.mjs",
+    "eval:policy-head-to-head": "node scripts/evaluate-policy-head-to-head-runtime.mjs",
+    "eval:policy-cohorts": "node scripts/evaluate-policy-cohorts-runtime.mjs",
     "train:policy-dynamic-cohorts": "node scripts/train-policy-dynamic-cohorts.mjs",
     "verify:tree-textures": "node scripts/verify-tree-textures.mjs",
     "verify:all": "npm run report:fixtures && npm run report:animations && npm run report:sim && npm run verify:policy-duel && npm run verify:policy-static-fallback && npm run verify:camera-controls && npm run verify:fixed-layout && npm run verify:tile-movement && npm run verify:tile-model && npm run verify:projectile-lifecycle && npm run verify:spotanim-animation && npm run verify:redemption-prayer && npm run verify:overhead-icons && npm run verify:click-cross && npm run verify:hitsplat-definitions && npm run verify:healthbar-definitions && npm run verify:player-composition && npm run verify:sequence-playback && npm run verify:context-menu-semantics && npm run verify:inventory-quantities && npm run verify:minimap-projection && npm run verify:overlay-placement && npm run verify:overlay-projection && npm run verify:runtime-player-combat && npm run verify:runelite-overlay-menu && npm run verify:runelite-overlay-drag && npm run verify:runelite-frame-config && npm run verify:runelite-window-bounds-persistence && npm run verify:runelite-client-opacity && npm run verify:runelite-antidrag && npm run verify:runelite-customcursor && npm run verify:runelite-keyremapping && npm run verify:runelite-mousehighlight && npm run verify:runelite-hideunder && npm run verify:runelite-pray-against-player && npm run verify:runelite-gpu && npm run verify:runelite-stretched-mode && npm run verify:runelite-entityhider && npm run verify:runelite-tile-indicators && npm run verify:runelite-line-of-sight && npm run verify:runelite-freeze-timers && npm run verify:runelite-specbar && npm run verify:runelite-statusbars && npm run verify:runelite-statusorbs && npm run verify:runelite-attackstyles && npm run verify:runelite-opponentinfo && npm run verify:runelite-playerindicators && npm run verify:runelite-boosts && npm run verify:runelite-prayer && npm run verify:runelite-supplies-tracker && npm run verify:runelite-pvptools && npm run verify:runelite-xpdrop && npm run verify:runelite-pvp-tracker && npm run build && npm run verify:context-menu && npm run verify:context-menu-player && npm run verify:context-menu-object && npm run verify:runtime-inventory && npm run verify:runtime-minimap && npm run verify:runtime-overlays && npm run verify:runtime-hud && npm run verify:runelite-shell && npm run verify:runelite-shell-render && npm run verify:render-smoke && npm run verify:render-angles && npm run verify:tree-textures",
@@ -122,6 +123,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@upstash/redis": "^1.38.0",
     "@vercel/analytics": "^2.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

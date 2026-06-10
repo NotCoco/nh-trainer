@@ -54,6 +54,8 @@ const biasScale = 0.06;
 const reservoirSeed = 0x5eedb07a5a11n;
 const visibleStyleReliabilityWindowTicks = 16;
 const visibleStyleReliabilityConfidenceSamples = 12;
+const vengeanceTrinketRecentTicksNormalizer = 80;
+const vengeanceTrinketCastCountNormalizer = 8;
 const equipmentRows = equipmentRowsJson as readonly EquipmentBonusRow[];
 const clientThreatGmaulMax = 40;
 const clientThreatGmaulDoubleMax = 72;
@@ -206,6 +208,8 @@ export function encodeNhPolicyInput(context: NhDuelControllerContext, state?: Nh
   input.push(visibleStyleReliability.mismatchRate);
   input.push(visibleStyleReliability.confidence);
   input.push(visibleStyleReliability.lastOutcome);
+  input.push(opponentVengeanceTrinketRecentFeature(context));
+  input.push(opponentVengeanceTrinketCastsFeature(context));
 
   if (input.length !== nhPolicyInputSize) {
     throw new Error(`NH policy input encoder produced ${input.length} inputs, expected ${nhPolicyInputSize}.`);
@@ -307,6 +311,24 @@ function policyPotionBottleCount(...remainingSips: readonly number[]): number {
 
 function observedOpponentInfoKnown(context: NhDuelControllerContext): boolean {
   return context.opponent.observedInfoKnown !== false;
+}
+
+function opponentVengeanceTrinketRecentFeature(context: NhDuelControllerContext): number {
+  if (!observedOpponentInfoKnown(context)) {
+    return 0;
+  }
+  const lastCastTick = context.opponent.lastVengeanceTrinketCastTick ?? -1;
+  if (lastCastTick < 0) {
+    return 0;
+  }
+  return remainingTicks(lastCastTick + vengeanceTrinketRecentTicksNormalizer, context.tick, vengeanceTrinketRecentTicksNormalizer);
+}
+
+function opponentVengeanceTrinketCastsFeature(context: NhDuelControllerContext): number {
+  if (!observedOpponentInfoKnown(context)) {
+    return 0;
+  }
+  return clamp01((context.opponent.vengeanceTrinketCasts ?? 0) / vengeanceTrinketCastCountNormalizer);
 }
 
 function updateVisibleStyleReliabilityState(
@@ -721,11 +743,10 @@ function canApproachSpecialSpecSoon(
 }
 
 function hasClientSpecControlForSpecial(context: NhDuelControllerContext, specialKind: NhSpecialWeaponKind): boolean {
-  return (
-    nhWeaponProfiles[context.self.weaponId].hasVisibleSpecBar ||
-    specialKind === "voidwaker" ||
-    specialKind === "vesta_longsword"
-  );
+  void specialKind;
+  // Source: NhStakerBot.hasClientSpecControlForSpecialThisTick() reads the
+  // tick-start weapon, so only a currently visible special bar gives control.
+  return nhWeaponProfiles[context.self.weaponId].hasVisibleSpecBar;
 }
 
 function availableSpecialWeaponKind(actor: NhDuelActorState): NhSpecialWeaponKind | null {

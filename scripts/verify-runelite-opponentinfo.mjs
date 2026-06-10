@@ -9,7 +9,7 @@ function read(relativePath) {
 }
 
 function readNhClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
 }
 
 function assert(condition, message) {
@@ -127,8 +127,8 @@ for (const sourceAnchor of [
 for (const trainerAnchor of [
   'id: "opponent-info"',
   'name: "Opponent Information"',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/OpponentInfoPlugin.java"',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/OpponentInfoConfig.java"',
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/OpponentInfoPlugin.java"',
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/OpponentInfoConfig.java"',
   'group: "opponentinfo"',
   'hitpointsDisplayStyle: "Hitpoints"',
   'showOpponentsOpponent: true',

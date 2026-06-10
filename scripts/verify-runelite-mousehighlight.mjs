@@ -9,7 +9,7 @@ function read(relativePath) {
 }
 
 function readNhClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
 }
 
 function assert(condition, message) {
@@ -102,8 +102,8 @@ for (const trainerAnchor of [
   "RuneliteMouseHighlightConfigSnapshot",
   'id: RUNELITE_MOUSE_HIGHLIGHT_PLUGIN_ID',
   'name: "Mouse Tooltips"',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/mousehighlight/MouseHighlightPlugin.java"',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/mousehighlight/MouseHighlightConfig.java"',
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/mousehighlight/MouseHighlightPlugin.java"',
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/mousehighlight/MouseHighlightConfig.java"',
   "rightclickoptionTooltip",
   "mouseHighlight: {"
 ]) {

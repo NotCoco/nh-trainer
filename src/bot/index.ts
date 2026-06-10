@@ -17,7 +17,8 @@ export const botBoundary = {
       label: "Load NH policy without remapping observations",
       evidenceStatus: "verified",
       sourceAnchorIds: ["server-nh-policy-bridge-contract", "server-nh-observation-contract"],
-      acceptanceGate: "The same 77-input, 4950-action bridge can load the policy artifact used by the live reference server."
+      acceptanceGate:
+        "The current versioned bridge can load current action-count policies while preserving old action ids as attack/style-loadout decisions."
     },
     {
       id: "client-visible-observation",

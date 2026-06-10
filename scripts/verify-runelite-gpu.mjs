@@ -9,7 +9,7 @@ function read(relativePath) {
 }
 
 function readNhClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
 }
 
 function assert(condition, message) {
@@ -116,7 +116,7 @@ for (const runtimeAnchor of [
 
 for (const shellAnchor of [
   'id: "gpu"',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/gpu/GpuPluginConfig.java"',
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/gpu/GpuPluginConfig.java"',
   'keyName: "drawDistance"',
   'keyName: "smoothBanding"',
   'keyName: "antiAliasingMode"',

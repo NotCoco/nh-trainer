@@ -15,7 +15,7 @@ import {
   type GmaulSpecState
 } from "./combat/gmaul";
 import type { AttackTimerState } from "./combat/timers";
-import { consumeExpiredAttackDelay, createAttackTimerState } from "./combat/timers";
+import { consumeExpiredAttackDelay, createAttackTimerState, delayAttack } from "./combat/timers";
 import type { EntityLockState } from "./entity/locks";
 import {
   applyFreeze,
@@ -113,6 +113,8 @@ export interface RuntimePlayerCombatActorState {
   readonly vengeanceActive: boolean;
   readonly vengeanceCooldownUntilTick: number;
   readonly vengeanceTrinketCharges: number;
+  readonly lastVengeanceTrinketCastTick: number;
+  readonly vengeanceTrinketCasts: number;
   readonly actionSequenceName: RuntimeSequenceName | null;
   readonly actionStartedAtTick: number | null;
   readonly actionStartedAtClientCycle: number | null;
@@ -323,7 +325,6 @@ export type RuntimePlayerCombatEvent =
         | "gmaul_spec"
         | "gmaul_missed_spec"
         | "gmaul_spec_outcome"
-        | "style_pressure"
         | "gear_weakness"
         | "melee_threat"
         | "melee_telegraph"
@@ -339,7 +340,7 @@ export type RuntimePlayerCombatEvent =
         | "supply_reward"
         | "vengeance_trinket"
         | "defence_belief"
-        | "actual_prayer";
+        | "incoming_prayer";
       readonly reward: number;
       readonly sourcePolicyRewardId?: string;
       readonly gmaulDoubleSpec?: boolean;
@@ -405,10 +406,8 @@ export type RuntimePlayerCombatEvent =
       readonly averagePrayerDamage?: number;
       readonly expectedRisk?: number;
       readonly pressure?: number;
-      readonly onPrayerHits?: number;
-      readonly offPrayerHits?: number;
-      readonly onPrayerDamage?: number;
-      readonly offPrayerDamage?: number;
+      readonly correctPrayers?: number;
+      readonly incorrectPrayers?: number;
       readonly boostedCombatLevels?: number;
       readonly brewedDownCombatLevels?: number;
       readonly pottedStateBonus?: number;
@@ -554,7 +553,7 @@ const nhDefaultProjectileCycleRate = 16;
 const nhMagicProjectileCycleRate = 19;
 const runtimePlayerCombatHitpointXpRatio = 1.33;
 const runtimePlayerCombatVengeanceCooldownTicks = 50;
-const runtimePlayerCombatVengeanceStallTicks = 2;
+const runtimePlayerCombatVengeanceStallTicks = 6;
 const runtimePlayerCombatVengeanceCastSoundId = 2907;
 const runtimePlayerCombatDefaultVengeanceTrinketCharges = 0;
 export const runtimePlayerCombatIceBarrageFreezeTicks = 32;
@@ -1033,6 +1032,29 @@ export function resetRuntimePlayerCombatActorTarget(
   };
 }
 
+export function delayRuntimePlayerCombatActorAttack(
+  state: RuntimePlayerCombatState,
+  actorId: RuntimeActorId,
+  ticks: number
+): RuntimePlayerCombatState {
+  const actor = state.actors[actorId];
+  const nextAttackTimer = delayAttack(actor.attackTimer, ticks);
+  if (nextAttackTimer === actor.attackTimer) {
+    return state;
+  }
+
+  return {
+    ...state,
+    actors: {
+      ...state.actors,
+      [actorId]: {
+        ...actor,
+        attackTimer: nextAttackTimer
+      }
+    }
+  };
+}
+
 export function resetRuntimePlayerCombatActorPolicyDisengage(
   state: RuntimePlayerCombatState,
   actorId: RuntimeActorId
@@ -1144,6 +1166,8 @@ export function resetRuntimePlayerCombatActorPolicyFreshFight(
         vengeanceCooldownUntilTick: 0,
         vengeanceTrinketCharges:
           input.vengeanceTrinketCharges ?? actor.vengeanceTrinketCharges ?? runtimePlayerCombatDefaultVengeanceTrinketCharges,
+        lastVengeanceTrinketCastTick: -1,
+        vengeanceTrinketCasts: 0,
         actionSequenceName: null,
         actionStartedAtTick: null,
         actionStartedAtClientCycle: null,
@@ -1175,6 +1199,8 @@ function resetRuntimePlayerCombatActorPolicyDeath(actor: RuntimePlayerCombatActo
     conflictionMagicAccuracyUntilTick: 0,
     vengeanceActive: false,
     vengeanceCooldownUntilTick: 0,
+    lastVengeanceTrinketCastTick: -1,
+    vengeanceTrinketCasts: 0,
     activePrayers: []
   };
 }
@@ -1421,6 +1447,8 @@ export function activateRuntimePlayerCombatVengeanceTrinket(
           ...actor,
           vengeanceActive: true,
           vengeanceTrinketCharges: Math.max(0, actor.vengeanceTrinketCharges - 1),
+          lastVengeanceTrinketCastTick: state.tick,
+          vengeanceTrinketCasts: actor.vengeanceTrinketCasts + 1,
           // Source: Trinket of vengeance casts Vengeance with the standard 30 second cooldown.
           vengeanceCooldownUntilTick: state.tick + runtimePlayerCombatVengeanceCooldownTicks,
           actionSequenceName: "vengeance_cast",
@@ -2012,6 +2040,8 @@ function createRuntimePlayerCombatActor(
     vengeanceActive: false,
     vengeanceCooldownUntilTick: 0,
     vengeanceTrinketCharges: Math.max(0, Math.trunc(vengeanceTrinketCharges)),
+    lastVengeanceTrinketCastTick: -1,
+    vengeanceTrinketCasts: 0,
     actionSequenceName: null,
     actionStartedAtTick: null,
     actionStartedAtClientCycle: null,

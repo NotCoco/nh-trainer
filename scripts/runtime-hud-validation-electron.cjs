@@ -1934,7 +1934,7 @@ app.whenReady().then(async () => {
       combatPanel.specialBar?.specialActiveVarpId !== 301 ||
       combatPanel.specialBar?.specialAvailable !== true ||
       combatPanel.specialBar?.specialDrainPercent !== 40 ||
-      combatPanel.specialBar?.specialDrainSource !== "nh-server:combat.special.ranged.ArmadylCrossbow" ||
+      combatPanel.specialBar?.specialDrainSource !== "kronos-server:combat.special.ranged.ArmadylCrossbow" ||
       combatPanel.specialBar?.specialEnergyVarpId !== 300 ||
       combatPanel.specialBar?.varpId !== 300 ||
       combatPanel.specialBar?.weaponItemId !== 11785 ||
@@ -2029,7 +2029,7 @@ app.whenReady().then(async () => {
       specialDispatch.lastCombatSpecialActiveVarpId !== "301" ||
       specialDispatch.lastCombatSpecialAvailable !== "true" ||
       specialDispatch.lastCombatSpecialDrainPercent !== "40" ||
-      specialDispatch.lastCombatSpecialDrainSource !== "nh-server:combat.special.ranged.ArmadylCrossbow" ||
+      specialDispatch.lastCombatSpecialDrainSource !== "kronos-server:combat.special.ranged.ArmadylCrossbow" ||
       specialDispatch.lastCombatSpecialEnergy !== "100" ||
       specialDispatch.lastCombatSpecialEnergyVarpId !== "300" ||
       specialDispatch.lastCombatSpecialMutation !== "activate" ||

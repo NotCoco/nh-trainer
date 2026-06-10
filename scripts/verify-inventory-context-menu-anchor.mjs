@@ -29,7 +29,11 @@ for (const snippet of [
 const viewerSource = await readFile(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
 for (const snippet of [
   "Browser fallback contextmenu can be retargeted after a right-button drag",
-  "suppressNextCanvasContextMenuRef.current = true;"
+  "suppressNextCanvasContextMenuRef.current = true;",
+  "lastRightButtonPressAtMsRef",
+  "nhNextClientCycleDelayFromPressMs",
+  "viewport.dataset.lastContextMenuPressedAtMs",
+  "viewport.dataset.lastContextMenuScheduledDelayMs"
 ]) {
   if (!viewerSource.includes(snippet)) {
     throw new Error(`RuntimeSceneViewer inventory context-menu fallback suppression missing snippet: ${snippet}`);

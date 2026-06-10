@@ -31,9 +31,10 @@ const cohortPatterns = [
 ];
 
 const args = parseArgs(process.argv.slice(2));
-const policyPath = path.resolve(projectRoot, args.policy ?? path.join("fixtures", "ai", "nhstaker-selfplay-policy-hard.tsv"));
+const policyPath = path.resolve(projectRoot, args.policy ?? path.join("fixtures", "ai", "nh-neural-policy-hard.json"));
 const fightCount = clampInt(Number(args.fights ?? 20), 2, 20000);
-const maxTicks = clampInt(Number(args.ticks ?? 160), 24, 2000);
+const defaultCohortMaxTicks = 600;
+const maxTicks = clampInt(Number(args.ticks ?? defaultCohortMaxTicks), 24, 2000);
 const seedBase = Number(args.seed ?? 0x4e484d);
 const requestedPatterns = String(args.patterns ?? "all")
   .split(",")
@@ -65,7 +66,7 @@ const defaultLocalStartTile =
 const defaultOpponentStartTile =
   defaultRuntimeFrame.actors.find((actor) => actor.actorId === "opponent")?.tile ?? { x: 2, z: 0 };
 
-const policy = botPolicy.parseNhPolicyTsv(readFileSync(policyPath, "utf8"), path.basename(policyPath));
+const policy = parseRuntimePolicy(policyPath);
 const rows = patterns.map((pattern, patternIndex) =>
   evaluatePattern(pattern, (seedBase + patternIndex * 100_003) >>> 0)
 );
@@ -77,7 +78,7 @@ console.log(
       policy: relativeToProject(policyPath),
       engine: "runtime-policy-opponent",
       note:
-        "Runtime evaluator: policy is driven through createNhPolicyController + applyRuntimeOpponentPolicyAction, matching the live trainer opponent path more closely than the old standalone duel evaluator.",
+        "Runtime evaluator: policy is driven through createNhPolicyController + applyRuntimeOpponentPolicyAction, with the same pre-movement hit pass before opponent policy choice that the live trainer tick loop uses.",
       options: {
         fights: fightCount,
         maxTicks,
@@ -134,10 +135,20 @@ function evaluatePattern(pattern, seed) {
     cohortStyle: createStyleCounts(),
     policyAttackStyle: createStyleCounts(),
     cohortAttackStyle: createStyleCounts(),
+    policyAttackIntentChecks: 0,
+    policyAttackIntentMatches: 0,
+    policyAttackIntentMismatches: createStylePairCounts(),
+    cohortAttackIntentChecks: 0,
+    cohortAttackIntentMatches: 0,
+    cohortAttackIntentMismatches: createStylePairCounts(),
     policySupply: createSupplyCounts(),
     cohortSupply: createSupplyCounts(),
     policySpec: createSpecCounts(),
     cohortSpec: createSpecCounts(),
+    policyAttackIntent: createAttackIntentCounts(),
+    cohortAttackIntent: createAttackIntentCounts(),
+    policyEquipmentIntent: createEquipmentIntentCounts(),
+    cohortEquipmentIntent: createEquipmentIntentCounts(),
     policyConsumed: createConsumableCounts(),
     cohortConsumed: createConsumableCounts(),
     policyPrayerTicks: 0,
@@ -154,6 +165,7 @@ function evaluatePattern(pattern, seed) {
   const decisiveRate = aggregate.decisive === 0 ? 0 : aggregate.policyWins / aggregate.decisive;
   const policyTotalWinRateRaw = aggregate.policyWins / Math.max(1, aggregate.fights);
   const cohortTotalWinRateRaw = aggregate.cohortWins / Math.max(1, aggregate.fights);
+  const timeoutRateRaw = aggregate.timeouts / Math.max(1, aggregate.fights);
   const prayerMatchRateRaw =
     aggregate.policyPrayerTicks === 0 ? 0.5 : aggregate.policyPrayerMatches / aggregate.policyPrayerTicks;
   const damageTotal = aggregate.policyDamage + aggregate.cohortDamage;
@@ -176,6 +188,9 @@ function evaluatePattern(pattern, seed) {
       cohortDeaths: aggregate.cohortDeaths,
       simultaneousDeaths: aggregate.simultaneousDeaths,
       timeouts: aggregate.timeouts,
+      timeoutRate: roundPct(timeoutRateRaw),
+      validForComparison: aggregate.timeouts === 0 && aggregate.decisive > 0,
+      timeoutRule: "Only actual deaths count. Timeout fights are inconclusive and must not be used as promotion evidence.",
       decisivePolicyWinRate: roundPct(decisiveRate),
       decisivePolicyWinRateRaw: decisiveRate,
       policyTotalWinRate: roundPct(policyTotalWinRateRaw),
@@ -195,6 +210,13 @@ function evaluatePattern(pattern, seed) {
     policyBehavior: {
       style: percentMap(aggregate.policyStyle),
       attackStyle: percentMap(aggregate.policyAttackStyle),
+      attackIntent: percentMap(aggregate.policyAttackIntent),
+      equipmentIntent: percentMap(aggregate.policyEquipmentIntent),
+      attackIntentMatch: attackIntentSummary(
+        aggregate.policyAttackIntentChecks,
+        aggregate.policyAttackIntentMatches,
+        aggregate.policyAttackIntentMismatches
+      ),
       supply: percentMap(aggregate.policySupply),
       spec: percentMap(aggregate.policySpec),
       consumed: countMap(aggregate.policyConsumed),
@@ -206,6 +228,13 @@ function evaluatePattern(pattern, seed) {
     cohortBehavior: {
       style: percentMap(aggregate.cohortStyle),
       attackStyle: percentMap(aggregate.cohortAttackStyle),
+      attackIntent: percentMap(aggregate.cohortAttackIntent),
+      equipmentIntent: percentMap(aggregate.cohortEquipmentIntent),
+      attackIntentMatch: attackIntentSummary(
+        aggregate.cohortAttackIntentChecks,
+        aggregate.cohortAttackIntentMatches,
+        aggregate.cohortAttackIntentMismatches
+      ),
       supply: percentMap(aggregate.cohortSupply),
       consumed: countMap(aggregate.cohortConsumed),
       spec: percentMap(aggregate.cohortSpec)
@@ -269,6 +298,27 @@ function runRuntimeFight(pattern, seed) {
     localMemory.lastOffenceStyle = cohortAction.offenceStyle;
     fight.cohortActions.push({ tick: state.tick, action: cohortAction });
 
+    const preMovementHitResult = runtime.applyRuntimePlayerCombatPreMovementHits(state, {
+      tiles: runtimeTiles(state),
+      loadouts: runtimeLoadoutsForState(state),
+      equipment: runtimeEquipmentForState(state),
+      gearProfiles: {
+        "local-player": profile,
+        opponent: profile
+      },
+      tileScale: runtimeTileScale,
+      clientCycle: state.tick * runtime.runtimePlayerCombatClientCyclesPerGameTick
+    });
+    state = preMovementHitResult.state;
+    const preMovementTickEvents = currentTickEvents(state);
+    const preMovementDeaths = preMovementTickEvents.filter((event) => event.kind === "death");
+    if (preMovementDeaths.length > 0) {
+      fight.events.push(...preMovementTickEvents);
+      applyFightDeaths(fight, preMovementDeaths, state.tick + 1);
+      fight.finalState = state;
+      break;
+    }
+
     const policyResult = runtimePolicy.applyRuntimeOpponentPolicyAction({
       state,
       controller: policyController,
@@ -317,12 +367,7 @@ function runRuntimeFight(pattern, seed) {
     );
     const deaths = tickEvents.filter((event) => event.kind === "death");
     if (deaths.length > 0) {
-      const localDead = deaths.some((event) => event.actorId === "local-player");
-      const opponentDead = deaths.some((event) => event.actorId === "opponent");
-      fight.cohortDied = fight.cohortDied || localDead;
-      fight.policyDied = fight.policyDied || opponentDead;
-      fight.winner = localDead && opponentDead ? "draw" : localDead ? "policy" : "cohort";
-      fight.endedAtTick = state.tick;
+      applyFightDeaths(fight, deaths, state.tick);
     }
   }
 
@@ -336,6 +381,27 @@ function runRuntimeFight(pattern, seed) {
   }
   fight.endedAtTick = fight.endedAtTick || state.tick;
   return fight;
+}
+
+function currentTickEvents(state) {
+  return state.events.filter((event) => event.tick === state.tick);
+}
+
+function applyFightDeaths(fight, deaths, endedAtTick) {
+  const localDead = deaths.some((event) => event.actorId === "local-player");
+  const opponentDead = deaths.some((event) => event.actorId === "opponent");
+  fight.cohortDied = fight.cohortDied || localDead;
+  fight.policyDied = fight.policyDied || opponentDead;
+  fight.winner = localDead && opponentDead ? "draw" : localDead ? "policy" : "cohort";
+  fight.endedAtTick = endedAtTick;
+}
+
+function parseRuntimePolicy(policyFilePath) {
+  const text = readFileSync(policyFilePath, "utf8");
+  const label = path.basename(policyFilePath);
+  return policyFilePath.toLowerCase().endsWith(".json")
+    ? botPolicy.parseNhNeuralPolicyJson(text, label)
+    : botPolicy.parseNhPolicyTsv(text, label);
 }
 
 function applyLocalCohortAction(state, action) {
@@ -644,6 +710,8 @@ function cohortSpec(pattern, style, context) {
 }
 
 function recordRuntimeFight(aggregate, fight) {
+  const policyIntentByTick = new Map(fight.policyActions.map((entry) => [entry.tick, entry.effectiveAction.offenceStyle]));
+  const cohortIntentByTick = new Map(fight.cohortActions.map((entry) => [entry.tick, entry.action.offenceStyle]));
   aggregate.fights += 1;
   if (fight.winner === "policy") {
     aggregate.policyWins += 1;
@@ -661,10 +729,24 @@ function recordRuntimeFight(aggregate, fight) {
   aggregate.totalTicks += fight.endedAtTick;
 
   for (const entry of fight.policyActions) {
-    recordAction(aggregate.policyStyle, aggregate.policySupply, aggregate.policySpec, entry.effectiveAction);
+    recordAction(
+      aggregate.policyStyle,
+      aggregate.policySupply,
+      aggregate.policySpec,
+      aggregate.policyAttackIntent,
+      aggregate.policyEquipmentIntent,
+      entry.effectiveAction
+    );
   }
   for (const entry of fight.cohortActions) {
-    recordAction(aggregate.cohortStyle, aggregate.cohortSupply, aggregate.cohortSpec, entry.action);
+    recordAction(
+      aggregate.cohortStyle,
+      aggregate.cohortSupply,
+      aggregate.cohortSpec,
+      aggregate.cohortAttackIntent,
+      aggregate.cohortEquipmentIntent,
+      entry.action
+    );
   }
   for (const event of fight.events) {
     if (event.kind === "hitsplat" && event.damage > 0) {
@@ -692,8 +774,26 @@ function recordRuntimeFight(aggregate, fight) {
       const style = runtimeStyleToOffence(event.style);
       if (event.attackerId === "opponent") {
         aggregate.policyAttackStyle[style] += 1;
+        const intent = policyIntentByTick.get(event.tick);
+        if (intent) {
+          aggregate.policyAttackIntentChecks += 1;
+          if (intent === style) {
+            aggregate.policyAttackIntentMatches += 1;
+          } else {
+            aggregate.policyAttackIntentMismatches[`${intent}->${style}`] += 1;
+          }
+        }
       } else if (event.attackerId === "local-player") {
         aggregate.cohortAttackStyle[style] += 1;
+        const intent = cohortIntentByTick.get(event.tick);
+        if (intent) {
+          aggregate.cohortAttackIntentChecks += 1;
+          if (intent === style) {
+            aggregate.cohortAttackIntentMatches += 1;
+          } else {
+            aggregate.cohortAttackIntentMismatches[`${intent}->${style}`] += 1;
+          }
+        }
         aggregate.policyPrayerTicks += 1;
         aggregate.prayerChecksByStyle[style] += 1;
         if (event.defenderProtectionPrayer === protectPrayerForOffence(style)) {
@@ -963,18 +1063,51 @@ function oppositeMageRange(style) {
   return style === "ranged" ? "magic" : "ranged";
 }
 
-function recordAction(styleCounts, supplyCounts, specCounts, action) {
+function recordAction(styleCounts, supplyCounts, specCounts, attackIntentCounts, equipmentIntentCounts, action) {
   styleCounts[action.offenceStyle] += 1;
   supplyCounts[action.supplyIntent] += 1;
   specCounts[action.specIntent] += 1;
+  attackIntentCounts[action.attackIntent ?? "attack"] += 1;
+  equipmentIntentCounts[action.equipmentIntent ?? "style_loadout"] += 1;
 }
 
 function createStyleCounts() {
   return { magic: 0, ranged: 0, melee: 0 };
 }
 
+function createStylePairCounts() {
+  return {
+    "magic->ranged": 0,
+    "magic->melee": 0,
+    "ranged->magic": 0,
+    "ranged->melee": 0,
+    "melee->magic": 0,
+    "melee->ranged": 0
+  };
+}
+
 function createSpecCounts() {
   return { none: 0, use_special: 0, use_special_double: 0 };
+}
+
+function createAttackIntentCounts() {
+  return { attack: 0, hold: 0, off_tick: 0 };
+}
+
+function createEquipmentIntentCounts() {
+  return {
+    style_loadout: 0,
+    weapon_only: 0,
+    unequip_feet: 0,
+    unequip_head: 0,
+    unequip_cape: 0,
+    unequip_amulet: 0,
+    unequip_body: 0,
+    unequip_shield: 0,
+    unequip_legs: 0,
+    unequip_hands: 0,
+    unequip_ring: 0
+  };
 }
 
 function createSupplyCounts() {
@@ -1015,6 +1148,15 @@ function percentMap(counts) {
 
 function countMap(counts) {
   return Object.fromEntries(Object.entries(counts).filter(([, value]) => value > 0));
+}
+
+function attackIntentSummary(checks, matches, mismatches) {
+  return {
+    checks,
+    matches,
+    rate: checks === 0 ? "0.0%" : roundPct(matches / checks),
+    mismatches: countMap(mismatches)
+  };
 }
 
 function prayerMatchByStyleSummary(checks, matches) {

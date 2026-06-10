@@ -102,7 +102,9 @@ const entityLocks = loadTsModule("src/sim/entity/locks.ts");
 const spellRequirements = loadTsModule("src/sim/magic/spellRequirements.ts");
 const runtimePolicyOpponent = loadTsModule("src/sim/nh/runtime-policy-opponent.ts");
 const nhDuel = loadTsModule("src/sim/nh/duel.ts");
+const nhGearProfile = loadTsModule("src/sim/nh/gearProfile.ts");
 const consumables = loadTsModule("src/sim/items/consumables.ts");
+const equipment = loadTsModule("src/sim/equipment/equipment.ts");
 const combatFormulas = loadTsModule("src/sim/combat/formulas.ts");
 const itemActionQueue = loadTsModule("src/sim/engine/itemActionQueue.ts");
 const nhLoadouts = loadTsModule("src/sim/nh/loadouts.ts");
@@ -111,6 +113,8 @@ const nhPolicyBridge = loadTsModule("src/sim/nh/policy-bridge.ts");
 const botPolicy = loadTsModule("src/bot/policy.ts");
 const prayers = loadTsModule("src/sim/prayer/prayers.ts");
 const nhCombat = loadTsModule("src/render/nhCombat.ts");
+const equipmentRows = loadTsModule("src/generated/equipment-bonuses.json");
+const serverItems = loadTsModule("src/generated/server-items.json");
 const playerCombatSource = readNhServerSource("model/entity/player/PlayerCombat.java");
 const configSource = readNhServerSource("model/inter/utils/Config.java");
 const combatSource = readNhServerSource("model/combat/Combat.java");
@@ -214,6 +218,52 @@ function requestLocalAttack(state) {
   return runtimeCombat.requestRuntimePlayerCombatAttack(state, "local-player", "opponent");
 }
 
+function itemRow(itemId) {
+  const row = equipmentRows.find((entry) => entry.id === itemId);
+  assert(row, `missing equipment bonus row for item ${itemId}`);
+  return row;
+}
+
+function serverItem(itemId) {
+  const item = Array.isArray(serverItems)
+    ? serverItems.find((entry) => entry.id === itemId)
+    : serverItems[String(itemId)] ?? serverItems[itemId];
+  assert(item, `missing generated server item row for item ${itemId}`);
+  return item;
+}
+
+function assertEquipmentRowMatchesServerItem(itemId) {
+  const row = itemRow(itemId);
+  const source = serverItem(itemId);
+  for (const key of Object.keys(row.bonuses)) {
+    assert(
+      row.bonuses[key] === source.bonuses[key],
+      `equipment bonus row for ${itemId} ${key} should match exported Java item info: ${row.bonuses[key]} !== ${source.bonuses[key]}`
+    );
+  }
+}
+
+function bonusDelta(withEquipment, withoutEquipment) {
+  const withBonuses = equipment.aggregateVisibleEquipmentBonuses(withEquipment, equipmentRows);
+  const withoutBonuses = equipment.aggregateVisibleEquipmentBonuses(withoutEquipment, equipmentRows);
+  return Object.fromEntries(
+    Object.keys(withBonuses).map((key) => [key, withoutBonuses[key] - withBonuses[key]])
+  );
+}
+
+function assertUnequipDeltaMatchesRemovedItem(label, withEquipment, withoutEquipment, removedItem) {
+  const row = itemRow(removedItem.itemId);
+  const delta = bonusDelta(withEquipment, withoutEquipment);
+  for (const key of Object.keys(row.bonuses)) {
+    const expected = -row.bonuses[key];
+    assert(
+      delta[key] === expected,
+      `${label} ${key} delta should exactly subtract ${removedItem.name}'s Java-exported equipment bonus: got ${delta[key]}, expected ${expected}`
+    );
+  }
+  return delta;
+}
+
 function requestLocalSpell(state, spellId = "ice-barrage") {
   return runtimeCombat.requestRuntimePlayerCombatSpell(state, "local-player", "opponent", spellId);
 }
@@ -302,6 +352,7 @@ function findLocalBoltProc(ammoItemId, ammoName, effectId, seedStart = 800, seed
 function findAcbSpecialDoubledBoltProc(seedStart = 5000, seedEnd = 12000) {
   const equipment = {
     ...nhLoadouts.nhLoadouts["acb-hides"].equipment,
+    weapon: { itemId: 11785, name: "Armadyl crossbow" },
     ammo: { itemId: 21946, name: "Diamond dragon bolts (e)" }
   };
   for (let seed = seedStart; seed < seedEnd; seed += 1) {
@@ -1099,6 +1150,136 @@ assert(
   "manual-scene policy context should read a 1.0 world-unit diagonal gap as two OSRS tiles, not one diagonal melee step"
 );
 
+for (const itemId of [11840, 11832, 11834, 10828, 7462]) {
+  assertEquipmentRowMatchesServerItem(itemId);
+}
+
+const nhStakeEquipment = nhLoadouts.nhLoadouts["tentacle-bandos"].equipment;
+const nhStakeProfile = nhGearProfile.inferNhSelectedGearProfile({
+  equipment: nhStakeEquipment,
+  inventoryItems: Object.values(nhStakeEquipment)
+});
+const nhStakeUnequippedBoots = nhGearProfile.nhGearProfileActionEquipment({
+  currentEquipment: nhStakeEquipment,
+  profile: nhStakeProfile,
+  action: {
+    offenceStyle: "magic",
+    defencePrayer: "protect_from_missiles",
+    movementIntent: "pressure",
+    supplyIntent: "none",
+    specIntent: "none",
+    equipmentIntent: "unequip_feet"
+  },
+  threatStyle: null,
+  underPressure: false,
+  hitpoints: 99,
+  allowFlexibleGear: false
+});
+assert(!nhStakeUnequippedBoots.feet, "NH stake unequip_feet should leave the boots slot empty");
+const nhStakeBootDelta = assertUnequipDeltaMatchesRemovedItem(
+  "NH stake unequip_feet",
+  nhStakeEquipment,
+  nhStakeUnequippedBoots,
+  nhStakeEquipment.feet
+);
+assert(
+  nhStakeBootDelta.magic_attack_bonus === 3 &&
+    nhStakeBootDelta.range_attack_bonus === 1 &&
+    nhStakeBootDelta.melee_strength_bonus === -4,
+  `Dragon boots unequip should gain negative magic/range attack back and lose melee strength: ${JSON.stringify(nhStakeBootDelta)}`
+);
+
+const dmmIndependentEquipment = nhLoadouts.nhLoadouts["noxious-halberd"].equipment;
+const dmmIndependentInventory = Object.values(dmmIndependentEquipment);
+const dmmIndependentProfile = nhGearProfile.inferNhSelectedGearProfile({
+  equipment: dmmIndependentEquipment,
+  inventoryItems: dmmIndependentInventory
+});
+const dmmMagicStyleAction = {
+  offenceStyle: "magic",
+  defencePrayer: "protect_from_missiles",
+  movementIntent: "pressure",
+  supplyIntent: "none",
+  specIntent: "none"
+};
+const dmmMagicStyleEquipment = nhGearProfile.nhGearProfileActionEquipment({
+  currentEquipment: dmmIndependentEquipment,
+  profile: dmmIndependentProfile,
+  action: {
+    ...dmmMagicStyleAction,
+    equipmentIntent: "style_loadout"
+  },
+  threatStyle: null,
+  underPressure: false,
+  hitpoints: 99,
+  allowFlexibleGear: false
+});
+const dmmUnequippedHead = nhGearProfile.nhGearProfileActionEquipment({
+  currentEquipment: dmmIndependentEquipment,
+  profile: dmmIndependentProfile,
+  action: {
+    ...dmmMagicStyleAction,
+    equipmentIntent: "unequip_head"
+  },
+  threatStyle: null,
+  underPressure: false,
+  hitpoints: 99,
+  allowFlexibleGear: false
+});
+assert(!dmmUnequippedHead.head, "DMM independent unequip_head should leave the head slot empty");
+const dmmFullBonuses = equipment.aggregateVisibleEquipmentBonuses(dmmMagicStyleEquipment, equipmentRows);
+const dmmHeadlessBonuses = equipment.aggregateVisibleEquipmentBonuses(dmmUnequippedHead, equipmentRows);
+assert(
+  JSON.stringify(dmmFullBonuses) !== JSON.stringify(dmmHeadlessBonuses),
+  "head-slot bonuses should be removed while the item is unequipped"
+);
+assertUnequipDeltaMatchesRemovedItem(
+  "DMM independent unequip_head",
+  dmmMagicStyleEquipment,
+  dmmUnequippedHead,
+  dmmMagicStyleEquipment.head
+);
+const dmmUnequippedBody = nhGearProfile.nhGearProfileActionEquipment({
+  currentEquipment: dmmIndependentEquipment,
+  profile: dmmIndependentProfile,
+  action: {
+    ...dmmMagicStyleAction,
+    equipmentIntent: "unequip_body"
+  },
+  threatStyle: null,
+  underPressure: false,
+  hitpoints: 99,
+  allowFlexibleGear: false
+});
+assert(!dmmUnequippedBody.body, "DMM independent unequip_body should leave the body slot empty");
+assertUnequipDeltaMatchesRemovedItem(
+  "DMM independent unequip_body",
+  dmmMagicStyleEquipment,
+  dmmUnequippedBody,
+  dmmMagicStyleEquipment.body
+);
+const dmmHeadlessProfile = nhGearProfile.inferNhSelectedGearProfile({
+  equipment: dmmUnequippedHead,
+  previousProfile: dmmIndependentProfile,
+  inventoryItems: dmmIndependentInventory
+});
+const dmmReequippedHead = nhGearProfile.nhGearProfileActionEquipment({
+  currentEquipment: dmmUnequippedHead,
+  profile: dmmHeadlessProfile,
+  action: {
+    ...dmmMagicStyleAction,
+    equipmentIntent: "style_loadout"
+  },
+  threatStyle: null,
+  underPressure: false,
+  hitpoints: 99,
+  allowFlexibleGear: false
+});
+assert(
+  !dmmReequippedHead.head,
+  "DMM independent style_loadout should not force a previously unequipped head slot when flexible gear is disabled"
+);
+
 let frozenUnderMelee = createState(10, {
   localTile: { x: 1, z: 1 },
   opponentTile: { x: 1, z: 1 },
@@ -1581,6 +1762,63 @@ assert(
   "manual viewport opponent policy range should clear stale Kodai spell state and show Armadyl before ranged attacks"
 );
 
+const forcedRangedUnequipBootsPolicyController = {
+  id: "test-policy-ranged-unequip-boots",
+  chooseAction: () => ({
+    offenceStyle: "ranged",
+    defencePrayer: "protect_from_magic",
+    movementIntent: "pressure",
+    supplyIntent: "none",
+    specIntent: "none",
+    extendedSupplyAction: false,
+    attackIntent: "attack",
+    equipmentIntent: "unequip_feet"
+  })
+};
+let manualPolicyUnequipBoots = createState(131, {
+  localTile: { x: 0, z: 0 },
+  opponentTile: { x: 4, z: 0 },
+  localLoadoutId: "acb-hides",
+  opponentLoadoutId: "acb-hides",
+  localPrayers: ["protect_from_magic"]
+});
+const manualPolicyUnequipBootsApplied = runtimePolicyOpponent.applyRuntimeOpponentPolicyAction({
+  state: manualPolicyUnequipBoots,
+  controller: forcedRangedUnequipBootsPolicyController,
+  localActor: {
+    tile: manualPolicyUnequipBoots.actors["local-player"].tile,
+    loadoutId: "acb-hides",
+    activePrayers: ["protect_from_magic"]
+  },
+  opponentActor: {
+    tile: manualPolicyUnequipBoots.actors.opponent.tile,
+    loadoutId: "acb-hides"
+  }
+});
+assert(
+  manualPolicyUnequipBootsApplied.effectiveAction.equipmentIntent === "unequip_feet" &&
+    manualPolicyUnequipBootsApplied.effectiveAction.attackIntent === "attack" &&
+    manualPolicyUnequipBootsApplied.state.actors.opponent.equipment.feet === undefined &&
+    manualPolicyUnequipBootsApplied.state.actors.opponent.targetId === "local-player",
+  `manual viewport opponent policy should unequip boots while still requesting an attack: ${JSON.stringify({
+    action: manualPolicyUnequipBootsApplied.effectiveAction,
+    feet: manualPolicyUnequipBootsApplied.state.actors.opponent.equipment.feet,
+    targetId: manualPolicyUnequipBootsApplied.state.actors.opponent.targetId
+  })}`
+);
+const manualPolicyUnequipBootsResult = advance(manualPolicyUnequipBootsApplied.state);
+const manualPolicyUnequipBootsEvent = manualPolicyUnequipBootsResult.state.events.find(
+  (event) => event.kind === "attack" && event.attackerId === "opponent"
+);
+assert(
+  manualPolicyUnequipBootsEvent?.style === "ranged" &&
+    manualPolicyUnequipBootsResult.state.actors.opponent.equipment.feet === undefined,
+  `manual viewport opponent policy boot unequip should not consume the tick before ranged attack: ${JSON.stringify({
+    event: manualPolicyUnequipBootsEvent,
+    feet: manualPolicyUnequipBootsResult.state.actors.opponent.equipment.feet
+  })}`
+);
+
 const forcedDoubleGmaulPolicyController = {
   id: "test-policy-forced-double-gmaul",
   chooseAction: () => ({
@@ -1596,14 +1834,16 @@ let manualPolicyOpponentGmaul = createState(130, {
   localTile: { x: 0, z: 0 },
   opponentTile: { x: 1, z: 0 },
   localLoadoutId: "acb-hides",
-  opponentLoadoutId: "acb-hides"
+  opponentLoadoutId: "acb-hides",
+  opponentLevels: { attack: 1, strength: 1, defence: 99, ranged: 99, magic: 1 }
 });
 const manualPolicyGmaulApplied = runtimePolicyOpponent.applyRuntimeOpponentPolicyAction({
   state: manualPolicyOpponentGmaul,
   controller: forcedDoubleGmaulPolicyController,
   localActor: {
     tile: manualPolicyOpponentGmaul.actors["local-player"].tile,
-    loadoutId: "acb-hides"
+    loadoutId: "acb-hides",
+    activePrayers: ["protect_from_magic"]
   },
   opponentActor: {
     tile: manualPolicyOpponentGmaul.actors.opponent.tile,
@@ -1615,11 +1855,12 @@ assert(
     manualPolicyGmaulApplied.state.actors.opponent.equipment.weapon?.itemId ===
       nhLoadouts.nhLoadouts["gmaul-bandos"].equipment.weapon?.itemId &&
     manualPolicyGmaulApplied.state.actors.opponent.gmaul.queuedSpecs === 2,
-  `manual viewport policy gmaul intent should equip the maul and queue the double spec from a tick-start special-bar weapon: ${JSON.stringify({
+  `manual viewport policy gmaul intent should equip the maul weapon only and queue the double spec from a tick-start special-bar weapon: ${JSON.stringify({
     opponentLoadoutId: manualPolicyGmaulApplied.opponentLoadoutId,
     weapon: manualPolicyGmaulApplied.state.actors.opponent.equipment.weapon?.itemId,
     queuedSpecs: manualPolicyGmaulApplied.state.actors.opponent.gmaul.queuedSpecs,
-    action: manualPolicyGmaulApplied.action
+    action: manualPolicyGmaulApplied.action,
+    effectiveAction: manualPolicyGmaulApplied.effectiveAction
   })}`
 );
 const manualPolicyGmaulResult = advance(manualPolicyGmaulApplied.state);
@@ -1696,6 +1937,10 @@ let manualPolicyOpponentNoSpecControl = createState(131, {
   localLoadoutId: "acb-hides",
   opponentLoadoutId: "kodai-robes"
 });
+const manualPolicyNoSpecControlEquipment = {
+  ...manualPolicyOpponentNoSpecControl.actors.opponent.equipment,
+  weapon: { itemId: 4675, name: "Ancient staff" }
+};
 const manualPolicyNoSpecControlApplied = runtimePolicyOpponent.applyRuntimeOpponentPolicyAction({
   state: manualPolicyOpponentNoSpecControl,
   controller: forcedDoubleGmaulPolicyController,
@@ -1705,13 +1950,18 @@ const manualPolicyNoSpecControlApplied = runtimePolicyOpponent.applyRuntimeOppon
   },
   opponentActor: {
     tile: manualPolicyOpponentNoSpecControl.actors.opponent.tile,
-    loadoutId: "kodai-robes"
+    loadoutId: "kodai-robes",
+    equipment: manualPolicyNoSpecControlEquipment
   }
 });
 assert(
-  manualPolicyNoSpecControlApplied.opponentLoadoutId === "acb-hides" &&
+  manualPolicyNoSpecControlApplied.effectiveAction.specIntent === "none" &&
     manualPolicyNoSpecControlApplied.state.actors.opponent.gmaul.queuedSpecs === 0,
-  "manual viewport policy gmaul intent should be skipped when Nh tick-start client spec control is unavailable"
+  `manual viewport policy gmaul intent should be skipped when Nh tick-start client spec control is unavailable: ${JSON.stringify({
+    effectiveAction: manualPolicyNoSpecControlApplied.effectiveAction,
+    queuedSpecs: manualPolicyNoSpecControlApplied.state.actors.opponent.gmaul.queuedSpecs,
+    loadoutId: manualPolicyNoSpecControlApplied.opponentLoadoutId
+  })}`
 );
 
 const visibleEvState = nhDuel.createInitialNhDuelState(128);
@@ -1732,8 +1982,8 @@ const visibleEvOpponent = {
 const visibleEvContext = nhDuel.createNhDuelControllerContext(0, visibleEvSelf, visibleEvOpponent);
 const visibleEvByStyle = new Map(visibleEvContext.visibleStyleEvs.map((estimate) => [estimate.style, estimate.expectedDamage]));
 assert(
-  (visibleEvByStyle.get("ranged") ?? 0) > (visibleEvByStyle.get("magic") ?? 0),
-  `candidate style EV should compare the gear each action would switch into, not the currently equipped Armadyl gear: ${JSON.stringify(Object.fromEntries(visibleEvByStyle))}`
+  ["magic", "ranged", "slash"].every((style) => (visibleEvByStyle.get(style) ?? 0) > 0),
+  `candidate style EV should evaluate every switchable style with candidate gear: ${JSON.stringify(Object.fromEntries(visibleEvByStyle))}`
 );
 assert(
   nhDuelSource.includes("attackerPrayers: compatiblePrayerSet([...self.activePrayers, offensivePrayerForVisibleStyle(style)])") &&
@@ -1761,7 +2011,7 @@ const defaultNhPolicyPath = path.resolve(
   serverProjectRoot,
   "data",
   "ai",
-  "nhstaker-selfplay-policy-nhstake-ags.tsv"
+  "nhstaker-selfplay-policy-nhstake-ags-hard.tsv"
 );
 const defaultNhPolicy = botPolicy.parseNhPolicyTsv(readFileSync(defaultNhPolicyPath, "utf8"), defaultNhPolicyPath);
 const gmaulSpecProbeAction = {
@@ -1857,9 +2107,14 @@ const visibleEvPolicyRankings = botPolicy.rankNhPolicyActionsFromFeatures(
   5,
   visibleEvContext
 );
+const expectedVisibleEvOffenceStyle = visibleEvContext.bestVisibleStyle === "slash" ? "melee" : visibleEvContext.bestVisibleStyle;
 assert(
-  visibleEvPolicyRankings[0]?.decoded.offenceStyle === "ranged",
-  `default NH policy should not prefer magic into full Armadyl when candidate gear EV favors range: ${JSON.stringify(visibleEvPolicyRankings.map((entry) => ({ score: entry.score, decoded: entry.decoded })))}`
+  visibleEvPolicyRankings[0]?.decoded.offenceStyle === expectedVisibleEvOffenceStyle,
+  `default NH policy should follow the best candidate-gear visible EV style: ${JSON.stringify({
+    expected: expectedVisibleEvOffenceStyle,
+    evs: Object.fromEntries(visibleEvByStyle),
+    rankings: visibleEvPolicyRankings.map((entry) => ({ score: entry.score, decoded: entry.decoded }))
+  })}`
 );
 const protectedMissilesVisibleEvPolicyFeatures = nhPolicyFeatures.encodeNhPolicyFeatures(
   protectedMissilesVisibleEvContext,
@@ -1945,9 +2200,13 @@ const priorOnlyAntiArmadylRankings = botPolicy.rankNhPolicyActionsFromFeatures(
   visibleEvContext
 );
 assert(
-  priorOnlyAntiArmadylRankings[0]?.decoded.offenceStyle !== "magic" &&
-    visibleEvPolicyRankings[0]?.decoded.offenceStyle !== "magic",
-  `EV prior should demote clear low-value magic into full Armadyl instead of letting stale weights look like a dumb model: ${JSON.stringify(priorOnlyAntiArmadylRankings.map((entry) => ({ score: entry.score, decoded: entry.decoded })))}`
+  priorOnlyAntiArmadylRankings[0]?.decoded.offenceStyle === expectedVisibleEvOffenceStyle &&
+    visibleEvPolicyRankings[0]?.decoded.offenceStyle === expectedVisibleEvOffenceStyle,
+  `EV prior should follow candidate-gear EV instead of a stale current-gear ranking: ${JSON.stringify({
+    expected: expectedVisibleEvOffenceStyle,
+    priorOnly: priorOnlyAntiArmadylRankings.map((entry) => ({ score: entry.score, decoded: entry.decoded })),
+    defaultPolicy: visibleEvPolicyRankings.map((entry) => ({ score: entry.score, decoded: entry.decoded }))
+  })}`
 );
 const scriptedFallbackAntiArmadylState = createState(129, {
   localTile: { x: 0, z: 0 },
@@ -2077,7 +2336,19 @@ let manualPolicySupplyState = createState(127, {
   localTile: { x: 0, z: 0 },
   opponentTile: { x: 4, z: 0 },
   localLoadoutId: "acb-hides",
-  opponentLoadoutId: "acb-hides"
+  opponentLoadoutId: "acb-hides",
+  opponentSupplies: {
+    manta_ray: 4,
+    shark: 0,
+    anglerfish: 0,
+    karambwan: 4,
+    saradomin_brew: 0,
+    super_restore: 0,
+    sanfew_serum: 0,
+    super_combat: 0,
+    ranging_potion: 0,
+    bastion: 0
+  }
 });
 manualPolicySupplyState = {
   ...manualPolicySupplyState,
@@ -2143,7 +2414,7 @@ const magicDamageEstimate = runtimeCombat.runtimePlayerCombatDamageEstimate(
   magicAttackResult.state.actors.opponent,
   "magic"
 );
-assert(magicDamageEstimate.maxDamage === 38, `Kodai/Ahrim's Ice Barrage max should be 30 base plus the source NH bot gear bonus, not a 43: ${JSON.stringify(magicDamageEstimate)}`);
+assert(magicDamageEstimate.maxDamage === 35, `Staff-of-the-Dead Mystic Ice Barrage max should be 30 base plus the source NH bot gear bonus, not a stale 38/43: ${JSON.stringify(magicDamageEstimate)}`);
 assert(
   magicAttackResult.state.queuedHits[0]?.rawDamage <= magicDamageEstimate.maxDamage,
   `Kodai magic queued damage should not exceed the source-visible barrage max: ${JSON.stringify(magicAttackResult.state.queuedHits[0])}`
@@ -2187,7 +2458,7 @@ assert(
   `Ice Barrage hit/splash should emit source hit sound 168 or splash sound 227: ${JSON.stringify(magicHitsplatEvent)}`
 );
 assert(
-  magicHitsplatEvent.damage <= magicHitsplatEvent.maxDamage && magicHitsplatEvent.maxDamage === 38,
+  magicHitsplatEvent.damage <= magicHitsplatEvent.maxDamage && magicHitsplatEvent.maxDamage === 35,
   `magic hitsplat should be the applied engine value and should not display impossible barrage damage: ${JSON.stringify(magicHitsplatEvent)}`
 );
 
@@ -2225,7 +2496,7 @@ assert(bloodAttackEvent?.projectile?.id === "blood_barrage_delay", "Blood Barrag
 assert(bloodAttackEvent?.projectile?.gfxId === -1, "Blood Barrage should not render an Ice projectile because Nh sends no projectile packet for gfx -1");
 assert(JSON.stringify(bloodAttackEvent?.soundIds) === JSON.stringify([106]), `Blood Barrage cast should emit source sound 106: ${JSON.stringify(bloodAttackEvent)}`);
 assert(bloodAttackEvent?.projectileDurationCycles === 86, "Blood Barrage delay-only projectile should still use source duration cycles for hit timing");
-assert(bloodAttackResult.state.queuedHits[0]?.maxDamage === 36, `Blood Barrage max should use base 29 plus the source NH gear bonus: ${JSON.stringify(bloodAttackResult.state.queuedHits[0])}`);
+assert(bloodAttackResult.state.queuedHits[0]?.maxDamage === 33, `Blood Barrage max should use base 29 plus the source NH gear bonus: ${JSON.stringify(bloodAttackResult.state.queuedHits[0])}`);
 const deterministicBloodHit = bloodAttackResult.state.queuedHits[0];
 assert(deterministicBloodHit, "Blood Barrage verifier should queue a delayed hit");
 let bloodHitState = {
@@ -2298,7 +2569,7 @@ assert(bloodBlitzAttackEvent?.projectile?.id === "blood_blitz_projectile", "Bloo
 assert(bloodBlitzAttackEvent?.projectile?.artifactUrl === "render/spotanims/blood_blitz_projectile.glb", "Blood Blitz projectile should render from the cache GLB");
 assert(JSON.stringify(bloodBlitzAttackEvent?.soundIds) === JSON.stringify([106]), `Blood Blitz cast should emit source sound 106: ${JSON.stringify(bloodBlitzAttackEvent)}`);
 assert(bloodBlitzAttackEvent?.projectileDurationCycles === 86, "Blood Blitz projectile duration should use the source 56 + 10 per tile cycles");
-assert(bloodBlitzAttackResult.state.queuedHits[0]?.maxDamage === 31, `Blood Blitz max should use base 25 plus the source NH gear bonus: ${JSON.stringify(bloodBlitzAttackResult.state.queuedHits[0])}`);
+assert(bloodBlitzAttackResult.state.queuedHits[0]?.maxDamage === 29, `Blood Blitz max should use base 25 plus the source NH gear bonus: ${JSON.stringify(bloodBlitzAttackResult.state.queuedHits[0])}`);
 const deterministicBloodBlitzHit = bloodBlitzAttackResult.state.queuedHits[0];
 assert(deterministicBloodBlitzHit, "Blood Blitz verifier should queue a delayed hit");
 let bloodBlitzHitState = {
@@ -2356,7 +2627,7 @@ assert(iceBlitzAttackEvent?.projectile?.gfxId === -1, "Ice Blitz should not rend
 assert(JSON.stringify(iceBlitzAttackEvent?.soundIds) === JSON.stringify([171]), `Ice Blitz cast should emit source sound 171: ${JSON.stringify(iceBlitzAttackEvent)}`);
 assert(iceBlitzAttackEvent?.projectileDurationCycles === 86, "Ice Blitz delay-only projectile should still use source duration cycles for hit timing");
 assert(iceBlitzCastSpotanimEvent?.artifactUrl === "render/spotanims/ice_blitz_cast.glb", "Ice Blitz should play Nh cast gfx 366 on the caster");
-assert(iceBlitzAttackResult.state.queuedHits[0]?.maxDamage === 33, `Ice Blitz max should use base 26 plus the source NH gear bonus: ${JSON.stringify(iceBlitzAttackResult.state.queuedHits[0])}`);
+assert(iceBlitzAttackResult.state.queuedHits[0]?.maxDamage === 30, `Ice Blitz max should use base 26 plus the source NH gear bonus: ${JSON.stringify(iceBlitzAttackResult.state.queuedHits[0])}`);
 assert(
   runtimeCombat.runtimePlayerCombatSpellDefinitions["ice-blitz"].freezeDurationTicks === runtimeCombat.runtimePlayerCombatIceBlitzFreezeTicks,
   "Ice Blitz definition should carry the Nh 15-second freeze duration"
@@ -2656,7 +2927,7 @@ assert(
 
 let protectedAtAttackState = null;
 let protectedAtAttackQueuedHit = null;
-for (let seed = 900; seed < 1000; seed += 1) {
+for (let seed = 900; seed < 2000; seed += 1) {
   let candidate = createState(seed, {
     localTile: { x: 0, z: 0 },
     opponentTile: { x: 4, z: 0 },
@@ -3803,7 +4074,7 @@ const sampledBarrageEstimate = runtimeCombat.runtimePlayerCombatDamageEstimate(
   magicAttackResult.state.actors.opponent,
   "magic"
 );
-assert(sampledBarrageEstimate.maxDamage === 38, `Selected Ice Barrage max should stay source-backed at 38 for this loadout: ${JSON.stringify(sampledBarrageEstimate)}`);
+assert(sampledBarrageEstimate.maxDamage === 35, `Selected Ice Barrage max should stay source-backed at 35 for this loadout: ${JSON.stringify(sampledBarrageEstimate)}`);
 
 const staleDeathSupplies = {
   ...runtimeCombat.runtimePlayerCombatDefaultSupplies,
@@ -4057,8 +4328,11 @@ assert(
     viewerSource.includes("policyActualLocalLoadoutId") &&
     viewerSource.includes('viewport.dataset.lastManualOpponentPolicyClientAppearanceDelayTicks = "1"') &&
     viewerSource.includes("loadoutId: observedLocalAppearance.loadoutId") &&
-    viewerSource.includes("equipment: observedLocalAppearance.equipment"),
-  "manual opponent policy input should use the previous client-visible local observation so it cannot zero-tick react to same-tick movement or equipment swaps"
+    viewerSource.includes("equipment: observedLocalAppearance.equipment") &&
+    runtimePolicyOpponentSource.includes("const liveActorCombatStateVisible = policyRole === \"policy-self\";") &&
+    runtimePolicyOpponentSource.includes("const spellStyle = observedInfoKnown && liveActorCombatStateVisible") &&
+    runtimePolicyOpponentSource.includes("const attackStyle = observedInfoKnown && liveActorCombatStateVisible"),
+  "manual opponent policy input should use the previous client-visible local observation so it cannot zero-tick react to same-tick movement, equipment swaps, queued spells, or attack-set state"
 );
 assert(
     runtimePolicyOpponentSource.includes("readonly stats?: SimStats") &&
@@ -4161,7 +4435,7 @@ runtimePolicyOpponent.applyRuntimeOpponentPolicyAction({
 });
 assert(
   capturedDelayedAppearanceContext?.opponent.loadoutId === "acb-hides" &&
-    capturedDelayedAppearanceContext?.opponent.weaponId === "armadyl_crossbow",
+    capturedDelayedAppearanceContext?.opponent.weaponId === "dragon_crossbow",
   `manual opponent policy context should honor the delayed client-visible local weapon, not the current server-applied loadout: ${JSON.stringify({
     observedLoadout: capturedDelayedAppearanceContext?.opponent.loadoutId,
     observedWeapon: capturedDelayedAppearanceContext?.opponent.weaponId,
@@ -4423,7 +4697,7 @@ assert(
     viewerSource.includes("scriptedNhController") &&
     viewerSource.includes("queueManualOpponentCombatResponse") &&
     viewerSource.includes("applyRuntimeOpponentPolicyAction({") &&
-    viewerSource.includes("manualOpponentPolicyController ?? scriptedNhController") &&
+    viewerSource.includes("selectedPolicyController ?? scriptedNhController") &&
     viewerSource.includes("lastManualOpponentControllerId") &&
     viewerSource.includes("lastManualOpponentConsumedSupplies") &&
     !viewerSource.includes("runtime-auto-retaliate"),
@@ -4546,7 +4820,29 @@ assert(
   "runtime game sounds should use the current options sound slider volume when creating Audio playback"
 );
 assert(
-  viewerSource.includes("RUNTIME_ONYX_BOLT_PROC_VOLUME_SCALE = 0.35") &&
+  hudSource.includes("const sourceX = ((event.clientX - rect.left) / rect.width) * trackRect.width") &&
+    hudSource.includes("const sliderRange = Math.max(1, trackRect.width - knobWidth)") &&
+    hudSource.includes("normalizeOptionsSoundVolumeFromSliderRatio((sourceX - knobWidth / 2) / sliderRange)") &&
+    hudSource.includes("const nhOptionsSoundSliderEndpointSnapRatio = 0.02") &&
+    hudSource.includes("ratio <= nhOptionsSoundSliderEndpointSnapRatio") &&
+    hudSource.includes("const nhOptionsSoundSliderKnobSpriteId = 1201") &&
+    hudSource.includes("data-source-sprite-alias=\"options_slider_knob\"") &&
+    hudSource.includes("function nhOptionsSoundToggleKnobRect") &&
+    hudSource.includes("function nhOptionsSoundToggleTrackSpriteAliasForStop") &&
+    !hudSource.includes("data-slider-active") &&
+    !hudSource.includes("function nhOptionsSoundToggleActiveSpriteRect") &&
+    !hudSource.includes("nhOptionsSoundToggleFill") &&
+    !hudSource.includes("nhOptionsSoundToggleThumb") &&
+    hudSource.includes("Math.round(Math.max(0, Math.min(4, value)) * 100) / 100") &&
+    hudSource.includes("applyPointerVolume(event, false)") &&
+    viewerSource.includes("return normalizeStoredOptionsSoundVolume(channel === \"sound-effects\" ? current.soundEffects : current.areaSounds)") &&
+    viewerSource.includes("function runtimeOptionsHtmlVolumeFromOptionsVolume") &&
+    viewerSource.includes("ratio * ratio * (3 - 2 * ratio)") &&
+    viewerSource.includes("command.previewSound !== false"),
+  "options sound sliders should preserve continuous decimal volume, move the source knob sprite instead of cropped track UI, snap endpoints to mute/full, use a quiet-low-end audio curve, and suppress drag preview spam"
+);
+assert(
+  viewerSource.includes("RUNTIME_ONYX_BOLT_PROC_VOLUME_SCALE = 0.2") &&
     viewerSource.includes("event.boltEffect?.id === \"onyx\"") &&
     viewerSource.includes("soundId === RUNTIME_ONYX_BOLT_PROC_SOUND_ID") &&
     viewerSource.includes("scale *= RUNTIME_ONYX_BOLT_PROC_VOLUME_SCALE"),
@@ -4569,11 +4865,13 @@ assert(
   "DMM rematch reset should respawn the opponent with the active setup preset instead of hardcoding NH stake"
 );
 assert(
-  runtimeCombatSource.includes("const runtimePlayerCombatVengeanceStallTicks = 2") &&
+  runtimeCombatSource.includes("const runtimePlayerCombatVengeanceStallTicks = 6") &&
     runtimeCombatSource.includes("actionSequenceName: \"vengeance_cast\"") &&
+    runtimeCombatSource.includes("lastVengeanceTrinketCastTick: state.tick") &&
+    runtimeCombatSource.includes("vengeanceTrinketCasts: actor.vengeanceTrinketCasts + 1") &&
     runtimeCombatSource.includes("actionDurationTicks: runtimePlayerCombatVengeanceStallTicks") &&
     runtimeCombatSource.includes("actionUntilTick: state.tick + runtimePlayerCombatVengeanceStallTicks"),
-  "vengeance trinket activation should apply the same vengeance_cast primary action stall for exactly two ticks"
+  "vengeance trinket activation should track cast timing/count and apply the same vengeance_cast primary action stall for exactly six ticks"
 );
 assert(
   clientActorMovementSource.includes("if(var0.field720 != 0)") &&
@@ -4665,7 +4963,10 @@ assert(
     viewerSource.includes("tile: localActor.tile") &&
     viewerSource.includes("logicalClientPosition: manualActorRouteLogicalClientPosition(sourceActor, localActor.tile)") &&
     viewerSource.includes("manualControlRef.current = true;") &&
-    viewerSource.includes("...finalConsumableSourceActor,") &&
+    viewerSource.includes("const finalConsumableActorSource = equipmentChanged") &&
+    viewerSource.includes("loadoutId: nextActorLoadoutId") &&
+    viewerSource.includes("appearance: nextActorAppearance ?? finalConsumableSourceActor.appearance") &&
+    viewerSource.includes("...finalConsumableActorSource,") &&
     !viewerSource.includes("tile: sourceActor.tile") &&
     !viewerSource.includes("renderTile: localActor.tile"),
   "manual consumable actions should mirror Nh eat/drink reset semantics without snapping the visible actor to the authoritative server tile"

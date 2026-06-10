@@ -9,7 +9,7 @@ function read(relativePath) {
 }
 
 function readNhClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
 }
 
 const statusBarsPluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/statusbars/StatusBarsPlugin.java");
@@ -93,8 +93,8 @@ for (const sourceAnchor of [
 
 for (const trainerAnchor of [
   'id: "status-bars"',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusbars/StatusBarsPlugin.java"',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusbars/StatusBarsConfig.java"',
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusbars/StatusBarsPlugin.java"',
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusbars/StatusBarsConfig.java"',
   'group: "statusbars"',
   'leftBarMode: "Hitpoints"',
   'rightBarMode: "Prayer"',

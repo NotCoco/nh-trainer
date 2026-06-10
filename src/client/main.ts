@@ -11,17 +11,15 @@ const simFixturesRoot = path.join(fixturesRoot, "sim");
 const clientReferenceRoot = path.join(fixturesRoot, "reference", "client-render");
 const projectRoot = path.resolve(__dirname, "..");
 const nhRoot = path.resolve(projectRoot, "..");
-const legacySourceName = ["Kro", "nos"].join("");
-const legacySourceNameLower = legacySourceName.toLowerCase();
 const defaultPolicyPath = path.join(
   nhRoot,
-  `${legacySourceNameLower}-osrs-184-master`,
-  `${legacySourceNameLower}-osrs-184-master`,
-  `${legacySourceName}-master`,
-  `${legacySourceNameLower}-server`,
+  "kronos-osrs-184-master",
+  "kronos-osrs-184-master",
+  "Kronos-master",
+  "kronos-server",
   "data",
   "ai",
-  "nhstaker-selfplay-policy-nhstake-ags.tsv"
+  "nhstaker-selfplay-policy-nhstake-ags-hard.tsv"
 );
 const NH_FIXED_CLIENT_WIDTH = 765;
 const NH_FIXED_CLIENT_HEIGHT = 503;

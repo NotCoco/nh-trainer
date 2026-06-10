@@ -3,7 +3,7 @@ export type EvidenceStatus = "unverified" | "verified";
 export interface AssetRecord {
   readonly id: string;
   readonly label: string;
-  readonly source: "nh-cache" | "nh-client" | "nh-server";
+  readonly source: "nh-cache" | "nh-client" | "kronos-server";
   readonly evidenceStatus: EvidenceStatus;
   readonly sourceAnchorIds: readonly string[];
   readonly requiredArtifacts: readonly string[];
@@ -45,7 +45,7 @@ export const assetCatalog: readonly AssetRecord[] = [
   {
     id: "item-equipment-defs",
     label: "Item and equipment definitions",
-    source: "nh-server",
+    source: "kronos-server",
     evidenceStatus: "verified",
     sourceAnchorIds: ["server-item-bonus-contract", "server-equipment-bonus-contract"],
     requiredArtifacts: [

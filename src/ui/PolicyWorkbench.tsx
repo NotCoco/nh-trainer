@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { parseNhPolicyTsv, summarizeNhPolicy, type ParsedNhPolicy } from "../bot";
 import type { DefaultPolicyReadResult } from "../client/bridge";
 
-const DEFAULT_STATIC_POLICY_URL = "./ai/nhstaker-selfplay-policy-nhstake-ags.tsv";
+const DEFAULT_STATIC_POLICY_URL = "./ai/nhstaker-selfplay-policy-hard.tsv";
 
 type PolicyLoadState =
   | { readonly kind: "empty"; readonly message: string }

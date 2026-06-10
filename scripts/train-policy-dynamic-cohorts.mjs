@@ -40,7 +40,7 @@ const evalFights = clampInt(Number(args["eval-fights"] ?? 8), 2, 20000);
 const evalTicks = clampInt(Number(args["eval-ticks"] ?? 120), 24, 2000);
 const h2hFights = clampInt(Number(args["h2h-fights"] ?? 12), 2, 20000);
 const h2hTicks = clampInt(Number(args["h2h-ticks"] ?? 120), 24, 2000);
-const candidateLimit = clampInt(Number(args.candidates ?? 50), 50, 4950);
+const candidateLimit = Math.max(50, Math.trunc(Number(args.candidates ?? 50)));
 const includeBasicActions = args["include-basics"] !== "false";
 const candidateMode = normalizeCandidateMode(args["candidate-mode"] ?? (includeBasicActions ? "hybrid" : "visited"));
 const patterns = String(args.patterns ?? "all").trim() || "all";
@@ -61,10 +61,12 @@ const focusEligiblePatterns = new Set([
   "DELAYED_REACTOR"
 ]);
 const botCount = clampInt(Number(args["bot-count"] ?? 1000), 2, 4000);
-const evalPairCount = clampInt(Number(args["eval-pairs"] ?? 25), 0, botCount / 2);
-const fixedOpponentPairCount = clampInt(Number(args["fixed-pairs"] ?? 150), 0, botCount / 2);
-const snapshotPoolPairCount = clampInt(Number(args["snapshot-pairs"] ?? 50), 0, botCount / 2);
-const cohortPairCount = clampInt(Number(args["cohort-pairs"] ?? 25), 0, botCount / 2);
+const pairCount = Math.trunc(botCount / 2);
+const evalPairCount = clampInt(Number(args["eval-pairs"] ?? 0), 0, pairCount);
+const fixedOpponentPairCount = clampInt(Number(args["fixed-pairs"] ?? 0), 0, pairCount);
+const snapshotPoolPairCount = clampInt(Number(args["snapshot-pairs"] ?? 0), 0, pairCount);
+const defaultCohortPairCount = Math.round(pairCount * 0.3);
+const cohortPairCount = clampInt(Number(args["cohort-pairs"] ?? defaultCohortPairCount), 0, pairCount);
 const maxCohortRegression = Number(args["max-cohort-regression"] ?? 0.65);
 const maxWorstRegression = Number(args["max-worst-regression"] ?? 0.15);
 const minAnchorDamageRatio = Number(args["min-anchor-damage-ratio"] ?? 0.97);
@@ -87,6 +89,11 @@ const javaRuntimeHome = path.resolve(
   args["java-runtime-home"] ?? process.env.KRONOS_RUNTIME_JAVA_HOME ?? defaultJavaRuntimeHome
 );
 const evaluateOnly = args["evaluate-only"] === "true" || slices === 0;
+const trainOnly = args["train-only"] === "true";
+
+if (evaluateOnly && trainOnly) {
+  throw new Error("--evaluate-only and --train-only cannot be used together");
+}
 
 for (const required of [basePolicy, anchorPolicy, kronosRoot, serverRoot, javaHome, javaRuntimeHome]) {
   if (!existsSync(required)) {
@@ -97,7 +104,7 @@ for (const required of [basePolicy, anchorPolicy, kronosRoot, serverRoot, javaHo
 mkdirSync(reportRoot, { recursive: true });
 
 let workingPolicy = basePolicy;
-if (!evaluateOnly) {
+if (!evaluateOnly && !trainOnly) {
   workingPolicy = path.join(dataAiRoot, `nhstaker-selfplay-policy-dynamic-cohort-${timestamp}-slice0.tsv`);
   copyFileSync(basePolicy, workingPolicy);
 }
@@ -121,6 +128,7 @@ const manifest = {
     botCount,
     javaHome,
     javaRuntimeHome,
+    trainOnly,
     evalPairCount,
     fixedOpponentPairCount,
     snapshotPoolPairCount,
@@ -142,6 +150,46 @@ const manifest = {
   },
   evaluations: []
 };
+
+if (trainOnly) {
+  const focus = String(args.focus ?? "");
+  const trainPolicy = path.join(
+    dataAiRoot,
+    `nhstaker-selfplay-policy-dynamic-cohort-${timestamp}-slice1.tsv`
+  );
+  copyFileSync(basePolicy, trainPolicy);
+  const training = runTrainingSlice({
+    slice: 1,
+    policyPath: trainPolicy,
+    focus
+  });
+  manifest.evaluations.push({
+    slice: 1,
+    policy: trainPolicy,
+    focus,
+    training,
+    accepted: false,
+    acceptedVariant: null,
+    acceptedPolicy: null,
+    trainOnly: true
+  });
+  manifest.finalPolicy = trainPolicy;
+  manifest.acceptedSlices = [];
+  writeManifest(manifest);
+  console.log(
+    JSON.stringify(
+      {
+        mode: "train-only",
+        reportRoot,
+        finalPolicy: trainPolicy,
+        training
+      },
+      null,
+      2
+    )
+  );
+  process.exit(0);
+}
 
 const baseline = evaluatePolicy("slice0", workingPolicy, seedBase);
 manifest.evaluations.push({ slice: 0, policy: workingPolicy, accepted: true, baseline });
@@ -217,7 +265,7 @@ console.log(
 
 function evaluatePolicy(label, policyPath, seed) {
   const cohorts = runJsonCommand("node", [
-    path.join(projectRoot, "scripts", "evaluate-policy-cohorts.mjs"),
+    path.join(projectRoot, "scripts", "evaluate-policy-cohorts-runtime.mjs"),
     "--policy",
     policyPath,
     "--fights",
@@ -236,7 +284,7 @@ function evaluatePolicy(label, policyPath, seed) {
     String(seed)
   ]);
   const h2h = runJsonCommand("node", [
-    path.join(projectRoot, "scripts", "evaluate-policy-head-to-head.mjs"),
+    path.join(projectRoot, "scripts", "evaluate-policy-head-to-head-runtime.mjs"),
     "--new",
     policyPath,
     "--previous",

@@ -61,10 +61,13 @@ async function verifyInventoryContextMenuPressAnchor(window) {
       const inventoryTab = document.querySelector('.nhSideTabButton[data-tab-id="inventory"]');
       if (inventoryTab) {
         const tabRect = inventoryTab.getBoundingClientRect();
-        inventoryTab.dispatchEvent(new MouseEvent("pointerdown", {
+        inventoryTab.dispatchEvent(new PointerEvent("pointerdown", {
           bubbles: true,
           cancelable: true,
           view: window,
+          pointerId: 71,
+          pointerType: "mouse",
+          isPrimary: true,
           button: 0,
           buttons: 1,
           clientX: tabRect.left + tabRect.width / 2,
@@ -93,10 +96,13 @@ async function verifyInventoryContextMenuPressAnchor(window) {
       const movedX = movedRect.left + movedRect.width / 2;
       const movedY = movedRect.top + movedRect.height / 2;
 
-      sourceSlot.dispatchEvent(new MouseEvent("pointerdown", {
+      sourceSlot.dispatchEvent(new PointerEvent("pointerdown", {
         bubbles: true,
         cancelable: true,
         view: window,
+        pointerId: 72,
+        pointerType: "mouse",
+        isPrimary: true,
         button: 2,
         buttons: 2,
         clientX: pressX,
@@ -222,10 +228,13 @@ async function verifySceneToInventoryContextMenuRetarget(window) {
 
       const canvasRect = canvas.getBoundingClientRect();
       const movedRect = movedSlot.getBoundingClientRect();
-      canvas.dispatchEvent(new MouseEvent("pointerdown", {
+      canvas.dispatchEvent(new PointerEvent("pointerdown", {
         bubbles: true,
         cancelable: true,
         view: window,
+        pointerId: 73,
+        pointerType: "mouse",
+        isPrimary: true,
         button: 2,
         buttons: 2,
         clientX: canvasRect.left + canvasRect.width / 2,
@@ -297,10 +306,13 @@ async function verifyEmptyInventoryContextMenu(window) {
       const slot1Rect = slot1.getBoundingClientRect();
       const x = (slot0Rect.right + slot1Rect.left) / 2;
       const y = slot0Rect.top + slot0Rect.height / 2;
-      grid.dispatchEvent(new MouseEvent("pointerdown", {
+      grid.dispatchEvent(new PointerEvent("pointerdown", {
         bubbles: true,
         cancelable: true,
         view: window,
+        pointerId: 74,
+        pointerType: "mouse",
+        isPrimary: true,
         button: 2,
         buttons: 2,
         clientX: x,

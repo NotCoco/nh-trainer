@@ -9,7 +9,7 @@ function read(relativePath) {
 }
 
 function readNhClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
 }
 
 function assert(condition, message) {
@@ -119,7 +119,7 @@ for (const shellAnchor of [
   "RuneliteTileIndicatorsConfigSnapshot",
   'id: "tile-indicators"',
   'group: "tileindicators"',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/tileindicators/TileIndicatorsConfig.java"',
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/tileindicators/TileIndicatorsConfig.java"',
   'keyName: "highlightDestinationColor"',
   'keyName: "highlightDestinationTile"',
   'keyName: "thinDestinationTile"',

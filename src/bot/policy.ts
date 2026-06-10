@@ -7,6 +7,10 @@ import {
   nhPolicyActionCount,
   nhPolicyFeatureSize,
   nhPolicyInputFeatureStart,
+  nhPolicyInputSize,
+  nhPolicyPreviousFeatureSize,
+  nhPolicyPreviousInputSize,
+  nhPolicyV1ActionCount,
   scriptedNhController,
   type NhDuelController,
   type NhDuelControllerContext,
@@ -40,6 +44,30 @@ export interface ParsedNhPolicy {
   readonly sourceLabel: string;
 }
 
+export interface NhNeuralDenseLayer {
+  readonly weight: readonly Float32Array[];
+  readonly bias: Float32Array;
+  readonly activation: "silu";
+}
+
+export interface ParsedNhNeuralPolicy {
+  readonly kind: "neural";
+  readonly version: number;
+  readonly sourceLabel: string;
+  readonly step: number;
+  readonly inputSize: number;
+  readonly featureSize: number;
+  readonly actionCount: number;
+  readonly actionIds?: Int32Array;
+  readonly inputMean: Float32Array;
+  readonly inputStd: Float32Array;
+  readonly layers: readonly NhNeuralDenseLayer[];
+  readonly policy: Omit<NhNeuralDenseLayer, "activation">;
+  readonly metrics: Readonly<Record<string, number>>;
+}
+
+export type NhRuntimePolicy = ParsedNhPolicy | ParsedNhNeuralPolicy;
+
 export interface NhPolicyActionSummary {
   readonly action: number;
   readonly visits: number;
@@ -64,10 +92,13 @@ export interface NhPolicyRuntimeController extends NhDuelController {
   readonly getLastRankings: () => readonly NhPolicyScoredAction[];
 }
 
-const nhPolicyStoreVersion = 13;
-const previousNhPolicyStoreVersion = 12;
-const previousNhPolicyInputSize = 86;
+const nhPolicyStoreVersion = 14;
+const previousNhPolicyStoreVersion = 13;
+const previousNhPolicyInputSize = nhPolicyPreviousInputSize;
 const previousNhPolicyBiasFeatureIndex = nhPolicyInputFeatureStart + previousNhPolicyInputSize;
+const v12NhPolicyStoreVersion = 12;
+const v12NhPolicyInputSize = 86;
+const v12NhPolicyBiasFeatureIndex = nhPolicyInputFeatureStart + v12NhPolicyInputSize;
 const legacyNhPolicyStoreVersion = 11;
 const legacyNhPolicyInputSize = 77;
 const legacyNhPolicyBiasFeatureIndex = nhPolicyInputFeatureStart + legacyNhPolicyInputSize;
@@ -97,14 +128,17 @@ const defenceVisibleStyleAlternativePenaltyScale = 0;
 const defenceVisibleStyleLastMatchPriorScale = 0.45;
 const equipmentRows = equipmentRowsJson as readonly EquipmentBonusRow[];
 const actionVisitMapCache = new WeakMap<ParsedNhPolicy, ReadonlyMap<number, number>>();
+const tabularPolicyCandidateCache = new WeakMap<ParsedNhPolicy, readonly number[]>();
+const decodedActionCache: (NhPolicyAction | undefined)[] = [];
+let baselineTabularCandidateActions: readonly number[] | null = null;
 
-export function createNhPolicyController(policy: ParsedNhPolicy): NhPolicyRuntimeController {
+export function createNhPolicyController(policy: NhRuntimePolicy): NhPolicyRuntimeController {
   const featureState = createNhPolicyFeatureState();
   let lastRankings: readonly NhPolicyScoredAction[] = [];
   let activeEpisodeId: number | null = null;
   let lastContextTick: number | null = null;
   return {
-    id: `parsed-policy:${policy.sourceLabel}`,
+    id: `${isParsedNhNeuralPolicy(policy) ? "neural-policy" : "parsed-policy"}:${policy.sourceLabel}`,
     chooseAction(context) {
       const rewardEpisodeActive = context.rewardEpisodeActive ?? true;
       const rewardEpisodeId = context.rewardEpisodeId ?? 0;
@@ -120,13 +154,9 @@ export function createNhPolicyController(policy: ParsedNhPolicy): NhPolicyRuntim
         activeEpisodeId = rewardEpisodeId;
       }
       const features = encodeNhPolicyFeatures(context, featureState);
-      lastRankings = rankNhPolicyActionsFromFeatures(
-        policy,
-        features,
-        5,
-        context,
-        javaStyleEqualScoreTieBreaker
-      );
+      lastRankings = isParsedNhNeuralPolicy(policy)
+        ? rankNhNeuralPolicyActionsFromFeatures(policy, features, 5, javaStyleEqualScoreTieBreaker)
+        : rankNhPolicyActionsFromFeatures(policy, features, 5, context, javaStyleEqualScoreTieBreaker);
       lastContextTick = context.tick;
       return lastRankings[0]?.decoded ?? scriptedNhController.chooseAction(context);
     },
@@ -134,6 +164,10 @@ export function createNhPolicyController(policy: ParsedNhPolicy): NhPolicyRuntim
       return lastRankings;
     }
   };
+}
+
+function isParsedNhNeuralPolicy(policy: NhRuntimePolicy): policy is ParsedNhNeuralPolicy {
+  return (policy as ParsedNhNeuralPolicy).kind === "neural";
 }
 
 export function parseNhPolicyTsv(text: string, sourceLabel = "policy.tsv"): ParsedNhPolicy {
@@ -208,8 +242,90 @@ export function parseNhPolicyTsv(text: string, sourceLabel = "policy.tsv"): Pars
   };
 }
 
+export function parseNhNeuralPolicyJson(text: string, sourceLabel = "neural-policy.json"): ParsedNhNeuralPolicy {
+  const root = readObject(JSON.parse(text), sourceLabel);
+  if (root.kind !== "nh-neural-policy") {
+    throw new Error(`${sourceLabel} is not an NH neural policy model.`);
+  }
+  const schema = readObject(root.schema, `${sourceLabel}.schema`);
+  const inputSize = parseRequiredInteger(schema.inputSize, `${sourceLabel}.schema.inputSize`);
+  const featureSize = parseRequiredInteger(schema.featureSize, `${sourceLabel}.schema.featureSize`);
+  const actionCount = parseRequiredInteger(schema.actionCount, `${sourceLabel}.schema.actionCount`);
+  const actionIds = readOptionalActionIds(schema.actionIds, actionCount, `${sourceLabel}.schema.actionIds`);
+  const expectedFeatureSize = inputSize === nhPolicyPreviousInputSize ? nhPolicyPreviousFeatureSize : nhPolicyFeatureSize;
+  if (inputSize !== nhPolicyInputSize && inputSize !== nhPolicyPreviousInputSize) {
+    throw new Error(
+      `${sourceLabel} input size ${inputSize} does not match expected ${nhPolicyInputSize} or previous ${nhPolicyPreviousInputSize}.`
+    );
+  }
+  if (featureSize !== expectedFeatureSize) {
+    throw new Error(`${sourceLabel} feature size ${featureSize} does not match expected ${expectedFeatureSize}.`);
+  }
+  if (actionIds === undefined && actionCount !== nhPolicyActionCount && actionCount !== nhPolicyV1ActionCount) {
+    throw new Error(
+      `${sourceLabel} action count ${actionCount} does not match expected ${nhPolicyActionCount} or legacy ${nhPolicyV1ActionCount}.`
+    );
+  }
+
+  const source = readObject(root.source, `${sourceLabel}.source`);
+  const normalization = readObject(root.normalization, `${sourceLabel}.normalization`);
+  const model = readObject(root.model, `${sourceLabel}.model`);
+  const rawLayers = readArray(model.layers, `${sourceLabel}.model.layers`);
+  let previousWidth = inputSize;
+  const layers = rawLayers.map((rawLayer, layerIndex) => {
+    const layer = readObject(rawLayer, `${sourceLabel}.model.layers[${layerIndex}]`);
+    if (layer.activation !== "silu") {
+      throw new Error(`${sourceLabel}.model.layers[${layerIndex}].activation must be silu.`);
+    }
+    const bias = readNumberVector(layer.bias, null, `${sourceLabel}.model.layers[${layerIndex}].bias`);
+    const weight = readNumberMatrix(
+      layer.weight,
+      bias.length,
+      previousWidth,
+      `${sourceLabel}.model.layers[${layerIndex}].weight`
+    );
+    previousWidth = bias.length;
+    return { weight, bias, activation: "silu" as const };
+  });
+  if (layers.length === 0) {
+    throw new Error(`${sourceLabel} must include at least one encoder layer.`);
+  }
+  const rawPolicy = readObject(model.policy, `${sourceLabel}.model.policy`);
+  const policyBias = readNumberVector(rawPolicy.bias, actionCount, `${sourceLabel}.model.policy.bias`);
+  const policyWeight = readNumberMatrix(
+    rawPolicy.weight,
+    actionCount,
+    previousWidth,
+    `${sourceLabel}.model.policy.weight`
+  );
+
+  return {
+    kind: "neural",
+    version: parseRequiredInteger(root.version, `${sourceLabel}.version`),
+    sourceLabel,
+    step: parseOptionalInteger(source.step, 0),
+    inputSize,
+    featureSize,
+    actionCount,
+    actionIds,
+    inputMean: readNumberVector(normalization.mean, inputSize, `${sourceLabel}.normalization.mean`),
+    inputStd: readNumberVector(normalization.std, inputSize, `${sourceLabel}.normalization.std`),
+    layers,
+    policy: {
+      weight: policyWeight,
+      bias: policyBias
+    },
+    metrics: readNumberRecord(source.metrics)
+  };
+}
+
 function isLoadablePolicyStoreVersion(version: number): boolean {
-  return version === nhPolicyStoreVersion || version === previousNhPolicyStoreVersion || version === legacyNhPolicyStoreVersion;
+  return (
+    version === nhPolicyStoreVersion ||
+    version === previousNhPolicyStoreVersion ||
+    version === v12NhPolicyStoreVersion ||
+    version === legacyNhPolicyStoreVersion
+  );
 }
 
 function mapLoadedPolicyFeatureIndex(version: number, featureIndex: number): number {
@@ -221,6 +337,12 @@ function mapLoadedPolicyFeatureIndex(version: number, featureIndex: number): num
       return -1;
     }
     return featureIndex === previousNhPolicyBiasFeatureIndex ? nhPolicyFeatureSize - 1 : featureIndex;
+  }
+  if (version === v12NhPolicyStoreVersion) {
+    if (featureIndex < 0 || featureIndex > v12NhPolicyBiasFeatureIndex) {
+      return -1;
+    }
+    return featureIndex === v12NhPolicyBiasFeatureIndex ? nhPolicyFeatureSize - 1 : featureIndex;
   }
   if (version !== legacyNhPolicyStoreVersion || featureIndex < 0 || featureIndex > legacyNhPolicyBiasFeatureIndex) {
     return -1;
@@ -276,7 +398,7 @@ function rebalanceLoadedNhPolicyActionBiases(
 }
 
 function loadedPolicyActionScale(action: number): number {
-  const decoded = decodeNhPolicyAction(action);
+  const decoded = cachedDecodeNhPolicyAction(action);
   let scale = 1;
   if (decoded.supplyIntent === "offence_strip_two") {
     scale *= loadRebalanceStripTwoScale;
@@ -345,8 +467,8 @@ export function rankNhPolicyActionsFromFeatures(
   }
   const actionVisits = actionVisitMap(policy);
   const rankings: NhPolicyScoredAction[] = [];
-  for (let action = 0; action < nhPolicyActionCount; action += 1) {
-    const decoded = decodeNhPolicyAction(action);
+  for (const action of tabularPolicyCandidateActions(policy)) {
+    const decoded = cachedDecodeNhPolicyAction(action);
     if (!isNhPolicyActionAllowed(features, decoded)) {
       continue;
     }
@@ -407,7 +529,7 @@ export function rankNhPolicyCandidateActionsFromFeatures(
       continue;
     }
     seen.add(action);
-    const decoded = decodeNhPolicyAction(action);
+    const decoded = cachedDecodeNhPolicyAction(action);
     if (!isNhPolicyActionAllowed(features, decoded)) {
       continue;
     }
@@ -429,6 +551,126 @@ export function rankNhPolicyCandidateActionsFromFeatures(
             score: policyScore(policy, 0, features),
             visits: actionVisits.get(0) ?? 0,
             decoded: decodeNhPolicyAction(0)
+          }
+        ];
+
+  if (equalScoreTieBreaker) {
+    return rankWithJavaEqualScoreTieBreak(resolvedRankings, limit, equalScoreTieBreaker);
+  }
+
+  return resolvedRankings
+    .sort((left, right) => right.score - left.score)
+    .slice(0, Math.max(1, Math.trunc(limit)));
+}
+
+export function rankNhNeuralPolicyActionsFromFeatures(
+  policy: ParsedNhNeuralPolicy,
+  features: readonly number[],
+  limit = 6,
+  equalScoreTieBreaker?: NhPolicyEqualScoreTieBreaker
+): readonly NhPolicyScoredAction[] {
+  if (features.length !== nhPolicyFeatureSize) {
+    throw new Error(`NH policy feature vector must have ${nhPolicyFeatureSize} entries, got ${features.length}.`);
+  }
+  const encoded = runNhNeuralEncoder(policy, normalizeNhNeuralInput(policy, features));
+  const rankings: NhPolicyScoredAction[] = [];
+  const actionCount = policy.actionIds === undefined ? Math.min(nhPolicyActionCount, policy.actionCount) : policy.actionCount;
+  for (let modelAction = 0; modelAction < actionCount; modelAction += 1) {
+    const action = policy.actionIds?.[modelAction] ?? modelAction;
+    const decoded = cachedDecodeNhPolicyAction(action);
+    if (!isNhPolicyActionAllowed(features, decoded)) {
+      continue;
+    }
+    rankings.push({
+      action,
+      score: neuralPolicyActionScore(policy, modelAction, encoded),
+      visits: 0,
+      decoded
+    });
+  }
+
+  const resolvedRankings =
+    rankings.length > 0
+      ? rankings
+      : [
+          {
+            action: policy.actionIds?.[0] ?? 0,
+            score: neuralPolicyActionScore(policy, 0, encoded),
+            visits: 0,
+            decoded: decodeNhPolicyAction(policy.actionIds?.[0] ?? 0)
+          }
+        ];
+
+  if (equalScoreTieBreaker) {
+    return rankWithJavaEqualScoreTieBreak(resolvedRankings, limit, equalScoreTieBreaker);
+  }
+
+  return resolvedRankings
+    .sort((left, right) => right.score - left.score)
+    .slice(0, Math.max(1, Math.trunc(limit)));
+}
+
+const neuralActionIdIndexCache = new WeakMap<Int32Array, Map<number, number>>();
+
+function neuralModelActionForAction(policy: ParsedNhNeuralPolicy, action: number): number {
+  if (policy.actionIds === undefined) {
+    return action >= 0 && action < policy.actionCount ? action : -1;
+  }
+  let index = neuralActionIdIndexCache.get(policy.actionIds);
+  if (!index) {
+    index = new Map<number, number>();
+    for (let modelAction = 0; modelAction < policy.actionIds.length; modelAction += 1) {
+      index.set(policy.actionIds[modelAction] ?? 0, modelAction);
+    }
+    neuralActionIdIndexCache.set(policy.actionIds, index);
+  }
+  return index.get(action) ?? -1;
+}
+
+export function rankNhNeuralPolicyCandidateActionsFromFeatures(
+  policy: ParsedNhNeuralPolicy,
+  features: readonly number[],
+  candidateActions: readonly number[],
+  limit = 6,
+  equalScoreTieBreaker?: NhPolicyEqualScoreTieBreaker
+): readonly NhPolicyScoredAction[] {
+  if (features.length !== nhPolicyFeatureSize) {
+    throw new Error(`NH policy feature vector must have ${nhPolicyFeatureSize} entries, got ${features.length}.`);
+  }
+  const encoded = runNhNeuralEncoder(policy, normalizeNhNeuralInput(policy, features));
+  const rankings: NhPolicyScoredAction[] = [];
+  const seen = new Set<number>();
+  for (const candidateAction of candidateActions) {
+    const action = Math.trunc(candidateAction);
+    if (!isValidAction(action) || seen.has(action)) {
+      continue;
+    }
+    seen.add(action);
+    const modelAction = neuralModelActionForAction(policy, action);
+    if (modelAction < 0) {
+      continue;
+    }
+    const decoded = cachedDecodeNhPolicyAction(action);
+    if (!isNhPolicyActionAllowed(features, decoded)) {
+      continue;
+    }
+    rankings.push({
+      action,
+      score: neuralPolicyActionScore(policy, modelAction, encoded),
+      visits: 0,
+      decoded
+    });
+  }
+
+  const resolvedRankings =
+    rankings.length > 0
+      ? rankings
+      : [
+          {
+            action: policy.actionIds?.[0] ?? 0,
+            score: neuralPolicyActionScore(policy, 0, encoded),
+            visits: 0,
+            decoded: decodeNhPolicyAction(policy.actionIds?.[0] ?? 0)
           }
         ];
 
@@ -480,6 +722,48 @@ function actionVisitMap(policy: ParsedNhPolicy): ReadonlyMap<number, number> {
   }
   actionVisitMapCache.set(policy, visits);
   return visits;
+}
+
+function tabularPolicyCandidateActions(policy: ParsedNhPolicy): readonly number[] {
+  const cached = tabularPolicyCandidateCache.get(policy);
+  if (cached) {
+    return cached;
+  }
+
+  const candidates = new Set<number>(baselineTabularActions());
+  for (const action of policy.weightsByAction.keys()) {
+    if (isValidAction(action)) {
+      candidates.add(action);
+    }
+  }
+  for (const entry of policy.actionVisits) {
+    if (entry.visits > 0 && isValidAction(entry.action)) {
+      candidates.add(entry.action);
+    }
+  }
+
+  const sorted = [...candidates].sort((left, right) => left - right);
+  tabularPolicyCandidateCache.set(policy, sorted);
+  return sorted;
+}
+
+function baselineTabularActions(): readonly number[] {
+  if (baselineTabularCandidateActions) {
+    return baselineTabularCandidateActions;
+  }
+  baselineTabularCandidateActions = Array.from({ length: nhPolicyV1ActionCount }, (_unused, action) => action);
+  return baselineTabularCandidateActions;
+}
+
+function cachedDecodeNhPolicyAction(action: number): NhPolicyAction {
+  const normalized = Math.max(0, Math.min(nhPolicyActionCount - 1, Math.trunc(action)));
+  const cached = decodedActionCache[normalized];
+  if (cached) {
+    return cached;
+  }
+  const decoded = decodeNhPolicyAction(normalized);
+  decodedActionCache[normalized] = decoded;
+  return decoded;
 }
 
 function actionPrior(
@@ -1031,6 +1315,60 @@ function styleStatFactor(
   return clampDouble(accuracyFactor * damageFactor, 0.16, 1.22);
 }
 
+function normalizeNhNeuralInput(policy: ParsedNhNeuralPolicy, features: readonly number[]): Float32Array {
+  const input = new Float32Array(policy.inputSize);
+  for (let index = 0; index < policy.inputSize; index += 1) {
+    const std = policy.inputStd[index];
+    input[index] = (features[nhPolicyInputFeatureStart + index] - policy.inputMean[index]) /
+      (Number.isFinite(std) && Math.abs(std) > 1.0e-8 ? std : 1);
+  }
+  return input;
+}
+
+function runNhNeuralEncoder(policy: ParsedNhNeuralPolicy, normalizedInput: Float32Array): Float32Array {
+  let current = normalizedInput;
+  for (const layer of policy.layers) {
+    current = runDenseLayer(layer, current);
+  }
+  return current;
+}
+
+function runDenseLayer(layer: NhNeuralDenseLayer, input: Float32Array): Float32Array {
+  const output = new Float32Array(layer.bias.length);
+  for (let row = 0; row < layer.bias.length; row += 1) {
+    output[row] = silu(denseRowScore(layer, row, input));
+  }
+  return output;
+}
+
+function denseRowScore(
+  layer: Pick<NhNeuralDenseLayer, "weight" | "bias">,
+  rowIndex: number,
+  input: Float32Array
+): number {
+  const weights = layer.weight[rowIndex];
+  let score = layer.bias[rowIndex] ?? 0;
+  for (let index = 0; index < input.length; index += 1) {
+    score += weights[index] * input[index];
+  }
+  return score;
+}
+
+function neuralPolicyActionScore(
+  policy: ParsedNhNeuralPolicy,
+  action: number,
+  encoded: Float32Array
+): number {
+  if (action < 0 || action >= policy.actionCount) {
+    return Number.NEGATIVE_INFINITY;
+  }
+  return denseRowScore(policy.policy, action, encoded);
+}
+
+function silu(value: number): number {
+  return value / (1 + Math.exp(-value));
+}
+
 function offensiveLevelRatio(
   features: readonly number[],
   ratioIndex: number,
@@ -1291,6 +1629,101 @@ function clampDouble(value: number, min: number, max: number): number {
 
 function isValidAction(action: number): boolean {
   return Number.isInteger(action) && action >= 0 && action < nhPolicyActionCount;
+}
+
+function readObject(value: unknown, label: string): Record<string, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new Error(`${label} must be an object.`);
+  }
+  return value as Record<string, unknown>;
+}
+
+function readArray(value: unknown, label: string): readonly unknown[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`${label} must be an array.`);
+  }
+  return value;
+}
+
+function readNumberVector(value: unknown, expectedLength: number | null, label: string): Float32Array {
+  const values = readArray(value, label);
+  if (expectedLength !== null && values.length !== expectedLength) {
+    throw new Error(`${label} must have ${expectedLength} entries, got ${values.length}.`);
+  }
+  const output = new Float32Array(values.length);
+  for (let index = 0; index < values.length; index += 1) {
+    const parsed = Number(values[index]);
+    if (!Number.isFinite(parsed)) {
+      throw new Error(`${label}[${index}] must be a finite number.`);
+    }
+    output[index] = parsed;
+  }
+  return output;
+}
+
+function readNumberMatrix(
+  value: unknown,
+  expectedRows: number,
+  expectedColumns: number,
+  label: string
+): readonly Float32Array[] {
+  const rows = readArray(value, label);
+  if (rows.length !== expectedRows) {
+    throw new Error(`${label} must have ${expectedRows} rows, got ${rows.length}.`);
+  }
+  return rows.map((row, rowIndex) =>
+    readNumberVector(row, expectedColumns, `${label}[${rowIndex}]`)
+  );
+}
+
+function readOptionalActionIds(value: unknown, expectedLength: number, label: string): Int32Array | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  const values = readArray(value, label);
+  if (values.length !== expectedLength) {
+    throw new Error(`${label} must have ${expectedLength} entries, got ${values.length}.`);
+  }
+  const actionIds = new Int32Array(values.length);
+  for (let index = 0; index < values.length; index += 1) {
+    const action = Number(values[index]);
+    if (!isValidAction(action)) {
+      throw new Error(`${label}[${index}] must be a valid global NH action id.`);
+    }
+    actionIds[index] = action;
+  }
+  return actionIds;
+}
+
+function readNumberRecord(value: unknown): Readonly<Record<string, number>> {
+  if (value === undefined || value === null) {
+    return {};
+  }
+  const record = readObject(value, "metrics");
+  const output: Record<string, number> = {};
+  for (const [key, entry] of Object.entries(record)) {
+    const parsed = Number(entry);
+    if (Number.isFinite(parsed)) {
+      output[key] = parsed;
+    }
+  }
+  return output;
+}
+
+function parseRequiredInteger(value: unknown, label: string): number {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed)) {
+    throw new Error(`${label} must be an integer.`);
+  }
+  return parsed;
+}
+
+function parseOptionalInteger(value: unknown, fallback: number): number {
+  if (value === undefined || value === null) {
+    return fallback;
+  }
+  const parsed = Number(value);
+  return Number.isInteger(parsed) ? parsed : fallback;
 }
 
 function parseInteger(value: string, fallback: number): number {

@@ -181,8 +181,9 @@ assert(
     hudSource.includes("{ childId: 55, spriteId: 696, sourceVarpValue: 4 }") &&
     hudSource.includes("{ childId: 57, spriteId: 692, sourceVarpValue: 0 }") &&
     hudSource.includes("{ childId: 61, spriteId: 696, sourceVarpValue: 4 }") &&
-    hudSource.includes("const activeFrameByVolume = [0, 1, 2, 3, 4] as const"),
-  "options sound sliders should map left-to-right from muted 0 to full volume 4"
+    hudSource.includes("const nhOptionsSoundSliderKnobSpriteId = 1201") &&
+    hudSource.includes("function nhOptionsSoundToggleKnobRect"),
+  "options sound sliders should map left-to-right from muted 0 to full volume 4 using the source knob sprite"
 );
 assert(hudSource.includes("options_windowmode_init/options_windowmode_draw/options_windowmode_set"), "HUD should keep source script anchors for window-mode buttons");
 assert(hudSource.includes("nhOptionsWindowModeFixedSpriteId = 1169"), "HUD should use the source fixed-mode disabled icon");

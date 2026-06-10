@@ -437,7 +437,7 @@ const expectedCases = {
     specOrbSourceDrawState: "orbs_spec_draw_button:toggle",
     specOrbHitboxCount: 1,
     specialDrainPercent: 50,
-    specialDrainSource: "nh-server:combat.special.melee.AbyssalTentacle",
+    specialDrainSource: "kronos-server:combat.special.melee.AbyssalTentacle",
     styles: [
       {
         slotIndex: 0,
@@ -485,7 +485,7 @@ const expectedCases = {
     specOrbSourceDrawState: "orbs_spec_draw_button:toggle",
     specOrbHitboxCount: 1,
     specialDrainPercent: 50,
-    specialDrainSource: "nh-server:combat.special.melee.GraniteMaul",
+    specialDrainSource: "kronos-server:combat.special.melee.GraniteMaul",
     styles: [
       {
         slotIndex: 0,
@@ -627,7 +627,7 @@ const expectedCases = {
     specOrbSourceDrawState: "orbs_spec_draw_button:toggle",
     specOrbHitboxCount: 1,
     specialDrainPercent: 100,
-    specialDrainSource: "nh-server:combat.special.magic.StaffOfTheDead",
+    specialDrainSource: "kronos-server:combat.special.magic.StaffOfTheDead",
     styles: [
       {
         slotIndex: 0,

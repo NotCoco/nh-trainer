@@ -9,7 +9,7 @@ function read(relativePath) {
 }
 
 function readNhClient(relativePath) {
-  return fs.readFileSync(path.resolve(projectRoot, "..", "Nh184-Client", relativePath), "utf8");
+  return fs.readFileSync(path.resolve(projectRoot, "..", "Kronos184-Client", relativePath), "utf8");
 }
 
 const statusOrbsPluginSource = readNhClient("runelite-client/src/main/java/net/runelite/client/plugins/statusorbs/StatusOrbsPlugin.java");
@@ -77,8 +77,8 @@ for (const sourceAnchor of [
 for (const trainerAnchor of [
   'id: "status-orbs"',
   'name: "Status Orbs"',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusorbs/StatusOrbsPlugin.java"',
-  'sourcePath: "Nh184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusorbs/StatusOrbsConfig.java"',
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusorbs/StatusOrbsPlugin.java"',
+  'sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/statusorbs/StatusOrbsConfig.java"',
   'group: "statusorbs"',
   'statusOrbs: {',
   'notifyBeforeHpRegenSeconds',

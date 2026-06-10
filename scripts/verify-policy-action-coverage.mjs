@@ -118,6 +118,12 @@ function extractJavaArrayValues(source, arrayName) {
   );
 }
 
+function extractJsStringArray(source, arrayName) {
+  const match = source.match(new RegExp(`const\\s+${arrayName}\\s*=\\s*\\[([\\s\\S]*?)\\];`));
+  assert(match, `source missing ${arrayName} array`);
+  return [...match[1].matchAll(/"([^"]+)"/g)].map((entry) => entry[1]);
+}
+
 function extractJavaIntConstant(source, constantName) {
   const match = source.match(new RegExp(`private static final int\\s+${constantName}\\s*=\\s+(\\d+)\\s*;`));
   assert(match, `server bridge missing literal int constant ${constantName}`);
@@ -160,13 +166,14 @@ const runtimePolicy = loadTsModule("src/sim/nh/runtime-policy-opponent.ts");
 const runtimePolicyTargeting = loadTsModule("src/sim/nh/runtimePolicyTargeting.ts");
 const runtimeCombat = loadTsModule("src/sim/runtimePlayerCombat.ts");
 const nhDuel = loadTsModule("src/sim/nh/duel.ts");
+const combatTimers = loadTsModule("src/sim/combat/timers.ts");
 const loadouts = loadTsModule("src/sim/nh/loadouts.ts");
 const gearProfile = loadTsModule("src/sim/nh/gearProfile.ts");
 const clientOffenceEv = loadTsModule("src/sim/nh/clientOffenceEv.ts");
 const entityLocks = loadTsModule("src/sim/entity/locks.ts");
 const sceneCollision = loadTsModule("src/render/nhSceneCollision.ts");
 const coverage = runtimePolicy.assertRuntimePolicyOpponentActionCoverage();
-assert(coverage.actionCount === 4950, `expected 4950 policy actions, got ${coverage.actionCount}`);
+assert(coverage.actionCount === bridge.nhPolicyActionCount, `expected ${bridge.nhPolicyActionCount} policy actions, got ${coverage.actionCount}`);
 assert(coverage.offenceStyles === bridge.nhOffenceStyles.length, "offence style coverage count mismatch");
 assert(coverage.defencePrayers === bridge.nhDefencePrayers.length, "defence prayer coverage count mismatch");
 assert(coverage.movementIntents === bridge.nhMovementIntents.length, "movement intent coverage count mismatch");
@@ -175,13 +182,17 @@ assert(
   "supply intent coverage count mismatch"
 );
 assert(coverage.specIntents === bridge.nhSpecIntents.length, "spec intent coverage count mismatch");
+assert(coverage.attackIntents === bridge.nhAttackIntents.length, "attack intent coverage count mismatch");
+assert(coverage.equipmentIntents === bridge.nhEquipmentIntents.length, "equipment intent coverage count mismatch");
 
 const seen = {
   offenceStyles: new Set(),
   defencePrayers: new Set(),
   movementIntents: new Set(),
   supplyIntents: new Set(),
-  specIntents: new Set()
+  specIntents: new Set(),
+  attackIntents: new Set(),
+  equipmentIntents: new Set()
 };
 for (let actionId = 0; actionId < bridge.nhPolicyActionCount; actionId += 1) {
   const decoded = bridge.decodeNhPolicyAction(actionId);
@@ -190,8 +201,92 @@ for (let actionId = 0; actionId < bridge.nhPolicyActionCount; actionId += 1) {
   seen.movementIntents.add(decoded.movementIntent);
   seen.supplyIntents.add(decoded.supplyIntent);
   seen.specIntents.add(decoded.specIntent);
+  seen.attackIntents.add(decoded.attackIntent);
+  seen.equipmentIntents.add(decoded.equipmentIntent);
   assert(bridge.encodeNhPolicyAction(decoded) === actionId, `policy action ${actionId} did not round-trip`);
 }
+
+for (const attackIntent of bridge.nhAttackIntents) {
+  for (const equipmentIntent of bridge.nhEquipmentIntents) {
+    const actionId = bridge.encodeNhPolicyAction({
+      offenceStyle: "ranged",
+      defencePrayer: "protect_from_magic",
+      movementIntent: "pressure",
+      supplyIntent: "none",
+      specIntent: "none",
+      extendedSupplyAction: false,
+      attackIntent,
+      equipmentIntent
+    });
+    const decoded = bridge.decodeNhPolicyAction(actionId);
+    assert(
+      decoded.attackIntent === attackIntent && decoded.equipmentIntent === equipmentIntent,
+      `policy action bridge should compose ${equipmentIntent} with ${attackIntent}`
+    );
+  }
+}
+
+const dmmTrainingSource = readProject("scripts/train-policy-dmm-runtime.mjs");
+assertArrayEquals(
+  extractJsStringArray(dmmTrainingSource, "dmmAllowedAttackIntentList"),
+  ["attack", "hold", "off_tick"],
+  "DMM training attack intents"
+);
+assertArrayEquals(
+  extractJsStringArray(dmmTrainingSource, "dmmAllowedEquipmentIntentList"),
+  ["style_loadout", "weapon_only", "unequip_head", "unequip_body", "unequip_shield", "unequip_legs", "unequip_hands"],
+  "DMM training equipment intents"
+);
+assertOrderedSnippets(
+  extractBlockAfter(dmmTrainingSource, "function createDmmTrainingActionIds()"),
+  [
+    "for (const attackIntent of dmmAllowedAttackIntentList) {",
+    "for (const equipmentIntent of dmmAllowedEquipmentIntentList) {",
+    "expanded.add(policyBridge.encodeNhPolicyAction({",
+    "attackIntent,",
+    "equipmentIntent"
+  ],
+  "DMM training action expansion should compose equipment and attack intents"
+);
+assertOrderedSnippets(
+  extractBlockAfter(dmmTrainingSource, "function runDmmRuntimeRolloutExport()"),
+  [
+    "const opponentPolicyPath = args[\"opponent-policy\"]",
+    "const opponentPolicy = opponentPolicyPath ? parseRuntimePolicy(opponentPolicyPath) : null;",
+    "runRuntimeSelfPlayFight({",
+    "opponentPolicy,",
+    "if (!opponentPolicy) {",
+    "stats.rows += writeDecisionRows(writer, fight.localDecisions,",
+    "stats.rows += writeDecisionRows(writer, fight.opponentDecisions,"
+  ],
+  "DMM rollout export should support predecessor-opponent data generation without training on predecessor rows"
+);
+assertOrderedSnippets(
+  dmmTrainingSource,
+  [
+    "function runRuntimeSelfPlayFight({ policy, opponentPolicy",
+    "const controllers = {",
+    "\"local-player\": opponentPolicy",
+    "? createDmmEvaluationController(opponentPolicy",
+    ": createTrainingController(policy",
+    "opponent: createTrainingController(policy",
+    "localDecisions: controllers[\"local-player\"].decisions ?? [],",
+    "opponentDecisions: controllers.opponent.decisions ?? []"
+  ],
+  "DMM predecessor-opponent fights should use a deterministic predecessor against the exploratory training bot"
+);
+assertOrderedSnippets(
+  extractBlockAfter(dmmTrainingSource, "function createDmmEvaluationController("),
+  [
+    "const evaluationRng = createMulberry32(seed >>> 0);",
+    "const candidates = evaluationCandidateCount >= dmmTrainingActionIds.length",
+    "? dmmTrainingActionIds",
+    ": sampledTrainingActionCandidates(evaluationRng, evaluationCandidateCount);",
+    "rankDmmTrainingCandidateActions(",
+    "candidates,"
+  ],
+  "DMM neural eval should honor the configured candidate budget"
+);
 
 for (const value of bridge.nhOffenceStyles) {
   assert(seen.offenceStyles.has(value), `decoded action space never emits offence style ${value}`);
@@ -208,6 +303,12 @@ for (const value of [...bridge.nhSupplyIntents, ...bridge.nhExtraSupplyIntents])
 for (const value of bridge.nhSpecIntents) {
   assert(seen.specIntents.has(value), `decoded action space never emits spec intent ${value}`);
 }
+for (const value of bridge.nhAttackIntents) {
+  assert(seen.attackIntents.has(value), `decoded action space never emits attack intent ${value}`);
+}
+for (const value of bridge.nhEquipmentIntents) {
+  assert(seen.equipmentIntents.has(value), `decoded action space never emits equipment intent ${value}`);
+}
 
 const serverBridgeSource = readNhServerSource("model/entity/player/ai/NhStakerSelfPlayManager.java");
 const javaOffenceStyles = extractJavaArrayValues(serverBridgeSource, "OFFENCE_STYLES");
@@ -216,12 +317,15 @@ const javaMovementIntents = extractJavaArrayValues(serverBridgeSource, "MOVEMENT
 const javaSupplyIntents = extractJavaArrayValues(serverBridgeSource, "SUPPLY_INTENTS");
 const javaExtraSupplyIntents = extractJavaArrayValues(serverBridgeSource, "EXTRA_SUPPLY_INTENTS");
 const javaSpecIntents = extractJavaArrayValues(serverBridgeSource, "SPEC_INTENTS");
+const javaAttackIntents = extractJavaArrayValues(serverBridgeSource, "ATTACK_INTENTS");
+const javaEquipmentIntents = extractJavaArrayValues(serverBridgeSource, "EQUIPMENT_INTENTS");
 const javaBaseActionCount =
   javaOffenceStyles.length * javaDefencePrayers.length * javaMovementIntents.length * javaSupplyIntents.length;
 const javaExtraBaseActionCount =
   javaOffenceStyles.length * javaDefencePrayers.length * javaMovementIntents.length * javaExtraSupplyIntents.length;
 const javaLegacyActionCount = javaBaseActionCount * javaSpecIntents.length;
-const javaActionCount = javaLegacyActionCount + javaExtraBaseActionCount * javaSpecIntents.length;
+const javaPolicyV1ActionCount = javaLegacyActionCount + javaExtraBaseActionCount * javaSpecIntents.length;
+const javaActionCount = javaPolicyV1ActionCount * javaAttackIntents.length * javaEquipmentIntents.length;
 
 assertArrayEquals(javaOffenceStyles, [...bridge.nhOffenceStyles], "Java/TS offence style order");
 assertArrayEquals(javaDefencePrayers, [...bridge.nhDefencePrayers], "Java/TS defence prayer order");
@@ -229,6 +333,8 @@ assertArrayEquals(javaMovementIntents, [...bridge.nhMovementIntents], "Java/TS m
 assertArrayEquals(javaSupplyIntents, [...bridge.nhSupplyIntents], "Java/TS base supply intent order");
 assertArrayEquals(javaExtraSupplyIntents, [...bridge.nhExtraSupplyIntents], "Java/TS extra supply intent order");
 assertArrayEquals(javaSpecIntents, [...bridge.nhSpecIntents], "Java/TS spec intent order");
+assertArrayEquals(javaAttackIntents, [...bridge.nhAttackIntents], "Java/TS attack intent order");
+assertArrayEquals(javaEquipmentIntents, [...bridge.nhEquipmentIntents], "Java/TS equipment intent order");
 assert(extractJavaIntConstant(serverBridgeSource, "INPUT_SIZE") === bridge.nhPolicyInputSize, "Java/TS policy input size mismatch");
 assert(
   extractJavaIntConstant(serverBridgeSource, "RESERVOIR_SIZE") === bridge.nhPolicyReservoirSize,
@@ -237,13 +343,18 @@ assert(
 assert(javaActionCount === bridge.nhPolicyActionCount, `Java/TS policy action count mismatch: ${javaActionCount}`);
 
 function decodeJavaBridgeAction(action) {
-  const extendedSupplyAction = action >= javaLegacyActionCount;
+  const normalizedAction = Math.max(0, Math.min(bridge.nhPolicyActionCount - 1, Math.trunc(action)));
+  const legacyAction = normalizedAction % javaPolicyV1ActionCount;
+  const variantIndex = Math.floor(normalizedAction / javaPolicyV1ActionCount);
+  const attackIndex = variantIndex % javaAttackIntents.length;
+  const equipmentIndex = Math.floor(variantIndex / javaAttackIntents.length) % javaEquipmentIntents.length;
+  const extendedSupplyAction = legacyAction >= javaLegacyActionCount;
   const baseAction = extendedSupplyAction
-    ? (action - javaLegacyActionCount) % javaExtraBaseActionCount
-    : action % javaBaseActionCount;
+    ? (legacyAction - javaLegacyActionCount) % javaExtraBaseActionCount
+    : legacyAction % javaBaseActionCount;
   const specIndex = extendedSupplyAction
-    ? Math.floor((action - javaLegacyActionCount) / javaExtraBaseActionCount)
-    : Math.floor(action / javaBaseActionCount);
+    ? Math.floor((legacyAction - javaLegacyActionCount) / javaExtraBaseActionCount)
+    : Math.floor(legacyAction / javaBaseActionCount);
   const supplyPool = extendedSupplyAction ? javaExtraSupplyIntents : javaSupplyIntents;
   const supplyIndex = baseAction % supplyPool.length;
   const movementIndex = Math.floor(baseAction / supplyPool.length) % javaMovementIntents.length;
@@ -258,7 +369,9 @@ function decodeJavaBridgeAction(action) {
     movementIntent: javaMovementIntents[movementIndex],
     supplyIntent: supplyPool[supplyIndex],
     specIntent: javaSpecIntents[Math.max(0, Math.min(javaSpecIntents.length - 1, specIndex))],
-    extendedSupplyAction
+    extendedSupplyAction,
+    attackIntent: javaAttackIntents[attackIndex],
+    equipmentIntent: javaEquipmentIntents[equipmentIndex]
   };
 }
 
@@ -270,6 +383,8 @@ for (let actionId = 0; actionId < bridge.nhPolicyActionCount; actionId += 1) {
   assert(decodedTs.movementIntent === decodedJava.movementIntent, `action ${actionId} movement intent diverges from Java`);
   assert(decodedTs.supplyIntent === decodedJava.supplyIntent, `action ${actionId} supply intent diverges from Java`);
   assert(decodedTs.specIntent === decodedJava.specIntent, `action ${actionId} spec intent diverges from Java`);
+  assert(decodedTs.attackIntent === decodedJava.attackIntent, `action ${actionId} attack intent diverges from Java`);
+  assert(decodedTs.equipmentIntent === decodedJava.equipmentIntent, `action ${actionId} equipment intent diverges from Java`);
   assert(
     decodedTs.extendedSupplyAction === decodedJava.extendedSupplyAction,
     `action ${actionId} extended supply flag diverges from Java`
@@ -343,7 +458,9 @@ assertOrderedSnippets(
     "input[i++] = clamp01(obs.visibleStyleMatchRate);",
     "input[i++] = clamp01(obs.visibleStyleMismatchRate);",
     "input[i++] = clamp01(obs.visibleStyleSampleConfidence);",
-    "input[i] = clampSigned(obs.visibleStyleLastOutcome);"
+    "input[i++] = clampSigned(obs.visibleStyleLastOutcome);",
+    "input[i++] = opponentVengeanceTrinketRecent(obs);",
+    "input[i] = clamp01(obs.opponentVengeanceTrinketCastsDelayed / VENGEANCE_TRINKET_CAST_COUNT_NORMALIZER);"
   ],
   "Java policy input layout"
 );
@@ -412,7 +529,9 @@ assertOrderedSnippets(
     "input.push(visibleStyleReliability.matchRate);",
     "input.push(visibleStyleReliability.mismatchRate);",
     "input.push(visibleStyleReliability.confidence);",
-    "input.push(visibleStyleReliability.lastOutcome);"
+    "input.push(visibleStyleReliability.lastOutcome);",
+    "input.push(opponentVengeanceTrinketRecentFeature(context));",
+    "input.push(opponentVengeanceTrinketCastsFeature(context));"
   ],
   "TypeScript policy input layout"
 );
@@ -500,8 +619,12 @@ for (const snippet of [
   "OffenceStyle desiredOffence = decision.offenceStyle;",
   "desiredOffence = enforceLivePrayerCounter(opponent, desiredOffence);",
   "desiredOffence = recoverStyleStall(opponent, desiredOffence);",
-  "if (desiredOffence != currentOffence || (!suppressStyleReequipThisTick && !isEquippedForStyle(desiredOffence)))",
-  "optimizeFlexibleGear(desiredOffence, opponent);",
+  "EquipmentIntent equipmentIntent = decision.equipmentIntent == null",
+  "if (desiredOffence != currentOffence || (!suppressStyleReequipThisTick && !isEquippedForStyle(desiredOffence, equipmentIntent)))",
+  "switchToStyle(desiredOffence, opponent, equipmentIntent)",
+  "if (!suppressStyleReequipThisTick && equipmentIntent == EquipmentIntent.STYLE_LOADOUT)",
+  "if (holdAttack) {",
+  "player.getCombat().reset();",
   "if (desiredOffence == OffenceStyle.MAGIC) {",
   "enforceMagicCoreArmor();",
   "applySpecIntent(opponent, decision.specIntent);",
@@ -538,6 +661,10 @@ for (const snippet of [
   "clearStyleStall();",
   "player.temp.remove(BOT_STYLE_KEY);",
   "private void applyLoadout(OffenceStyle style) {",
+  "private void applyEquipmentIntentLoadout(OffenceStyle style, EquipmentIntent equipmentIntent, Player opponent) {",
+  "reEquipMissingLoadoutSlots(style, opponent);",
+  "private void reEquipMissingLoadoutSlots(OffenceStyle style, Player opponent) {",
+  "selectFlexibleItemId(slot, candidateIds, style, threatStyle, underPressure)",
   "private void enforceMagicCoreArmor() {",
   "ensureEquipped(Equipment.SLOT_CHEST, magicChestId);",
   "ensureEquipped(Equipment.SLOT_LEGS, magicLegsId);",
@@ -582,7 +709,12 @@ for (const snippet of [
   "canAttack = canAttackFromObserved(opponent, delayed, selfLikelyStyle);",
   "private boolean canAttackFromObserved(Player opponent, OpponentInfoSnapshot snapshot, OffenceStyle selfStyle) {",
   "private int attackRangeForThreat(OffenceStyle threatStyle) {",
-  "return 8;",
+  "private int attackRangeForThreat(OffenceStyle threatStyle, Player attacker) {",
+  "int baseRange = combat == null || combat.weaponType == null ? 8 : Math.max(1, combat.weaponType.maxDistance);",
+  "return Math.min(baseRange + 2, 10);",
+  "double incomingPrayerReward = incomingPrayerOutcomeReward(incomingPrayerCorrectDelta, incomingPrayerIncorrectDelta);",
+  "type=incoming_prayer",
+  "private double incomingPrayerOutcomeReward(int correctPrayers, int incorrectPrayers) {",
   "attemptStandUnder(opponent, style, tick);",
   "player.getRouteFinder().routeAbsolute(delayed.x, delayed.y);",
   "attemptDirectionalStep(opponent, 1, 1, tick, \"policy_step_ne\");",
@@ -617,8 +749,6 @@ for (const snippet of [
   "rememberSupplyUse(tick, lowValueSupply);",
   "private double defencePrayerBeliefReward(Player opponent,",
   "ClientStyleBelief belief = clientStyleBelief(opponent, fallbackThreatStyle, distance);",
-  "double actualPrayerReward = actualPrayerHitReward(onPrayerHitDelta, onPrayerDamageDelta,",
-  "type=actual_prayer",
   "private int estimateOpponentSpecialEnergyClientSide(Player opponent) {",
   "private static final int DELAYED_OPP_INFO_DELAY_TICKS = 1;",
   "OpponentInfoSnapshot live = captureLiveOpponentInfo(opponent, tick);",
@@ -743,7 +873,9 @@ for (const snippet of [
 for (const snippet of [
   "const gmaulFeatures = gmaulFeatureWindow(context);",
   "const opponentVisibleHp = clientVisibleOpponentHp(context);",
-  "const policyThreatRange = 8;",
+  "function policyAttackRangeForObservedStyle(context: NhDuelControllerContext, style: NhOffenceStyle): number",
+  "const weaponId = context.self.gearProfile?.rangedWeaponId ?? context.self.weaponId;",
+  "return profile.style === \"ranged\" ? Math.min(profile.attackRange + 2, 10) : 10;",
   "const selfCanAttackFromObserved = canAttackFromObservedFeature(context, selfStyle);",
   "const scriptedOffenceStyle = context.scriptedOffenceStyle ?? styleBucket(context.bestVisibleStyle);",
   "const selfCanSpecSingleNow = canUseSpecialSpecFromObserved(context, false);",
@@ -754,7 +886,7 @@ for (const snippet of [
   "input.push(boolFeature(selfCanSpecSingleNow));",
   "input.push(boolFeature(selfCanSpecDoubleNow));",
   "canUseSpecialSpecFromObserved(context, false)",
-  "canApproachSpecialSpecSoon(context, true)",
+  "canApproachSpecialSpecSoon(context, true, doubleKind)",
   "!canAct(context.self.locks, context.tick) ||",
   "function clientGmaulKoChanceEstimate(",
   "const effectiveDamage = Math.max(1, Math.round(maxSpecDamage * exposure * prayerFactor));",
@@ -795,7 +927,16 @@ for (const snippet of [
   "Source: NhStakerBot.applySupplyIntent() passes opponent != null && isAggressingBot(opponent);",
   "low HP is applied separately inside stripDefencePenaltyWeight().",
   "Source: NhStakerBot.OFFENCE_STRIP_SLOTS.",
-  "const offenceStripSlots: readonly EquipmentSlot[] = [\"shield\", \"body\", \"legs\", \"head\", \"cape\", \"amulet\", \"hands\", \"feet\"]"
+  "const offenceStripSlots: readonly EquipmentSlot[] = [\"shield\", \"body\", \"legs\", \"head\", \"cape\", \"amulet\", \"hands\", \"feet\"]",
+  "const attackIntent = action.attackIntent ?? \"attack\";",
+  "if (attackIntent === \"off_tick\")",
+  "if (attackIntent !== \"hold\")",
+  "if (action.specIntent !== \"none\" && attackIntent !== \"hold\")",
+  "const equipmentIntent = action.equipmentIntent ?? \"style_loadout\";",
+  "if (equipmentIntent === \"weapon_only\")",
+  "function equipmentSlotForEquipmentIntent",
+  "return loadoutForWeapon(weaponId).id;",
+  "strippedEquipmentSlots: equipmentPlan.clearSlots"
 ]) {
   assert(duelSource.includes(snippet), `duel context source missing scripted fallback style snippet ${snippet}`);
 }
@@ -868,6 +1009,7 @@ for (const snippet of [
 
   const doubleProtectedOpponent = {
     ...farOpponent,
+    tile: { ...farOpponent.tile, x: self.tile.x + 12 },
     activePrayers: ["protect_from_magic", "protect_from_missiles"]
   };
   const doubleProtectedAction = nhDuel.scriptedNhController.chooseAction(
@@ -903,6 +1045,68 @@ for (const snippet of [
   );
 }
 {
+  const readyTimer = { lastAttackTick: 0, weaponCooldownTicks: 5, additiveAttackDelayTicks: 0 };
+  assert(
+    combatTimers.shouldDelayFirstReadyAttackTick(readyTimer, 5),
+    "off-tick helper should only delay the first tick an attack becomes ready"
+  );
+  const delayed = combatTimers.delayAttack(readyTimer, 1);
+  const consumed = combatTimers.consumeExpiredAttackDelay(delayed, 6).state;
+  assert(
+    !combatTimers.shouldDelayFirstReadyAttackTick(consumed, 6),
+    "off-tick helper should not keep re-delaying after the one-tick defer expires"
+  );
+
+  const alwaysOffTickController = {
+    chooseAction() {
+      return {
+        offenceStyle: "ranged",
+        defencePrayer: "protect_from_missiles",
+        movementIntent: "pressure",
+        supplyIntent: "none",
+        specIntent: "none",
+        extendedSupplyAction: false,
+        attackIntent: "off_tick",
+        equipmentIntent: "style_loadout"
+      };
+    }
+  };
+  const holdController = {
+    chooseAction() {
+      return {
+        offenceStyle: "ranged",
+        defencePrayer: "protect_from_missiles",
+        movementIntent: "pressure",
+        supplyIntent: "none",
+        specIntent: "none",
+        extendedSupplyAction: false,
+        attackIntent: "hold",
+        equipmentIntent: "style_loadout"
+      };
+    }
+  };
+  let duelState = nhDuel.createInitialNhDuelState();
+  duelState = {
+    ...duelState,
+    tick: 5,
+    actors: {
+      ...duelState.actors,
+      self: { ...duelState.actors.self, attackTimer: readyTimer },
+      opponent: { ...duelState.actors.opponent, attackTimer: readyTimer }
+    }
+  };
+  duelState = nhDuel.tickNhDuel(duelState, alwaysOffTickController, holdController);
+  const firstDeferredProjectiles = duelState.events.filter(
+    (event) => event.kind === "projectile" && event.sourceActorId === "self"
+  ).length;
+  assert(firstDeferredProjectiles === 0, "first off-tick ready tick should defer the attack once");
+  duelState = nhDuel.tickNhDuel(duelState, alwaysOffTickController, holdController);
+  const firedProjectiles = duelState.events.filter(
+    (event) => event.kind === "projectile" && event.sourceActorId === "self"
+  ).length;
+  assert(firedProjectiles === 1, "repeated off_tick decisions should still attack after the one-tick defer");
+}
+{
   const state = nhDuel.createInitialNhDuelState();
   const self = {
     ...state.actors.self,
@@ -936,7 +1140,8 @@ for (const snippet of [
     [52, 54, "delayed opponent prayer mask"],
     [57, 58, "delayed opponent weapon embedding"],
     [71, 76, "melee reach and gmaul windows"],
-    [86, 89, "visible style reliability inputs"]
+    [86, 89, "visible style reliability inputs"],
+    [90, 91, "delayed opponent vengeance trinket inputs"]
   ];
   assert(input[0] === 0, `unknown delayed opponent distance should encode as 0, got ${input[0]}`);
   assert(input[2] === 0, `unknown delayed opponent hp should encode as 0, got ${input[2]}`);
@@ -954,6 +1159,18 @@ for (const snippet of [
       assert(input[index] === 0, `${label} index ${index} should be hidden, got ${input[index]}`);
     }
   }
+  const trinketOpponent = {
+    ...state.actors.opponent,
+    tile: { x: 1, y: 0, plane: 0 },
+    lastVengeanceTrinketCastTick: 7,
+    vengeanceTrinketCasts: 3
+  };
+  const trinketInput = policyFeatures.encodeNhPolicyInput(nhDuel.createNhDuelControllerContext(12, self, trinketOpponent));
+  assert(
+    Math.abs(trinketInput[90] - 75 / 80) < 1e-12,
+    `visible opponent trinket recency should decay from last cast tick, got ${trinketInput[90]}`
+  );
+  assert(trinketInput[91] === 3 / 8, `visible opponent trinket casts should encode count, got ${trinketInput[91]}`);
 }
 assert(
   !duelSource.includes("actor.weaponId === \"armadyl_crossbow\" ? [\"super_restore\", \"bastion\"]"),
@@ -1056,7 +1273,7 @@ for (const snippet of [
   "function runtimePolicyWantsFreeze(context: NhDuelControllerContext): boolean",
   "Source: NhStakerBot.applyContextGuards() uses a stateless wantsFreeze",
   "differs from scriptedFallbackDecision()",
-  "runtimePolicyClientThreatRange",
+  "Math.min(profile.attackRange + 2, 10)",
   "runtimePolicyClientStyleEvGuardMargin",
   "runtimePolicyDirectionalStepWouldStarveTargetRoute(input, nextTile)",
   "actor.gearProfile?.rangedWeaponId",
@@ -1069,7 +1286,7 @@ for (const snippet of [
   "RuntimePolicyTargetRouteStepPredicate",
   "RuntimePolicyTileRouteStepPredicate",
   "const meleeRouteDistance = runtimePolicyMeleeTargetRouteRange(input.context.self);",
-  "meleeRouteDistance <= 1",
+  "chebyshevPolicyDistance(input.context.self.tile, input.context.opponent.tile) === 2",
   "const routeDistance = shouldRouteToOpponent ? meleeRouteDistance : 1;",
   "input.targetRouteStep(input.opponentTile, input.localTile, routeDistance",
   "function runtimePolicyMeleeTargetRouteRange(actor: NhDuelActorState): number",
@@ -1153,7 +1370,9 @@ for (const snippet of [
   "runtimePolicyVisibleStyleFromAttackBonuses",
   "const ammoStyle = runtimePolicyVisibleAmmoStyleFromEquipment(equipment);",
   "const attackBonusStyle = runtimePolicyVisibleStyleFromAttackBonuses(equipment);",
-  "const attackStyle = observedInfoKnown ? runtimePolicyStyleFromAttackSet(actor, equipment, weaponStyle) : null;",
+  "const liveActorCombatStateVisible = policyRole === \"policy-self\";",
+  "const spellStyle = observedInfoKnown && liveActorCombatStateVisible",
+  "const attackStyle = observedInfoKnown && liveActorCombatStateVisible",
   "const weaponOrAttackStyle = weaponStyle === \"magic\" && attackStyle === \"melee\"",
   "const likelyOffenceStyle = observedInfoKnown",
   "? observation.likelyOffenceStyle ?? spellStyle ?? weaponOrAttackStyle ?? prayerStyle ?? ammoStyle ?? attackBonusStyle",
@@ -1179,9 +1398,8 @@ for (const snippet of [
   "Source: NhStakerBot.recoverStyleStall() retries switchToStyle()",
   "!styleStall.forceStyleSwitch",
   "runtimePolicyEnforceMagicCoreArmor",
-  "Source: NhStakerBot.enforceMagicCoreArmor() runs after flexible gear",
+  "Source: MAGIC robe body is protected from flexible-gear swaps; keep the",
   "if (effectiveAction.offenceStyle === \"magic\") {",
-  "runtimePolicyStylePressureReward",
   "runtimePolicyGearWeaknessPressureReward",
   "runtimePolicyMeleeThreatPotential",
   "runtimePolicyMeleeTelegraphReward",
@@ -1190,7 +1408,6 @@ for (const snippet of [
   "runtimePolicyDeathSupplyReward",
   "runtimePolicyUnderControlValue",
   "runtimePolicySpacingRewards",
-  "runtimePolicyProtectedStyleStickGraceTicks = 2",
   "runtimePolicyGearWeaknessPressureScale = 0.082",
   "runtimePolicyMeleeTelegraphPenalty = 0.034",
   "runtimePolicyFreezeStandUnderBonus = 0.065",
@@ -1201,7 +1418,6 @@ for (const snippet of [
   "runtimePolicyCombatDeficitPenaltyScale = 0.18",
   "runtimePolicyDeathUnusedHealingSupplyPenalty = 10",
   "runtimePolicyDeathNoGoodSupplyPenalty = 4",
-  "\"style_pressure\"",
   "\"gear_weakness\"",
   "\"melee_threat\"",
   "\"melee_telegraph\"",
@@ -1282,8 +1498,8 @@ for (const snippet of [
   "runtimePolicySpecQueueCooldownTicks",
   "SPEC_QUEUE_COOLDOWN_TICKS",
   "requireMeleeRange = true",
-  "runtimePolicyClientSpecialKoChance(context, specialKind, false, exposure, meleeProtected, opponentHp, false)",
-  "runtimePolicyClientGmaulKoChance(context, true, exposure, meleeProtected, opponentHp, false)",
+  "runtimePolicyClientSpecialKoChance(context, specialKind, false, exposure, specProtected, opponentHp, false)",
+  "runtimePolicyClientGmaulKoChance(context, true, exposure, specProtected, opponentHp, false)",
   "runtimePolicyAvailableSpecialWeaponKind(context.self)",
   "isNhGraniteMaulItemId(actor.equipment.weapon.itemId)",
   "context.self.gmaul.specialEnergy < runtimePolicySpecialRequiredEnergy(specialKind, false)",
@@ -1371,9 +1587,12 @@ assert(
   !runtimeActionGuardsBlock.includes("runtimePolicyShouldAllowSmite"),
   "runtime policy applyContextGuards must not pre-reject self-play Smite; Java resolveDefencePrayer checks it after supply use"
 );
+const runtimeSpecialEquipmentSource = readProject("src/sim/nh/gearProfile.ts");
 assert(
-  !extractBlockAfter(runtimePolicySource, "function runtimeLoadoutForPolicyAction").includes("gmaul-bandos"),
-  "runtime policy spec actions must not map to full gmaul-bandos; Java maybeEquipGraniteMaulForSpec only swaps the weapon slot"
+  runtimeSpecialEquipmentSource.includes('{ ...input.action, specIntent: "none" }') &&
+    runtimeSpecialEquipmentSource.includes('if (specialWeaponKind === "granite_maul")') &&
+    runtimeSpecialEquipmentSource.includes("weapon: weaponItemById.granite_maul"),
+  "runtime policy spec actions must apply the normal style equipment first, then swap only the special weapon like Java maybeEquipGraniteMaulForSpec"
 );
 assert(
   !runtimePolicySource.includes("threatStyle: context.opponent.lastOffenceStyle") &&
@@ -1430,7 +1649,7 @@ assertOrderedSnippets(
     "const contextAfterSupply = runtimePolicyContextWithSelfActor(",
     "const resolvedDefencePrayer = runtimePolicyResolveDefencePrayer(",
     "state = setRuntimePolicyOpponentCurrentOffence(state, effectiveAction.offenceStyle);",
-    "runtimePolicyPrayersForAction(state.actors.opponent, effectiveAction, contextGuardedAction)",
+    "runtimePolicyOffencePrayerAction(contextGuardedAction, syncedOpponentGearProfile)",
     "if (effectiveAction.specIntent !== \"none\") {",
     "state = appendRuntimePolicyRewardEvent(",
     "} else if (action.specIntent === \"none\" && input.rewardEpisodeActive) {",
@@ -1909,8 +2128,9 @@ assert(
 
 const botPolicySource = readProject("src/bot/policy.ts");
 for (const snippet of [
-  "const nhPolicyStoreVersion = 13;",
-  "const previousNhPolicyStoreVersion = 12;",
+  "const nhPolicyStoreVersion = 14;",
+  "const previousNhPolicyStoreVersion = 13;",
+  "const v12NhPolicyStoreVersion = 12;",
   "const legacyNhPolicyStoreVersion = 11;",
   "const explorationReheatDecisionsCap = 350_000;",
   "resetNhPolicyFeatureState(featureState);",
@@ -1920,6 +2140,7 @@ for (const snippet of [
   "for (let action = 0; action < nhPolicyActionCount; action += 1)",
   "const weights = policy.weightsByAction.get(action);",
   "function actionVisitMap(policy: ParsedNhPolicy): ReadonlyMap<number, number>",
+  "entry.visits > 0 && isValidAction(entry.action)",
   "rebalanceLoadedNhPolicyActionBiases(mutableWeights, actionVisits);",
   "function rebalanceLoadedNhPolicyActionBiases(",
   "throw new Error(`NH policy version ${version} does not match expected version ${nhPolicyStoreVersion}.`);",
@@ -1988,16 +2209,20 @@ for (const snippet of [
   "profile.equipmentWeaponItemId !== null",
   "readonly allowFlexibleGear?: boolean;",
   "readonly flexibleGearPasses?: number;",
-  "let equipment = applyJavaStyleLoadout(input.currentEquipment, input.profile, { ...input.action, specIntent: \"none\" });",
-  "if (input.allowFlexibleGear ?? true) {",
+  "let equipment = equipmentIntent === \"weapon_only\" || independentGear",
+  "? applyIndependentStyleWeapon(input.currentEquipment, input.profile, input.action.offenceStyle)",
+  ": applyJavaStyleLoadout(input.currentEquipment, input.profile, { ...input.action, specIntent: \"none\" });",
+  "const equipmentIntent = input.action.equipmentIntent ?? \"style_loadout\";",
+  "if ((input.allowFlexibleGear ?? true) && equipmentIntent === \"style_loadout\") {",
   "const passes = Math.max(1, Math.trunc(input.flexibleGearPasses ?? 1));",
   "for (let pass = 0; pass < passes; pass += 1) {",
-  "if (input.action.specIntent !== \"none\" && nhGearProfileCanEquipGraniteMaul(input.profile))",
+  "if (specialWeaponKind === \"granite_maul\")",
   "const javaBotMagicWeaponCandidates: readonly NhWeaponId[] = [\"staff_of_the_dead\", \"kodai\", \"ancient_staff\"]",
   "const javaBotRangedWeaponCandidates: readonly NhWeaponId[] = [\"dragon_crossbow\", \"armadyl_crossbow\", \"rune_crossbow\", \"magic_shortbow\"]",
   "const javaBotMeleeWeaponCandidates: readonly NhWeaponId[] = [\"tentacle_whip\", \"abyssal_whip\"]",
-  "const magicWeaponCandidates: readonly NhWeaponId[] = javaBotMagicWeaponCandidates",
-  "const rangedWeaponCandidates: readonly NhWeaponId[] = javaBotRangedWeaponCandidates",
+  "const magicWeaponCandidates: readonly NhWeaponId[] = [\"zuriels_staff\", ...javaBotMagicWeaponCandidates]",
+  "const rangedWeaponCandidates: readonly NhWeaponId[] = [\"zaryte_crossbow\", ...javaBotRangedWeaponCandidates]",
+  "const meleeWeaponCandidates: readonly NhWeaponId[] = [\"noxious_halberd\", \"vesta_longsword\", \"voidwaker\", ...javaBotMeleeWeaponCandidates]",
   "styleScore(item: VisibleEquipmentItem, style: NhOffenceStyle)",
   "bonuses.magic_attack_bonus * 100 + bonuses.magic_damage_bonus * 30 + bonuses.magic_defence_bonus * 15",
   "bonuses.range_attack_bonus * 100 + bonuses.ranged_strength_bonus * 35 + bonuses.range_defence_bonus * 15",
@@ -2012,9 +2237,9 @@ for (const snippet of [
 assertOrderedSnippets(
   gearProfileSource,
   [
-    "let equipment = applyJavaStyleLoadout(input.currentEquipment, input.profile, { ...input.action, specIntent: \"none\" });",
-    "if (input.allowFlexibleGear ?? true) {",
-    "if (input.action.specIntent !== \"none\" && nhGearProfileCanEquipGraniteMaul(input.profile)) {",
+    ": applyJavaStyleLoadout(input.currentEquipment, input.profile, { ...input.action, specIntent: \"none\" });",
+    "if ((input.allowFlexibleGear ?? true) && equipmentIntent === \"style_loadout\") {",
+    "if (specialWeaponKind === \"granite_maul\") {",
     "weapon: weaponItemById.granite_maul"
   ],
   "gear profile Java style loadout before weapon-only Gmaul spec"
@@ -2113,7 +2338,7 @@ for (const snippet of [
   assert(viewerSource.includes(snippet), `runtime scene bridge missing policy result snippet ${snippet}`);
 }
 
-const policyFixture = readProject("fixtures/ai/nhstaker-selfplay-policy-nhstake-ags.tsv");
+const policyFixture = readProject("fixtures/ai/nhstaker-selfplay-policy-hard.tsv");
 let visitedActions = 0;
 for (const line of policyFixture.split(/\r?\n/)) {
   const fields = line.split("\t");
@@ -2379,7 +2604,8 @@ const magicNoLineOfSight = runtimePolicy.applyRuntimeOpponentPolicyAction({
   controller: magicNoLineOfSightController,
   localActor: {
     tile: magicNoLineOfSightState.actors["local-player"].tile,
-    loadoutId: "acb-hides"
+    loadoutId: "acb-hides",
+    activePrayers: ["protect_from_melee"]
   },
   opponentActor: {
     tile: magicNoLineOfSightState.actors.opponent.tile,
@@ -2484,11 +2710,13 @@ function applyOpponentPrayerProbe({
   levels = { attack: 99, strength: 99, defence: 99, ranged: 99, magic: 99 }
 }) {
   const tile = style === "melee" ? { x: 1, z: 0 } : { x: 5, z: 0 };
+  const opponentLoadoutId = style === "magic" ? "kodai-robes" : style === "ranged" ? "acb-hides" : "tentacle-bandos";
+  const localActivePrayers = style === "magic" ? ["protect_from_missiles"] : ["protect_from_magic"];
   const state = runtimeCombat.createRuntimePlayerCombatState({
     localTile: { x: 0, z: 0 },
     opponentTile: tile,
     localLoadoutId: "acb-hides",
-    opponentLoadoutId: "acb-hides",
+    opponentLoadoutId,
     opponentLevels: levels,
     opponentPrayerPoints: prayerPoints,
     seed: 24061
@@ -2508,11 +2736,12 @@ function applyOpponentPrayerProbe({
     },
     localActor: {
       tile: state.actors["local-player"].tile,
-      loadoutId: "acb-hides"
+      loadoutId: "acb-hides",
+      activePrayers: localActivePrayers
     },
     opponentActor: {
       tile: state.actors.opponent.tile,
-      loadoutId: "acb-hides"
+      loadoutId: opponentLoadoutId
     }
   }).state.actors.opponent;
 }
@@ -2601,7 +2830,8 @@ function applyStyleStallProbe(state) {
     controller: rangedStyleStallController,
     localActor: {
       tile: state.actors["local-player"].tile,
-      loadoutId: "acb-hides"
+      loadoutId: "acb-hides",
+      activePrayers: ["protect_from_magic"]
     },
     opponentActor: {
       tile: state.actors.opponent.tile,
@@ -2677,6 +2907,7 @@ const acbGmaulSpecState = runtimeCombat.createRuntimePlayerCombatState({
   opponentTile: { x: 2, z: 0 },
   localLoadoutId: "acb-hides",
   opponentLoadoutId: "acb-hides",
+  opponentLevels: { attack: 1, strength: 1, defence: 99, ranged: 99, magic: 1 },
   opponentSpecialEnergy: 100,
   seed: 2407
 });
@@ -2685,7 +2916,8 @@ const acbGmaulSpec = runtimePolicy.applyRuntimeOpponentPolicyAction({
   controller: acbGmaulSpecController,
   localActor: {
     tile: acbGmaulSpecState.actors["local-player"].tile,
-    loadoutId: "acb-hides"
+    loadoutId: "acb-hides",
+    activePrayers: ["protect_from_magic"]
   },
   opponentActor: {
     tile: acbGmaulSpecState.actors.opponent.tile,
@@ -2707,7 +2939,8 @@ const acbNoSpecSameDecision = runtimePolicy.applyRuntimeOpponentPolicyAction({
   },
   localActor: {
     tile: acbGmaulSpecState.actors["local-player"].tile,
-    loadoutId: "acb-hides"
+    loadoutId: "acb-hides",
+    activePrayers: ["protect_from_magic"]
   },
   opponentActor: {
     tile: acbGmaulSpecState.actors.opponent.tile,
@@ -3596,6 +3829,18 @@ const lowHpSupplyStateBase = runtimeCombat.createRuntimePlayerCombatState({
   opponentTile: { x: 5, z: 0 },
   localLoadoutId: "acb-hides",
   opponentLoadoutId: "acb-hides",
+  opponentSupplies: {
+    manta_ray: 13,
+    shark: 0,
+    anglerfish: 1,
+    karambwan: 1,
+    saradomin_brew: 12,
+    super_restore: 0,
+    sanfew_serum: 8,
+    super_combat: 4,
+    ranging_potion: 0,
+    bastion: 4
+  },
   seed: 2601
 });
 const lowHpSupplyState = {
@@ -4056,6 +4301,18 @@ const brewedDownState = runtimeCombat.createRuntimePlayerCombatState({
   localLoadoutId: "acb-hides",
   opponentLoadoutId: "acb-hides",
   opponentLevels: brewedDownLevels,
+  opponentSupplies: {
+    manta_ray: 0,
+    shark: 0,
+    anglerfish: 0,
+    karambwan: 0,
+    saradomin_brew: 0,
+    super_restore: 1,
+    sanfew_serum: 8,
+    super_combat: 0,
+    ranging_potion: 0,
+    bastion: 0
+  },
   seed: 2603
 });
 const noneRecoveryController = {
@@ -4224,8 +4481,8 @@ runtimePolicy.applyRuntimeOpponentPolicyAction({
   }
 });
 assert(
-  observedPolicySelfWeapon === "armadyl_crossbow" && observedPolicySelfStyle === null,
-  `policy self context should infer visible ACB equipment while preserving Java currentOffence=null, got ${observedPolicySelfWeapon}/${observedPolicySelfStyle}`
+  observedPolicySelfWeapon === "dragon_crossbow" && observedPolicySelfStyle === null,
+  `policy self context should infer visible ranged equipment while preserving Java currentOffence=null, got ${observedPolicySelfWeapon}/${observedPolicySelfStyle}`
 );
 assert(
   observedPolicyOpponentWeapon === "tentacle_whip",
@@ -4285,21 +4542,21 @@ const profileCandidateEquipment = gearProfile.nhGearProfileCandidateEquipmentByS
   inferredStandardProfile
 );
 assert(
-  profileCandidateEquipment.magic.weapon.itemId === 21006 &&
-    profileCandidateEquipment.magic.body.itemId === 4712 &&
-    profileCandidateEquipment.magic.legs.itemId === 4714,
+  profileCandidateEquipment.magic.weapon.itemId === 11791 &&
+    profileCandidateEquipment.magic.body.itemId === 4091 &&
+    profileCandidateEquipment.magic.legs.itemId === 4093,
   "selected gear profile should build Java-style magic candidate equipment from selected weapon/body/legs"
 );
 assert(
-  profileCandidateEquipment.ranged.weapon.itemId === 11785 &&
-    profileCandidateEquipment.ranged.body.itemId === 11828 &&
-    profileCandidateEquipment.ranged.legs.itemId === 11830,
+  profileCandidateEquipment.ranged.weapon.itemId === 21902 &&
+    profileCandidateEquipment.ranged.body.itemId === 4736 &&
+    profileCandidateEquipment.ranged.legs.itemId === 11834,
   "selected gear profile should build Java-style ranged candidate equipment from selected weapon/body/legs"
 );
 assert(
-  profileCandidateEquipment.slash.weapon.itemId === 12006 &&
+  profileCandidateEquipment.slash.weapon.itemId === 29796 &&
     profileCandidateEquipment.slash.body.itemId === 11832 &&
-    profileCandidateEquipment.slash.legs.itemId === 11834,
+    profileCandidateEquipment.slash.legs.itemId === 4759,
   "selected gear profile should build Java-style melee candidate equipment from selected weapon/body/legs"
 );
 const strictNoInventoryProfile = gearProfile.inferNhSelectedGearProfile({
@@ -4313,8 +4570,8 @@ const strictNoInventoryCandidates = gearProfile.nhGearProfileCandidateEquipmentB
 assert(
   strictNoInventoryCandidates.magic.weapon.itemId === 12006 &&
     strictNoInventoryCandidates.ranged.weapon.itemId === 12006 &&
-    strictNoInventoryCandidates.ranged.body.itemId === 11832,
-  "strict inventory profile should not invent missing Kodai/ACB/Armadyl items when Java-visible inventory does not contain them"
+    strictNoInventoryCandidates.ranged.body.itemId === 4736,
+  "strict inventory profile should not invent missing mage/range/tank items when Java-visible inventory does not contain them"
 );
 const strictRangedInventoryProfile = gearProfile.inferNhSelectedGearProfile({
   equipment: loadouts.nhLoadouts["tentacle-bandos"].equipment,
@@ -4329,10 +4586,10 @@ const strictRangedCandidates = gearProfile.nhGearProfileCandidateEquipmentByStyl
   strictRangedInventoryProfile
 );
 assert(
-  strictRangedCandidates.ranged.weapon.itemId === 11785 &&
-    strictRangedCandidates.ranged.body.itemId === 11828 &&
-    strictRangedCandidates.ranged.legs.itemId === 11830 &&
-    strictRangedCandidates.magic.weapon.itemId !== 21006,
+  strictRangedCandidates.ranged.weapon.itemId === 21902 &&
+    strictRangedCandidates.ranged.body.itemId === 4736 &&
+    strictRangedCandidates.ranged.legs.itemId === 4759 &&
+    strictRangedCandidates.magic.weapon.itemId !== 11791,
   "strict inventory profile should use owned ranged gear while still refusing to invent missing magic gear"
 );
 const nhStakeItem = (itemId, name = `Item ${itemId}`) => ({ itemId, name });
@@ -4734,8 +4991,8 @@ const incompleteSourceLayoutRejected = runtimePolicy.applyRuntimeOpponentPolicyA
   rewardEpisodeActive: false
 });
 assert(
-  incompleteSourceLayoutRejected.state.actors.opponent.gearProfile?.rangedWeaponId === "armadyl_crossbow" &&
-    incompleteSourceLayoutRejected.state.actors.opponent.equipment.weapon?.itemId === 11785,
+  incompleteSourceLayoutRejected.state.actors.opponent.gearProfile?.rangedWeaponId === "dragon_crossbow" &&
+    incompleteSourceLayoutRejected.state.actors.opponent.equipment.weapon?.itemId === 21902,
   `idle source layout sync should reject incomplete command layouts like NhStakerLoadout.hasUsableBotLoadout(): ${JSON.stringify({
     profile: incompleteSourceLayoutRejected.state.actors.opponent.gearProfile,
     weapon: incompleteSourceLayoutRejected.state.actors.opponent.equipment.weapon
@@ -4823,7 +5080,7 @@ const sourceLayoutAfterCooldown = runtimePolicy.applyRuntimeOpponentPolicyAction
   rewardEpisodeActive: false
 });
 assert(
-  sourceLayoutAfterCooldown.state.actors.opponent.gearProfile?.rangedWeaponId === "armadyl_crossbow" &&
+  sourceLayoutAfterCooldown.state.actors.opponent.gearProfile?.rangedWeaponId === "rune_crossbow" &&
     sourceLayoutAfterCooldown.state.actors.opponent.policyNextLoadoutSyncTick === sourceLayoutSynced.state.tick + 4,
   `idle source layout sync should accept changed layouts once Java nextLoadoutSyncTick has elapsed: ${JSON.stringify({
     tick: sourceLayoutAfterCooldown.state.tick,
@@ -4897,8 +5154,8 @@ const sourceLayoutActiveEpisode = runtimePolicy.applyRuntimeOpponentPolicyAction
   rewardEpisodeActive: true
 });
 assert(
-  sourceLayoutActiveEpisode.state.actors.opponent.gearProfile?.rangedWeaponId === "armadyl_crossbow" &&
-    sourceLayoutActiveEpisode.state.actors.opponent.gearProfile?.rangedWeaponId !== "dragon_crossbow",
+  sourceLayoutActiveEpisode.state.actors.opponent.gearProfile?.rangedWeaponId === "dragon_crossbow" &&
+    sourceLayoutActiveEpisode.state.actors.opponent.gearProfile?.rangedWeaponId !== "rune_crossbow",
   `active reward episodes should not resync the bot profile from a changed local layout: ${JSON.stringify(sourceLayoutActiveEpisode.state.actors.opponent.gearProfile)}`
 );
 const emergencyRecoveryBaseState = runtimeCombat.createRuntimePlayerCombatState({
@@ -4983,7 +5240,7 @@ assert(
     emergencyRecoveryContextSelf?.stats.magic.current === 99 &&
     emergencyRecoveryContextSelf?.activePrayers.length === 0 &&
     emergencyRecoveryContextSelf?.loadoutId === "kodai-robes" &&
-    emergencyRecoveryContextSelf?.equipment.weapon?.itemId === 21006,
+    emergencyRecoveryContextSelf?.equipment.weapon?.itemId === 11791,
   `critical loadout recovery should happen before policy context capture like Java runtime_guard: ${JSON.stringify({
     hp: emergencyRecoveryContextSelf?.stats.hitpoints,
     magic: emergencyRecoveryContextSelf?.stats.magic,
@@ -4993,13 +5250,18 @@ assert(
   })}`
 );
 assert(
-    emergencyRecoveryApplied.state.actors.opponent.equipment.head?.itemId === 12929 &&
+    emergencyRecoveryApplied.state.actors.opponent.loadoutId === "kodai-robes" &&
+    emergencyRecoveryApplied.state.actors.opponent.equipment.weapon?.itemId === 11791 &&
+    emergencyRecoveryApplied.state.actors.opponent.equipment.body?.itemId === 4091 &&
+    emergencyRecoveryApplied.state.actors.opponent.equipment.shield?.itemId === 12831 &&
+    emergencyRecoveryApplied.state.actors.opponent.equipment.legs?.itemId === 4093 &&
     emergencyRecoveryApplied.state.actors.opponent.hitpoints === 99 &&
     emergencyRecoveryApplied.state.actors.opponent.prayerPoints === 99 &&
-    emergencyRecoveryApplied.state.actors.opponent.supplies.manta_ray === 4 &&
-    emergencyRecoveryApplied.state.actors.opponent.supplies.saradomin_brew === 2 &&
+    emergencyRecoveryApplied.state.actors.opponent.supplies.manta_ray === runtimeCombat.runtimePlayerCombatDefaultSupplies.manta_ray &&
+    emergencyRecoveryApplied.state.actors.opponent.supplies.saradomin_brew ===
+      runtimeCombat.runtimePlayerCombatDefaultSupplies.saradomin_brew &&
     emergencyRecoveryApplied.state.actors.opponent.queuedSpellId === null &&
-    emergencyRecoveryApplied.state.actors.opponent.autocastSpellId === null &&
+    emergencyRecoveryApplied.state.actors.opponent.autocastSpellId === "ice-barrage" &&
     emergencyRecoveryApplied.state.actors.opponent.defensiveCast === false &&
     emergencyRecoveryApplied.state.actors.opponent.specialActive === false &&
     emergencyRecoveryApplied.state.actors.opponent.gmaul.queuedSpecs === 0 &&
@@ -5220,11 +5482,11 @@ const profileRuntimeController = {
   id: "test-policy-profile-action-equipment",
   chooseAction: (context) => {
     assert(
-      context.self.candidateEquipmentByStyle?.magic?.body?.itemId === 4712,
+      context.self.candidateEquipmentByStyle?.magic?.body?.itemId === 4091,
       "policy context should expose inferred magic candidate equipment for EV ranking"
     );
     assert(
-      context.self.candidateEquipmentByStyle?.ranged?.weapon?.itemId === 11785,
+      context.self.candidateEquipmentByStyle?.ranged?.weapon?.itemId === 21902,
       "policy context should expose inferred ranged candidate equipment for EV ranking"
     );
     return {
@@ -5242,7 +5504,8 @@ const profileRuntimeApplied = runtimePolicy.applyRuntimeOpponentPolicyAction({
   controller: profileRuntimeController,
   localActor: {
     tile: profileRuntimeState.actors["local-player"].tile,
-    loadoutId: "acb-hides"
+    loadoutId: "acb-hides",
+    activePrayers: ["protect_from_magic"]
   },
   opponentActor: {
     tile: profileRuntimeState.actors.opponent.tile,
@@ -5250,12 +5513,12 @@ const profileRuntimeApplied = runtimePolicy.applyRuntimeOpponentPolicyAction({
   }
 });
 assert(
-  profileRuntimeApplied.state.actors.opponent.gearProfile?.rangedWeaponId === "armadyl_crossbow",
+  profileRuntimeApplied.state.actors.opponent.gearProfile?.rangedWeaponId === "dragon_crossbow",
   "runtime opponent should persist the inferred selected gear profile on the actor"
 );
 assert(
-  profileRuntimeApplied.state.actors.opponent.equipment.weapon?.itemId === 11785 &&
-    profileRuntimeApplied.state.actors.opponent.equipment.ammo?.itemId === 21948,
+  profileRuntimeApplied.state.actors.opponent.equipment.weapon?.itemId === 21902 &&
+    profileRuntimeApplied.state.actors.opponent.equipment.ammo?.itemId === 21932,
   "runtime policy action should apply the selected ranged weapon/ammo from the inferred profile"
 );
 
@@ -5684,8 +5947,8 @@ runtimePolicy.applyRuntimeOpponentPolicyAction({
   }
 });
 assert(
-  prayerOnlyLikelyStyle === "melee" && prayerOnlyVisibleStyle === null,
-  `unarmed PlayerCombat attack style should beat offensive-prayer fallback and keep gearStyle empty, got ${prayerOnlyLikelyStyle}/${prayerOnlyVisibleStyle}`
+  prayerOnlyLikelyStyle === "ranged" && prayerOnlyVisibleStyle === null,
+  `delayed opponent observation should use visible offensive-prayer fallback without live unarmed attack-style leakage, got ${prayerOnlyLikelyStyle}/${prayerOnlyVisibleStyle}`
 );
 
 let prayerBeforeAmmoLikelyStyle = null;
@@ -5728,8 +5991,8 @@ runtimePolicy.applyRuntimeOpponentPolicyAction({
   }
 });
 assert(
-  prayerBeforeAmmoLikelyStyle === "melee" && prayerBeforeAmmoVisibleStyle === "ranged",
-  `Java detectLikelyOffenceStyleLive should use unarmed attack style before prayer/ammo fallback while gearStyle still records ammo, got ${prayerBeforeAmmoLikelyStyle}/${prayerBeforeAmmoVisibleStyle}`
+  prayerBeforeAmmoLikelyStyle === "magic" && prayerBeforeAmmoVisibleStyle === "ranged",
+  `delayed opponent observation should prefer visible offensive-prayer cues before ammo fallback without live attack-style leakage, got ${prayerBeforeAmmoLikelyStyle}/${prayerBeforeAmmoVisibleStyle}`
 );
 
 const lowerTierPrayerStyleCases = [
@@ -5783,8 +6046,8 @@ for (const [prayer, expectedStyle] of lowerTierPrayerStyleCases) {
     }
   });
   assert(
-    observedLikelyStyle === "melee" && observedVisibleStyle === null,
-    `runtime policy should port Java unarmed attack-style priority before lower-tier offensive prayer ${prayer}, got ${observedLikelyStyle}/${observedVisibleStyle}; prayer maps to ${expectedStyle} only after attack-style evidence fails`
+    observedLikelyStyle === expectedStyle && observedVisibleStyle === null,
+    `delayed opponent observation should map lower-tier offensive prayer ${prayer} without live attack-style leakage, got ${observedLikelyStyle}/${observedVisibleStyle}; expected ${expectedStyle}`
   );
 }
 
@@ -5846,8 +6109,8 @@ runtimePolicy.applyRuntimeOpponentPolicyAction({
   }
 });
 assert(
-  queuedSpellLikelyStyle === "magic" && queuedSpellVisibleStyle === "ranged",
-  `queued spell should follow NhStakerBot.isReliableMagicSpellState before ranged gear fallback, got ${queuedSpellLikelyStyle}/${queuedSpellVisibleStyle}`
+  queuedSpellLikelyStyle === "ranged" && queuedSpellVisibleStyle === "ranged",
+  `queued spell should not leak through delayed opponent observation before ranged gear fallback, got ${queuedSpellLikelyStyle}/${queuedSpellVisibleStyle}`
 );
 
 let nonMagicAutocastLikelyStyle = null;
@@ -5927,8 +6190,8 @@ runtimePolicy.applyRuntimeOpponentPolicyAction({
   }
 });
 assert(
-  bonusOnlyLikelyStyle === "melee" && bonusOnlyVisibleStyle === null,
-  `unarmed PlayerCombat attack style should beat attack-bonus fallback and not rewrite Java gearStyle channel, got ${bonusOnlyLikelyStyle}/${bonusOnlyVisibleStyle}`
+  bonusOnlyLikelyStyle === "magic" && bonusOnlyVisibleStyle === null,
+  `delayed opponent observation should allow visible attack-bonus fallback without live unarmed attack-style leakage or rewriting Java gearStyle channel, got ${bonusOnlyLikelyStyle}/${bonusOnlyVisibleStyle}`
 );
 
 const redemptionMagicThreatBase = runtimeCombat.createRuntimePlayerCombatState({
@@ -5952,8 +6215,29 @@ const redemptionMagicThreatState = setActorHitpoints(
   "opponent",
   42
 );
+const redemptionMagicThreatNoSupplyState = {
+  ...redemptionMagicThreatState,
+  actors: {
+    ...redemptionMagicThreatState.actors,
+    opponent: {
+      ...redemptionMagicThreatState.actors.opponent,
+      supplies: {
+        manta_ray: 0,
+        shark: 0,
+        anglerfish: 0,
+        karambwan: 0,
+        saradomin_brew: 0,
+        super_restore: 0,
+        sanfew_serum: 0,
+        super_combat: 0,
+        ranging_potion: 0,
+        bastion: 0
+      }
+    }
+  }
+};
 const redemptionMagicThreat = runtimePolicy.applyRuntimeOpponentPolicyAction({
-  state: redemptionMagicThreatState,
+  state: redemptionMagicThreatNoSupplyState,
   controller: {
     id: "test-policy-redemption-java-threat-max",
     chooseAction: () => ({
@@ -5966,11 +6250,11 @@ const redemptionMagicThreat = runtimePolicy.applyRuntimeOpponentPolicyAction({
     })
   },
   localActor: {
-    tile: redemptionMagicThreatState.actors["local-player"].tile,
+    tile: redemptionMagicThreatNoSupplyState.actors["local-player"].tile,
     loadoutId: "kodai-robes"
   },
   opponentActor: {
-    tile: redemptionMagicThreatState.actors.opponent.tile,
+    tile: redemptionMagicThreatNoSupplyState.actors.opponent.tile,
     loadoutId: "acb-hides"
   }
 });
@@ -6183,7 +6467,7 @@ assert(
 const stripLockController = {
   id: "test-policy-offence-strip-lock-gate",
   chooseAction: () => ({
-    offenceStyle: "ranged",
+    offenceStyle: "magic",
     defencePrayer: "protect_from_magic",
     movementIntent: "pressure",
     supplyIntent: "offence_strip_two",
@@ -6194,7 +6478,7 @@ const stripLockController = {
 const stripLockBaseState = runtimeCombat.createRuntimePlayerCombatState({
   localTile: { x: 0, z: 0 },
   opponentTile: { x: 5, z: 0 },
-  localLoadoutId: "tentacle-bandos",
+  localLoadoutId: "kodai-robes",
   opponentLoadoutId: "kodai-robes",
   seed: 26075
 });
@@ -6205,7 +6489,7 @@ const stripLockReadyState = {
     opponent: {
       ...stripLockBaseState.actors.opponent,
       hitpoints: 99,
-      policyOffenceStyle: "ranged"
+      policyOffenceStyle: "magic"
     }
   }
 };
@@ -6214,7 +6498,7 @@ const stripLockUnlocked = runtimePolicy.applyRuntimeOpponentPolicyAction({
   controller: stripLockController,
   localActor: {
     tile: stripLockReadyState.actors["local-player"].tile,
-    loadoutId: "tentacle-bandos"
+    loadoutId: "kodai-robes"
   },
   opponentActor: {
     tile: stripLockReadyState.actors.opponent.tile,
@@ -6236,7 +6520,7 @@ const stripLockLocked = runtimePolicy.applyRuntimeOpponentPolicyAction({
   controller: stripLockController,
   localActor: {
     tile: stripLockLockedState.actors["local-player"].tile,
-    loadoutId: "tentacle-bandos"
+    loadoutId: "kodai-robes"
   },
   opponentActor: {
     tile: stripLockLockedState.actors.opponent.tile,
@@ -6284,9 +6568,7 @@ assert(
   `Java stripForOffence(currentOffence=null) should leave OFFENCE_STRIP as a no-op, got intent=${stripNullCurrentApplied.effectiveAction.supplyIntent} slots=${stripNullCurrentApplied.strippedEquipmentSlots.join(",")}`
 );
 const stripPreserveMixedEquipment = {
-  ...loadouts.nhLoadouts["acb-hides"].equipment,
-  weapon: loadouts.nhLoadouts["kodai-robes"].equipment.weapon,
-  shield: loadouts.nhLoadouts["kodai-robes"].equipment.shield
+  ...loadouts.nhLoadouts["kodai-robes"].equipment
 };
 const stripPreserveProfile = gearProfile.inferNhSelectedGearProfile({
   equipment: stripPreserveMixedEquipment
@@ -6295,7 +6577,7 @@ const stripPreserveBaseState = runtimeCombat.syncRuntimePlayerCombatStateToInput
   patchOpponentActor(runtimeCombat.createRuntimePlayerCombatState({
     localTile: { x: 0, z: 0 },
     opponentTile: { x: 5, z: 0 },
-    localLoadoutId: "tentacle-bandos",
+    localLoadoutId: "kodai-robes",
     opponentLoadoutId: "kodai-robes",
     seed: 26076
   }), { policyOffenceStyle: "magic" }),
@@ -6327,7 +6609,7 @@ const stripPreserveApplied = runtimePolicy.applyRuntimeOpponentPolicyAction({
   },
   localActor: {
     tile: stripPreserveBaseState.actors["local-player"].tile,
-    loadoutId: "tentacle-bandos"
+    loadoutId: "kodai-robes"
   },
   opponentActor: {
     tile: stripPreserveBaseState.actors.opponent.tile,
@@ -6406,9 +6688,7 @@ const stripMagicCoreApplied = runtimePolicy.applyRuntimeOpponentPolicyAction({
   }
 });
 assert(
-  stripMagicCoreApplied.strippedEquipmentSlots.length > 0 &&
-    stripMagicCoreApplied.strippedEquipmentSlots.every((slot) => stripMagicCoreApplied.state.actors.opponent.equipment[slot] === undefined) &&
-    stripMagicCoreApplied.state.actors.opponent.equipment.body?.itemId === stripMagicCoreProfile.magicChestItem.itemId &&
+  stripMagicCoreApplied.state.actors.opponent.equipment.body?.itemId === stripMagicCoreProfile.magicChestItem.itemId &&
     stripMagicCoreApplied.state.actors.opponent.equipment.legs?.itemId === stripMagicCoreProfile.magicLegsItem.itemId,
   `magic OFFENCE_STRIP suppression should still run Java enforceMagicCoreArmor(), got ${JSON.stringify({
     stripped: stripMagicCoreApplied.strippedEquipmentSlots,
@@ -6660,8 +6940,8 @@ assert(
   `runtime policy context should expose recent dealt/taken hits, got ${observedPolicyLastDealt}/${observedPolicyLastTaken}`
 );
 assert(
-  Math.abs(observedPolicyRewardDelta - 19.6125) < 0.001 &&
-    Math.abs(observedPolicyRewardTotal - 19.6125) < 0.001 &&
+  Math.abs(observedPolicyRewardDelta - 17.425) < 0.001 &&
+    Math.abs(observedPolicyRewardTotal - 17.425) < 0.001 &&
     Math.abs(observedPolicyRewardDps - 3) < 0.001,
   `runtime policy context should expose reward observation fields, got ${observedPolicyRewardDelta}/${observedPolicyRewardTotal}/${observedPolicyRewardDps}`
 );
@@ -7384,7 +7664,7 @@ assert(
 
 const magicOutOfObservedRangeInput = capturePolicyInput(
   runtimeCombat.createRuntimePlayerCombatState({
-    localTile: { x: 9, z: 0 },
+    localTile: { x: 11, z: 0 },
     opponentTile: { x: 0, z: 0 },
     localLoadoutId: "acb-hides",
     opponentLoadoutId: "kodai-robes",
@@ -7393,7 +7673,7 @@ const magicOutOfObservedRangeInput = capturePolicyInput(
 );
 assert(
   magicOutOfObservedRangeInput[8] === 0,
-  "policy input should use NhStakerBot.attackRangeForThreat() distance 8 for magic canAttack observation"
+  "policy input should use NhStakerBot.attackRangeForThreat() distance 10 for magic canAttack observation"
 );
 
 const lockedSpecFeatureStateBase = runtimeCombat.createRuntimePlayerCombatState({
@@ -7468,8 +7748,8 @@ assertArrayEquals(
   "policy input scriptedOffenceStyle bucket"
 );
 
-const distanceNineEvGuardController = {
-  id: "test-policy-distance-nine-ev-guard",
+const distanceElevenEvGuardController = {
+  id: "test-policy-distance-eleven-ev-guard",
   chooseAction: () => ({
     offenceStyle: "ranged",
     defencePrayer: "protect_from_magic",
@@ -7479,17 +7759,17 @@ const distanceNineEvGuardController = {
     extendedSupplyAction: false
   })
 };
-const distanceNineEvGuard = runtimePolicy.applyRuntimeOpponentPolicyAction({
+const distanceElevenEvGuard = runtimePolicy.applyRuntimeOpponentPolicyAction({
   state: runtimeCombat.createRuntimePlayerCombatState({
-    localTile: { x: 9, z: 0 },
+    localTile: { x: 11, z: 0 },
     opponentTile: { x: 0, z: 0 },
-    localLoadoutId: "tentacle-bandos",
+    localLoadoutId: "kodai-robes",
     opponentLoadoutId: "acb-hides",
     seed: 2613
   }),
-  controller: distanceNineEvGuardController,
+  controller: distanceElevenEvGuardController,
   localActor: {
-    tile: { x: 9, z: 0 },
+    tile: { x: 11, z: 0 },
     loadoutId: "tentacle-bandos"
   },
   opponentActor: {
@@ -7498,8 +7778,8 @@ const distanceNineEvGuard = runtimePolicy.applyRuntimeOpponentPolicyAction({
   }
 });
 assert(
-  distanceNineEvGuard.effectiveAction.offenceStyle === "ranged",
-  `style EV guard should not promote magic at distance 9 because Java clientOffenceEv uses attackRangeForThreat=8, got ${distanceNineEvGuard.effectiveAction.offenceStyle}`
+  distanceElevenEvGuard.effectiveAction.offenceStyle === "ranged",
+  `style EV guard should not promote magic past distance 10 because Java clientOffenceEv uses attackRangeForThreat=10, got ${distanceElevenEvGuard.effectiveAction.offenceStyle}`
 );
 
 const rewardShapingNoopController = {
@@ -7513,40 +7793,6 @@ const rewardShapingNoopController = {
     extendedSupplyAction: false
   })
 };
-const openStyleRewardBase = patchOpponentActor(runtimeCombat.createRuntimePlayerCombatState({
-  localTile: { x: 5, z: 0 },
-  opponentTile: { x: 0, z: 0 },
-  localLoadoutId: "kodai-robes",
-  opponentLoadoutId: "acb-hides",
-  localPrayers: ["protect_from_magic"],
-  seed: 26131
-}), { policyOffenceStyle: "ranged" });
-const openStyleReward = runtimePolicy.applyRuntimeOpponentPolicyAction({
-  state: { ...openStyleRewardBase, tick: 12 },
-  controller: rewardShapingNoopController,
-  localActor: {
-    tile: openStyleRewardBase.actors["local-player"].tile,
-    loadoutId: "kodai-robes"
-  },
-  opponentActor: {
-    tile: openStyleRewardBase.actors.opponent.tile,
-    loadoutId: "acb-hides"
-  },
-  rewardEpisodeActive: true,
-  rewardEpisodeStartTick: 10
-});
-const openStyleRewardEvent = openStyleReward.state.events.find(
-  (event) => event.kind === "policy-reward" && event.actorId === "opponent" && event.reason === "style_pressure"
-);
-assert(
-  openStyleRewardEvent &&
-    Math.abs(openStyleRewardEvent.reward - 0.101) < 1e-9,
-  `open off-prayer ranged pressure should match Java 0.075+0.026 reward, got ${JSON.stringify({
-    event: openStyleRewardEvent,
-    delta: openStyleReward.context.self.rewardDelta
-  })}`
-);
-
 const defenceBeliefBase = runtimeCombat.createRuntimePlayerCombatState({
   localTile: { x: 5, z: 0 },
   opponentTile: { x: 0, z: 0 },
@@ -7581,7 +7827,7 @@ assert(
   `ranged-readable defence belief should reward protect-from-missiles like NhStakerBot.defencePrayerBeliefReward, got ${JSON.stringify(defenceBeliefEvent)}`
 );
 
-const actualPrayerBase = runtimeCombat.createRuntimePlayerCombatState({
+const incomingPrayerBase = runtimeCombat.createRuntimePlayerCombatState({
   localTile: { x: 5, z: 0 },
   opponentTile: { x: 0, z: 0 },
   localLoadoutId: "acb-hides",
@@ -7589,70 +7835,78 @@ const actualPrayerBase = runtimeCombat.createRuntimePlayerCombatState({
   opponentPrayers: ["protect_from_missiles"],
   seed: 261311
 });
-const actualPrayerReward = runtimePolicy.applyRuntimeOpponentPolicyAction({
+const incomingPrayerReward = runtimePolicy.applyRuntimeOpponentPolicyAction({
   state: {
-    ...actualPrayerBase,
+    ...incomingPrayerBase,
     tick: 12,
     events: [
       {
-        kind: "hitsplat",
-        id: "test-on-prayer-hit",
+        kind: "attack",
+        id: "test-correct-prayer-attack",
         tick: 11,
         attackerId: "local-player",
-        targetActorId: "opponent",
+        defenderId: "opponent",
+        attackerTile: { x: 5, z: 0 },
+        defenderTile: { x: 0, z: 0 },
         style: "ranged",
-        damage: 7,
-        rawDamage: 12,
+        sequenceName: "crossbow",
+        hitDelayTicks: 1,
         maxDamage: 33,
         hitChance: 0.8,
+        expectedDamage: 8.4,
         defenderProtectionPrayer: "protect_from_missiles",
-        previousHitpoints: 99,
-        nextHitpoints: 92,
-        maxHitpoints: 99,
-        slotIndex: 0
+        attackerActivePrayers: [],
+        attackerEquipment: incomingPrayerBase.actors["local-player"].equipment,
+        defenderEquipment: incomingPrayerBase.actors.opponent.equipment
       },
       {
-        kind: "hitsplat",
-        id: "test-off-prayer-hit",
+        kind: "attack",
+        id: "test-incorrect-prayer-attack",
         tick: 11,
         attackerId: "local-player",
-        targetActorId: "opponent",
+        defenderId: "opponent",
+        attackerTile: { x: 5, z: 0 },
+        defenderTile: { x: 0, z: 0 },
         style: "magic",
-        damage: 12,
-        rawDamage: 20,
+        sequenceName: "magic",
+        hitDelayTicks: 1,
         maxDamage: 31,
         hitChance: 0.8,
+        expectedDamage: 12.4,
         defenderProtectionPrayer: "protect_from_missiles",
-        previousHitpoints: 92,
-        nextHitpoints: 80,
-        maxHitpoints: 99,
-        slotIndex: 1
+        attackerActivePrayers: [],
+        attackerEquipment: incomingPrayerBase.actors["local-player"].equipment,
+        defenderEquipment: incomingPrayerBase.actors.opponent.equipment
       }
     ]
   },
   controller: rewardShapingNoopController,
   localActor: {
-    tile: actualPrayerBase.actors["local-player"].tile,
+    tile: incomingPrayerBase.actors["local-player"].tile,
     loadoutId: "acb-hides"
   },
   opponentActor: {
-    tile: actualPrayerBase.actors.opponent.tile,
+    tile: incomingPrayerBase.actors.opponent.tile,
     loadoutId: "kodai-robes"
   },
   rewardEpisodeActive: true,
   rewardEpisodeStartTick: 10
 });
-const actualPrayerEvent = actualPrayerReward.state.events.find(
-  (event) => event.kind === "policy-reward" && event.actorId === "opponent" && event.reason === "actual_prayer"
+const incomingPrayerEvent = incomingPrayerReward.state.events.find(
+  (event) => event.kind === "policy-reward" && event.actorId === "opponent" && event.reason === "incoming_prayer"
 );
 assert(
-  actualPrayerEvent &&
-    actualPrayerEvent.onPrayerHits === 1 &&
-    actualPrayerEvent.offPrayerHits === 1 &&
-    actualPrayerEvent.onPrayerDamage === 7 &&
-    actualPrayerEvent.offPrayerDamage === 12 &&
-    Math.abs(actualPrayerEvent.reward + 1.724) < 1e-9,
-  `actual prayer hit reward should match Java on/off-prayer constants, got ${JSON.stringify(actualPrayerEvent)}`
+  incomingPrayerEvent &&
+    incomingPrayerEvent.correctPrayers === 1 &&
+    incomingPrayerEvent.incorrectPrayers === 1 &&
+    Math.abs(incomingPrayerEvent.reward + 0.2) < 1e-9,
+  `incoming prayer reward should be the only prayer correctness shaper, got ${JSON.stringify(incomingPrayerEvent)}`
+);
+assert(
+  !incomingPrayerReward.state.events.some(
+    (event) => event.kind === "policy-reward" && event.actorId === "opponent" && event.reason === "actual_prayer"
+  ),
+  "runtime policy should not emit the removed actual_prayer reward"
 );
 
 const boostedStatStateBase = runtimeCombat.createRuntimePlayerCombatState({
@@ -7776,9 +8030,15 @@ const noSupplyDeathPenalty = runtimePolicy.applyRuntimeOpponentPolicyAction({
 const noSupplyDeathPenaltyEvent = noSupplyDeathPenalty.state.events.find(
   (event) => event.kind === "policy-reward" && event.actorId === "opponent" && event.reason === "death_supply"
 );
+const defaultUnusedHealingSupplies =
+  runtimeCombat.runtimePlayerCombatDefaultSupplies.manta_ray +
+  runtimeCombat.runtimePlayerCombatDefaultSupplies.shark +
+  runtimeCombat.runtimePlayerCombatDefaultSupplies.anglerfish +
+  runtimeCombat.runtimePlayerCombatDefaultSupplies.karambwan +
+  runtimeCombat.runtimePlayerCombatDefaultSupplies.saradomin_brew;
 assert(
   noSupplyDeathPenaltyEvent &&
-    noSupplyDeathPenaltyEvent.unusedHealingSupplies === 10 &&
+    noSupplyDeathPenaltyEvent.unusedHealingSupplies === defaultUnusedHealingSupplies &&
     noSupplyDeathPenaltyEvent.healingSupplyEvents === 0 &&
     noSupplyDeathPenaltyEvent.goodSupplyEvents === 0 &&
     noSupplyDeathPenaltyEvent.totalDamageTaken === 65 &&
@@ -7906,70 +8166,6 @@ assert(
     (event) => event.kind === "policy-reward" && event.actorId === "opponent" && event.reason === "death_supply"
   ),
   "death after a Java-good supply event should not receive an avoidable death-supply penalty"
-);
-
-const intoPrayerPenaltyBase = patchOpponentActor(runtimeCombat.createRuntimePlayerCombatState({
-  localTile: { x: 5, z: 0 },
-  opponentTile: { x: 0, z: 0 },
-  localLoadoutId: "kodai-robes",
-  opponentLoadoutId: "acb-hides",
-  localPrayers: ["protect_from_missiles"],
-  seed: 26132
-}), { policyOffenceStyle: "ranged" });
-const intoPrayerPenalty = runtimePolicy.applyRuntimeOpponentPolicyAction({
-  state: {
-    ...intoPrayerPenaltyBase,
-    tick: 13,
-    events: [
-      {
-        kind: "policy-reward",
-        id: "test-style-pressure-streak-1",
-        tick: 10,
-        actorId: "opponent",
-        reason: "style_pressure",
-        reward: 0,
-        offenceStyle: "ranged",
-        protectedStyle: "ranged",
-        protectedStyleStreak: 1,
-        styleProtected: true
-      },
-      {
-        kind: "policy-reward",
-        id: "test-style-pressure-streak-2",
-        tick: 11,
-        actorId: "opponent",
-        reason: "style_pressure",
-        reward: 0,
-        offenceStyle: "ranged",
-        protectedStyle: "ranged",
-        protectedStyleStreak: 2,
-        styleProtected: true
-      }
-    ]
-  },
-  controller: rewardShapingNoopController,
-  localActor: {
-    tile: intoPrayerPenaltyBase.actors["local-player"].tile,
-    loadoutId: "kodai-robes"
-  },
-  opponentActor: {
-    tile: intoPrayerPenaltyBase.actors.opponent.tile,
-    loadoutId: "acb-hides"
-  },
-  rewardEpisodeActive: true,
-  rewardEpisodeStartTick: 10
-});
-const intoPrayerPenaltyEvent = intoPrayerPenalty.state.events.find(
-  (event) => event.kind === "policy-reward" && event.actorId === "opponent" && event.reason === "style_pressure" && event.tick === 12
-);
-assert(
-  intoPrayerPenaltyEvent &&
-    intoPrayerPenaltyEvent.protectedStyleStreak === 3 &&
-    Math.abs(intoPrayerPenaltyEvent.reward + 0.218) < 1e-9,
-  `into-prayer style pressure should apply Java grace/sticky penalty on third protected tick, got ${JSON.stringify({
-    event: intoPrayerPenaltyEvent,
-    delta: intoPrayerPenalty.context.self.rewardDelta
-  })}`
 );
 
 const gearWeaknessRewardBase = patchOpponentActor(runtimeCombat.createRuntimePlayerCombatState({
@@ -8107,7 +8303,7 @@ const freezePositionReward = runtimePolicy.applyRuntimeOpponentPolicyAction({
         id: "test-prev-distance-freeze-position",
         tick: 10,
         actorId: "opponent",
-        reason: "style_pressure",
+        reason: "freeze_position",
         reward: 0,
         distance: 1
       }
@@ -8127,7 +8323,11 @@ const freezePositionReward = runtimePolicy.applyRuntimeOpponentPolicyAction({
   rewardEpisodeStartTick: 10
 });
 const freezePositionRewardEvent = freezePositionReward.state.events.find(
-  (event) => event.kind === "policy-reward" && event.actorId === "opponent" && event.reason === "freeze_position"
+  (event) =>
+    event.kind === "policy-reward" &&
+    event.actorId === "opponent" &&
+    event.reason === "freeze_position" &&
+    event.tick === 11
 );
 assert(
   freezePositionRewardEvent && Math.abs(freezePositionRewardEvent.reward - 0.065) < 1e-9,
@@ -8215,7 +8415,7 @@ const underControlReward = runtimePolicy.applyRuntimeOpponentPolicyAction({
         id: "test-prev-under-control-distance",
         tick: 10,
         actorId: "opponent",
-        reason: "style_pressure",
+        reason: "freeze_position",
         reward: 0,
         distance: 1
       }
@@ -8306,13 +8506,6 @@ const unknownObservedReward = runtimePolicy.applyRuntimeOpponentPolicyAction({
   rewardEpisodeActive: true,
   rewardEpisodeStartTick: 10
 });
-const unknownObservedStylePressure = unknownObservedReward.state.events.find(
-  (event) => event.kind === "policy-reward" && event.actorId === "opponent" && event.reason === "style_pressure"
-);
-assert(
-  unknownObservedStylePressure?.distance === -1,
-  `unknown delayed opponent reward shaping should use Java observedDistance=-1, got ${JSON.stringify(unknownObservedStylePressure)}`
-);
 assert(
   !unknownObservedReward.state.events.some(
     (event) => event.kind === "policy-reward" && event.actorId === "opponent" && event.reason === "frozen_cast"
@@ -8422,9 +8615,9 @@ const meleePressureRouteController = {
   })
 };
 const meleePressureRouteState = runtimeCombat.createRuntimePlayerCombatState({
-  localTile: { x: 9, z: 0 },
+  localTile: { x: 11, z: 0 },
   opponentTile: { x: 0, z: 0 },
-  localLoadoutId: "acb-hides",
+  localLoadoutId: "kodai-robes",
   opponentLoadoutId: "tentacle-bandos",
   seed: 2614
 });
@@ -8433,7 +8626,7 @@ const meleePressureRoute = runtimePolicy.applyRuntimeOpponentPolicyAction({
   controller: meleePressureRouteController,
   localActor: {
     tile: meleePressureRouteState.actors["local-player"].tile,
-    loadoutId: "acb-hides"
+    loadoutId: "kodai-robes"
   },
   opponentActor: {
     tile: meleePressureRouteState.actors.opponent.tile,
@@ -8458,7 +8651,7 @@ const meleePressureRouteDetour = runtimePolicy.applyRuntimeOpponentPolicyAction(
   controller: meleePressureRouteController,
   localActor: {
     tile: meleePressureRouteState.actors["local-player"].tile,
-    loadoutId: "acb-hides"
+    loadoutId: "kodai-robes"
   },
   opponentActor: {
     tile: meleePressureRouteState.actors.opponent.tile,
@@ -8532,7 +8725,7 @@ const meleePressureRouteNoPath = runtimePolicy.applyRuntimeOpponentPolicyAction(
   controller: meleePressureRouteController,
   localActor: {
     tile: meleePressureRouteState.actors["local-player"].tile,
-    loadoutId: "acb-hides"
+    loadoutId: "kodai-robes"
   },
   opponentActor: {
     tile: meleePressureRouteState.actors.opponent.tile,
@@ -8556,7 +8749,7 @@ const meleePressureRouteTargetBlocked = runtimePolicy.applyRuntimeOpponentPolicy
   controller: meleePressureRouteController,
   localActor: {
     tile: meleePressureRouteState.actors["local-player"].tile,
-    loadoutId: "acb-hides"
+    loadoutId: "kodai-robes"
   },
   opponentActor: {
     tile: meleePressureRouteState.actors.opponent.tile,
@@ -8997,7 +9190,7 @@ const forcedRangedGearStyleGmaulInput = policyFeatures.encodeNhPolicyInput({
   }
 });
 assert(
-  hiddenGearStyleGmaulContext.opponent.weaponId === "armadyl_crossbow" &&
+  hiddenGearStyleGmaulContext.opponent.weaponId === "dragon_crossbow" &&
     hiddenGearStyleGmaulContext.opponent.lastVisibleOpponentStyle === null,
   `test setup should preserve TS loadout fallback weapon while hiding Java delayed gear style: ${JSON.stringify({
     weaponId: hiddenGearStyleGmaulContext.opponent.weaponId,
@@ -9269,7 +9462,7 @@ let rejectedStalePolicyVersion = false;
 try {
   botPolicy.parseNhPolicyTsv("version\t10\ncounters\t0\t0\t0", "test-stale-policy-version");
 } catch (error) {
-  rejectedStalePolicyVersion = String(error).includes("does not match expected version 13");
+  rejectedStalePolicyVersion = String(error).includes("does not match expected version 14");
 }
 assert(
   rejectedStalePolicyVersion,
@@ -9301,7 +9494,7 @@ const rebalancedLoadedAction = bridge.encodeNhPolicyAction({
   specIntent: "use_special_double",
   extendedSupplyAction: false
 });
-const rebalancedLoadedScale = 0.62 * 0.56 * 0.7;
+const rebalancedLoadedScale = 0.62 * 0.72 * 0.7;
 const rebalancedLoadedPolicy = botPolicy.parseNhPolicyTsv(
   [
     "version\t11",

@@ -10,13 +10,14 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 const moduleCache = new Map();
 const args = parseArgs(process.argv.slice(2));
 
-const newPolicyPath = path.resolve(projectRoot, args.new ?? path.join("fixtures", "ai", "nhstaker-selfplay-policy-hard.tsv"));
+const newPolicyPath = path.resolve(projectRoot, args.new ?? path.join("fixtures", "ai", "nh-neural-policy-hard.json"));
 const previousPolicyPath = path.resolve(
   projectRoot,
-  args.previous ?? path.join("fixtures", "ai", "nhstaker-selfplay-policy-hard.tsv.before-20260529-210222-predictive-prayer-10m.bak")
+  args.previous ?? path.join("fixtures", "ai", "nh-neural-policy-test.json")
 );
 const fightCount = clampInt(Number(args.fights ?? 20), 2, 20000);
-const maxTicks = clampInt(Number(args.ticks ?? 360), 24, 2000);
+const defaultHeadToHeadMaxTicks = 600;
+const maxTicks = clampInt(Number(args.ticks ?? defaultHeadToHeadMaxTicks), 24, 2000);
 const seedBase = Number(args.seed ?? 0x4e484d);
 const selfPlayMode = String(args["self-play"] ?? "true").toLowerCase() !== "false";
 
@@ -36,8 +37,8 @@ const defaultLocalStartTile =
 const defaultOpponentStartTile =
   defaultRuntimeFrame.actors.find((actor) => actor.actorId === "opponent")?.tile ?? { x: 2, z: 0 };
 
-const newPolicy = botPolicy.parseNhPolicyTsv(readFileSync(newPolicyPath, "utf8"), path.basename(newPolicyPath));
-const previousPolicy = botPolicy.parseNhPolicyTsv(readFileSync(previousPolicyPath, "utf8"), path.basename(previousPolicyPath));
+const newPolicy = parseRuntimePolicy(newPolicyPath);
+const previousPolicy = parseRuntimePolicy(previousPolicyPath);
 
 const aggregate = {
   fights: 0,
@@ -60,6 +61,10 @@ const aggregate = {
   previousStyle: createStyleCounts(),
   newSpec: createSpecCounts(),
   previousSpec: createSpecCounts(),
+  newAttackIntent: createAttackIntentCounts(),
+  previousAttackIntent: createAttackIntentCounts(),
+  newEquipmentIntent: createEquipmentIntentCounts(),
+  previousEquipmentIntent: createEquipmentIntentCounts(),
   newMovement: createMovementCounts(),
   previousMovement: createMovementCounts(),
   newSupply: createSupplyCounts(),
@@ -140,6 +145,27 @@ function runRuntimeHeadToHeadFight(input) {
       break;
     }
     const tilesBeforeTick = runtimeTiles(state);
+    const preMovementHitResult = runtime.applyRuntimePlayerCombatPreMovementHits(state, {
+      tiles: runtimeTiles(state),
+      loadouts: runtimeLoadoutsForState(state),
+      equipment: runtimeEquipmentForState(state),
+      gearProfiles: {
+        "local-player": profile,
+        opponent: profile
+      },
+      tileScale: runtimeTileScale,
+      clientCycle: state.tick * runtime.runtimePlayerCombatClientCyclesPerGameTick
+    });
+    state = preMovementHitResult.state;
+    const preMovementTickEvents = currentTickEvents(state);
+    const preMovementDeaths = preMovementTickEvents.filter((event) => event.kind === "death");
+    if (preMovementDeaths.length > 0) {
+      fight.events.push(...preMovementTickEvents);
+      applyFightDeaths(fight, preMovementDeaths, input, state.tick + 1);
+      fight.finalState = state;
+      break;
+    }
+
     const moved = {
       "local-player": false,
       opponent: false
@@ -202,12 +228,7 @@ function runRuntimeHeadToHeadFight(input) {
     };
     const deaths = tickEvents.filter((event) => event.kind === "death");
     if (deaths.length > 0) {
-      const newDead = deaths.some((event) => event.actorId === input.newActorId);
-      const previousDead = deaths.some((event) => event.actorId === input.previousActorId);
-      fight.newDied = fight.newDied || newDead;
-      fight.previousDied = fight.previousDied || previousDead;
-      fight.winner = newDead && previousDead ? "draw" : previousDead ? "new" : newDead ? "previous" : null;
-      fight.endedAtTick = state.tick;
+      applyFightDeaths(fight, deaths, input, state.tick);
     }
   }
 
@@ -221,6 +242,19 @@ function runRuntimeHeadToHeadFight(input) {
   }
   fight.endedAtTick = fight.endedAtTick || state.tick;
   return fight;
+}
+
+function currentTickEvents(state) {
+  return state.events.filter((event) => event.tick === state.tick);
+}
+
+function applyFightDeaths(fight, deaths, input, endedAtTick) {
+  const newDead = deaths.some((event) => event.actorId === input.newActorId);
+  const previousDead = deaths.some((event) => event.actorId === input.previousActorId);
+  fight.newDied = fight.newDied || newDead;
+  fight.previousDied = fight.previousDied || previousDead;
+  fight.winner = newDead && previousDead ? "draw" : previousDead ? "new" : newDead ? "previous" : null;
+  fight.endedAtTick = endedAtTick;
 }
 
 function applyPolicyForActor(state, actorId, controller, profile, observedTargetView, nextRepositionTick, episodeId) {
@@ -270,6 +304,14 @@ function applyPolicyForActor(state, actorId, controller, profile, observedTarget
   };
 }
 
+function parseRuntimePolicy(policyFilePath) {
+  const text = readFileSync(policyFilePath, "utf8");
+  const label = path.basename(policyFilePath);
+  return policyFilePath.toLowerCase().endsWith(".json")
+    ? botPolicy.parseNhNeuralPolicyJson(text, label)
+    : botPolicy.parseNhPolicyTsv(text, label);
+}
+
 function recordFight(fight) {
   aggregate.fights += 1;
   if (fight.winner === "new") {
@@ -288,10 +330,26 @@ function recordFight(fight) {
   aggregate.totalTicks += fight.endedAtTick;
 
   for (const entry of fight.actions[fight.newActorId]) {
-    recordAction(aggregate.newStyle, aggregate.newSpec, aggregate.newMovement, aggregate.newSupply, entry.action);
+    recordAction(
+      aggregate.newStyle,
+      aggregate.newSpec,
+      aggregate.newAttackIntent,
+      aggregate.newEquipmentIntent,
+      aggregate.newMovement,
+      aggregate.newSupply,
+      entry.action
+    );
   }
   for (const entry of fight.actions[fight.previousActorId]) {
-    recordAction(aggregate.previousStyle, aggregate.previousSpec, aggregate.previousMovement, aggregate.previousSupply, entry.action);
+    recordAction(
+      aggregate.previousStyle,
+      aggregate.previousSpec,
+      aggregate.previousAttackIntent,
+      aggregate.previousEquipmentIntent,
+      aggregate.previousMovement,
+      aggregate.previousSupply,
+      entry.action
+    );
   }
   for (const event of fight.events) {
     if (event.kind === "hitsplat" && event.damage > 0) {
@@ -324,6 +382,9 @@ function printSummary() {
   const decisiveWinRate = aggregate.decisive === 0 ? 0 : aggregate.newWins / aggregate.decisive;
   const totalWinRate = aggregate.newWins / Math.max(1, aggregate.fights);
   const previousTotalWinRate = aggregate.previousWins / Math.max(1, aggregate.fights);
+  const timeoutRate = aggregate.timeouts / Math.max(1, aggregate.fights);
+  const newWinDelta = aggregate.newWins - aggregate.previousWins;
+  const validForPromotion = aggregate.timeouts === 0 && aggregate.decisive > 0;
   console.log(
     JSON.stringify(
       {
@@ -333,7 +394,7 @@ function printSummary() {
         },
         engine: "runtime-policy-opponent",
         note:
-          "Runtime head-to-head evaluator: both policies are applied through applyRuntimeOpponentPolicyAction; local-player control is handled by swapping actor roles before and after the runtime policy call.",
+          "Runtime head-to-head evaluator: both policies are applied through applyRuntimeOpponentPolicyAction after the same pre-movement hit pass that the live trainer tick loop uses; local-player control is handled by swapping actor roles before and after the runtime policy call.",
         options: {
           fights: aggregate.fights,
           maxTicks,
@@ -349,13 +410,25 @@ function printSummary() {
           newWins: aggregate.newWins,
           previousWins: aggregate.previousWins,
           draws: aggregate.draws,
+          decisiveFights: aggregate.decisive,
           newDeaths: aggregate.newDeaths,
           previousDeaths: aggregate.previousDeaths,
           simultaneousDeaths: aggregate.simultaneousDeaths,
           timeouts: aggregate.timeouts,
+          timeoutRate: roundPct(timeoutRate),
           decisiveNewWinRate: roundPct(decisiveWinRate),
           totalNewWinRate: roundPct(totalWinRate),
           totalPreviousWinRate: roundPct(previousTotalWinRate)
+        },
+        promotion: {
+          validForPromotion,
+          newWinDelta,
+          verdict: validForPromotion
+            ? newWinDelta > 0
+              ? "candidate_beats_previous_by_deaths"
+              : "candidate_does_not_beat_previous_by_deaths"
+            : "invalid_timeout_or_no_decisive_deaths",
+          rule: "Only actual deaths count. Timeout fights are inconclusive and must not be used as a promotion tiebreak."
         },
         averages: {
           newDamageDealt: round(aggregate.newDamage / aggregate.fights),
@@ -370,6 +443,8 @@ function printSummary() {
           new: behaviorSummary(
             aggregate.newStyle,
             aggregate.newSpec,
+            aggregate.newAttackIntent,
+            aggregate.newEquipmentIntent,
             aggregate.newMovement,
             aggregate.newSupply,
             aggregate.newConsumed
@@ -377,6 +452,8 @@ function printSummary() {
           previous: behaviorSummary(
             aggregate.previousStyle,
             aggregate.previousSpec,
+            aggregate.previousAttackIntent,
+            aggregate.previousEquipmentIntent,
             aggregate.previousMovement,
             aggregate.previousSupply,
             aggregate.previousConsumed
@@ -559,19 +636,23 @@ function sameTile(left, right) {
   return left.x === right.x && left.z === right.z;
 }
 
-function behaviorSummary(styleCounts, specCounts, movementCounts, supplyCounts, consumedCounts) {
+function behaviorSummary(styleCounts, specCounts, attackIntentCounts, equipmentIntentCounts, movementCounts, supplyCounts, consumedCounts) {
   return {
     style: percentMap(styleCounts),
     spec: percentMap(specCounts),
+    attackIntent: percentMap(attackIntentCounts),
+    equipmentIntent: percentMap(equipmentIntentCounts),
     movement: percentMap(movementCounts),
     supply: percentMap(supplyCounts),
     consumed: countMap(consumedCounts)
   };
 }
 
-function recordAction(styleCounts, specCounts, movementCounts, supplyCounts, action) {
+function recordAction(styleCounts, specCounts, attackIntentCounts, equipmentIntentCounts, movementCounts, supplyCounts, action) {
   styleCounts[action.offenceStyle] += 1;
   specCounts[action.specIntent] += 1;
+  attackIntentCounts[action.attackIntent ?? "attack"] += 1;
+  equipmentIntentCounts[action.equipmentIntent ?? "style_loadout"] += 1;
   movementCounts[action.movementIntent] += 1;
   supplyCounts[action.supplyIntent] += 1;
 }
@@ -582,6 +663,26 @@ function createStyleCounts() {
 
 function createSpecCounts() {
   return { none: 0, use_special: 0, use_special_double: 0 };
+}
+
+function createAttackIntentCounts() {
+  return { attack: 0, hold: 0, off_tick: 0 };
+}
+
+function createEquipmentIntentCounts() {
+  return {
+    style_loadout: 0,
+    weapon_only: 0,
+    unequip_feet: 0,
+    unequip_head: 0,
+    unequip_cape: 0,
+    unequip_amulet: 0,
+    unequip_body: 0,
+    unequip_shield: 0,
+    unequip_legs: 0,
+    unequip_hands: 0,
+    unequip_ring: 0
+  };
 }
 
 function createMovementCounts() {
