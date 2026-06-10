@@ -1,9 +1,4 @@
-node_modules
-dist
-dist-electron
-test-results
-logs
-*.log
-*.bak
-.playwright-cli
-.codex-*.log
+fixtures/ai/nh-neural-policy-hard.json
+.codex-logs/
+.codex-patched-classes/
+.codex-profiles/
