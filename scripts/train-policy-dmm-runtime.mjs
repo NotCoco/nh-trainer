@@ -54,11 +54,7 @@ const runtimeTileScale = tileMovement.NH_TILE_WORLD_UNITS;
 const dmmAllowedEquipmentIntentList = [
   "style_loadout",
   "weapon_only",
-  "unequip_head",
-  "unequip_body",
-  "unequip_shield",
-  "unequip_legs",
-  "unequip_hands"
+  "unequip_head"
 ];
 const dmmAllowedAttackIntentList = ["attack", "hold", "off_tick"];
 const dmmAllowedEquipmentIntents = new Set(dmmAllowedEquipmentIntentList);

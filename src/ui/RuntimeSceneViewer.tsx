@@ -2057,6 +2057,12 @@ const RUNELITE_OVERLAY_CONFIG_MENU_OPCODE_SOURCE = "MenuOpcode.RUNELITE_OVERLAY(
 const RUNELITE_FIGHT_START_OVERLAY_NAME = "TrainerStartOverlay";
 const RUNELITE_FIGHT_START_OVERLAY_DRAG_SOURCE =
   "OverlayRenderer Alt key inOverlayDraggingMode; left drag setPreferredLocation; right click resetOverlay; mouse release saveOverlay";
+const RUNTIME_PID_OVERLAY_NAME = "NhPidOverlay";
+const RUNTIME_PID_OVERLAY_MARGIN_PX = 4;
+const RUNTIME_PID_OVERLAY_HEIGHT_PX = 18;
+const RUNTIME_PID_OVERLAY_STACK_GAP_PX = 4;
+const RUNTIME_VENGEANCE_TRINKET_OVERLAY_NAME = "VengeanceTrinketOverlay";
+const RUNTIME_VENGEANCE_TRINKET_OVERLAY_HEIGHT_PX = 30;
 const NH_CONTEXT_MENU_MOUSE_LEAVE_MARGIN = 10;
 
 function runeliteXpDropTextSizeSpec(textSize: RuneliteXpDropConfigSnapshot["nativeTextSize"]) {
@@ -11151,6 +11157,31 @@ function runtimeFightCountdownOverlayStyle(layout: NhFixedClientCssLayout | null
   };
 }
 
+function runtimePidOverlayStyle(
+  layout: NhFixedClientCssLayout | null,
+  overlayLocations: RuneliteOverlayPreferredLocations
+): CSSProperties {
+  const scale = layout?.scale ?? 1;
+  const preferredLocation = runeliteOverlayPreferredLocationStyle(RUNTIME_PID_OVERLAY_NAME, overlayLocations, scale);
+  if (preferredLocation) {
+    return preferredLocation;
+  }
+  const viewportRect = layout?.viewportRect;
+  const stackedBottomOffset =
+    RUNTIME_VENGEANCE_TRINKET_OVERLAY_HEIGHT_PX +
+    RUNTIME_PID_OVERLAY_STACK_GAP_PX +
+    RUNTIME_PID_OVERLAY_HEIGHT_PX +
+    RUNTIME_PID_OVERLAY_MARGIN_PX;
+  return {
+    left: viewportRect ? viewportRect.x + RUNTIME_PID_OVERLAY_MARGIN_PX * scale : RUNTIME_PID_OVERLAY_MARGIN_PX,
+    top: viewportRect
+      ? viewportRect.y + viewportRect.height - stackedBottomOffset * scale
+      : RUNTIME_PID_OVERLAY_MARGIN_PX,
+    transform: `scale(${scale})`,
+    transformOrigin: "left top"
+  };
+}
+
 function runtimeFightStartOverlayStyle(
   layout: NhFixedClientCssLayout | null,
   overlayLocations: RuneliteOverlayPreferredLocations
@@ -11183,9 +11214,18 @@ function runtimeFightStartOverlayStyle(
 
 function runtimeVengeanceTrinketIndicatorStyle(
   cssLayout: NhFixedClientCssLayout | null,
-  fixedLayout: NhFixedClientLayout
+  fixedLayout: NhFixedClientLayout,
+  overlayLocations: RuneliteOverlayPreferredLocations
 ): CSSProperties {
   const scale = cssLayout?.scale ?? 1;
+  const preferredLocation = runeliteOverlayPreferredLocationStyle(
+    RUNTIME_VENGEANCE_TRINKET_OVERLAY_NAME,
+    overlayLocations,
+    scale
+  );
+  if (preferredLocation) {
+    return preferredLocation;
+  }
   const chatbox = fixedLayout.chatbox;
   if (!cssLayout || !chatbox) {
     return {
@@ -17070,6 +17110,7 @@ export function RuntimeSceneViewer({
       setManualCombatState(nextCombatState);
       setManualActor(nextLocalActor);
       setManualOpponent(nextOpponentActor);
+      setRuntimeSetupSelectorOpen(true);
       setTemporarySetupStatus(savedSetup ? "Saved setup restored" : `${setup.label} restored`);
     });
 
@@ -17079,6 +17120,7 @@ export function RuntimeSceneViewer({
       viewport.dataset.lastFreshFightResetTick = String(nextCombatState.tick);
       viewport.dataset.lastFreshFightResetCombatStartTick = String(nextCombatState.combatStartTick);
       viewport.dataset.lastFreshFightResetRequiresStart = "true";
+      viewport.dataset.lastFreshFightResetSetupSelectorOpen = "true";
       viewport.dataset.lastFreshFightResetLocalSetup = savedSetup ? "saved-setup" : setupId;
       viewport.dataset.lastFreshFightResetSetup = setupId;
       viewport.dataset.lastFreshFightResetOpponentSetup = setupId;
@@ -21587,6 +21629,9 @@ export function RuntimeSceneViewer({
             : "Hard";
   const botWatchDevPanelEnabled = runtimeBotWatchEnabled();
   const botWatchStatsLabel = runtimeBotWatchStatsSummary(botWatchStats);
+  const runtimePidProcessOrder = runtimePlayerCombatProcessOrderForTick(manualCombatState, manualCombatState.tick);
+  const runtimeLocalHasPid = runtimePidProcessOrder[0] === "local-player";
+  const runtimePidLabel = runtimeLocalHasPid ? "PID: YES" : "PID: NO";
 
   return (
     <section className="workbenchSection runtimeClientSection" aria-labelledby="runtime-scene">
@@ -22207,6 +22252,22 @@ export function RuntimeSceneViewer({
               ) : null}
             </div>
           ) : null}
+          <div
+            className={`runtimePidOverlay${runtimeLocalHasPid ? " runtimePidOverlay-has-pid" : " runtimePidOverlay-no-pid"}`}
+            aria-label="PID status"
+            data-runtime-pid-has-pid={String(runtimeLocalHasPid)}
+            data-runtime-pid-process-order={runtimePidProcessOrder.join(",")}
+            data-source-plugin="NhPidPlugin"
+            data-source-overlay={RUNTIME_PID_OVERLAY_NAME}
+            data-source-pid-state="runtimePlayerCombatProcessOrderForTick first actor"
+            data-source-overlay-position="bottom-left fixed game viewport"
+            data-source-overlay-position-storage={RUNELITE_OVERLAY_POSITION_SOURCE}
+            data-source-overlay-drag={RUNELITE_FIGHT_START_OVERLAY_DRAG_SOURCE}
+            data-runelite-overlay-name={RUNTIME_PID_OVERLAY_NAME}
+            style={runtimePidOverlayStyle(fixedClientCssLayout, runeliteOverlayLocations)}
+          >
+            {runtimePidLabel}
+          </div>
           {botWatchDevPanelEnabled ? (
             <div
               className="runtimeBotWatchDevPanel"
@@ -23132,7 +23193,14 @@ export function RuntimeSceneViewer({
               data-source-animation-id={RUNTIME_VENGEANCE_CAST_SEQUENCE_ID}
               data-source-sound-id={RUNTIME_VENGEANCE_CAST_SOUND_ID}
               data-source-spotanim-id={RUNTIME_VENGEANCE_CAST_SPOTANIM_ID}
-              style={runtimeVengeanceTrinketIndicatorStyle(fixedClientCssLayout, fixedClientLayout)}
+              data-source-overlay-position-storage={RUNELITE_OVERLAY_POSITION_SOURCE}
+              data-source-overlay-drag={RUNELITE_FIGHT_START_OVERLAY_DRAG_SOURCE}
+              data-runelite-overlay-name={RUNTIME_VENGEANCE_TRINKET_OVERLAY_NAME}
+              style={runtimeVengeanceTrinketIndicatorStyle(
+                fixedClientCssLayout,
+                fixedClientLayout,
+                runeliteOverlayLocations
+              )}
             >
               {vengeanceTrinketItemAtlas && vengeanceTrinketItemSprite ? (
                 <span

@@ -27,7 +27,7 @@ The project is still a work in progress. The goal is to make useful NH practice 
 The public client exposes one opponent difficulty: Hard. The selected setup decides which neural model is used:
 
 - NH stake Hard: `fixtures/ai/nh-neural-policy-hard.json`, 11,604,230 parameters, three 256-unit hidden layers, 90 inputs, 139 encoded features, and 44,550 action outputs. The public browser build serves this large model through `part-*` chunks so no deployed asset exceeds Vercel's per-file limit.
-- DMM Hard: `fixtures/ai/nh-neural-policy-dmm-candidate.json`, 3,332,394 parameters, two 64-unit hidden layers, 90 inputs, 139 encoded features, and 51,114 action outputs.
+- DMM Hard: `fixtures/ai/nh-neural-policy-dmm-candidate.json`, 5,785,234 parameters, three 256-unit hidden layers, 92 inputs, 141 encoded features, and 21,906 action outputs.
 
 The opponent is trained through self-play on mirror fights. Each tick, it reads the current fight state and chooses a combined action: attack style, defensive prayer, movement, supplies, gear handling, and special-attack intent.
 
@@ -41,7 +41,7 @@ The bot observes practical NH context, including:
 - current weapon, visible equipment bonuses, offensive level boosts or drains, and whether melee, ranged, magic, or special attacks are actually available;
 - tactical movement options such as pressuring, stepping under a frozen opponent, stepping out diagonally, or repositioning around the target.
 
-Gear decisions are based on the equipment and weapon stats available in the fight, not just hard-coded item names. The runtime evaluates visible offensive and defensive bonuses, weapon profiles, protection prayers, distance, freeze state, and attack availability so the bot can decide when mage, ranged, melee, or a defensive/offensive gear adjustment is worth using. DMM hard has a wider equipment action space, including weapon-only actions and selected slot unequips, but the ranged body is not forced as a guaranteed style template.
+Gear decisions are based on the equipment and weapon stats available in the fight, not just hard-coded item names. The runtime evaluates visible offensive and defensive bonuses, weapon profiles, protection prayers, distance, freeze state, and attack availability so the bot can decide when mage, ranged, melee, or a defensive/offensive gear adjustment is worth using. DMM hard has an expanded equipment action path for style loadouts, weapon-only actions, and selected helm unequips, but the ranged body is not forced as a guaranteed style template.
 
 Special attacks are part of the action space. The policy can choose normal pressure, single-special windows, double-special windows where supported, and approach timing for melee special attacks. It still has to pass the same game-state gates as a player: weapon, energy, range, cooldown, movement, and target availability all matter.
 

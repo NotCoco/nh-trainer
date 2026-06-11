@@ -68,7 +68,7 @@ const policySummaries = tsvPolicyVariantPaths.map((policyPath) => {
   };
 });
 policySummaries.push(validateChunkedNeuralPolicy(hardNeuralPolicyPath, hardNeuralChunkPaths, 44_550));
-policySummaries.push(validateNeuralPolicy(dmmHardNeuralPolicyPath, 51_114));
+policySummaries.push(validateNeuralPolicy(dmmHardNeuralPolicyPath, 21_906));
 
 const child = spawn(electronPath, [validatorPath, projectRoot], {
   cwd: projectRoot,

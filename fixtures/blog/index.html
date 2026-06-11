@@ -148,49 +148,85 @@
         </section>
 
         <section>
-          <h2>What the AI watches during training</h2>
+          <h2>What changed with the neural hard mode</h2>
           <p>
-            The policy observes a compact version of the fight, including current prayers, health,
-            supplies, gear style, weapon timing, distance, freeze state, special attack state, and
-            recent damage pressure. It can choose attacks, gear, prayers, movement, supplies, and
-            special attack intentions through the same kind of game loop the browser client uses.
+            Hard mode is now controlled by neural-network models for both setups. The selected setup
+            decides which model loads: NH stake uses the larger continuation model, and DMM uses the
+            newer loop-four DMM checkpoint. The bot still reads practical NH state instead of private
+            hidden information: prayers, health, supplies, distance, freeze state, weapon timing,
+            special attack state, recent pressure, and visible gear context.
           </p>
           <ul>
-            <li>Gear decisions include weapon and defensive setup context rather than a single hard-coded outfit.</li>
-            <li>Movement decisions include standing under, stepping out, and maintaining useful attack distance.</li>
-            <li>Special attack decisions are trained separately enough that AGS timing is not treated like ordinary weapon pressure.</li>
+            <li>NH stake Hard: 11,604,230 parameters, three 256-unit hidden layers, 90 inputs, 139 encoded features, 44,550 action outputs.</li>
+            <li>DMM Hard: 5,785,234 parameters, three 256-unit hidden layers, 92 inputs, 141 encoded features, 21,906 action outputs.</li>
+            <li>DMM can use style loadouts, equip weapons without immediately attacking, and explore selected helm unequips.</li>
+            <li>NH stake has the same idea for dragon boots: the model can learn whether taking them off is ever worth it from fight outcomes, not from a hand-written reward.</li>
           </ul>
         </section>
 
         <section>
-          <h2>June hard-mode refresh</h2>
+          <h2>How I trained this version</h2>
           <p>
-            The public trainer now keeps the opponent selection simple: one Hard option, with the
-            active setup choosing the model. NH stake uses the expanded continuation neural model,
-            while DMM uses the restored pre-trinket re-equip checkpoint that was already performing
-            well before the later experimental run.
+            The current direction is self-play. I train in loops, usually in groups of four, and
+            feed the next data run with the best available version of the model fighting itself.
+            That is important because I do not want the bot to only copy one fixed opponent or one
+            old opponent. I still keep cohort fights around as pressure tests so the model does not
+            forget common patterns while it learns from itself.
           </p>
-          <ul>
-            <li>NH stake Hard: 11,604,230 parameters, three 256-unit hidden layers, 44,550 action outputs.</li>
-            <li>DMM Hard: 3,332,394 parameters, two 64-unit hidden layers, 51,114 action outputs.</li>
-            <li>DMM gear handling includes weapon-only and selected slot-unequip actions without forcing Masori body as a guaranteed ranged template.</li>
-          </ul>
+          <p>
+            The cohorts are scripted styles used for evaluation and coverage: melee camping, repeated
+            AGS spec pressure, mage-range alternation, mage-heavy and range-heavy pressure, staff or
+            crossbow baiting, prayer-camp melee, panic eating, stand-under freeze, long-range
+            crossbow, close fake switches, one-tick and two-tick fakes, and delayed reactions. They
+            are not the final goal. They are checks that catch obvious regressions while the neural
+            model learns a wider fight.
+          </p>
         </section>
 
         <section>
-          <h2>Where training got confusing</h2>
+          <h2>Tiny signals are the interesting part</h2>
           <p>
-            A lot of the hard parts were not glamorous model work. The confusing bugs were usually
-            small parity issues: a bot getting information one tick too early, a weapon swap not
-            executing through the same action path, or a melee path that looked almost right but
-            changed the timing of a real fight. Those bugs can make a policy look worse than it is,
-            because the model is trying to act through a world that does not quite match the one it
-            trained in.
+            One thing I kept thinking about was why the DMM model was not clearly learning to take
+            off Torva helm for magic. I did a mechanics-only simulation with Augury on and the same
+            opponent setup, then compared a large number of casts with the helm on versus off. The
+            edge was real, but tiny: roughly a tenth of a damage per cast in expected value.
           </p>
           <p>
-            The fix was to keep tightening the environment around the model. When the action space,
-            observations, tick timing, and movement rules line up, the learned behavior becomes much
-            easier to judge.
+            That is the kind of signal I am curious about now. I do not want to hard-code "take the
+            helm off" or "take the boots off" as a reward. I want the model to find those edges
+            because the outcomes are better over enough fights. The interesting question is how much
+            training it needs before it notices something that small, especially when the wrong timing
+            can make the same action bad.
+          </p>
+        </section>
+
+        <section>
+          <h2>Fixing what the bot was learning from</h2>
+          <p>
+            Some of the early problems were not model size problems. They were measurement problems.
+            One old reward path tried to infer damage from HP changes. That breaks as soon as food is
+            involved, because a player can eat on the same tick they take damage and end up with a
+            similar HP value. The training signal then says the hit did not really happen, even
+            though it did. That had to be fixed by using the actual damage events instead of only
+            looking at the final HP number.
+          </p>
+          <p>
+            Another issue was timing. If the bot sees a weapon, movement, or prayer change too early,
+            it becomes unfair and also learns the wrong fight. It can pray or switch on the same tick
+            as the player's choice, which makes it feel impossible instead of good. I have been
+            tightening the observation timing so the neural model learns from the information a
+            player could actually react to.
+          </p>
+        </section>
+
+        <section>
+          <h2>What I am watching next</h2>
+          <p>
+            The next interesting thing for me is whether more DMM training makes the model time
+            vengeance trinket usage better, especially around specs and predicted burst windows. I
+            am also curious whether the neural model starts abusing worn-gear weaknesses more
+            naturally: not because I told it a specific item trick, but because it learns when an
+            equipment penalty or bonus actually changes the outcome of a fight.
           </p>
         </section>
 

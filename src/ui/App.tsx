@@ -178,23 +178,62 @@ export function App(): JSX.Element {
               <strong>Settings and setup save in this browser</strong>
             </div>
           </div>
-          <div className="nhSiteUpdates" aria-label="Recent updates">
-            <section className="nhSiteUpdateCard" aria-label="Updates - June 10, 2026">
-              <span>Updates - June 10, 2026</span>
-              <ul>
-                <li>Public opponents now use one Hard option, with separate neural models for NH stake and DMM setups.</li>
-                <li>NH stake Hard uses the expanded continuation model: 11,604,230 parameters, three 256-unit hidden layers, and 44,550 action outputs.</li>
-                <li>DMM Hard uses the restored pre-trinket re-equip checkpoint: 3,332,394 parameters, two 64-unit hidden layers, and 51,114 action outputs.</li>
-              </ul>
-            </section>
-            <section className="nhSiteUpdateCard" aria-label="Updates - June 5, 2026">
-              <span>Updates - June 5, 2026</span>
-              <ul>
-                <li>DMM setup added with the captured inventory, new gear, and its own hard-mode policy.</li>
-                <li>Noxious halberd, Voidwaker, VLS, Zaryte crossbow, trinket of vengeance, and bolt procs are wired in.</li>
-                <li>Game sounds, continuous audio sliders, aim training, camera zoom, right-click timing, and combat animation parity were tightened.</li>
-              </ul>
-            </section>
+          <div className="nhSiteUpdates" aria-label="Update history">
+            <details className="nhSiteUpdatesDropdown" open>
+              <summary>
+                <span>Latest update</span>
+                <strong>June 11, 2026</strong>
+              </summary>
+              <div className="nhSiteUpdateHistory">
+                <section className="nhSiteUpdateCard" aria-label="Updates - June 11, 2026">
+                  <span>Updates - June 11, 2026</span>
+                  <ul>
+                    <li>Hard mode now uses neural models for both NH stake and DMM setups.</li>
+                    <li>DMM Hard was promoted to the 3x256 loop-four checkpoint: 5,785,234 parameters, 92 inputs, 141 encoded features, and 21,906 action outputs.</li>
+                    <li>PID and vengeance trinket overlays are Alt-draggable and no longer overlap by default; fight deaths reset back to setup selection.</li>
+                  </ul>
+                </section>
+                <section className="nhSiteUpdateCard" aria-label="Updates - June 10, 2026">
+                  <span>Updates - June 10, 2026</span>
+                  <ul>
+                    <li>Public opponents were simplified to one Hard option, with the selected setup choosing the model.</li>
+                    <li>NH stake Hard uses the expanded continuation model: 11,604,230 parameters, three 256-unit hidden layers, and 44,550 action outputs.</li>
+                    <li>The large NH stake model is served through deployable chunks so the hosted build can load it reliably.</li>
+                  </ul>
+                </section>
+                <section className="nhSiteUpdateCard" aria-label="Updates - June 6, 2026">
+                  <span>Updates - June 6, 2026</span>
+                  <ul>
+                    <li>Camera zoom, fixed-client framing, context-menu anchoring, and menu close timing were tightened against source behavior.</li>
+                    <li>VLS regular attacks, spell/combat sounds, and sequence playback received parity fixes.</li>
+                    <li>Main-client mouse-wheel zoom now stays inside the client instead of scrolling the page.</li>
+                  </ul>
+                </section>
+                <section className="nhSiteUpdateCard" aria-label="Updates - June 5, 2026">
+                  <span>Updates - June 5, 2026</span>
+                  <ul>
+                    <li>DMM setup added with the captured inventory, new gear, and its own hard-mode policy path.</li>
+                    <li>Noxious halberd, Voidwaker, VLS, Zaryte crossbow, trinket of vengeance, and bolt procs are wired in.</li>
+                    <li>Game sounds, continuous audio sliders, aim training, camera zoom, right-click timing, and combat animation parity were tightened.</li>
+                  </ul>
+                </section>
+                <section className="nhSiteUpdateCard" aria-label="Updates - June 4, 2026">
+                  <span>Updates - June 4, 2026</span>
+                  <ul>
+                    <li>Hard-mode policy evaluation gained runtime head-to-head and cohort checks.</li>
+                    <li>The aim trainer was added below the client with timed click reps, local scoring, and UI/game-world target locations.</li>
+                    <li>The public shell was simplified around the playable trainer instead of internal workbench controls.</li>
+                  </ul>
+                </section>
+                <section className="nhSiteUpdateCard" aria-label="Updates - June 1, 2026">
+                  <span>Updates - June 1, 2026</span>
+                  <ul>
+                    <li>Hard policy and camera framing were refreshed.</li>
+                    <li>Overlay projection and camera-wheel checks were expanded to catch fixed-client framing regressions.</li>
+                  </ul>
+                </section>
+              </div>
+            </details>
           </div>
           <details className="nhSiteMoreInfo">
             <summary>More info</summary>

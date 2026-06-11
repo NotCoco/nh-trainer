@@ -234,7 +234,7 @@ assertArrayEquals(
 );
 assertArrayEquals(
   extractJsStringArray(dmmTrainingSource, "dmmAllowedEquipmentIntentList"),
-  ["style_loadout", "weapon_only", "unequip_head", "unequip_body", "unequip_shield", "unequip_legs", "unequip_hands"],
+  ["style_loadout", "weapon_only", "unequip_head"],
   "DMM training equipment intents"
 );
 assertOrderedSnippets(

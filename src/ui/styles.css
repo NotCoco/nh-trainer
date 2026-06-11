@@ -187,21 +187,75 @@ body {
   display: grid;
   grid-column: 3;
   grid-row: 1 / span 4;
-  grid-template-columns: repeat(2, minmax(230px, 310px));
-  gap: 18px;
-  width: max-content;
+  width: min(430px, 34vw);
   margin-top: 8px;
   color: #a99c84;
   font-size: 12px;
   line-height: 1.4;
 }
 
+.nhSiteUpdatesDropdown {
+  min-width: 0;
+  padding: 0 0 0 14px;
+  border-left: 1px solid rgb(171 129 62 / 0.24);
+}
+
+.nhSiteUpdatesDropdown summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 22px;
+  color: #dfbd72;
+  cursor: pointer;
+  list-style-position: outside;
+  user-select: none;
+}
+
+.nhSiteUpdatesDropdown summary:hover,
+.nhSiteUpdatesDropdown summary:focus-visible {
+  color: #f0cc7a;
+}
+
+.nhSiteUpdatesDropdown summary::marker {
+  color: #8e7442;
+}
+
+.nhSiteUpdatesDropdown summary span {
+  color: #7e7667;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.nhSiteUpdatesDropdown summary strong {
+  color: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.nhSiteUpdateHistory {
+  display: grid;
+  gap: 12px;
+  max-height: min(330px, 48vh);
+  margin-top: 8px;
+  padding-right: 10px;
+  overflow-y: auto;
+  scrollbar-color: rgb(171 129 62 / 0.42) rgb(0 0 0 / 0.18);
+  scrollbar-width: thin;
+}
+
 .nhSiteUpdateCard {
   display: grid;
   gap: 5px;
   min-width: 0;
-  padding: 0 0 0 14px;
-  border-left: 1px solid rgb(171 129 62 / 0.24);
+  padding: 0 0 11px;
+  border-bottom: 1px solid rgb(171 129 62 / 0.16);
+}
+
+.nhSiteUpdateCard:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 .nhSiteUpdateCard > span {
@@ -224,8 +278,7 @@ body {
 
 @media (max-width: 1199px) and (min-width: 901px) {
   .nhSiteUpdates {
-    grid-template-columns: minmax(230px, 310px);
-    width: min(310px, 100%);
+    width: min(330px, 100%);
   }
 }
 
@@ -317,15 +370,18 @@ body {
   .nhSiteUpdates {
     grid-column: 1;
     grid-row: auto;
-    grid-template-columns: minmax(0, 1fr);
     width: auto;
     margin-top: 0;
   }
 
-  .nhSiteUpdateCard {
+  .nhSiteUpdatesDropdown {
     padding: 9px 0 0;
     border-top: 1px solid rgb(171 129 62 / 0.18);
     border-left: 0;
+  }
+
+  .nhSiteUpdateHistory {
+    max-height: 220px;
   }
 
   .nhSiteSourceLine {
@@ -3718,6 +3774,37 @@ h3 {
   display: block;
   line-height: 14px;
   font-family: Arial, sans-serif;
+}
+
+.runtimePidOverlay {
+  position: absolute;
+  z-index: 220000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 68px;
+  height: 18px;
+  padding: 0 5px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.62);
+  color: #ffffff;
+  font: 700 11px Arial, sans-serif;
+  line-height: 18px;
+  text-shadow: 1px 1px 0 #000000;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.runtimePidOverlay-has-pid {
+  color: #7dff7d;
+  border-color: rgba(125, 255, 125, 0.7);
+}
+
+.runtimePidOverlay-no-pid {
+  color: #ff8f8f;
+  border-color: rgba(255, 143, 143, 0.7);
 }
 
 .runtimeFightCountdownOverlay {

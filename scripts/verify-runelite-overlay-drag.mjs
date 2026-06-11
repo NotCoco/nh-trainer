@@ -115,7 +115,13 @@ for (const trainerAnchor of [
   "data-runelite-overlay-name=\"OpponentInfoOverlay\"",
   "RUNELITE_FIGHT_START_OVERLAY_NAME",
   "runtimeFightStartOverlayStyle(fixedClientCssLayout, runeliteOverlayLocations)",
-  "data-runelite-overlay-name={RUNELITE_FIGHT_START_OVERLAY_NAME}"
+  "data-runelite-overlay-name={RUNELITE_FIGHT_START_OVERLAY_NAME}",
+  "RUNTIME_PID_OVERLAY_NAME",
+  "runtimePidOverlayStyle(fixedClientCssLayout, runeliteOverlayLocations)",
+  "data-runelite-overlay-name={RUNTIME_PID_OVERLAY_NAME}",
+  "RUNTIME_VENGEANCE_TRINKET_OVERLAY_NAME",
+  "runtimeVengeanceTrinketIndicatorStyle(",
+  "data-runelite-overlay-name={RUNTIME_VENGEANCE_TRINKET_OVERLAY_NAME}"
 ]) {
   assert(runtimeSource.includes(trainerAnchor), `RuntimeSceneViewer missing overlay drag anchor ${trainerAnchor}`);
 }

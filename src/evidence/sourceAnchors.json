@@ -819,8 +819,10 @@
       "private static final int V1_ACTION_COUNT = LEGACY_ACTION_COUNT + (EXTRA_BASE_ACTION_COUNT * SPEC_INTENTS.length);",
       "private static final int ACTION_COUNT = V1_ACTION_COUNT * ATTACK_INTENTS.length * EQUIPMENT_INTENTS.length;",
       "private static final int V12_INPUT_SIZE = 86;",
-      "private static final int INPUT_SIZE = 90;",
-      "private static final int STORE_VERSION = 13;",
+      "private static final int V13_INPUT_SIZE = 90;",
+      "private static final int INPUT_SIZE = 92;",
+      "private static final int STORE_VERSION = 14;",
+      "private static final int V13_STORE_VERSION = 13;",
       "private static final int V12_STORE_VERSION = 12;",
       "private static final int LEGACY_STORE_VERSION = 11;",
       "public NhStakerBot.CombatDecision decide(AIPlayer self, Player opponent,"

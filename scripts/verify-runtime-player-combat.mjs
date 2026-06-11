@@ -4267,8 +4267,10 @@ assert(
     viewerSource.includes("lastFreshFightResetInventoryCount") &&
     viewerSource.includes("lastFreshFightResetOpponentSupplies") &&
     viewerSource.includes("lastFreshFightResetOpponentInventorySupplies") &&
+    viewerSource.includes("setRuntimeSetupSelectorOpen(true)") &&
+    viewerSource.includes("lastFreshFightResetSetupSelectorOpen") &&
     viewerSource.includes("PlayerCombat.restore/NhStakerBot.prepareFreshState + client container rematch reset"),
-  "RuntimeSceneViewer should restore visible containers and derive combat supplies from the same inventory slots on the respawn rematch reset"
+  "RuntimeSceneViewer should restore visible containers, derive combat supplies from the same inventory slots, and reopen the setup selector on the respawn reset"
 );
 const disengageStateBase = createState(29, {
   localLoadoutId: "acb-hides",

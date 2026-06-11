@@ -107,6 +107,31 @@ function verifyRuntimeOverlayLayering() {
       runtimeSource.includes("className=\"nhClickCross\""),
     "click cross must be treated as viewport content rather than fixed screen UI"
   );
+
+  const pidOverlayCss = readCssBlock(cssSource, ".runtimePidOverlay");
+  assert(
+    runtimeSource.includes("runtimePlayerCombatProcessOrderForTick(manualCombatState, manualCombatState.tick)") &&
+      runtimeSource.includes('data-source-plugin="NhPidPlugin"') &&
+      runtimeSource.includes('data-source-overlay={RUNTIME_PID_OVERLAY_NAME}') &&
+      runtimeSource.includes("runtimePidOverlayStyle(fixedClientCssLayout, runeliteOverlayLocations)") &&
+      runtimeSource.includes('data-source-overlay-position="bottom-left fixed game viewport"') &&
+      runtimeSource.includes("runeliteOverlayPreferredLocationStyle(RUNTIME_PID_OVERLAY_NAME, overlayLocations, scale)") &&
+      runtimeSource.includes("data-source-overlay-position-storage={RUNELITE_OVERLAY_POSITION_SOURCE}") &&
+      runtimeSource.includes("data-source-overlay-drag={RUNELITE_FIGHT_START_OVERLAY_DRAG_SOURCE}") &&
+      pidOverlayCss.includes("pointer-events: none;") &&
+      pidOverlayCss.includes("position: absolute;"),
+    "PID overlay must render from local-player process order as a non-interactive bottom-left fixed viewport overlay"
+  );
+
+  assert(
+    runtimeSource.includes("RUNTIME_VENGEANCE_TRINKET_OVERLAY_NAME") &&
+      runtimeSource.includes("runeliteOverlayPreferredLocationStyle(\n    RUNTIME_VENGEANCE_TRINKET_OVERLAY_NAME") &&
+      runtimeSource.includes("data-runelite-overlay-name={RUNTIME_VENGEANCE_TRINKET_OVERLAY_NAME}") &&
+      runtimeSource.includes("RUNTIME_VENGEANCE_TRINKET_OVERLAY_HEIGHT_PX") &&
+      runtimeSource.includes("RUNTIME_PID_OVERLAY_STACK_GAP_PX") &&
+      runtimeSource.includes("runtimeVengeanceTrinketIndicatorStyle(\n                fixedClientCssLayout,\n                fixedClientLayout,\n                runeliteOverlayLocations"),
+    "PID and Vengeance trinket overlays must have separate default stacking and independent RuneLite preferred-location names"
+  );
 }
 
 async function main() {
