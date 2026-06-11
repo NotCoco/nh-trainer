@@ -1,3 +1,4 @@
 fixtures/ai/nh-neural-policy-hard.json filter=lfs diff=lfs merge=lfs -text
 fixtures/ai/nh-neural-policy-hard.json.part-* filter=lfs diff=lfs merge=lfs -text
 fixtures/ai/nh-neural-policy-dmm-candidate.json filter=lfs diff=lfs merge=lfs -text
+fixtures/ai/nh-neural-policy-dmm-candidate.json.part-* filter=lfs diff=lfs merge=lfs -text

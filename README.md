@@ -27,7 +27,7 @@ The project is still a work in progress. The goal is to make useful NH practice 
 The public client exposes one opponent difficulty: Hard. The selected setup decides which neural model is used:
 
 - NH stake Hard: `fixtures/ai/nh-neural-policy-hard.json`, 11,604,230 parameters, three 256-unit hidden layers, 90 inputs, 139 encoded features, and 44,550 action outputs. The public browser build serves this large model through `part-*` chunks so no deployed asset exceeds Vercel's per-file limit.
-- DMM Hard: `fixtures/ai/nh-neural-policy-dmm-candidate.json`, 5,785,234 parameters, three 256-unit hidden layers, 92 inputs, 141 encoded features, and 21,906 action outputs.
+- DMM Hard: `fixtures/ai/nh-neural-policy-dmm-candidate.json`, 5,785,234 parameters, three 256-unit hidden layers, 92 inputs, 141 encoded features, and 21,906 action outputs. The public browser build serves this model through `part-*` chunks for the same Vercel file-size limit.
 
 The opponent is trained through self-play on mirror fights. Each tick, it reads the current fight state and chooses a combined action: attack style, defensive prayer, movement, supplies, gear handling, and special-attack intent.
 

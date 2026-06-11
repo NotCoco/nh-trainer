@@ -20,6 +20,10 @@ const hardNeuralChunkPaths = [
   "fixtures/ai/nh-neural-policy-hard.json.part-003"
 ].map((relativePath) => path.join(projectRoot, relativePath));
 const dmmHardNeuralPolicyPath = path.join(projectRoot, "fixtures", "ai", "nh-neural-policy-dmm-candidate.json");
+const dmmHardNeuralChunkPaths = [
+  "fixtures/ai/nh-neural-policy-dmm-candidate.json.part-001",
+  "fixtures/ai/nh-neural-policy-dmm-candidate.json.part-002"
+].map((relativePath) => path.join(projectRoot, relativePath));
 
 function assert(condition, message) {
   if (!condition) {
@@ -46,8 +50,10 @@ assert(
 assert(
   appSource.includes("DMM_HARD_POLICY") &&
     appSource.includes('staticUrl: "./ai/nh-neural-policy-dmm-candidate.json"') &&
+    appSource.includes('"./ai/nh-neural-policy-dmm-candidate.json.part-001"') &&
+    appSource.includes('"./ai/nh-neural-policy-dmm-candidate.json.part-002"') &&
     appSource.includes("setLoadedDmmHardPolicy(parseDifficultyPolicy(result, DMM_HARD_POLICY))"),
-  "DMM hard should load the promoted DMM neural JSON."
+  "DMM hard should load the promoted DMM neural JSON through deployable chunks."
 );
 assert(
   packageSource.includes('"sync:policy": "node scripts/sync-default-policy.mjs"') &&
@@ -68,7 +74,7 @@ const policySummaries = tsvPolicyVariantPaths.map((policyPath) => {
   };
 });
 policySummaries.push(validateChunkedNeuralPolicy(hardNeuralPolicyPath, hardNeuralChunkPaths, 44_550));
-policySummaries.push(validateNeuralPolicy(dmmHardNeuralPolicyPath, 21_906));
+policySummaries.push(validateChunkedNeuralPolicy(dmmHardNeuralPolicyPath, dmmHardNeuralChunkPaths, 21_906));
 
 const child = spawn(electronPath, [validatorPath, projectRoot], {
   cwd: projectRoot,

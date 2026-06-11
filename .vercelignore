@@ -1,4 +1,5 @@
 fixtures/ai/nh-neural-policy-hard.json
+fixtures/ai/nh-neural-policy-dmm-candidate.json
 .codex-logs/
 .codex-patched-classes/
 .codex-profiles/

@@ -31,6 +31,10 @@ type BotPolicyAsset = {
 const DMM_HARD_POLICY: BotPolicyAsset = {
   label: "DMM Hard",
   staticUrl: "./ai/nh-neural-policy-dmm-candidate.json",
+  staticUrls: [
+    "./ai/nh-neural-policy-dmm-candidate.json.part-001",
+    "./ai/nh-neural-policy-dmm-candidate.json.part-002"
+  ],
   format: "neural-json"
 };
 const BOT_DIFFICULTY_STORAGE_KEY = "nh-trainer.bot-difficulty";
@@ -190,6 +194,7 @@ export function App(): JSX.Element {
                   <ul>
                     <li>Hard mode now uses neural models for both NH stake and DMM setups.</li>
                     <li>DMM Hard was promoted to the 3x256 loop-four checkpoint: 5,785,234 parameters, 92 inputs, 141 encoded features, and 21,906 action outputs.</li>
+                    <li>Both large neural hard-mode models now load through deployable chunks.</li>
                     <li>PID and vengeance trinket overlays are Alt-draggable and no longer overlap by default; fight deaths reset back to setup selection.</li>
                   </ul>
                 </section>
