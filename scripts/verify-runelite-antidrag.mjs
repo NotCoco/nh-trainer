@@ -155,7 +155,9 @@ for (const trainerAnchor of [
   "data-source-overlay-priority=\"OverlayPriority.HIGHEST\"",
   "data-source-overlay-layer=\"OverlayLayer.ALWAYS_ON_TOP\"",
   "data-source-radius=\"AntiDragOverlay.RADIUS = 20\"",
-  "config.enabled && !config.alwaysOn && config.overlay && config.hotkeyActive && mouseCanvasPosition.insideClient",
+  "function runeliteAntiDragMouseTrackingEnabled",
+  "return config.enabled && !config.alwaysOn && config.overlay && config.hotkeyActive;",
+  "return runeliteAntiDragMouseTrackingEnabled(config) && mouseCanvasPosition.insideClient",
   "left: mouseCanvasPosition.x - RUNELITE_ANTI_DRAG_OVERLAY_RADIUS",
   "top: mouseCanvasPosition.y - RUNELITE_ANTI_DRAG_OVERLAY_RADIUS"
 ]) {

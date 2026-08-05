@@ -271,6 +271,16 @@ export function nhGearProfileActionEquipment(input: {
   let equipment = equipmentIntent === "weapon_only" || independentGear
     ? applyIndependentStyleWeapon(input.currentEquipment, input.profile, input.action.offenceStyle)
     : applyJavaStyleLoadout(input.currentEquipment, input.profile, { ...input.action, specIntent: "none" });
+  if (equipmentIntent !== "weapon_only") {
+    equipment = reEquipMissingLoadoutSlots({
+      equipment,
+      profile: input.profile,
+      offenceStyle: input.action.offenceStyle,
+      threatStyle: input.threatStyle,
+      underPressure: input.underPressure,
+      hitpoints: input.hitpoints
+    });
+  }
   if ((input.allowFlexibleGear ?? true) && equipmentIntent === "style_loadout") {
     const passes = Math.max(1, Math.trunc(input.flexibleGearPasses ?? 1));
     for (let pass = 0; pass < passes; pass += 1) {
@@ -316,6 +326,35 @@ export function nhGearProfileActionEquipment(input: {
     const equipmentWithoutSlot = { ...equipment };
     delete equipmentWithoutSlot[slotToUnequip];
     return equipmentWithoutSlot;
+  }
+  return equipment;
+}
+
+function reEquipMissingLoadoutSlots(input: {
+  readonly equipment: VisibleEquipment;
+  readonly profile: NhSelectedGearProfile;
+  readonly offenceStyle: NhOffenceStyle | null;
+  readonly threatStyle: NhOffenceStyle | null;
+  readonly underPressure: boolean;
+  readonly hitpoints: number;
+}): VisibleEquipment {
+  let equipment: Partial<Record<EquipmentSlot, VisibleEquipmentItem>> = input.equipment;
+  for (const slot of flexibleGearSlots) {
+    if (equipment[slot]) {
+      continue;
+    }
+    const candidate = selectFlexibleItemForSlot({
+      slot,
+      profile: input.profile,
+      currentItem: undefined,
+      offenceStyle: input.offenceStyle,
+      threatStyle: input.threatStyle,
+      underPressure: input.underPressure,
+      hitpoints: input.hitpoints
+    });
+    if (candidate) {
+      equipment = { ...equipment, [slot]: candidate };
+    }
   }
   return equipment;
 }
@@ -392,7 +431,7 @@ export function nhGearProfileAvailableSpecialWeaponKinds(
 }
 
 export function nhGearProfileUsesIndependentGear(profile: NhSelectedGearProfile): boolean {
-  return profile.ownedItems.some((item) => dmmIndependentGearItemIds.has(item.itemId));
+  return profile.strictInventory && profile.ownedItems.some((item) => dmmIndependentGearItemIds.has(item.itemId));
 }
 
 export function nhGearProfileSpecialWeaponKind(
@@ -817,7 +856,10 @@ function selectFlexibleItemForSlot(input: {
   if (input.currentItem && !candidates.some((item) => item.itemId === input.currentItem?.itemId)) {
     candidates.unshift(input.currentItem);
   }
-  if (candidates.length <= 1) {
+  if (candidates.length === 0) {
+    return null;
+  }
+  if (candidates.length === 1 && input.currentItem?.itemId === candidates[0].itemId) {
     return null;
   }
 

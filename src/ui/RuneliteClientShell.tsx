@@ -4620,6 +4620,7 @@ export function RuneliteClientShell({
     () => runeliteClientFrameConfig(configSnapshot, pvpTrackerSnapshot?.playerName ?? null),
     [configSnapshot, pvpTrackerSnapshot?.playerName]
   );
+  const antiDragMouseTrackingEnabled = runeliteAntiDragMouseTrackingEnabled(configSnapshot.antiDrag);
   const toolbarEntries = useMemo(
     () => buildRuneliteToolbarEntries(runeliteNavigationButtonsForConfig(configSnapshot)),
     [configSnapshot]
@@ -4644,6 +4645,15 @@ export function RuneliteClientShell({
   useEffect(() => {
     onConfigSnapshotChange?.(configSnapshot);
   }, [configSnapshot, onConfigSnapshotChange]);
+
+  useEffect(() => {
+    if (antiDragMouseTrackingEnabled) {
+      return;
+    }
+    setAntiDragMouseCanvasPosition((current) =>
+      current.insideClient ? RUNELITE_INITIAL_ANTI_DRAG_MOUSE_CANVAS_POSITION : current
+    );
+  }, [antiDragMouseTrackingEnabled]);
 
   useEffect(() => {
     const handleOverlayLocationChange = (event: Event): void => {
@@ -5071,6 +5081,9 @@ export function RuneliteClientShell({
           updateOverlayLocations(saveRuneliteOverlayPreferredLocation(overlayName, null));
         }}
         onMouseMove={(event) => {
+          if (!antiDragMouseTrackingEnabled) {
+            return;
+          }
           const point = runeliteClientPanelPoint(event.currentTarget, event.clientX, event.clientY);
           setAntiDragMouseCanvasPosition({
             x: point.x,
@@ -5078,7 +5091,11 @@ export function RuneliteClientShell({
             insideClient: true
           });
         }}
-        onMouseLeave={() => setAntiDragMouseCanvasPosition(RUNELITE_INITIAL_ANTI_DRAG_MOUSE_CANVAS_POSITION)}
+        onMouseLeave={() => {
+          if (antiDragMouseTrackingEnabled) {
+            setAntiDragMouseCanvasPosition(RUNELITE_INITIAL_ANTI_DRAG_MOUSE_CANVAS_POSITION);
+          }
+        }}
       >
         {children}
         <RuneliteAntiDragOverlay
@@ -5630,7 +5647,11 @@ function runeliteAntiDragOverlayVisible(
   config: RuneliteAntiDragConfigSnapshot,
   mouseCanvasPosition: RuneliteAntiDragMouseCanvasPosition
 ): boolean {
-  return config.enabled && !config.alwaysOn && config.overlay && config.hotkeyActive && mouseCanvasPosition.insideClient;
+  return runeliteAntiDragMouseTrackingEnabled(config) && mouseCanvasPosition.insideClient;
+}
+
+function runeliteAntiDragMouseTrackingEnabled(config: RuneliteAntiDragConfigSnapshot): boolean {
+  return config.enabled && !config.alwaysOn && config.overlay && config.hotkeyActive;
 }
 
 function runeliteAntiDragOverlayStyle(

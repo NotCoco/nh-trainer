@@ -31,9 +31,12 @@ for (const snippet of [
   "Browser fallback contextmenu can be retargeted after a right-button drag",
   "suppressNextCanvasContextMenuRef.current = true;",
   "lastRightButtonPressAtMsRef",
-  "nhNextClientCycleDelayFromPressMs",
+  "openContextMenuFromPressedPosition",
   "viewport.dataset.lastContextMenuPressedAtMs",
-  "viewport.dataset.lastContextMenuScheduledDelayMs"
+  "viewport.dataset.lastContextMenuScheduledDelayMs = \"0\"",
+  "viewport.querySelector(\".nhContextMenu\")",
+  "menuRect.right - 1",
+  "immediate trainer menu open from pressed coordinates"
 ]) {
   if (!viewerSource.includes(snippet)) {
     throw new Error(`RuntimeSceneViewer inventory context-menu fallback suppression missing snippet: ${snippet}`);

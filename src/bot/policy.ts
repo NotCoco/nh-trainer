@@ -1,22 +1,63 @@
 import equipmentRowsJson from "../generated/equipment-bonuses.json";
 import {
   createNhPolicyFeatureState,
+  commitNhPolicyDecisionState,
   resetNhPolicyFeatureState,
   encodeNhPolicyFeatures,
   decodeNhPolicyAction,
+  decodeNhDeployedLegacyPolicyAction,
   nhPolicyActionCount,
+  nhDeployedLegacyPolicyActionCount,
   nhPolicyFeatureSize,
   nhPolicyInputFeatureStart,
   nhPolicyInputSize,
-  nhPolicyPreviousFeatureSize,
+  nhPolicyV15InputSize,
+  nhPolicyV16InputSize,
+  nhPolicyV17InputSize,
   nhPolicyPreviousInputSize,
+  nhPolicyCombatActionCount,
+  isNhDirectGearActionId,
   nhPolicyV1ActionCount,
-  scriptedNhController,
+  nhDefencePrayers,
+  nhSupplyIntents,
+  nhExtraSupplyIntents,
+  dmmCanonicalAttackActionIds as currentDmmCanonicalAttackActionIds,
+  dmmCanonicalDefenceActionIds as currentDmmCanonicalDefenceActionIds,
+  dmmCanonicalMovementActionIds as currentDmmCanonicalMovementActionIds,
+  dmmCanonicalSpecActionIds as currentDmmCanonicalSpecActionIds,
+  dmmCanonicalSupplyActionIds as currentDmmCanonicalSupplyActionIds,
+  dmmCurrentActionVectorActionIds as currentDmmActionVectorActionIds,
+  isNhExplicitSpecIntent,
+  nhExplicitSpecWeaponKind,
+  nhSpecIntentIsLegacyGeneric,
+  nhSpecIntentIsDouble,
+  canMeleeSpecialStepInReachNextTick,
+  nhWeaponProfiles,
+  nhDmmCoreGearActionsForCombat,
+  nhDirectGearActionSlot,
+  mergeNhDmmDirectGearActionsSlotAware,
+  getAttackDelayStatus,
+  type NhDirectGearAction,
+  type NhDirectGearSlot,
+  type NhPolicyFeatureState,
+  type NhSpecIntent,
   type NhDuelController,
   type NhDuelControllerContext,
   type NhPolicyAction
 } from "../sim";
+import {
+  applyNhConditionedPolicyV10Scores,
+  commitNhConditionedPolicyInput,
+  conditionedGearScore,
+  createNhConditionedPolicyRuntimeState,
+  parseNhConditionedPolicyV10,
+  resetNhConditionedPolicyRuntimeState,
+  type NhConditionedPolicyRuntimeState,
+  type NhConditionedPolicyV10
+} from "./conditioned-policy-v10";
 import { aggregateVisibleEquipmentBonuses, type EquipmentBonusRow } from "../sim/equipment/equipment";
+import { canonicalNhGear } from "../sim/nh/canonicalGear";
+import { nhGearProfileAvailableSpecialWeaponKinds, nhGearProfileUsesIndependentGear } from "../sim/nh/gearProfile";
 
 export interface NhPolicyCounters {
   readonly decisions: number;
@@ -63,7 +104,25 @@ export interface ParsedNhNeuralPolicy {
   readonly inputStd: Float32Array;
   readonly layers: readonly NhNeuralDenseLayer[];
   readonly policy: Omit<NhNeuralDenseLayer, "activation">;
+  readonly directGearConditioning?: NhDirectGearConditioning;
+  readonly conditionedV10?: NhConditionedPolicyV10;
   readonly metrics: Readonly<Record<string, number>>;
+}
+
+export type NhDirectGearConditioningStyle = "hold" | "magic" | "ranged" | "melee";
+
+export interface NhDirectGearConditioning {
+  readonly kind: "dmm-body-legs-combat-age-residual";
+  readonly version: 1;
+  readonly combatSource: "greedyCombat";
+  readonly ageInputIndex: 110;
+  readonly ageNormalizerTicks: 8;
+  readonly styles: readonly NhDirectGearConditioningStyle[];
+  readonly featureOrder: readonly string[];
+  readonly actionIds: Int32Array;
+  readonly weight: readonly Float32Array[];
+  readonly actionRowById: ReadonlyMap<number, number>;
+  readonly active: boolean;
 }
 
 export type NhRuntimePolicy = ParsedNhPolicy | ParsedNhNeuralPolicy;
@@ -78,6 +137,38 @@ export interface NhPolicyScoredAction extends NhPolicyActionSummary {
   readonly score: number;
 }
 
+export interface NhPolicyPriorNormalizedInputTrace {
+  readonly valid: boolean;
+  readonly normalizedInput: readonly number[] | null;
+}
+
+export interface NhPolicyLegalActionTrace {
+  readonly actionId: number;
+  readonly modelRow: number;
+}
+
+export interface NhPolicyDecisionTrace {
+  readonly tick: number;
+  readonly rewardEpisodeId: number;
+  readonly rawInput: readonly number[];
+  readonly normalizedInput: readonly number[];
+  readonly attackHistoryCodes: readonly [number, number, number];
+  readonly ownPrayerHistoryCodes: readonly [number, number];
+  readonly priorNormalizedInputsNewestFirst: readonly NhPolicyPriorNormalizedInputTrace[];
+  readonly priorNormalizedInputHistoryLength: number;
+  readonly legalActions: readonly NhPolicyLegalActionTrace[];
+  /** Indexed by model row. Legal rows are final selection scores; illegal rows retain post-v10 pre-gear scores. */
+  readonly finalScores: readonly number[];
+  /** Representative attack/spec row for the resolved action-vector decision. */
+  readonly selectedActionId: number;
+  readonly selectedModelRow: number;
+}
+
+type NhPolicyDecisionObservationTrace = Omit<
+  NhPolicyDecisionTrace,
+  "selectedActionId" | "selectedModelRow"
+>;
+
 export type NhPolicyEqualScoreTieBreaker = () => boolean;
 
 export interface NhPolicySummary {
@@ -90,12 +181,19 @@ export interface NhPolicySummary {
 
 export interface NhPolicyRuntimeController extends NhDuelController {
   readonly getLastRankings: () => readonly NhPolicyScoredAction[];
+  readonly setDecisionTraceEnabled: (enabled: boolean) => void;
+  readonly getLastDecisionTrace: () => NhPolicyDecisionTrace | null;
 }
 
-const nhPolicyStoreVersion = 14;
-const previousNhPolicyStoreVersion = 13;
+const nhPolicyStoreVersion = 15;
+const previousNhPolicyStoreVersion = 14;
+const v13NhPolicyStoreVersion = 13;
+const v13NhPolicyInputSize = 90;
+const v13NhPolicyActionCount = 4950;
+const v13NhPolicyBiasFeatureIndex = nhPolicyInputFeatureStart + v13NhPolicyInputSize;
 const previousNhPolicyInputSize = nhPolicyPreviousInputSize;
 const previousNhPolicyBiasFeatureIndex = nhPolicyInputFeatureStart + previousNhPolicyInputSize;
+const dmmDeployedConstantInputStdMax = 0.0001001;
 const v12NhPolicyStoreVersion = 12;
 const v12NhPolicyInputSize = 86;
 const v12NhPolicyBiasFeatureIndex = nhPolicyInputFeatureStart + v12NhPolicyInputSize;
@@ -130,40 +228,558 @@ const equipmentRows = equipmentRowsJson as readonly EquipmentBonusRow[];
 const actionVisitMapCache = new WeakMap<ParsedNhPolicy, ReadonlyMap<number, number>>();
 const tabularPolicyCandidateCache = new WeakMap<ParsedNhPolicy, readonly number[]>();
 const decodedActionCache: (NhPolicyAction | undefined)[] = [];
+const dmmDirectGearVectorScoreFloor = 0;
+const dmmSelfMagicRatioInputIndex = 65;
+const dmmSelfMeleeReachInputIndex = 71;
+const dmmCanEquipTwoHandedInputIndex = 109;
+const dmmOpponentAttackAgeInputIndex = 110;
+const dmmMinimumMagicCastRatio = 82 / 99;
+const dmmDirectGearConditioningKind = "dmm-body-legs-combat-age-residual";
+const dmmDirectGearConditioningStyles = ["hold", "magic", "ranged", "melee"] as const;
+const dmmDirectGearConditioningFeatureOrder = [
+  "hold",
+  "magic",
+  "ranged",
+  "melee",
+  "hold_x_age",
+  "magic_x_age",
+  "ranged_x_age",
+  "melee_x_age"
+] as const;
+const dmmDirectGearConditioningActions = new Set<NhDirectGearAction>([
+  "equip_dmm_virtus_robe_top",
+  "equip_dmm_masori_body",
+  "unequip_body",
+  "equip_dmm_virtus_robe_bottom",
+  "equip_dmm_torva_platelegs",
+  "unequip_legs"
+]);
+const dmmDirectGearSlotOrder: readonly NhDirectGearSlot[] = [
+  "head",
+  "cape",
+  "amulet",
+  "weapon",
+  "body",
+  "shield",
+  "legs",
+  "hands",
+  "feet",
+  "ring",
+  "ammo"
+];
+const dmmDirectGearTargetItemIds: Readonly<Record<NhDirectGearAction, number | null>> = {
+  equip_dmm_torva_full_helm: canonicalNhGear.torvaFullHelm.itemId,
+  equip_imbued_saradomin_cape: canonicalNhGear.imbuedSaradominCape.itemId,
+  equip_amulet_of_fury: canonicalNhGear.amuletOfFury.itemId,
+  equip_dmm_zuriels_staff: canonicalNhGear.zurielsStaff.itemId,
+  equip_dmm_virtus_robe_top: canonicalNhGear.virtusRobeTop.itemId,
+  equip_dmm_elidinis_ward: canonicalNhGear.elidinisWardF.itemId,
+  equip_dmm_virtus_robe_bottom: canonicalNhGear.virtusRobeBottom.itemId,
+  equip_dmm_confliction_gauntlets: canonicalNhGear.conflictionGauntlets.itemId,
+  equip_dmm_avernic_treads: canonicalNhGear.avernicTreadsMax.itemId,
+  equip_seers_ring_i: canonicalNhGear.seersRingI.itemId,
+  equip_dmm_onyx_dragon_bolts: canonicalNhGear.onyxDragonBoltsE.itemId,
+  equip_dmm_masori_body: canonicalNhGear.masoriBodyF.itemId,
+  equip_dmm_zaryte_crossbow: canonicalNhGear.zaryteCrossbow.itemId,
+  equip_dmm_torva_platelegs: canonicalNhGear.torvaPlatelegs.itemId,
+  equip_dragonfire_shield: canonicalNhGear.dragonfireShield.itemId,
+  equip_dmm_noxious_halberd: canonicalNhGear.noxiousHalberd.itemId,
+  equip_barrows_gloves: canonicalNhGear.barrowsGloves.itemId,
+  equip_dmm_vestas_longsword: canonicalNhGear.vestaLongsword.itemId,
+  equip_dmm_voidwaker: canonicalNhGear.voidwaker.itemId,
+  equip_granite_maul: canonicalNhGear.graniteMaul.itemId,
+  unequip_head: null,
+  unequip_cape: null,
+  unequip_amulet: null,
+  unequip_body: null,
+  unequip_shield: null,
+  unequip_legs: null,
+  unequip_hands: null,
+  unequip_feet: null,
+  unequip_ring: null
+};
+const dmmTwoHandedDirectGearActions = new Set<NhDirectGearAction>([
+  "equip_dmm_noxious_halberd",
+  "equip_granite_maul"
+]);
+const dmmCanonicalAttackActionIds = new Set<number>(currentDmmCanonicalAttackActionIds());
+const dmmCanonicalSpecActionIds = new Set<number>(currentDmmCanonicalSpecActionIds());
+const dmmCanonicalCombatActionIds = new Set<number>([
+  ...dmmCanonicalAttackActionIds,
+  ...dmmCanonicalSpecActionIds
+]);
 let baselineTabularCandidateActions: readonly number[] | null = null;
 
 export function createNhPolicyController(policy: NhRuntimePolicy): NhPolicyRuntimeController {
   const featureState = createNhPolicyFeatureState();
+  const conditionedState = createNhConditionedPolicyRuntimeState();
   let lastRankings: readonly NhPolicyScoredAction[] = [];
+  let lastDecisionTrace: NhPolicyDecisionTrace | null = null;
+  let decisionTraceEnabled = false;
   let activeEpisodeId: number | null = null;
   let lastContextTick: number | null = null;
+  const neuralPolicy = isParsedNhNeuralPolicy(policy);
+  const dmmDeployedCompositePolicy = neuralPolicy && isDmmDeployedCompositePolicy(policy);
+  let currentDmmActionSurfaceVerified = false;
+  const decodeMode = neuralPolicy
+    ? dmmDeployedCompositePolicy
+      ? "dmm-deployed-composite"
+      : "current-action-vector"
+    : "tabular";
   return {
-    id: `${isParsedNhNeuralPolicy(policy) ? "neural-policy" : "parsed-policy"}:${policy.sourceLabel}`,
+    id: `${neuralPolicy ? "neural-policy" : "parsed-policy"}:${policy.sourceLabel}:${decodeMode}`,
+    // Source: NhStakerBot.resolveDefencePrayer() applies the reachability and
+    // visible-threat guards only for deployed-composite and legacy controllers;
+    // current-direct neural decisions keep the model's defence prayer untouched.
+    defencePrayerStrictModelChoice:
+      neuralPolicy && !dmmDeployedCompositePolicy && policy.conditionedV10 !== undefined,
     chooseAction(context) {
       const rewardEpisodeActive = context.rewardEpisodeActive ?? true;
       const rewardEpisodeId = context.rewardEpisodeId ?? 0;
       if (context.rewardEpisodeId === undefined && lastContextTick !== null && context.tick < lastContextTick) {
         resetNhPolicyFeatureState(featureState);
+        resetNhConditionedPolicyRuntimeState(conditionedState);
         activeEpisodeId = null;
       }
       if (!rewardEpisodeActive || rewardEpisodeId < 0) {
         resetNhPolicyFeatureState(featureState);
+        resetNhConditionedPolicyRuntimeState(conditionedState);
         activeEpisodeId = null;
       } else if (activeEpisodeId !== rewardEpisodeId) {
         resetNhPolicyFeatureState(featureState);
+        resetNhConditionedPolicyRuntimeState(conditionedState);
         activeEpisodeId = rewardEpisodeId;
       }
-      const features = encodeNhPolicyFeatures(context, featureState);
-      lastRankings = isParsedNhNeuralPolicy(policy)
-        ? rankNhNeuralPolicyActionsFromFeatures(policy, features, 5, javaStyleEqualScoreTieBreaker)
+      const baseFeatures = encodeNhPolicyFeatures(context, featureState);
+      const features = baseFeatures;
+      const decisionTraceCapture: { current: NhPolicyDecisionObservationTrace | null } | null =
+        decisionTraceEnabled && neuralPolicy && policy.conditionedV10 ? { current: null } : null;
+      const dmmNeuralContext = isDmmNeuralContext(context);
+      if (
+        neuralPolicy &&
+        dmmNeuralContext &&
+        !dmmDeployedCompositePolicy &&
+        !currentDmmActionSurfaceVerified
+      ) {
+        assertNhNeuralPolicyHasCurrentDmmActionSurface(policy);
+        currentDmmActionSurfaceVerified = true;
+      }
+      const rawNeuralRankings = neuralPolicy
+        ? dmmDeployedCompositePolicy && dmmNeuralContext
+          ? rankNhDeployedLegacyNeuralPolicyActionsFromFeatures(
+              policy,
+              features,
+              policy.actionCount,
+              javaStyleEqualScoreTieBreaker
+            )
+          : rankNhNeuralPolicyActionsFromFeatures(
+            policy,
+            features,
+            policy.actionCount,
+            context,
+            javaStyleEqualScoreTieBreaker,
+            conditionedState,
+            featureState,
+            decisionTraceCapture
+              ? (trace) => {
+                  decisionTraceCapture.current = trace;
+                }
+              : undefined
+          )
+        : [];
+      const conditioned =
+        neuralPolicy && dmmNeuralContext && !dmmDeployedCompositePolicy
+          ? conditionDmmDirectGearRankings(policy, rawNeuralRankings, features, context)
+          : { rankings: rawNeuralRankings };
+      const allNeuralRankings = conditioned.rankings;
+      lastRankings = neuralPolicy
+        ? allNeuralRankings.slice(0, 12)
         : rankNhPolicyActionsFromFeatures(policy, features, 5, context, javaStyleEqualScoreTieBreaker);
       lastContextTick = context.tick;
-      return lastRankings[0]?.decoded ?? scriptedNhController.chooseAction(context);
+      const selected = lastRankings[0];
+      if (!selected) {
+        throw new Error(`NH policy controller ${policy.sourceLabel} produced no allowed action.`);
+      }
+      const decisionObservationTrace = decisionTraceCapture?.current ?? null;
+      if (decisionObservationTrace && neuralPolicy) {
+        const representativeRanking = conditioned.combatSelection
+          ? conditioned.combatSelection.specRanking.decoded.specIntent === "none"
+            ? conditioned.combatSelection.attackRanking
+            : conditioned.combatSelection.specRanking
+          : selected;
+        const finalScores = Array.from(decisionObservationTrace.finalScores);
+        for (const ranking of allNeuralRankings) {
+          const modelRow = neuralModelActionForAction(policy, ranking.action);
+          if (modelRow >= 0 && modelRow < finalScores.length) {
+            // Legal gear rows receive their last conditioning pass after the
+            // v10 score head, so publish the exact scores used by selection.
+            finalScores[modelRow] = ranking.score;
+          }
+        }
+        lastDecisionTrace = Object.freeze({
+          ...decisionObservationTrace,
+          finalScores: Object.freeze(finalScores),
+          selectedActionId: representativeRanking.action,
+          selectedModelRow: neuralModelActionForAction(policy, representativeRanking.action)
+        });
+      }
+      if (!neuralPolicy || !dmmNeuralContext || dmmDeployedCompositePolicy) {
+        commitNhPolicyDecisionState(featureState, context, selected.decoded);
+        return selected.decoded;
+      }
+      const resolved = resolveDmmNeuralActionVector(
+        allNeuralRankings,
+        context,
+        conditioned.combatSelection,
+        policy.directGearConditioning?.active === true
+      );
+      commitNhPolicyDecisionState(featureState, context, resolved);
+      return resolved;
     },
     getLastRankings() {
       return lastRankings;
+    },
+    setDecisionTraceEnabled(enabled) {
+      decisionTraceEnabled = enabled;
+      if (!enabled) {
+        lastDecisionTrace = null;
+      }
+    },
+    getLastDecisionTrace() {
+      return lastDecisionTrace;
     }
   };
+}
+
+interface DmmGreedyCombatSelection {
+  readonly attackRanking: NhPolicyScoredAction;
+  readonly specRanking: NhPolicyScoredAction;
+  readonly combatAction: NhPolicyAction;
+}
+
+interface DmmConditionedRankings {
+  readonly rankings: readonly NhPolicyScoredAction[];
+  readonly combatSelection?: DmmGreedyCombatSelection;
+}
+
+function conditionDmmDirectGearRankings(
+  policy: ParsedNhNeuralPolicy,
+  rankings: readonly NhPolicyScoredAction[],
+  features: readonly number[],
+  context: NhDuelControllerContext
+): DmmConditionedRankings {
+  const conditioning = policy.directGearConditioning;
+  if (!conditioning?.active) {
+    return { rankings };
+  }
+  const combatSelection = selectDmmGreedyCombat(rankings);
+  if (!combatSelection) {
+    throw new Error("Conditioned DMM neural policy is missing a mapped attack or spec channel action.");
+  }
+  const style = directGearConditioningStyle(combatSelection.combatAction);
+  const styleIndex = conditioning.styles.indexOf(style);
+  const attackAge = clamp01(inputFeature(features, conditioning.ageInputIndex));
+  const conditioningInput = new Float32Array(8);
+  conditioningInput[styleIndex] = 1;
+  conditioningInput[4 + styleIndex] = attackAge;
+
+  const rawInput = Array.from({ length: policy.inputSize }, (_, index) => inputFeature(features, index));
+  const ordinaryCooldown = getAttackDelayStatus(context.opponent.attackTimer, context.tick).remainingTicks;
+  let changed = false;
+  const adjusted = rankings.map((ranking) => {
+    const rowIndex = conditioning.actionRowById.get(ranking.action);
+    let residual = 0;
+    if (rowIndex !== undefined) {
+      const row = conditioning.weight[rowIndex];
+      for (let inputIndex = 0; inputIndex < conditioningInput.length; inputIndex += 1) {
+        residual += row[inputIndex] * conditioningInput[inputIndex];
+      }
+    }
+    let adjustedScore = ranking.score + residual;
+    if (policy.conditionedV10) {
+      const modelAction = neuralModelActionForAction(policy, ranking.action);
+      adjustedScore = conditionedGearScore(
+        policy.conditionedV10,
+        modelAction,
+        styleIndex,
+        rawInput,
+        ordinaryCooldown,
+        adjustedScore
+      );
+    }
+    if (adjustedScore === ranking.score) {
+      return ranking;
+    }
+    changed = true;
+    return { ...ranking, score: adjustedScore };
+  });
+  if (!changed) {
+    return { rankings, combatSelection };
+  }
+  const reordered = adjusted
+    .map((ranking, index) => ({ ranking, index }))
+    .sort((left, right) => right.ranking.score - left.ranking.score || left.index - right.index)
+    .map(({ ranking }) => ranking);
+  return { rankings: reordered, combatSelection };
+}
+
+function directGearConditioningStyle(action: NhPolicyAction): NhDirectGearConditioningStyle {
+  if (action.specIntent === "none" && (action.attackIntent ?? "hold") === "hold") {
+    return "hold";
+  }
+  if (action.offenceStyle === "magic") {
+    return "magic";
+  }
+  if (action.offenceStyle === "ranged") {
+    return "ranged";
+  }
+  return "melee";
+}
+
+function selectDmmGreedyCombat(
+  rankings: readonly NhPolicyScoredAction[]
+): DmmGreedyCombatSelection | null {
+  const rankingByAction = new Map<number, NhPolicyScoredAction>();
+  for (const ranking of rankings) {
+    rankingByAction.set(ranking.action, ranking);
+  }
+  const attackRanking = bestCanonicalRankingOrNull([...dmmCanonicalAttackActionIds], rankingByAction);
+  const specRanking = bestCanonicalRankingOrNull([...dmmCanonicalSpecActionIds], rankingByAction);
+  if (!attackRanking || !specRanking) {
+    return null;
+  }
+  return {
+    attackRanking,
+    specRanking,
+    combatAction: specRanking.decoded.specIntent === "none" ? attackRanking.decoded : specRanking.decoded
+  };
+}
+
+function resolveDmmNeuralActionVector(
+  rankings: readonly NhPolicyScoredAction[],
+  context: NhDuelControllerContext,
+  preselectedCombat?: DmmGreedyCombatSelection,
+  conditionedBodyLegs = false
+): NhPolicyAction {
+  const rankingByAction = new Map<number, NhPolicyScoredAction>();
+  for (const ranking of rankings) {
+    rankingByAction.set(ranking.action, ranking);
+  }
+  const combatSelection = preselectedCombat ?? selectDmmGreedyCombat(rankings);
+  const attackRanking = combatSelection?.attackRanking ?? null;
+  const specRanking = combatSelection?.specRanking ?? null;
+
+  const defenceRanking = bestCanonicalRankingOrNull(
+    currentDmmCanonicalDefenceActionIds(),
+    rankingByAction
+  );
+  const movementRanking = bestCanonicalRankingOrNull(
+    currentDmmCanonicalMovementActionIds(),
+    rankingByAction
+  );
+  const supplyRanking = bestCanonicalRankingOrNull(
+    currentDmmCanonicalSupplyActionIds(),
+    rankingByAction
+  );
+
+  if (!attackRanking || !specRanking || !defenceRanking || !movementRanking || !supplyRanking) {
+    throw new Error(
+      `DMM neural policy is missing mapped-vector channel label(s): attack=${attackRanking ? "ok" : "missing"}, spec=${specRanking ? "ok" : "missing"}, defence=${defenceRanking ? "ok" : "missing"}, movement=${movementRanking ? "ok" : "missing"}, supply=${supplyRanking ? "ok" : "missing"}.`
+    );
+  }
+
+  const combatAction = combatSelection!.combatAction;
+  const legacyCoreDirectGearActions = nhDmmCoreGearActionsForCombat(combatAction);
+  const coreDirectGearActions = conditionedBodyLegs
+    ? legacyCoreDirectGearActions.filter((action) => {
+        const slot = nhDirectGearActionSlot(action);
+        return slot !== "body" && slot !== "legs";
+      })
+    : legacyCoreDirectGearActions;
+  const reservedDirectGearSlots = new Set<NhDirectGearSlot>(coreDirectGearActions.map(nhDirectGearActionSlot));
+  if (coreDirectGearActions.some((action) => dmmTwoHandedDirectGearActions.has(action))) {
+    reservedDirectGearSlots.add("shield");
+  }
+  const optionalDirectGearActions = collectDmmDirectGearActions(
+    rankings,
+    coreDirectGearActions,
+    reservedDirectGearSlots,
+    context
+  );
+  const directGearActions = mergeNhDmmDirectGearActionsSlotAware(coreDirectGearActions, optionalDirectGearActions);
+  return {
+    ...combatAction,
+    defencePrayer: defenceRanking.decoded.defencePrayer,
+    movementIntent: movementRanking.decoded.movementIntent,
+    supplyIntent: supplyRanking.decoded.supplyIntent,
+    directGearActions
+  };
+}
+
+function collectDmmDirectGearActions(
+  rankings: readonly NhPolicyScoredAction[],
+  coreActions: readonly NhDirectGearAction[],
+  reservedSlots: ReadonlySet<NhDirectGearSlot>,
+  context: NhDuelControllerContext
+): NhDirectGearAction[] {
+  const selectedBySlot = new Map<
+    NhDirectGearSlot,
+    { action: NhDirectGearAction; actionId: number; score: number }
+  >();
+  for (const ranking of rankings) {
+    if (!isNhDirectGearActionId(ranking.action) || ranking.score <= dmmDirectGearVectorScoreFloor) {
+      continue;
+    }
+    const directGearAction = ranking.decoded.directGearActions?.[0];
+    if (directGearAction === undefined) {
+      continue;
+    }
+    const slot = nhDirectGearActionSlot(directGearAction);
+    if (
+      reservedSlots.has(slot) ||
+      !dmmDirectGearActionIsExecutable(directGearAction, context)
+    ) {
+      continue;
+    }
+    const selected = selectedBySlot.get(slot);
+    if (
+      !selected ||
+      ranking.score > selected.score ||
+      (ranking.score === selected.score && ranking.action < selected.actionId)
+    ) {
+      selectedBySlot.set(slot, { action: directGearAction, actionId: ranking.action, score: ranking.score });
+    }
+  }
+  const scoreOrdered = [...selectedBySlot.entries()]
+    .sort(([leftSlot, left], [rightSlot, right]) => {
+      // Source: NhStakerSelfPlayManager.selectVectorDirectGearModelActions()
+      // executes the strongest optional swap first so a constrained inventory
+      // keeps the same action ordering as Java.
+      const scoreOrder = right.score - left.score;
+      return scoreOrder !== 0
+        ? scoreOrder
+        : dmmDirectGearSlotOrder.indexOf(leftSlot) - dmmDirectGearSlotOrder.indexOf(rightSlot);
+    })
+    .map(([, selected]) => selected.action);
+  return capacitySafeDmmOptionalDirectGearActions(coreActions, scoreOrdered, context);
+}
+
+function dmmDirectGearActionIsExecutable(
+  action: NhDirectGearAction,
+  context: NhDuelControllerContext
+): boolean {
+  const slot = nhDirectGearActionSlot(action);
+  const currentlyStripped = context.self.strippedEquipmentSlots.includes(slot);
+  const currentItem = currentlyStripped ? undefined : context.self.equipment[slot];
+  const targetItemId = dmmDirectGearTargetItemIds[action];
+  const freeInventorySlots = context.self.inventorySlots.filter((inventorySlot) => inventorySlot === null).length;
+  if (targetItemId === null) {
+    return currentItem !== undefined && freeInventorySlots > 0;
+  }
+  if (
+    currentItem?.itemId === targetItemId ||
+    !context.self.inventorySlots.some((inventorySlot) => inventorySlot?.itemId === targetItemId)
+  ) {
+    return false;
+  }
+  if (dmmTwoHandedDirectGearActions.has(action) && context.self.equipment.shield !== undefined) {
+    return false;
+  }
+  const equippedWeaponId = context.self.equipment.weapon?.itemId;
+  if (
+    slot === "shield" &&
+    equippedWeaponId !== undefined &&
+    [...dmmTwoHandedDirectGearActions].some(
+      (twoHandedAction) => dmmDirectGearTargetItemIds[twoHandedAction] === equippedWeaponId
+    )
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function capacitySafeDmmOptionalDirectGearActions(
+  coreActions: readonly NhDirectGearAction[],
+  scoreOrderedOptionalActions: readonly NhDirectGearAction[],
+  context: NhDuelControllerContext
+): NhDirectGearAction[] {
+  let freeInventorySlots = context.self.inventorySlots.filter((slot) => slot === null).length;
+  for (const action of coreActions) {
+    freeInventorySlots += dmmDirectGearFreeSlotDelta(action, context);
+  }
+
+  let retainedTwoHandedWeaponEquip = false;
+  let retainedShieldEquip = false;
+  const compatibleActions = scoreOrderedOptionalActions.filter((action) => {
+    const slot = nhDirectGearActionSlot(action);
+    const unequip = dmmDirectGearTargetItemIds[action] === null;
+    const twoHandedWeaponEquip = slot === "weapon" && !unequip && dmmTwoHandedDirectGearActions.has(action);
+    const shieldEquip = slot === "shield" && !unequip;
+    if ((twoHandedWeaponEquip && retainedShieldEquip) || (shieldEquip && retainedTwoHandedWeaponEquip)) {
+      return false;
+    }
+    retainedTwoHandedWeaponEquip ||= twoHandedWeaponEquip;
+    retainedShieldEquip ||= shieldEquip;
+    return true;
+  });
+
+  const executionOrder = [
+    ...compatibleActions.filter((action) => dmmDirectGearTargetItemIds[action] !== null),
+    ...compatibleActions.filter((action) => dmmDirectGearTargetItemIds[action] === null)
+  ];
+  const retained: NhDirectGearAction[] = [];
+  for (const action of executionOrder) {
+    const nextFreeInventorySlots = freeInventorySlots + dmmDirectGearFreeSlotDelta(action, context);
+    if (nextFreeInventorySlots < 0) {
+      continue;
+    }
+    freeInventorySlots = nextFreeInventorySlots;
+    retained.push(action);
+  }
+  return retained;
+}
+
+function dmmDirectGearFreeSlotDelta(
+  action: NhDirectGearAction,
+  context: NhDuelControllerContext
+): number {
+  const slot = nhDirectGearActionSlot(action);
+  const currentlyStripped = context.self.strippedEquipmentSlots.includes(slot);
+  const currentItem = currentlyStripped ? undefined : context.self.equipment[slot];
+  const targetItemId = dmmDirectGearTargetItemIds[action];
+  if (targetItemId === null) {
+    return currentItem === undefined ? 0 : -1;
+  }
+  if (currentItem?.itemId === targetItemId) {
+    return 0;
+  }
+  let delta = currentItem === undefined ? 1 : 0;
+  if (
+    slot === "weapon" &&
+    dmmTwoHandedDirectGearActions.has(action) &&
+    !context.self.strippedEquipmentSlots.includes("shield") &&
+    context.self.equipment.shield !== undefined
+  ) {
+    delta -= 1;
+  }
+  return delta;
+}
+
+function bestCanonicalRankingOrNull(
+  actionIds: readonly number[],
+  rankingByAction: ReadonlyMap<number, NhPolicyScoredAction>
+): NhPolicyScoredAction | null {
+  let best: NhPolicyScoredAction | null = null;
+  for (const actionId of actionIds) {
+    const ranking = rankingByAction.get(actionId);
+    if (!ranking) {
+      continue;
+    }
+    if (!best || ranking.score > best.score || (ranking.score === best.score && javaStyleEqualScoreTieBreaker())) {
+      best = ranking;
+    }
+  }
+  return best;
 }
 
 function isParsedNhNeuralPolicy(policy: NhRuntimePolicy): policy is ParsedNhNeuralPolicy {
@@ -244,26 +860,38 @@ export function parseNhPolicyTsv(text: string, sourceLabel = "policy.tsv"): Pars
 
 export function parseNhNeuralPolicyJson(text: string, sourceLabel = "neural-policy.json"): ParsedNhNeuralPolicy {
   const root = readObject(JSON.parse(text), sourceLabel);
-  if (root.kind !== "nh-neural-policy") {
+  const conditionedArtifact = root.kind === "nh-neural-policy-conditioned";
+  if (root.kind !== "nh-neural-policy" && !conditionedArtifact) {
     throw new Error(`${sourceLabel} is not an NH neural policy model.`);
+  }
+  const version = parseRequiredInteger(root.version, `${sourceLabel}.version`);
+  if (conditionedArtifact && version !== 2 && version !== 10) {
+    throw new Error(`${sourceLabel} conditioned NH neural policy version must be 2 or 10.`);
   }
   const schema = readObject(root.schema, `${sourceLabel}.schema`);
   const inputSize = parseRequiredInteger(schema.inputSize, `${sourceLabel}.schema.inputSize`);
   const featureSize = parseRequiredInteger(schema.featureSize, `${sourceLabel}.schema.featureSize`);
   const actionCount = parseRequiredInteger(schema.actionCount, `${sourceLabel}.schema.actionCount`);
   const actionIds = readOptionalActionIds(schema.actionIds, actionCount, `${sourceLabel}.schema.actionIds`);
-  const expectedFeatureSize = inputSize === nhPolicyPreviousInputSize ? nhPolicyPreviousFeatureSize : nhPolicyFeatureSize;
-  if (inputSize !== nhPolicyInputSize && inputSize !== nhPolicyPreviousInputSize) {
+  const expectedFeatureSize = neuralPolicyFeatureSizeForInputSize(inputSize, conditionedArtifact);
+  if (expectedFeatureSize === null) {
     throw new Error(
-      `${sourceLabel} input size ${inputSize} does not match expected ${nhPolicyInputSize} or previous ${nhPolicyPreviousInputSize}.`
+      `${sourceLabel} input size ${inputSize} does not match expected ${nhPolicyInputSize}, previous ${nhPolicyPreviousInputSize}, or v13 ${v13NhPolicyInputSize}.`
     );
   }
   if (featureSize !== expectedFeatureSize) {
     throw new Error(`${sourceLabel} feature size ${featureSize} does not match expected ${expectedFeatureSize}.`);
   }
-  if (actionIds === undefined && actionCount !== nhPolicyActionCount && actionCount !== nhPolicyV1ActionCount) {
+  const v13ImplicitActionCount = inputSize === v13NhPolicyInputSize && actionCount === v13NhPolicyActionCount;
+  if (
+    actionIds === undefined &&
+    !v13ImplicitActionCount &&
+    actionCount !== nhPolicyActionCount &&
+    actionCount !== nhPolicyCombatActionCount &&
+    actionCount !== nhPolicyV1ActionCount
+  ) {
     throw new Error(
-      `${sourceLabel} action count ${actionCount} does not match expected ${nhPolicyActionCount} or legacy ${nhPolicyV1ActionCount}.`
+      `${sourceLabel} action count ${actionCount} does not match expected ${nhPolicyActionCount}, combat-only ${nhPolicyCombatActionCount}, v13 ${v13NhPolicyActionCount}, or legacy ${nhPolicyV1ActionCount}.`
     );
   }
 
@@ -298,10 +926,21 @@ export function parseNhNeuralPolicyJson(text: string, sourceLabel = "neural-poli
     previousWidth,
     `${sourceLabel}.model.policy.weight`
   );
+  const directGearConditioning = conditionedArtifact
+    ? readNhDirectGearConditioning(
+        root.directGearConditioning,
+        actionIds,
+        inputSize,
+        `${sourceLabel}.directGearConditioning`
+      )
+    : undefined;
+  const conditionedV10 = conditionedArtifact && version === 10
+    ? parseNhConditionedPolicyV10(root, actionIds ?? new Int32Array(), inputSize, previousWidth, sourceLabel)
+    : undefined;
 
   return {
     kind: "neural",
-    version: parseRequiredInteger(root.version, `${sourceLabel}.version`),
+    version,
     sourceLabel,
     step: parseOptionalInteger(source.step, 0),
     inputSize,
@@ -315,14 +954,237 @@ export function parseNhNeuralPolicyJson(text: string, sourceLabel = "neural-poli
       weight: policyWeight,
       bias: policyBias
     },
+    directGearConditioning,
+    conditionedV10,
     metrics: readNumberRecord(source.metrics)
   };
+}
+
+function readNhDirectGearConditioning(
+  value: unknown,
+  policyActionIds: Int32Array | undefined,
+  inputSize: number,
+  label: string
+): NhDirectGearConditioning {
+  const conditioning = readObject(value, label);
+  if (conditioning.kind !== dmmDirectGearConditioningKind) {
+    throw new Error(`${label}.kind must be ${dmmDirectGearConditioningKind}.`);
+  }
+  const version = parseRequiredInteger(conditioning.version, `${label}.version`);
+  if (version !== 1) {
+    throw new Error(`${label}.version must be 1.`);
+  }
+  if (conditioning.combatSource !== "greedyCombat") {
+    throw new Error(`${label}.combatSource must be greedyCombat.`);
+  }
+  const ageInputIndex = parseRequiredInteger(
+    conditioning.ageInputIndex,
+    `${label}.ageInputIndex`
+  );
+  if (ageInputIndex !== dmmOpponentAttackAgeInputIndex || ageInputIndex >= inputSize) {
+    throw new Error(
+      `${label}.ageInputIndex must be current raw state input ${dmmOpponentAttackAgeInputIndex}.`
+    );
+  }
+  const ageNormalizerTicks = parseRequiredInteger(
+    conditioning.ageNormalizerTicks,
+    `${label}.ageNormalizerTicks`
+  );
+  if (ageNormalizerTicks !== 8) {
+    throw new Error(`${label}.ageNormalizerTicks must be 8.`);
+  }
+  const rawStyles = readArray(conditioning.styles, `${label}.styles`);
+  if (
+    rawStyles.length !== dmmDirectGearConditioningStyles.length ||
+    rawStyles.some((style, index) => style !== dmmDirectGearConditioningStyles[index])
+  ) {
+    throw new Error(`${label}.styles must be hold,magic,ranged,melee.`);
+  }
+  const rawFeatureOrder = readArray(conditioning.featureOrder, `${label}.featureOrder`);
+  if (
+    rawFeatureOrder.length !== dmmDirectGearConditioningFeatureOrder.length ||
+    rawFeatureOrder.some((feature, index) => feature !== dmmDirectGearConditioningFeatureOrder[index])
+  ) {
+    throw new Error(`${label}.featureOrder must match the current combat-style and raw-age interaction order.`);
+  }
+  if (
+    policyActionIds === undefined ||
+    !sameActionIds(policyActionIds, currentDmmActionVectorActionIds())
+  ) {
+    throw new Error(`${label} requires the exact current DMM schema.actionIds mapping.`);
+  }
+  const actionIds = readOptionalActionIds(conditioning.actionIds, 6, `${label}.actionIds`);
+  if (actionIds === undefined) {
+    throw new Error(`${label}.actionIds is required.`);
+  }
+  const actionRowById = new Map<number, number>();
+  const seenActions = new Set<NhDirectGearAction>();
+  const mappedPolicyActions = new Set(policyActionIds);
+  for (let rowIndex = 0; rowIndex < actionIds.length; rowIndex += 1) {
+    const actionId = actionIds[rowIndex];
+    if (!mappedPolicyActions.has(actionId) || actionRowById.has(actionId)) {
+      throw new Error(`${label}.actionIds[${rowIndex}] must be a unique mapped policy action.`);
+    }
+    const decoded = decodeNhPolicyAction(actionId);
+    const directGearAction = decoded.directGearActions?.[0];
+    if (
+      directGearAction === undefined ||
+      !dmmDirectGearConditioningActions.has(directGearAction) ||
+      (decoded.directGearActions?.length ?? 0) !== 1
+    ) {
+      throw new Error(`${label}.actionIds[${rowIndex}] is not one of the six body/legs conditioning actions.`);
+    }
+    actionRowById.set(actionId, rowIndex);
+    seenActions.add(directGearAction);
+  }
+  if (seenActions.size !== dmmDirectGearConditioningActions.size) {
+    throw new Error(`${label}.actionIds must map each body/legs conditioning action exactly once.`);
+  }
+  const weight = readNumberMatrix(conditioning.weight, 6, 8, `${label}.weight`);
+  const active = weight.some((row) => row.some((entry) => entry !== 0));
+  return {
+    kind: dmmDirectGearConditioningKind,
+    version: 1,
+    combatSource: "greedyCombat",
+    ageInputIndex: dmmOpponentAttackAgeInputIndex,
+    ageNormalizerTicks: 8,
+    styles: dmmDirectGearConditioningStyles,
+    featureOrder: dmmDirectGearConditioningFeatureOrder,
+    actionIds,
+    weight,
+    actionRowById,
+    active
+  };
+}
+
+function neuralPolicyFeatureSizeForInputSize(inputSize: number, conditionedArtifact = false): number | null {
+  const supported = conditionedArtifact
+    ? [nhPolicyInputSize, nhPolicyV17InputSize, nhPolicyV16InputSize]
+    : [nhPolicyInputSize, nhPolicyV17InputSize, nhPolicyV16InputSize, nhPolicyV15InputSize, nhPolicyPreviousInputSize, v13NhPolicyInputSize];
+  return supported.includes(inputSize) ? nhPolicyInputFeatureStart + inputSize + 1 : null;
+}
+
+export function assertNhNeuralPolicyHasExplicitSpecActions(
+  policy: ParsedNhNeuralPolicy,
+  requiredSpecIntents: readonly NhSpecIntent[],
+  label = policy.sourceLabel
+): void {
+  if (requiredSpecIntents.length === 0) {
+    return;
+  }
+  const availableSpecIntents = new Set<string>();
+  if (policy.actionIds !== undefined) {
+    for (const action of policy.actionIds) {
+      if (isValidAction(action)) {
+        availableSpecIntents.add(decodeNhPolicyAction(action).specIntent);
+      }
+    }
+  } else {
+    for (let action = 0; action < policy.actionCount && action < nhPolicyActionCount; action += 1) {
+      availableSpecIntents.add(decodeNhPolicyAction(action).specIntent);
+    }
+  }
+  const missing = requiredSpecIntents.filter((specIntent) => !availableSpecIntents.has(specIntent));
+  if (missing.length > 0) {
+    throw new Error(`${label} is missing required explicit neural spec action(s): ${missing.join(", ")}.`);
+  }
+}
+
+export function assertNhNeuralPolicyHasDirectGearActions(
+  policy: ParsedNhNeuralPolicy,
+  label = policy.sourceLabel
+): void {
+  if (!neuralPolicyHasDirectGearActions(policy)) {
+    throw new Error(`${label} is missing required DMM direct-gear action IDs; refusing legacy compact DMM model.`);
+  }
+}
+
+export function assertNhNeuralPolicyHasCurrentDmmActionSurface(
+  policy: ParsedNhNeuralPolicy,
+  label = policy.sourceLabel
+): void {
+  const expectedInputSize = nhPolicyInputSize;
+  if (policy.inputSize !== expectedInputSize) {
+    throw new Error(`${label} input size ${policy.inputSize} does not match current DMM input size ${expectedInputSize}.`);
+  }
+  if (policy.actionIds === undefined) {
+    throw new Error(`${label} must include schema.actionIds; refusing implicit legacy DMM action mapping.`);
+  }
+  const expectedActionIds = currentDmmActionVectorActionIds();
+  if (!sameActionIds(policy.actionIds, expectedActionIds)) {
+    throw new Error(
+      `${label} DMM action schema does not match current broad-HOLD direct-action surface; refusing stale per-style-HOLD model.`
+    );
+  }
+
+  const mappedActions = new Set(policy.actionIds);
+  const missingGroups = [
+    missingCurrentDmmMappedActions("combat", dmmCanonicalCombatActionIds, mappedActions),
+    missingCurrentDmmMappedActions("defence", dmmCanonicalDefenceActionIds(), mappedActions),
+    missingCurrentDmmMappedActions("movement", dmmCanonicalMovementActionIds(), mappedActions),
+    missingCurrentDmmMappedActions("supply", dmmRequiredCurrentSupplyActionIds(), mappedActions)
+  ].filter((entry): entry is string => entry !== null);
+
+  if (!neuralPolicyHasDirectGearActions(policy)) {
+    missingGroups.push("directGear=none");
+  }
+  if (missingGroups.length > 0) {
+    throw new Error(`${label} does not expose the current DMM same-tick action surface: ${missingGroups.join("; ")}.`);
+  }
+}
+
+function sameActionIds(actual: ArrayLike<number>, expected: readonly number[]): boolean {
+  if (actual.length !== expected.length) {
+    return false;
+  }
+  for (let index = 0; index < expected.length; index += 1) {
+    if (actual[index] !== expected[index]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function missingCurrentDmmMappedActions(
+  label: string,
+  expectedActions: Iterable<number>,
+  mappedActions: ReadonlySet<number>
+): string | null {
+  const missing: number[] = [];
+  let expectedCount = 0;
+  for (const action of expectedActions) {
+    expectedCount += 1;
+    if (!mappedActions.has(action)) {
+      missing.push(action);
+    }
+  }
+  if (missing.length === 0) {
+    return null;
+  }
+  return `${label}=${expectedCount - missing.length}/${expectedCount} missing ${missing.slice(0, 8).join(",")}`;
+}
+
+function dmmCanonicalDefenceActionIds(): readonly number[] {
+  return currentDmmCanonicalDefenceActionIds();
+}
+
+function dmmCanonicalMovementActionIds(): readonly number[] {
+  return currentDmmCanonicalMovementActionIds();
+}
+
+function dmmRequiredCurrentSupplyActionIds(): readonly number[] {
+  const supplyActions = currentDmmCanonicalSupplyActionIds();
+  return [
+    ...supplyActions.slice(0, nhSupplyIntents.length),
+    ...supplyActions.slice(nhSupplyIntents.length + nhExtraSupplyIntents.length)
+  ];
 }
 
 function isLoadablePolicyStoreVersion(version: number): boolean {
   return (
     version === nhPolicyStoreVersion ||
     version === previousNhPolicyStoreVersion ||
+    version === v13NhPolicyStoreVersion ||
     version === v12NhPolicyStoreVersion ||
     version === legacyNhPolicyStoreVersion
   );
@@ -337,6 +1199,12 @@ function mapLoadedPolicyFeatureIndex(version: number, featureIndex: number): num
       return -1;
     }
     return featureIndex === previousNhPolicyBiasFeatureIndex ? nhPolicyFeatureSize - 1 : featureIndex;
+  }
+  if (version === v13NhPolicyStoreVersion) {
+    if (featureIndex < 0 || featureIndex > v13NhPolicyBiasFeatureIndex) {
+      return -1;
+    }
+    return featureIndex === v13NhPolicyBiasFeatureIndex ? nhPolicyFeatureSize - 1 : featureIndex;
   }
   if (version === v12NhPolicyStoreVersion) {
     if (featureIndex < 0 || featureIndex > v12NhPolicyBiasFeatureIndex) {
@@ -424,7 +1292,7 @@ function loadedPolicyActionScale(action: number): number {
   if (decoded.supplyIntent === "restore_reboost") {
     scale *= loadRebalanceRestoreReboostScale;
   }
-  if (decoded.specIntent === "use_special_double") {
+  if (nhSpecIntentIsDouble(decoded.specIntent)) {
     scale *= loadRebalanceDoubleSpecScale;
   }
   return scale;
@@ -491,6 +1359,8 @@ export function rankNhPolicyActionsFromFeatures(
   const resolvedRankings =
     rankings.length > 0
       ? rankings
+      : isDmmNeuralContext(context)
+      ? []
       : [
           {
             action: 0,
@@ -545,6 +1415,8 @@ export function rankNhPolicyCandidateActionsFromFeatures(
   const resolvedRankings =
     rankings.length > 0
       ? rankings
+      : isDmmNeuralContext(context)
+      ? []
       : [
           {
             action: 0,
@@ -567,26 +1439,90 @@ export function rankNhNeuralPolicyActionsFromFeatures(
   policy: ParsedNhNeuralPolicy,
   features: readonly number[],
   limit = 6,
-  equalScoreTieBreaker?: NhPolicyEqualScoreTieBreaker
+  contextOrEqualScoreTieBreaker?: NhDuelControllerContext | NhPolicyEqualScoreTieBreaker,
+  equalScoreTieBreaker?: NhPolicyEqualScoreTieBreaker,
+  conditionedRuntimeState?: NhConditionedPolicyRuntimeState,
+  featureState?: NhPolicyFeatureState,
+  decisionTraceObserver?: (trace: NhPolicyDecisionObservationTrace) => void
 ): readonly NhPolicyScoredAction[] {
-  if (features.length !== nhPolicyFeatureSize) {
-    throw new Error(`NH policy feature vector must have ${nhPolicyFeatureSize} entries, got ${features.length}.`);
+  const expectedFeatureSize = nhPolicyFeatureSize;
+  if (features.length !== expectedFeatureSize) {
+    throw new Error(`NH neural policy feature vector must have ${expectedFeatureSize} entries, got ${features.length}.`);
   }
-  const encoded = runNhNeuralEncoder(policy, normalizeNhNeuralInput(policy, features));
+  const context =
+    typeof contextOrEqualScoreTieBreaker === "function" ? undefined : contextOrEqualScoreTieBreaker;
+  const tieBreaker =
+    typeof contextOrEqualScoreTieBreaker === "function" ? contextOrEqualScoreTieBreaker : equalScoreTieBreaker;
+  const normalizedInput = normalizeNhNeuralInput(policy, features);
+  const encoded = runNhNeuralEncoder(policy, normalizedInput);
   const rankings: NhPolicyScoredAction[] = [];
   const actionCount = policy.actionIds === undefined ? Math.min(nhPolicyActionCount, policy.actionCount) : policy.actionCount;
+  const dmmDirectGearModel = isDmmNeuralContext(context) && neuralPolicyHasDirectGearActions(policy);
+  const legalModelActions = new Set<number>();
+  const decodedByModelAction = new Map<number, NhPolicyAction>();
   for (let modelAction = 0; modelAction < actionCount; modelAction += 1) {
     const action = policy.actionIds?.[modelAction] ?? modelAction;
     const decoded = cachedDecodeNhPolicyAction(action);
-    if (!isNhPolicyActionAllowed(features, decoded)) {
+    if (!isNhPolicyActionAllowed(features, decoded, context, { dmmDirectGearModel })) {
+      continue;
+    }
+    legalModelActions.add(modelAction);
+    decodedByModelAction.set(modelAction, decoded);
+  }
+  let scores = Array.from({ length: actionCount }, (_, modelAction) => neuralPolicyActionScore(policy, modelAction, encoded));
+  if (policy.conditionedV10) {
+    if (!context || !conditionedRuntimeState || !featureState) {
+      throw new Error(`${policy.sourceLabel} requires stateful conditioned-v10 inference.`);
+    }
+    scores = applyNhConditionedPolicyV10Scores({
+      conditioned: policy.conditionedV10,
+      baseScores: scores,
+      normalizedInput,
+      encoded,
+      inputMean: policy.inputMean,
+      inputStd: policy.inputStd,
+      attackHistoryCodes: featureState.defencePrayerAttackHistoryCodes,
+      ownPrayerHistoryCodes: featureState.defencePrayerOwnHistoryCodes,
+      priorNormalizedInputs: conditionedRuntimeState.priorNormalizedInputs,
+      legalModelActions
+    });
+    if (decisionTraceObserver) {
+      decisionTraceObserver(captureNhPolicyDecisionObservationTrace(
+        policy,
+        features,
+        normalizedInput,
+        featureState,
+        conditionedRuntimeState,
+        legalModelActions,
+        scores,
+        policy.conditionedV10.defencePrayer.priorStateHistoryLags,
+        context.tick,
+        context.rewardEpisodeId ?? 0
+      ));
+    }
+    commitNhConditionedPolicyInput(
+      conditionedRuntimeState,
+      normalizedInput,
+      context.tick,
+      policy.conditionedV10.defencePrayer.priorStateHistoryLags
+    );
+  }
+  for (const modelAction of legalModelActions) {
+    const action = policy.actionIds?.[modelAction] ?? modelAction;
+    const decoded = decodedByModelAction.get(modelAction);
+    if (!decoded) {
       continue;
     }
     rankings.push({
       action,
-      score: neuralPolicyActionScore(policy, modelAction, encoded),
+      score: scores[modelAction],
       visits: 0,
       decoded
     });
+  }
+
+  if (rankings.length === 0 && dmmDirectGearModel) {
+    throw new Error("DMM neural policy produced no legal current action-vector rankings; refusing scalar fallback");
   }
 
   const resolvedRankings =
@@ -601,11 +1537,109 @@ export function rankNhNeuralPolicyActionsFromFeatures(
           }
         ];
 
-  if (equalScoreTieBreaker) {
-    return rankWithJavaEqualScoreTieBreak(resolvedRankings, limit, equalScoreTieBreaker);
+  if (tieBreaker) {
+    return rankWithJavaEqualScoreTieBreak(resolvedRankings, limit, tieBreaker);
   }
 
   return resolvedRankings
+    .sort((left, right) => right.score - left.score)
+    .slice(0, Math.max(1, Math.trunc(limit)));
+}
+
+function captureNhPolicyDecisionObservationTrace(
+  policy: ParsedNhNeuralPolicy,
+  features: readonly number[],
+  normalizedInput: Float32Array,
+  featureState: NhPolicyFeatureState,
+  conditionedRuntimeState: NhConditionedPolicyRuntimeState,
+  legalModelActions: ReadonlySet<number>,
+  scores: readonly number[],
+  priorHistoryLags: number,
+  tick: number,
+  rewardEpisodeId: number
+): NhPolicyDecisionObservationTrace {
+  const priorHistoryLength = Math.min(
+    priorHistoryLags,
+    conditionedRuntimeState.priorNormalizedInputs.length
+  );
+  const priorNormalizedInputsNewestFirst = Object.freeze(
+    Array.from({ length: priorHistoryLags }, (_, index): NhPolicyPriorNormalizedInputTrace => {
+      const prior = conditionedRuntimeState.priorNormalizedInputs[index];
+      return Object.freeze({
+        valid: prior !== undefined,
+        normalizedInput: prior === undefined ? null : frozenNumberCopy(prior)
+      });
+    })
+  );
+  const legalActions = Object.freeze(
+    Array.from(legalModelActions, (modelRow): NhPolicyLegalActionTrace => Object.freeze({
+      actionId: policy.actionIds?.[modelRow] ?? modelRow,
+      modelRow
+    }))
+  );
+  return Object.freeze({
+    tick,
+    rewardEpisodeId,
+    rawInput: Object.freeze(Array.from(
+      { length: policy.inputSize },
+      (_, index) => features[nhPolicyInputFeatureStart + index]
+    )),
+    normalizedInput: frozenNumberCopy(normalizedInput),
+    attackHistoryCodes: Object.freeze([
+      featureState.defencePrayerAttackHistoryCodes[0] ?? 0,
+      featureState.defencePrayerAttackHistoryCodes[1] ?? 0,
+      featureState.defencePrayerAttackHistoryCodes[2] ?? 0
+    ] as [number, number, number]),
+    ownPrayerHistoryCodes: Object.freeze([
+      featureState.defencePrayerOwnHistoryCodes[0] ?? 0,
+      featureState.defencePrayerOwnHistoryCodes[1] ?? 0
+    ] as [number, number]),
+    priorNormalizedInputsNewestFirst,
+    priorNormalizedInputHistoryLength: priorHistoryLength,
+    legalActions,
+    finalScores: frozenNumberCopy(scores)
+  });
+}
+
+function frozenNumberCopy(values: ArrayLike<number>): readonly number[] {
+  return Object.freeze(Array.from(values));
+}
+
+function rankNhDeployedLegacyNeuralPolicyActionsFromFeatures(
+  policy: ParsedNhNeuralPolicy,
+  features: readonly number[],
+  limit = 6,
+  equalScoreTieBreaker?: NhPolicyEqualScoreTieBreaker
+): readonly NhPolicyScoredAction[] {
+  if (features.length !== nhPolicyFeatureSize) {
+    throw new Error(`NH policy feature vector must have ${nhPolicyFeatureSize} entries, got ${features.length}.`);
+  }
+  const encoded = runNhNeuralEncoder(policy, normalizeNhNeuralInput(policy, features, { dmmDeployedComposite: true }));
+  const rankings: NhPolicyScoredAction[] = [];
+  const actionCount = policy.actionIds === undefined ? policy.actionCount : policy.actionIds.length;
+  for (let modelAction = 0; modelAction < actionCount; modelAction += 1) {
+    const action = policy.actionIds?.[modelAction] ?? modelAction;
+    const decoded = decodeNhDeployedLegacyPolicyAction(action);
+    if (!isNhDeployedLegacyPolicyActionAllowed(features, decoded)) {
+      continue;
+    }
+    rankings.push({
+      action,
+      score: neuralPolicyActionScore(policy, modelAction, encoded),
+      visits: 0,
+      decoded
+    });
+  }
+
+  if (rankings.length === 0) {
+    throw new Error("DMM deployed-composite policy produced no legal deployed-legacy rankings; refusing action fallback.");
+  }
+
+  if (equalScoreTieBreaker) {
+    return rankWithJavaEqualScoreTieBreak(rankings, limit, equalScoreTieBreaker);
+  }
+
+  return rankings
     .sort((left, right) => right.score - left.score)
     .slice(0, Math.max(1, Math.trunc(limit)));
 }
@@ -632,14 +1666,24 @@ export function rankNhNeuralPolicyCandidateActionsFromFeatures(
   features: readonly number[],
   candidateActions: readonly number[],
   limit = 6,
+  contextOrEqualScoreTieBreaker?: NhDuelControllerContext | NhPolicyEqualScoreTieBreaker,
   equalScoreTieBreaker?: NhPolicyEqualScoreTieBreaker
 ): readonly NhPolicyScoredAction[] {
-  if (features.length !== nhPolicyFeatureSize) {
-    throw new Error(`NH policy feature vector must have ${nhPolicyFeatureSize} entries, got ${features.length}.`);
+  if (policy.conditionedV10) {
+    throw new Error(`${policy.sourceLabel} conditioned-v10 policy requires the stateful full-action ranker.`);
   }
+  const expectedFeatureSize = nhPolicyFeatureSize;
+  if (features.length !== expectedFeatureSize) {
+    throw new Error(`NH neural policy feature vector must have ${expectedFeatureSize} entries, got ${features.length}.`);
+  }
+  const context =
+    typeof contextOrEqualScoreTieBreaker === "function" ? undefined : contextOrEqualScoreTieBreaker;
+  const tieBreaker =
+    typeof contextOrEqualScoreTieBreaker === "function" ? contextOrEqualScoreTieBreaker : equalScoreTieBreaker;
   const encoded = runNhNeuralEncoder(policy, normalizeNhNeuralInput(policy, features));
   const rankings: NhPolicyScoredAction[] = [];
   const seen = new Set<number>();
+  const dmmDirectGearModel = isDmmNeuralContext(context) && neuralPolicyHasDirectGearActions(policy);
   for (const candidateAction of candidateActions) {
     const action = Math.trunc(candidateAction);
     if (!isValidAction(action) || seen.has(action)) {
@@ -651,7 +1695,7 @@ export function rankNhNeuralPolicyCandidateActionsFromFeatures(
       continue;
     }
     const decoded = cachedDecodeNhPolicyAction(action);
-    if (!isNhPolicyActionAllowed(features, decoded)) {
+    if (!isNhPolicyActionAllowed(features, decoded, context, { dmmDirectGearModel })) {
       continue;
     }
     rankings.push({
@@ -660,6 +1704,10 @@ export function rankNhNeuralPolicyCandidateActionsFromFeatures(
       visits: 0,
       decoded
     });
+  }
+
+  if (rankings.length === 0 && dmmDirectGearModel) {
+    throw new Error("DMM neural candidate policy produced no legal current action-vector rankings; refusing scalar fallback");
   }
 
   const resolvedRankings =
@@ -674,8 +1722,8 @@ export function rankNhNeuralPolicyCandidateActionsFromFeatures(
           }
         ];
 
-  if (equalScoreTieBreaker) {
-    return rankWithJavaEqualScoreTieBreak(resolvedRankings, limit, equalScoreTieBreaker);
+  if (tieBreaker) {
+    return rankWithJavaEqualScoreTieBreak(resolvedRankings, limit, tieBreaker);
   }
 
   return resolvedRankings
@@ -709,6 +1757,27 @@ function rankWithJavaEqualScoreTieBreak(
 
 function javaStyleEqualScoreTieBreaker(): boolean {
   return Math.random() < 0.5;
+}
+
+function isDmmNeuralContext(context: NhDuelControllerContext | undefined): boolean {
+  return context?.self.gearProfile !== undefined && nhGearProfileUsesIndependentGear(context.self.gearProfile);
+}
+
+function neuralPolicyHasDirectGearActions(policy: ParsedNhNeuralPolicy): boolean {
+  if (policy.actionIds === undefined) {
+    return policy.actionCount >= nhPolicyActionCount;
+  }
+  return policy.actionIds.some((action) => isNhDirectGearActionId(action));
+}
+
+function isDmmDeployedCompositePolicy(policy: ParsedNhNeuralPolicy): boolean {
+  if (policy.inputSize !== nhPolicyPreviousInputSize || policy.actionIds === undefined) {
+    return false;
+  }
+  if (policy.actionIds.length === 0) {
+    return false;
+  }
+  return policy.actionIds.every((action) => action >= 0 && action < nhDeployedLegacyPolicyActionCount);
 }
 
 function actionVisitMap(policy: ParsedNhPolicy): ReadonlyMap<number, number> {
@@ -772,7 +1841,6 @@ function actionPrior(
   context?: NhDuelControllerContext
 ): number {
   return specOpportunityPrior(features, action) +
-    specApproachPrior(features, action) +
     offenceGearWeaknessPrior(features, action, context) +
     defencePrayerReliabilityPrior(features, action) +
     supplyIntentPrior(features, action, context) +
@@ -816,31 +1884,12 @@ function specOpportunityPrior(features: readonly number[], action: NhPolicyActio
   }
   const singleWindow = Math.max(inputFeature(features, 73), inputFeature(features, 75));
   const doubleWindow = Math.max(inputFeature(features, 74), inputFeature(features, 76));
-  const window = action.specIntent === "use_special_double" ? doubleWindow : singleWindow;
+  const window = nhSpecIntentIsDouble(action.specIntent) ? doubleWindow : singleWindow;
   if (window < 0.34) {
     return 0;
   }
-  const specScale = action.specIntent === "use_special_double" ? 1.1 : 0.92;
+  const specScale = nhSpecIntentIsDouble(action.specIntent) ? 1.1 : 0.92;
   return 44 * (window - 0.34) * specScale;
-}
-
-function specApproachPrior(features: readonly number[], action: NhPolicyAction): number {
-  if (action.specIntent !== "none" || action.supplyIntent !== "none" || action.movementIntent !== "pressure") {
-    return 0;
-  }
-  const distance = inputFeature(features, 0) * 12;
-  if (distance < 1.4 || distance > 2.4 || inputFeature(features, 12) > 0.5) {
-    return 0;
-  }
-  const window = Math.max(
-    Math.max(inputFeature(features, 73), inputFeature(features, 75)),
-    Math.max(inputFeature(features, 74), inputFeature(features, 76))
-  );
-  if (window < 0.2) {
-    return 0;
-  }
-  const styleScale = action.offenceStyle === "melee" ? 1 : 0.42;
-  return 18 * (window - 0.2) * styleScale;
 }
 
 function offenceGearWeaknessPrior(
@@ -1073,25 +2122,6 @@ function movementControlPrior(
     }
   }
 
-  if (action.movementIntent === "step_out" && distance === 0 && attackReady) {
-    const styleEv = visibleStyleEv(features, context, action.offenceStyle);
-    const bestEv = bestVisibleStyleEv(features, context, 0);
-    let score = 5.35 * (0.24 + styleEv);
-    if (action.offenceStyle === "melee") {
-      const edge = styleEv - bestOtherVisibleStyleEv(features, context, action.offenceStyle);
-      if (edge > 0) {
-        score += 4.6 * (0.28 + edge);
-      }
-    }
-    if (supportSupply && controlValue > 0.45 && styleEv < bestEv - 0.08) {
-      score -= 5.35 * 0.35;
-    }
-    return score;
-  }
-
-  if (action.movementIntent === "pressure" && distance === 1 && !attackReady && controlValue > 0.4) {
-    return -0.9 * 0.35;
-  }
   return 0;
 }
 
@@ -1315,11 +2345,22 @@ function styleStatFactor(
   return clampDouble(accuracyFactor * damageFactor, 0.16, 1.22);
 }
 
-function normalizeNhNeuralInput(policy: ParsedNhNeuralPolicy, features: readonly number[]): Float32Array {
+function normalizeNhNeuralInput(
+  policy: ParsedNhNeuralPolicy,
+  features: readonly number[],
+  options: { readonly dmmDeployedComposite?: boolean } = {}
+): Float32Array {
   const input = new Float32Array(policy.inputSize);
   for (let index = 0; index < policy.inputSize; index += 1) {
     const std = policy.inputStd[index];
-    input[index] = (features[nhPolicyInputFeatureStart + index] - policy.inputMean[index]) /
+    const raw =
+      options.dmmDeployedComposite &&
+      policy.inputSize === nhPolicyPreviousInputSize &&
+      Number.isFinite(std) &&
+      Math.abs(std) <= dmmDeployedConstantInputStdMax
+        ? policy.inputMean[index]
+        : features[nhPolicyInputFeatureStart + index];
+    input[index] = (raw - policy.inputMean[index]) /
       (Number.isFinite(std) && Math.abs(std) > 1.0e-8 ? std : 1);
   }
   return input;
@@ -1395,7 +2436,215 @@ function policyScore(policy: ParsedNhPolicy, action: number, features: readonly 
   return score;
 }
 
-function isNhPolicyActionAllowed(features: readonly number[], action: NhPolicyAction): boolean {
+function isDmmCurrentCombatActionAllowed(
+  features: readonly number[],
+  action: NhPolicyAction,
+  context?: NhDuelControllerContext
+): boolean {
+  const attackIntent = action.attackIntent ?? "attack";
+  if (attackIntent === "hold") {
+    return true;
+  }
+  if (inputFeature(features, 9) <= 0.5) {
+    return false;
+  }
+
+  if (action.offenceStyle === "melee") {
+    const reachable = attackIntent === "off_tick"
+      ? dmmMeleeOffTickReachable(features)
+      : context?.meleeReachable ?? inputFeature(features, dmmSelfMeleeReachInputIndex) > 0.5;
+    if (!reachable) {
+      return false;
+    }
+  } else {
+    const distance = Math.max(0, Math.round(clamp01(inputFeature(features, 0)) * 12));
+    if (distance < 1 || distance > 10) {
+      return false;
+    }
+  }
+
+  return !(
+    action.specIntent === "none" &&
+    action.offenceStyle === "magic" &&
+    inputFeature(features, dmmSelfMagicRatioInputIndex) < dmmMinimumMagicCastRatio
+  );
+}
+
+function dmmMeleeOffTickReachable(features: readonly number[]): boolean {
+  if (inputFeature(features, dmmSelfMeleeReachInputIndex) > 0.5) {
+    return true;
+  }
+  const dx = Math.abs(Math.round(clampSigned(inputFeature(features, 31)) * 16));
+  const dy = Math.abs(Math.round(clampSigned(inputFeature(features, 32)) * 16));
+  const selfFrozen = inputFeature(features, 12) > 0.5;
+  if (dx === 0 && dy === 0) {
+    return !selfFrozen;
+  }
+  if (dx + dy === 1) {
+    return true;
+  }
+  if (selfFrozen) {
+    return false;
+  }
+  if (dx === 1 && dy === 1) {
+    return true;
+  }
+  const stepInLimit = 3;
+  return dx <= stepInLimit && dy <= stepInLimit && !(dx === stepInLimit && dy === stepInLimit);
+}
+
+function isNhPolicyActionAllowed(
+  features: readonly number[],
+  action: NhPolicyAction,
+  context?: NhDuelControllerContext,
+  options?: { readonly dmmDirectGearModel?: boolean }
+): boolean {
+  const dmmNeuralContext = isDmmNeuralContext(context);
+  const dmmDirectGearModel = options?.dmmDirectGearModel === true;
+  const directGearOnly =
+    (action.directGearActions?.length ?? 0) > 0 &&
+    action.supplyIntent === "none" &&
+    action.specIntent === "none" &&
+    (action.attackIntent ?? "hold") === "hold";
+  if (directGearOnly) {
+    return dmmNeuralContext && dmmDirectGearModel;
+  }
+  if (dmmNeuralContext && dmmDirectGearModel && (action.equipmentIntent ?? "style_loadout") !== "weapon_only") {
+    return false;
+  }
+  if (dmmNeuralContext && !dmmDirectGearModel) {
+    return false;
+  }
+  const hasTarget = inputFeature(features, 33) > 0.5;
+  if (!hasTarget) {
+    return action.specIntent === "none" &&
+      action.supplyIntent === "none" &&
+      (!dmmDirectGearModel || (action.attackIntent ?? "hold") === "hold");
+  }
+
+  const selfHp = inputFeature(features, 1);
+  const selfPrayer = inputFeature(features, 3);
+  const lastTaken = Math.max(0, inputFeature(features, 24));
+  const canAttack = inputFeature(features, 8) > 0.5;
+  const selfAttackReady = inputFeature(features, 9) > 0.5;
+  const canSpecSingleNow = inputFeature(features, 10) > 0.5;
+  const canSpecDoubleNow = inputFeature(features, 11) > 0.5;
+  const specSingleWindow = Math.max(inputFeature(features, 73), inputFeature(features, 75));
+  const specDoubleWindow = Math.max(inputFeature(features, 74), inputFeature(features, 76));
+  const selfFrozen = inputFeature(features, 12) > 0.5;
+  const opponentFrozen = inputFeature(features, 13) > 0.5;
+  const hasFood = inputFeature(features, 4) > 0.5 / 28;
+  const hasTwoFood = inputFeature(features, 4) > 1.5 / 28;
+  const hasBrew = inputFeature(features, 5) > 0.5 / 8;
+  const hasRestore = inputFeature(features, 6) > 0.5 / 8;
+  const hasReboost = inputFeature(features, 7) > 0.5 / 8;
+  const distance = Math.max(0, Math.round(clamp01(inputFeature(features, 0)) * 12));
+  const attackDeficit = inputFeature(features, 66);
+  const strengthDeficit = inputFeature(features, 67);
+  const defenceDeficit = inputFeature(features, 68);
+  const rangedDeficit = inputFeature(features, 69);
+  const magicDeficit = inputFeature(features, 70);
+  const needsRestore =
+    selfPrayer < 55 / 99 ||
+    attackDeficit < -0.025 ||
+    strengthDeficit < -0.025 ||
+    defenceDeficit < -0.025 ||
+    rangedDeficit < -0.025 ||
+    magicDeficit < -0.025;
+  const needsReboost = needsCombatReboost(attackDeficit, strengthDeficit, defenceDeficit, rangedDeficit);
+
+  if (nhSpecIntentIsLegacyGeneric(action.specIntent)) {
+    return false;
+  }
+  if (dmmDirectGearModel && !isDmmCurrentCombatActionAllowed(features, action, context)) {
+    return false;
+  }
+  if (isNhExplicitSpecIntent(action.specIntent)) {
+    const specialKind = nhExplicitSpecWeaponKind(action.specIntent);
+    const consumesAttackTimer = specialKind !== "granite_maul";
+    const canSpecNow = nhSpecIntentIsDouble(action.specIntent) ? canSpecDoubleNow : canSpecSingleNow;
+    const canReachForSpec = specialKind === null
+      ? false
+      : context
+        ? canMeleeSpecialStepInReachNextTick(context, specialKind)
+        : inputFeature(features, 71) > 0.5;
+    const hasSpecControl = context
+      ? nhWeaponProfiles[context.self.weaponId].hasVisibleSpecBar
+      : canSpecNow;
+    const requiredEnergy = explicitSpecRequiredEnergy(action.specIntent);
+    const hasSpecEnergy = context ? context.self.gmaul.specialEnergy >= requiredEnergy : canSpecNow;
+    if (
+      !canReachForSpec ||
+      !hasSpecControl ||
+      !hasSpecEnergy ||
+      !isExplicitSpecKindAvailable(context, specialKind) ||
+      (consumesAttackTimer && !selfAttackReady)
+    ) {
+      return false;
+    }
+  } else {
+    if (nhSpecIntentIsDouble(action.specIntent) && (!canSpecDoubleNow || specDoubleWindow < 0.24)) {
+      return false;
+    }
+    if (
+      action.specIntent !== "none" &&
+      !nhSpecIntentIsDouble(action.specIntent) &&
+      (!canSpecSingleNow || specSingleWindow < 0.24)
+    ) {
+      return false;
+    }
+  }
+  if (
+    dmmDirectGearModel &&
+    nhDmmCoreGearActionsForCombat(action).some(
+      (coreAction) =>
+        dmmTwoHandedDirectGearActions.has(coreAction) &&
+        inputFeature(features, dmmCanEquipTwoHandedInputIndex) <= 0.5
+    )
+  ) {
+    return false;
+  }
+
+  if (action.defencePrayer === "smite") {
+    // Source: NhStakerSelfPlayManager.isActionAllowed(..., trainingMode=false)
+    // rejects Smite during live inference; Smite remains only a training action.
+    return false;
+  } else if (action.defencePrayer === "redemption" && (selfPrayer < 12 / 99 || selfHp < 0.1 || selfHp > 0.35)) {
+    return false;
+  }
+
+  let supplyAllowed = true;
+  if (action.supplyIntent === "safe_eat" || action.supplyIntent === "double_eat") {
+    supplyAllowed = hasFood && allowHealingSupply(action.supplyIntent, selfHp, lastTaken, canAttack, selfAttackReady);
+  } else if (action.supplyIntent === "triple_eat") {
+    supplyAllowed = (hasBrew || hasTwoFood) && allowHealingSupply(action.supplyIntent, selfHp, lastTaken, canAttack, selfAttackReady);
+  } else if (action.supplyIntent === "brew_only") {
+    supplyAllowed = hasBrew && allowHealingSupply(action.supplyIntent, selfHp, lastTaken, canAttack, selfAttackReady);
+  } else if (action.supplyIntent === "restore_reboost") {
+    supplyAllowed = (hasRestore && needsRestore) || (hasReboost && needsReboost);
+  } else if (action.supplyIntent === "panic_full") {
+    supplyAllowed = (hasFood || hasBrew || hasRestore || hasReboost) &&
+      allowHealingSupply(action.supplyIntent, selfHp, lastTaken, canAttack, selfAttackReady);
+  } else if (action.supplyIntent === "offence_strip_one" || action.supplyIntent === "offence_strip_two") {
+    supplyAllowed = allowOffenceStrip(features, action, distance, selfHp, selfFrozen);
+  } else if (action.supplyIntent === "regear_style") {
+    supplyAllowed = allowRegear(features, action, selfHp, selfFrozen);
+  } else if (action.supplyIntent === "vengeance_trinket") {
+    supplyAllowed =
+      context === undefined ||
+      (context.self.canUseVengeanceTrinket ?? (context.self.vengeanceTrinketCasts ?? 0) < 2);
+  }
+  if (!supplyAllowed) {
+    return false;
+  }
+
+  if (action.movementIntent === "stand_under" && (!opponentFrozen || selfFrozen)) {
+    return false;
+  }
+  return !selfFrozen || action.movementIntent === "none";
+}
+
+function isNhDeployedLegacyPolicyActionAllowed(features: readonly number[], action: NhPolicyAction): boolean {
   const hasTarget = inputFeature(features, 33) > 0.5;
   if (!hasTarget) {
     return action.specIntent === "none" && action.supplyIntent === "none";
@@ -1440,8 +2689,6 @@ function isNhPolicyActionAllowed(features: readonly number[], action: NhPolicyAc
   }
 
   if (action.defencePrayer === "smite") {
-    // Source: NhStakerSelfPlayManager.isActionAllowed(..., trainingMode=false)
-    // rejects Smite during live inference; Smite remains only a training action.
     return false;
   } else if (action.defencePrayer === "redemption" && (selfPrayer < 12 / 99 || selfHp < 0.1 || selfHp > 0.35)) {
     return false;
@@ -1478,6 +2725,30 @@ function isNhPolicyActionAllowed(features: readonly number[], action: NhPolicyAc
     return false;
   }
   return !selfFrozen || action.movementIntent === "pressure";
+}
+
+function isExplicitSpecKindAvailable(
+  context: NhDuelControllerContext | undefined,
+  specialKind: ReturnType<typeof nhExplicitSpecWeaponKind>
+): boolean {
+  if (specialKind === null || context === undefined || context.self.gearProfile === undefined) {
+    return true;
+  }
+  return nhGearProfileAvailableSpecialWeaponKinds(context.self.gearProfile, context.self.gmaul.specialEnergy)
+    .includes(specialKind);
+}
+
+function explicitSpecRequiredEnergy(specIntent: NhSpecIntent): number {
+  if (specIntent === "spec_granite_maul_double") {
+    return 100;
+  }
+  if (specIntent === "spec_vesta_longsword") {
+    return 25;
+  }
+  if (specIntent === "none" || nhSpecIntentIsLegacyGeneric(specIntent)) {
+    return Number.POSITIVE_INFINITY;
+  }
+  return 50;
 }
 
 function needsCombatReboost(attackDelta: number, strengthDelta: number, defenceDelta: number, rangedDelta: number): boolean {

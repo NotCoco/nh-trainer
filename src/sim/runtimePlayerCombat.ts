@@ -30,7 +30,7 @@ import type { VisibleEquipment } from "./clientView";
 import type { EquipmentBonusRow } from "./equipment/equipment";
 import { estimateVisibleStyleEvs } from "./equipment/equipment";
 import { nhGearProfileCandidateEquipmentByStyle, nhGearProfileWeaponIdForEquipment, type NhSelectedGearProfile } from "./nh/gearProfile";
-import type { NhOffenceStyle } from "./nh/policy-bridge";
+import type { NhOffenceStyle, NhSpecHistoryKind } from "./nh/policy-bridge";
 import {
   applyConsumable,
   consumableDefinitions,
@@ -67,6 +67,7 @@ export const runtimePlayerCombatRedemptionSpotanimArtifactUrl = "render/spotanim
 export const runtimePlayerCombatRedemptionPrayerDrain = 99;
 export const runtimePlayerCombatRedemptionThresholdFraction = 0.1;
 export const runtimePlayerCombatRedemptionPrayerHealFraction = 0.25;
+const runtimePlayerCombatPolicyDefencePrayerEffectiveDelayTicks = 1;
 
 export function runtimePlayerCombatConsumableSoundIds(item: ConsumableId): readonly number[] {
   const kind = consumableDefinitions[item].kind;
@@ -88,6 +89,11 @@ export interface RuntimePlayerCombatActorState {
   readonly policyOffenceStyle?: NhOffenceStyle;
   readonly policyStalledStyle: NhOffenceStyle | null;
   readonly policyStalledStyleTicks: number;
+  readonly policyPendingDefencePrayer?: PrayerId | null;
+  readonly policyPendingDefencePrayerTick?: number;
+  readonly policyDefencePrayerSwitchTick?: number;
+  readonly policyDefencePrayerPrevious?: ProtectionPrayerId | null;
+  readonly policyDefencePrayerCurrent?: ProtectionPrayerId | null;
   readonly attackSetIndex: number;
   readonly queuedSpellId: RuntimePlayerCombatSpellId | null;
   readonly autocastSpellId: RuntimePlayerCombatSpellId | null;
@@ -106,8 +112,16 @@ export interface RuntimePlayerCombatActorState {
   readonly targetId: RuntimeActorId | null;
   readonly lastTargetId: RuntimeActorId | null;
   readonly lastTargetTimeoutTicks: number;
+  readonly weaponSwitchTick: number;
+  readonly attackStyleSignalTick: number;
   readonly specialActive: boolean;
   readonly gmaul: GmaulSpecState;
+  readonly gmaulSpecsUsed: number;
+  readonly voidwakerSpecsUsed: number;
+  readonly vlsSpecsUsed: number;
+  readonly lastSpecKind: NhSpecHistoryKind;
+  readonly previousSpecKind: NhSpecHistoryKind;
+  readonly lastSpecTick: number;
   readonly specialRestoreTicks: number;
   readonly conflictionMagicAccuracyUntilTick: number;
   readonly vengeanceActive: boolean;
@@ -129,6 +143,7 @@ export interface RuntimePlayerCombatActorState {
 export interface RuntimePlayerQueuedHit {
   readonly id: string;
   readonly dueTick: number;
+  readonly hitsplatTick?: number;
   readonly attackerId: RuntimeActorId;
   readonly defenderId: RuntimeActorId;
   readonly style: CombatStyle;
@@ -188,6 +203,39 @@ export type RuntimePlayerCombatAttackType =
   | "RAPID_RANGED"
   | "LONG_RANGED";
 export type RuntimePlayerCombatXpSkillId = "attack" | "strength" | "defence" | "ranged" | "magic" | "hitpoints";
+
+function runtimePlayerCombatSpecHistoryKind(
+  specialAttack: RuntimePlayerCombatSpecialAttackId
+): NhSpecHistoryKind {
+  if (specialAttack === "granite_maul") {
+    return "granite_maul";
+  }
+  if (specialAttack === "voidwaker") {
+    return "voidwaker";
+  }
+  if (specialAttack === "vesta_longsword") {
+    return "vesta_longsword";
+  }
+  return "other";
+}
+
+function recordRuntimePlayerCombatSpecHistory(
+  actor: RuntimePlayerCombatActorState,
+  specialAttack: RuntimePlayerCombatSpecialAttackId,
+  tick: number,
+  count = 1
+): RuntimePlayerCombatActorState {
+  const kind = runtimePlayerCombatSpecHistoryKind(specialAttack);
+  return {
+    ...actor,
+    gmaulSpecsUsed: actor.gmaulSpecsUsed + (kind === "granite_maul" ? count : 0),
+    voidwakerSpecsUsed: actor.voidwakerSpecsUsed + (kind === "voidwaker" ? count : 0),
+    vlsSpecsUsed: actor.vlsSpecsUsed + (kind === "vesta_longsword" ? count : 0),
+    previousSpecKind: actor.lastSpecKind,
+    lastSpecKind: kind,
+    lastSpecTick: tick
+  };
+}
 
 export interface RuntimePlayerCombatXpDrop {
   readonly skillId: RuntimePlayerCombatXpSkillId;
@@ -553,7 +601,8 @@ const nhDefaultProjectileCycleRate = 16;
 const nhMagicProjectileCycleRate = 19;
 const runtimePlayerCombatHitpointXpRatio = 1.33;
 const runtimePlayerCombatVengeanceCooldownTicks = 50;
-const runtimePlayerCombatVengeanceStallTicks = 6;
+// Visual lifetime only. Trinket activation must not alter the attack timer or target.
+const runtimePlayerCombatVengeanceAnimationTicks = 6;
 const runtimePlayerCombatVengeanceCastSoundId = 2907;
 const runtimePlayerCombatDefaultVengeanceTrinketCharges = 0;
 export const runtimePlayerCombatIceBarrageFreezeTicks = 32;
@@ -1070,6 +1119,8 @@ export function resetRuntimePlayerCombatActorPolicyDisengage(
     actor.policyPostBrewRecoveryUntilTick === 0 &&
     actor.policyStalledStyle === null &&
     actor.policyStalledStyleTicks === 0 &&
+    (actor.policyPendingDefencePrayer ?? null) === null &&
+    (actor.policyPendingDefencePrayerTick ?? -1) < 0 &&
     actor.activePrayers.length === 0
   ) {
     return state;
@@ -1094,6 +1145,8 @@ export function resetRuntimePlayerCombatActorPolicyDisengage(
         policyOffenceStyle: undefined,
         policyStalledStyle: null,
         policyStalledStyleTicks: 0,
+        policyPendingDefencePrayer: null,
+        policyPendingDefencePrayerTick: -1,
         activePrayers: []
       }
     }
@@ -1137,6 +1190,8 @@ export function resetRuntimePlayerCombatActorPolicyFreshFight(
         policyOffenceStyle: undefined,
         policyStalledStyle: null,
         policyStalledStyleTicks: 0,
+        policyPendingDefencePrayer: null,
+        policyPendingDefencePrayerTick: -1,
         attackSetIndex: resolveRuntimePlayerCombatAttackSetIndexForWeapon(weaponId, 0),
         queuedSpellId: null,
         autocastSpellId: null,
@@ -1160,6 +1215,12 @@ export function resetRuntimePlayerCombatActorPolicyFreshFight(
           equippedGraniteMaul: weaponId === "granite_maul",
           previousWeaponHadVisibleSpecBar: profile.hasVisibleSpecBar
         }),
+        gmaulSpecsUsed: 0,
+        voidwakerSpecsUsed: 0,
+        vlsSpecsUsed: 0,
+        lastSpecKind: "none",
+        previousSpecKind: "none",
+        lastSpecTick: -1,
         specialRestoreTicks: 0,
         conflictionMagicAccuracyUntilTick: 0,
         vengeanceActive: false,
@@ -1196,7 +1257,15 @@ function resetRuntimePlayerCombatActorPolicyDeath(actor: RuntimePlayerCombatActo
     policyOffenceStyle: undefined,
     policyStalledStyle: null,
     policyStalledStyleTicks: 0,
+    policyPendingDefencePrayer: null,
+    policyPendingDefencePrayerTick: -1,
     conflictionMagicAccuracyUntilTick: 0,
+    gmaulSpecsUsed: 0,
+    voidwakerSpecsUsed: 0,
+    vlsSpecsUsed: 0,
+    lastSpecKind: "none",
+    previousSpecKind: "none",
+    lastSpecTick: -1,
     vengeanceActive: false,
     vengeanceCooldownUntilTick: 0,
     lastVengeanceTrinketCastTick: -1,
@@ -1281,6 +1350,7 @@ export function setRuntimePlayerCombatLoadout(
         ...actor,
         loadoutId,
         equipment,
+        weaponSwitchTick: weaponSlotChanged ? state.tick : actor.weaponSwitchTick,
         attackSetIndex: nextAttackSetIndex,
         queuedSpellId: loadoutChanged || weaponSlotChanged ? null : actor.queuedSpellId,
         autocastSpellId: loadoutChanged || weaponSlotChanged ? null : actor.autocastSpellId,
@@ -1395,10 +1465,15 @@ export function toggleRuntimePlayerCombatSpecial(
     };
   }
 
-  const nextActor = {
-    ...actor,
-    specialActive: !actor.specialActive
-  };
+  const nextActor = actor.specialActive
+    ? {
+        ...actor,
+        specialActive: false
+      }
+    : {
+        ...recordRuntimePlayerCombatSpecHistory(actor, special.id, state.tick),
+        specialActive: true
+      };
   const nextState = {
     ...state,
     actors: {
@@ -1454,8 +1529,8 @@ export function activateRuntimePlayerCombatVengeanceTrinket(
           actionSequenceName: "vengeance_cast",
           actionStartedAtTick: state.tick,
           actionStartedAtClientCycle: clientCycle ?? state.tick * runtimePlayerCombatClientCyclesPerGameTick,
-          actionDurationTicks: runtimePlayerCombatVengeanceStallTicks,
-          actionUntilTick: state.tick + runtimePlayerCombatVengeanceStallTicks,
+          actionDurationTicks: runtimePlayerCombatVengeanceAnimationTicks,
+          actionUntilTick: state.tick + runtimePlayerCombatVengeanceAnimationTicks,
           actionFacingDegrees: null
         }
       },
@@ -1504,13 +1579,25 @@ export function setRuntimePlayerCombatPrayers(
   actorId: RuntimeActorId,
   prayers: readonly PrayerId[]
 ): RuntimePlayerCombatState {
+  const actor = state.actors[actorId];
+  const previousProtection = activeProtectionPrayer(actor.activePrayers) ?? null;
+  const activePrayers = compatiblePrayerSet(prayers);
+  const currentProtection = activeProtectionPrayer(activePrayers) ?? null;
+  const protectionChanged = previousProtection !== currentProtection;
   return {
     ...state,
     actors: {
       ...state.actors,
       [actorId]: {
-        ...state.actors[actorId],
-        activePrayers: compatiblePrayerSet(prayers)
+        ...actor,
+        activePrayers,
+        ...(protectionChanged
+          ? {
+              policyDefencePrayerSwitchTick: state.tick,
+              policyDefencePrayerPrevious: previousProtection,
+              policyDefencePrayerCurrent: currentProtection
+            }
+          : {})
       }
     }
   };
@@ -1585,8 +1672,8 @@ export function consumeRuntimePlayerCombatSupply(
     maxHitpoints: result.stats.hitpoints.fixed
   };
 
-  return {
-    state: {
+  const nextState = resetRuntimePlayerCombatActorTarget(
+    {
       ...state,
       actors: {
         ...state.actors,
@@ -1594,6 +1681,11 @@ export function consumeRuntimePlayerCombatSupply(
       },
       events: [...state.events, supplyEvent].filter((event) => event.tick >= state.tick - maxRetainedEventAgeTicks)
     },
+    actorId
+  );
+
+  return {
+    state: nextState,
     consumed: true,
     item,
     healed: result.healed
@@ -1642,7 +1734,8 @@ export function advanceRuntimePlayerCombat(
         continue;
       }
 
-      const targetHasNotProcessed = !processedActorIds.includes(targetId);
+      const targetHasAlreadyProcessed = processedActorIds.includes(targetId);
+      const targetHasNotProcessed = !targetHasAlreadyProcessed;
       const preMovementTargetTile = input.preMovementTiles?.[targetId];
       const postMovementTargetTile = actors[targetId].tile;
       const targetMovedBeforeItsPid =
@@ -1667,6 +1760,7 @@ export function advanceRuntimePlayerCombat(
         input.clientCycle,
         input.targetRouteMovementConsumed?.[actorId] === true,
         input.projectileLineOfSight?.[actorId],
+        targetHasAlreadyProcessed,
         input.tileScale
       );
       actors = mergeRuntimePlayerCombatAttemptActorsAfterPidMovement(
@@ -1686,6 +1780,10 @@ export function advanceRuntimePlayerCombat(
       }
     }
   }
+  const immediateAppliedHits = applyRuntimePlayerCombatDueHits(actors, queuedHits, currentTick, input.tileScale);
+  actors = breakRuntimePlayerCombatDistantFreezes(immediateAppliedHits.actors, currentTick, input.tileScale);
+  queuedHits = immediateAppliedHits.queuedHits;
+  events.push(...immediateAppliedHits.events);
   actors = tickRuntimePlayerCombatSpecialRestore(actors);
   actors = breakRuntimePlayerCombatDistantFreezes(actors, currentTick, input.tileScale);
   const nextCombatStartTick = runtimePlayerCombatNextStartTickAfterDeaths(state.combatStartTick, events);
@@ -1856,7 +1954,9 @@ export function runtimePlayerCombatTargetRouteProfile(
   const explicitAutocastSpell = actor.autocastSpellId ? runtimePlayerCombatSpellDefinitions[actor.autocastSpellId] : null;
   const botAutocastSpell = explicitAutocastSpell === null ? runtimeBotDefaultAutocastSpell(actorId, actor) : null;
   const spell = queuedSpell ?? explicitAutocastSpell ?? botAutocastSpell;
-  const profile = spell ? weaponProfileForRuntimeSpell(spell) : weaponProfileForRuntimeActor(actor);
+  const profile = spell
+    ? weaponProfileForRuntimeSpell(spell, weaponIdForRuntimeActor(actor))
+    : weaponProfileForRuntimeActor(actor);
   return {
     attackRange: profile.attackRange,
     melee: runtimePlayerCombatStyleIsMelee(profile.style),
@@ -1899,17 +1999,39 @@ export function isRuntimePlayerCombatActorDead(actor: RuntimePlayerCombatActorSt
 }
 
 function runtimePlayerCombatFinalizedHitDamage(
-  defender: RuntimePlayerCombatActorState,
   rawDamage: number,
-  style: CombatStyle
+  style: CombatStyle,
+  defenderProtectionPrayer: ProtectionPrayerId | undefined
 ): number {
   // Source: PlayerCombat.postDefend() applies PvP protection before Entity.hit() awards XP and queues Hit.finish().
   return applyProtectionDamageReduction({
     damage: rawDamage,
     attackStyle: style,
-    defenderPrayers: defender.activePrayers,
+    defenderPrayers: defenderProtectionPrayer ? [defenderProtectionPrayer] : [],
     attackerIsPlayer: true
   });
+}
+
+function runtimePlayerCombatEffectiveProtectionPrayerForAttack(
+  defender: RuntimePlayerCombatActorState,
+  attackTick: number
+): ProtectionPrayerId | undefined {
+  const active = activeProtectionPrayer(defender.activePrayers);
+  const activeOrNone = active ?? null;
+  const defencePrayerSwitchAge =
+    defender.policyDefencePrayerSwitchTick === undefined
+      ? undefined
+      : attackTick - defender.policyDefencePrayerSwitchTick;
+  if (
+    defencePrayerSwitchAge !== undefined &&
+    defencePrayerSwitchAge >= 0 &&
+    defencePrayerSwitchAge < runtimePlayerCombatPolicyDefencePrayerEffectiveDelayTicks &&
+    defender.policyDefencePrayerCurrent === activeOrNone &&
+    defender.policyDefencePrayerPrevious !== defender.policyDefencePrayerCurrent
+  ) {
+    return defender.policyDefencePrayerPrevious ?? undefined;
+  }
+  return active;
 }
 
 export function runtimePlayerCombatQueuedHitDamage(
@@ -2030,11 +2152,19 @@ function createRuntimePlayerCombatActor(
     targetId: null,
     lastTargetId: null,
     lastTargetTimeoutTicks: 0,
+    weaponSwitchTick: -1,
+    attackStyleSignalTick: -1,
     specialActive: false,
     gmaul: updateGmaulEquipment(createGmaulSpecState(specialEnergy), 0, {
       equippedGraniteMaul: weaponId === "granite_maul",
       previousWeaponHadVisibleSpecBar: profile.hasVisibleSpecBar
     }),
+    gmaulSpecsUsed: 0,
+    voidwakerSpecsUsed: 0,
+    vlsSpecsUsed: 0,
+    lastSpecKind: "none",
+    previousSpecKind: "none",
+    lastSpecTick: -1,
     specialRestoreTicks: 0,
     conflictionMagicAccuracyUntilTick: 0,
     vengeanceActive: false,
@@ -2169,6 +2299,8 @@ function syncRuntimePlayerCombatActor(
           targetId: null,
           lastTargetId: null,
           lastTargetTimeoutTicks: 0,
+          weaponSwitchTick: -1,
+          attackStyleSignalTick: -1,
           policyNextLoadoutSyncTick: 0,
           policyNextFreezeAttemptTick: 0,
           policyPostBrewRecoveryUntilTick: 0,
@@ -2186,7 +2318,13 @@ function syncRuntimePlayerCombatActor(
           supplies: runtimePlayerCombatDefaultSupplies,
           supplyDelays: createSupplyDelayState(),
           specialActive: false,
-          gmaul: createGmaulSpecState(100)
+          gmaul: createGmaulSpecState(100),
+          gmaulSpecsUsed: 0,
+          voidwakerSpecsUsed: 0,
+          vlsSpecsUsed: 0,
+          lastSpecKind: "none" as const,
+          previousSpecKind: "none" as const,
+          lastSpecTick: -1
         }
       : {};
 
@@ -2197,6 +2335,7 @@ function syncRuntimePlayerCombatActor(
     loadoutId,
     equipment,
     gearProfile,
+    weaponSwitchTick: respawning ? -1 : weaponSlotChanged ? tick : actor.weaponSwitchTick,
     attackSetIndex: resolveRuntimePlayerCombatAttackSetIndexForWeapon(
       nextWeaponId,
       input.attackSets?.[actor.id] ?? actor.attackSetIndex
@@ -2347,6 +2486,7 @@ function tryRuntimePlayerAttack(
   clientCycle: number | undefined,
   targetRouteMovementConsumed: boolean,
   projectileLineOfSight: boolean | undefined,
+  defenderAlreadyProcessedThisTick: boolean,
   tileScale: number | undefined
 ): {
   readonly actors: Readonly<Record<RuntimeActorId, RuntimePlayerCombatActorState>>;
@@ -2364,7 +2504,7 @@ function tryRuntimePlayerAttack(
     : runtimeBotDefaultAutocastSpell(attackerId, attacker);
   const spell = queuedSpell ?? autocastSpell;
   const spellIsAutocast = queuedSpell === null && autocastSpell !== null;
-  const profile = spell ? weaponProfileForRuntimeSpell(spell) : weaponProfileForRuntimeActor(attacker);
+  const profile = spell ? weaponProfileForRuntimeSpell(spell, weaponId) : weaponProfileForRuntimeActor(attacker);
   if (!spell && runtimePlayerCombatStyleIsMelee(profile.style) && attacker.gmaul.queuedSpecs > 0) {
     const gmaulSpec = tryRuntimePlayerGmaulSpecial(
       actors,
@@ -2374,6 +2514,7 @@ function tryRuntimePlayerAttack(
       seed,
       clientCycle,
       targetRouteMovementConsumed,
+      defenderAlreadyProcessedThisTick,
       tileScale
     );
     if (gmaulSpec) {
@@ -2517,9 +2658,17 @@ function tryRuntimePlayerAttack(
     ? runtimePlayerCombatProjectileDurationCycles(projectile, distance)
     : undefined;
   const hitDelayTicks = runtimePlayerCombatHitDelayTicks(profile.style, distance, projectile);
+  const hitImpactDelayTicks = runtimePlayerCombatPidAdjustedHitsplatDelayTicks(
+    hitDelayTicks,
+    defenderAlreadyProcessedThisTick,
+    projectile !== undefined,
+    profile.style
+  );
+  const dueTick = tick + hitImpactDelayTicks;
+  const hitsplatTick = dueTick;
   const sourceId = spell?.id ?? weaponId;
-  const defenderProtectionPrayer = activeProtectionPrayer(defender.activePrayers);
-  const damage = runtimePlayerCombatFinalizedHitDamage(defender, damageRoll.damage, hitStyle);
+  const defenderProtectionPrayer = runtimePlayerCombatEffectiveProtectionPrayerForAttack(defender, tick);
+  const damage = runtimePlayerCombatFinalizedHitDamage(damageRoll.damage, hitStyle, defenderProtectionPrayer);
   const freezeLandsOnCast = spell?.freezeDurationTicks !== undefined && damage > 0;
   const nextDefenderLocks = freezeLandsOnCast
     ? applyFreeze(defender.locks, tick, spell.freezeDurationTicks, attackerId)
@@ -2593,6 +2742,7 @@ function tryRuntimePlayerAttack(
       ...actors,
       [attackerId]: {
         ...attacker,
+        attackStyleSignalTick: tick,
         attackTimer: attack.attackTimer,
         queuedSpellId: queuedSpell ? null : attacker.queuedSpellId,
         targetId: queuedSpell ? null : attacker.targetId,
@@ -2618,7 +2768,8 @@ function tryRuntimePlayerAttack(
     queuedHits: [
       {
         id: `${tick}-${attackerId}-${defenderId}-${sourceId}-hit`,
-        dueTick: tick + hitDelayTicks,
+        dueTick,
+        hitsplatTick,
         attackerId,
         defenderId,
         style: hitStyle,
@@ -2691,6 +2842,7 @@ function tryRuntimePlayerGmaulSpecial(
   seed: number,
   clientCycle: number | undefined,
   targetRouteMovementConsumed: boolean,
+  defenderAlreadyProcessedThisTick: boolean,
   tileScale: number | undefined
 ): RuntimePlayerGmaulSpecialAttempt | null {
   const attacker = actors[attackerId];
@@ -2789,13 +2941,14 @@ function tryRuntimePlayerGmaulSpecial(
 
   let randomSeed = seed;
   const queuedHits: RuntimePlayerQueuedHit[] = [];
-  const defenderProtectionPrayer = activeProtectionPrayer(defender.activePrayers);
+  const defenderProtectionPrayer = runtimePlayerCombatEffectiveProtectionPrayerForAttack(defender, tick);
   let expectedDamage = 0;
   let attackHitChance = 0;
   let attackMaxDamage = 0;
+  const hitImpactDelayTicks = runtimePlayerCombatPidAdjustedHitsplatDelayTicks(1, defenderAlreadyProcessedThisTick, false);
   for (let index = 0; index < consumed.event.count; index += 1) {
     const damageRoll = rollRuntimePlayerDamage(attacker, defender, "crush", randomSeed);
-    const damage = runtimePlayerCombatFinalizedHitDamage(defender, damageRoll.damage, "crush");
+    const damage = runtimePlayerCombatFinalizedHitDamage(damageRoll.damage, "crush", defenderProtectionPrayer);
     randomSeed = damageRoll.seed;
     attackHitChance += damageRoll.hitChance;
     attackMaxDamage = Math.max(attackMaxDamage, damageRoll.maxDamage);
@@ -2807,7 +2960,8 @@ function tryRuntimePlayerGmaulSpecial(
     );
     queuedHits.push({
       id: `${tick}-${attackerId}-${defenderId}-granite-maul-spec-${index}-hit`,
-      dueTick: tick + 1,
+      dueTick: tick + hitImpactDelayTicks,
+      hitsplatTick: tick + hitImpactDelayTicks,
       attackerId,
       defenderId,
       style: "crush",
@@ -2823,12 +2977,18 @@ function tryRuntimePlayerGmaulSpecial(
   }
 
   const actionDurationTicks = runtimePlayerCombatActionDurationTicksForProfile(weaponProfileForRuntimeActor(attacker));
+  const attackerWithSpecHistory = recordRuntimePlayerCombatSpecHistory(
+    attacker,
+    "granite_maul",
+    tick,
+    consumed.event.count
+  );
   return {
     handled: true,
     actors: {
       ...actors,
       [attackerId]: {
-        ...attacker,
+        ...attackerWithSpecHistory,
         specialActive: false,
         gmaul: consumed.state,
         actionSequenceName: "gmaul_special",
@@ -2968,11 +3128,12 @@ function applyRuntimePlayerQueuedHit(
     targetId: dead || attackerDead ? null : resetAttacker.targetId
   };
   const hitSoundIds = runtimePlayerCombatQueuedHitSoundIds(hit, damage);
+  const hitsplatTick = tick;
   const events: RuntimePlayerCombatEvent[] = [
     {
       kind: "hitsplat",
       id: `${hit.id}-hitsplat`,
-      tick,
+      tick: hitsplatTick,
       attackerId: hit.attackerId,
       targetActorId: hit.defenderId,
       style: hit.style,
@@ -3390,11 +3551,17 @@ function weaponProfileForRuntimeActor(actor: RuntimePlayerCombatActorState): Wea
   };
 }
 
-function weaponProfileForRuntimeSpell(spell: RuntimePlayerCombatSpellDefinition): WeaponTimingProfile {
+function weaponProfileForRuntimeSpell(
+  spell: RuntimePlayerCombatSpellDefinition,
+  castingWeaponId: NhWeaponId
+): WeaponTimingProfile {
   return {
     id: spell.id,
     style: spell.style,
-    cooldownTicks: spell.cooldownTicks,
+    // Kronos DMM rule: a successful Ancient cast with Zuriel's owns a four-tick
+    // shared attack timer. A weapon switch preserves that timer; the next attack
+    // then starts the newly equipped weapon's normal cycle.
+    cooldownTicks: castingWeaponId === "zuriels_staff" ? 4 : spell.cooldownTicks,
     attackRange: spell.attackRange,
     hasVisibleSpecBar: false
   };
@@ -3527,12 +3694,16 @@ function weaponIdForRuntimeActor(actor: RuntimePlayerCombatActorState): NhWeapon
   return weaponIdForEquipment(actor.equipment) ?? weaponIdForLoadout(actor.loadoutId);
 }
 
+function runtimeWeaponUsesWandAttackAnimation(weaponId: string): boolean {
+  return weaponId === "staff_of_the_dead" || weaponId === "kodai" || weaponId === "ancient_staff" || weaponId === "zuriels_staff";
+}
+
 function runtimeAttackSequenceName(loadoutId: RuntimeLoadoutId, profile: WeaponTimingProfile): RuntimeSequenceName {
   if (profile.style === "magic") {
     return "barrage_cast";
   }
   const weaponId = profile.id;
-  if (weaponId === "kodai") {
+  if (runtimeWeaponUsesWandAttackAnimation(weaponId)) {
     return "wand_attack";
   }
   if (profile.style === "ranged") {
@@ -3706,10 +3877,42 @@ export function runtimePlayerCombatHitDelayTicks(
   if (!projectile) {
     return 1;
   }
-  return runtimePlayerCombatClientDelayTicks(
+  const delayTicks = runtimePlayerCombatClientDelayTicks(
     runtimePlayerCombatProjectileClientDelayCycles(projectile, distance),
     projectile.clientCycleRate
   );
+  // Source: Projectile.BOLT/DRAGON_BOLT at point blank is 41 + 51 client cycles,
+  // and Hit.clientDelay(..., 16) floors that to two game ticks. Keep ranged
+  // projectiles from ever falling back into the one-tick melee hit path.
+  return style === "ranged" ? Math.max(2, delayTicks) : delayTicks;
+}
+
+function runtimePlayerCombatNormalHitsplatDelayTicks(
+  hitDelayTicks: number,
+  style?: CombatStyle,
+  hasProjectile = false
+): number {
+  const minimumDelayTicks = style === "ranged" && hasProjectile ? 2 : 1;
+  return Math.max(minimumDelayTicks, Math.trunc(hitDelayTicks));
+}
+
+function runtimePlayerCombatPidAdjustedHitsplatDelayTicks(
+  hitDelayTicks: number,
+  defenderAlreadyProcessedThisTick: boolean,
+  hasProjectile: boolean,
+  style?: CombatStyle
+): number {
+  const normalDelayTicks = runtimePlayerCombatNormalHitsplatDelayTicks(hitDelayTicks, style, hasProjectile);
+  // The PID-adjusted impact tick must drive damage, hitsplats, and health bars
+  // together. Ranged projectiles keep their normal delay so point-blank bolts do
+  // not collapse into melee timing.
+  if (defenderAlreadyProcessedThisTick) {
+    return normalDelayTicks;
+  }
+  if (hasProjectile && style === "ranged") {
+    return normalDelayTicks;
+  }
+  return Math.max(0, normalDelayTicks - 1);
 }
 
 export function runtimePlayerCombatHealthBarEndTick(eventTick: number): number {

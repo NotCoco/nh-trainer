@@ -1,0 +1,127 @@
+{
+  "schema": "kronos.nh.java-defence-prayer-history-parity.v1",
+  "checkpoint": "C:\\Kronos\\kronos-osrs-184-master\\kronos-osrs-184-master\\Kronos-master\\kronos-server\\tools\\nh-gpu-trainer\\runs\\solana2-dmm-v26-teacher165-ranged-multigear-prayer-from154-20260802\\teacher165-ranged-multigear-prayer-from154.pt",
+  "checkpointSha256": "b13518475246993e1d5901904af4f31aaf4f8c80a1a993a40f1f068ff1a89b21",
+  "policyJson": "C:\\Kronos\\KronosNHTrainer\\fixtures\\ai\\nh-neural-policy-dmm-current.json",
+  "policyJsonSha256": "ccb88e7616ff170b7415755beefc25d888f1155ffae9f27914e4716dd2f393cf",
+  "javaVersion": "openjdk version \"11.0.25\" 2024-10-15 LTS",
+  "inputSize": 114,
+  "defencePrayerHeadVersion": 3,
+  "historyContextSize": 1855,
+  "priorStateHistoryLags": 16,
+  "allCasesUseAllPriorStateLags": true,
+  "prayerActionIds": [
+    420467,
+    420468,
+    420469
+  ],
+  "prayerActionRows": [
+    18,
+    19,
+    20
+  ],
+  "cases": 4,
+  "scoreComparisons": 12,
+  "absoluteTolerance": 5e-05,
+  "maxAbsolutePrayerScoreDelta": 1.330188395343157e-05,
+  "meanAbsolutePrayerScoreDelta": 2.8023458363464946e-06,
+  "argmaxMatches": 4,
+  "worstScoreComparison": {
+    "case": 3,
+    "actionId": 420469,
+    "torchScore": -18.792377471923828,
+    "javaScore": -18.79239077380778,
+    "absoluteDelta": 1.330188395343157e-05
+  },
+  "pass": true,
+  "caseResults": [
+    {
+      "case": 0,
+      "validPriorStateLags": 16,
+      "torchPrayerScores": [
+        7.0700788497924805,
+        2.8937888145446777,
+        -7.920921802520752
+      ],
+      "javaPrayerScores": [
+        7.070079660312876,
+        2.8937882944345352,
+        -7.920920863459244
+      ],
+      "absoluteDeltas": [
+        8.105203956887408e-07,
+        5.201101425100774e-07,
+        9.390615076654285e-07
+      ],
+      "torchArgmaxActionId": 420467,
+      "javaArgmaxActionId": 420467,
+      "argmaxMatch": true
+    },
+    {
+      "case": 1,
+      "validPriorStateLags": 16,
+      "torchPrayerScores": [
+        1.256927490234375,
+        4.027467727661133,
+        4.20836877822876
+      ],
+      "javaPrayerScores": [
+        1.2569308361145355,
+        4.0274670699635005,
+        4.208368561971913
+      ],
+      "absoluteDeltas": [
+        3.3458801604879795e-06,
+        6.576976323557915e-07,
+        2.162568470964743e-07
+      ],
+      "torchArgmaxActionId": 420469,
+      "javaArgmaxActionId": 420469,
+      "argmaxMatch": true
+    },
+    {
+      "case": 2,
+      "validPriorStateLags": 16,
+      "torchPrayerScores": [
+        1.477339506149292,
+        4.922272682189941,
+        -3.5684585571289062
+      ],
+      "javaPrayerScores": [
+        1.4773354872778377,
+        4.922273555040462,
+        -3.5684592808185354
+      ],
+      "absoluteDeltas": [
+        4.018871454292139e-06,
+        8.728505207500348e-07,
+        7.236896291118455e-07
+      ],
+      "torchArgmaxActionId": 420468,
+      "javaArgmaxActionId": 420468,
+      "argmaxMatch": true
+    },
+    {
+      "case": 3,
+      "validPriorStateLags": 16,
+      "torchPrayerScores": [
+        -1.4442858695983887,
+        6.303457260131836,
+        -18.792377471923828
+      ],
+      "javaPrayerScores": [
+        -1.444293770823239,
+        6.303456940028894,
+        -18.79239077380778
+      ],
+      "absoluteDeltas": [
+        7.901224850392907e-06,
+        3.2010294237494463e-07,
+        1.330188395343157e-05
+      ],
+      "torchArgmaxActionId": 420468,
+      "javaArgmaxActionId": 420468,
+      "argmaxMatch": true
+    }
+  ]
+}

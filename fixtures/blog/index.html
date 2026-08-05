@@ -133,6 +133,97 @@
 
       <article>
         <section>
+          <h2>August 2026 - the Elo league, and why teacher165 earned the spot</h2>
+          <p>
+            The big thing that happened since the last post is that I finally built a proper
+            ranking system. For a long time I was comparing checkpoints in small matched screens,
+            which works but only ever tells you "better than the one it fought". I wanted a real
+            ladder: everyone fights everyone, once, and the numbers come out of that.
+          </p>
+          <p>
+            So I ran one. Every compatible checkpoint I had plus the scripted opponents, all in one
+            round-robin league: 313 entrants, every pair played one full fight, 48,828 fights in
+            total, classic Elo with a K-factor of 32 and everyone starting at 1500. Nothing fancy -
+            it's the boring kind of Elo - but it turns a pile of "probably fine" checkpoints into an
+            actual ordering.
+          </p>
+          <ul>
+            <li>1st - teacher139-no-opponent-prayer-all - 1890.6</li>
+            <li>2nd - teacher111-prayer-vlsordinary-from110-alpha075 - 1833.3</li>
+            <li>3rd - teacher165-ranged-multigear-prayer-from154 - 1797.2</li>
+            <li>4th - teacher116b-safe-ward-from116a - 1792.9</li>
+            <li>5th - lr050-ancestry20-r01 - 1790.4</li>
+          </ul>
+          <p>
+            The interesting part is that the league winner is not the one I shipped. First place is
+            teacher139, and its name tells you exactly what's wrong with it: it's an ablation that
+            literally cannot see the opponent's prayer. It still wins fights - it puts out 95.4
+            expected damage per fight and went 245-67 - but it only prays correctly 52% of the time.
+            It wins on raw output, not on reading. That's not a useful practice opponent, that's a
+            DPS check.
+          </p>
+          <p>
+            Second place (teacher111, 1833.3) is closer to being good: 79.2% prayer correctness and
+            a 92.1 expected-damage edge per fight. But teacher165, one spot lower on rating, does
+            the things I actually care about better: 84.9% prayer correctness - the best of the top
+            five - with a 91.1 expected-damage edge and the best realized edge of the top three
+            (+94.6). And its attack mix is properly balanced at 66% magic / 13% ranged / 21% melee
+            instead of leaning on one style. Rating-wise the gap between 2nd and 3rd is tiny. On the
+            things that make an opponent worth practicing against, 165 wins. So 165 is the model on
+            the site now.
+          </p>
+          <p>
+            There's also a practical reason: teacher165 is from the newest training line, and it's
+            the one with the browser contract actually verified against the Java checkpoint - I
+            replayed real Java fight snapshots through both and they agree within 1e-5. A model that
+            ranks 3rd in a simulator but provably behaves identically in the browser beats a model
+            that ranks 1st and might not.
+          </p>
+        </section>
+
+        <section>
+          <h2>The road to teacher165</h2>
+          <p>
+            Since the last update I've been chasing one main thing: making the DMM bot read the
+            fight properly instead of just outputting damage. The line from teacher148 to teacher165
+            went through a ranged multi-gear curriculum - teaching the bot to mix ranged pressure
+            and believable staff/VLS gear fakes into its normal three-style openings - and a
+            complete-history prayer head that reads a longer window of recent ticks instead of just
+            the current one.
+          </p>
+          <p>
+            There were real hiccups along the way, and I'm not going to pretend they didn't happen.
+          </p>
+          <p>
+            The most humbling one: I trained a focused prayer head that looked amazing offline -
+            66% accuracy on untouched data, up from 19% - and then it completely failed to transfer
+            to live fights, praying correctly 13.4% of the time. It had memorized the training
+            distribution instead of learning timing. That whole branch got rejected. It taught me to
+            stop trusting offline numbers that aren't backed by live fights.
+          </p>
+          <p>
+            Another one was quieter and nastier: a normalization repair I'd written earlier had
+            silently zeroed five learned state inputs (attack, strength, ranged, magic ratios and
+            magic deficit). The bot could still fight, but it had lost part of the information it
+            needed to tell a boosted state from a drained one. That explained a confusing regression
+            where a "broad improvement" run raised ranged usage while making the bot strictly worse
+            at everything else.
+          </p>
+          <p>
+            And the elo league itself caught a degenerate case I'd have shipped otherwise: the
+            #1-ranked checkpoint turns out to ignore opponent prayer entirely. Ratings are great,
+            but they rank fighters, not practice partners. That's why the league became part of the
+            selection process instead of the whole process.
+          </p>
+          <p>
+            The site also got simpler: I removed the old aim trainer section so the page is just the
+            NH practice client with the NH stake and DMM setups. And the GPU fight engine that runs
+            the league is now in the repo too, under <code>fastsim/</code>, so the whole evaluation
+            path is visible next to the site.
+          </p>
+        </section>
+
+        <section>
           <h2>Why the bot uses a learned policy</h2>
           <p>
             NH fights are too reactive for a fixed rotation to stay interesting. The opponent needs
@@ -151,15 +242,15 @@
           <h2>What changed with the neural hard mode</h2>
           <p>
             Hard mode is now controlled by neural-network models for both setups. The selected setup
-            decides which model loads: NH stake uses the larger continuation model, and DMM uses the
-            newer loop-four DMM checkpoint. The bot still reads practical NH state instead of private
+            decides which model loads: NH stake and DMM each use their own current hard fixture.
+            The bot still reads practical NH state instead of private
             hidden information: prayers, health, supplies, distance, freeze state, weapon timing,
             special attack state, recent pressure, and visible gear context.
           </p>
           <ul>
-            <li>NH stake Hard: 11,604,230 parameters, three 256-unit hidden layers, 90 inputs, 139 encoded features, 44,550 action outputs.</li>
-            <li>DMM Hard: 5,785,234 parameters, three 256-unit hidden layers, 92 inputs, 141 encoded features, 21,906 action outputs.</li>
-            <li>DMM can use style loadouts, equip weapons without immediately attacking, and explore selected helm unequips.</li>
+            <li>NH stake Hard and DMM Hard are separate neural fixtures. Exact schema and parameter counts should be read from the current fixture files, not copied from old notes.</li>
+            <li>DMM hard uses direct item/slot actions rather than broad style loadouts: weapon equips, shield swaps, selected unequips/re-equips, and explicit Gmaul, Voidwaker, and Vesta's longsword spec actions.</li>
+            <li>Legacy compact DMM controllers, generic best-special fallbacks, and EV style overrides are no longer the intended hard-mode path.</li>
             <li>NH stake has the same idea for dragon boots: the model can learn whether taking them off is ever worth it from fight outcomes, not from a hand-written reward.</li>
           </ul>
         </section>
@@ -172,6 +263,11 @@
             That is important because I do not want the bot to only copy one fixed opponent or one
             old opponent. I still keep cohort fights around as pressure tests so the model does not
             forget common patterns while it learns from itself.
+          </p>
+          <p>
+            Current DMM rollout data keeps one row per real bot decision. Same-tick direct gear
+            choices are stored as labels on that row, so the model can learn multiple gear actions
+            in one tick without pretending that extra game ticks happened.
           </p>
           <p>
             The cohorts are scripted styles used for evaluation and coverage: melee camping, repeated

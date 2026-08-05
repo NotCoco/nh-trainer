@@ -694,7 +694,8 @@ for (const snippet of [
 for (const snippet of [
   "NH_CONTEXT_MENU_MOUSE_LEAVE_MARGIN = 10",
   "nhNextClientCycleDelayMs",
-  "openContextMenuOnNextClientCycle",
+  "openContextMenuFromPressedPosition",
+  "viewport.dataset.lastContextMenuScheduledDelayMs = \"0\"",
   "window.setInterval(closeIfPointerOutsideMenu, NH_CLIENT_CYCLE_MS)",
   "event.button === 2",
   "openRuntimeSceneContextMenu(event.nativeEvent)",

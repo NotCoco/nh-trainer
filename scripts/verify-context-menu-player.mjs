@@ -19,8 +19,11 @@ if (
   !viewerSource.includes("function pointerEventToRuntimeActor") ||
   !viewerSource.includes("function pointerEventToRuntimeActorHits") ||
   !viewerSource.includes("function actorSourceClickboxRect") ||
+  !viewerSource.includes("Model.isClickable() then adds the entity") ||
   !viewerSource.includes("runtimeActorMenuPickPriority") ||
   !viewerSource.includes("return actor.actorId === \"local-player\" ? 1 : 0") ||
+  !viewerSource.includes("const stackedOpponent = posesByActorId.get(\"opponent\")") ||
+  !viewerSource.includes("hits.push({ actor: stackedOpponent, rect: localHit.rect })") ||
   !viewerSource.includes("if (pose.actorId !== \"local-player\")") ||
   !viewerSource.includes("sameNhTile(pose.tile, tile)") ||
   !viewerSource.includes("sourceSingleTileModelMinimumClientUnits") ||
@@ -34,6 +37,7 @@ if (
   !viewerSource.includes("NH_CONTEXT_MENU_MOUSE_LEAVE_MARGIN = 10") ||
   !viewerSource.includes("openRuntimeSceneContextMenu(event.nativeEvent)") ||
   !viewerSource.includes("data-source-close-margin") ||
+  !viewerSource.includes("__NH_TRAINER_ENABLE_RUNTIME_MOTION_DEBUG") ||
   viewerSource.includes("raycaster.intersectObject(slot.group, true)")
 ) {
   throw new Error("RuntimeSceneViewer must use source-style projected actor clickboxes before falling back to object/tile context menus.");

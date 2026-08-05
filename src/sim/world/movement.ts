@@ -42,6 +42,20 @@ export function chebyshevDistance(a: TilePosition, b: TilePosition): number {
   return Math.max(dx, dy);
 }
 
+export function canMeleeStepInReachNextTick(input: MeleeReachInput): boolean {
+  const current = canMeleeReachThisTick(input);
+  if (current.canReach) {
+    return true;
+  }
+  if (!samePlane(input.attacker, input.defender) || input.attackerFrozen) {
+    return false;
+  }
+  const { dx, dy } = tileDelta(input.attacker, input.defender);
+  const attackRange = Math.max(1, Math.trunc(input.attackRange ?? 1));
+  const stepInLimit = attackRange + 2;
+  return dx <= stepInLimit && dy <= stepInLimit && !(dx === stepInLimit && dy === stepInLimit);
+}
+
 export function isCardinalAdjacent(a: TilePosition, b: TilePosition): boolean {
   return samePlane(a, b) && cardinalDistance(a, b) === 1;
 }

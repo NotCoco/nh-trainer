@@ -82,6 +82,26 @@ export function normalizeNhInventorySlots(
   return Array.from({ length: inventorySlotCount }, (_, index) => source[index] ?? null);
 }
 
+export function reconstructNhOwnedInventorySlots(input: {
+  readonly remainingStartingInventorySlots: readonly (RuntimeInventorySlot | null)[];
+  readonly startingEquipmentItemIds: readonly number[];
+  readonly currentEquipmentItemIds: readonly number[];
+}): readonly (RuntimeInventorySlot | null)[] {
+  const ownedItems: RuntimeInventorySlot[] = input.remainingStartingInventorySlots.flatMap((slot) =>
+    slot ? [{ ...slot }] : []
+  );
+  for (const itemId of input.startingEquipmentItemIds) {
+    ownedItems.push({ itemId, quantity: 1 });
+  }
+  for (const equippedItemId of input.currentEquipmentItemIds) {
+    const ownedIndex = ownedItems.findIndex((item) => item.itemId === equippedItemId);
+    if (ownedIndex !== -1) {
+      ownedItems.splice(ownedIndex, 1);
+    }
+  }
+  return Array.from({ length: inventorySlotCount }, (_, index) => ownedItems[index] ?? null);
+}
+
 export interface NhInventoryQuantityText {
   readonly text: string;
   readonly color: string;
@@ -133,7 +153,7 @@ export type NhInventoryContextMenuEntry = NhMenuEntry & {
 };
 
 export interface NhInventoryActionMutation {
-  readonly kind: "eat-remove" | "drink-dose" | "empty-vial" | "drop-remove" | "equipment-swap";
+  readonly kind: "eat-remove" | "drink-dose" | "empty-vial" | "drop-remove" | "destroy-remove" | "equipment-swap";
   readonly slotIndex: number;
   readonly previousItemId: number;
   readonly nextItemId: number | null;
@@ -254,7 +274,8 @@ export function buildNhInventoryContextEntries({
   itemDefinition,
   itemName,
   selectedItem,
-  selectedSpell
+  selectedSpell,
+  dropActionText
 }: {
   readonly slot: RuntimeInventorySlot;
   readonly slotIndex: number;
@@ -263,6 +284,7 @@ export function buildNhInventoryContextEntries({
   readonly itemName?: string;
   readonly selectedItem?: NhInventorySelectedItem | null;
   readonly selectedSpell?: NhSelectedSpell | null;
+  readonly dropActionText?: string;
 }): readonly NhInventoryContextMenuEntry[] {
   const normalizedSlotIndex = Math.max(0, Math.trunc(slotIndex));
   const normalizedWidgetId = Number.isInteger(widgetId) ? Math.trunc(widgetId) : NH_INVENTORY_WIDGET_ID;
@@ -316,7 +338,16 @@ export function buildNhInventoryContextEntries({
   }
 
   for (let actionIndex = 4; actionIndex >= 3; actionIndex -= 1) {
-    const entry = inventoryActionEntry(actionIndex, actions, slot, normalizedSlotIndex, normalizedWidgetId, name, targetText);
+    const entry = inventoryActionEntry(
+      actionIndex,
+      actions,
+      slot,
+      normalizedSlotIndex,
+      normalizedWidgetId,
+      name,
+      targetText,
+      dropActionText
+    );
     if (entry) {
       entries.push(entry);
     }
@@ -337,7 +368,16 @@ export function buildNhInventoryContextEntries({
   });
 
   for (let actionIndex = 2; actionIndex >= 0; actionIndex -= 1) {
-    const entry = inventoryActionEntry(actionIndex, actions, slot, normalizedSlotIndex, normalizedWidgetId, name, targetText);
+    const entry = inventoryActionEntry(
+      actionIndex,
+      actions,
+      slot,
+      normalizedSlotIndex,
+      normalizedWidgetId,
+      name,
+      targetText,
+      dropActionText
+    );
     if (entry) {
       entries.push(entry);
     }
@@ -379,6 +419,9 @@ export function mutateNhInventorySlotsForAction(
   }
   if (action === "drop") {
     return replaceNhInventorySlot(slots, entry.slotIndex, null, "drop-remove", current.itemId);
+  }
+  if (action === "destroy") {
+    return replaceNhInventorySlot(slots, entry.slotIndex, null, "destroy-remove", current.itemId);
   }
   if (action === "empty") {
     return replaceNhInventorySlot(slots, entry.slotIndex, { itemId: emptyVialItemId, quantity: 1 }, "empty-vial", current.itemId);
@@ -459,9 +502,13 @@ function inventoryActionEntry(
   slotIndex: number,
   widgetId: number,
   itemName: string,
-  targetText: string
+  targetText: string,
+  dropActionText?: string
 ): NhInventoryContextMenuEntry | null {
-  const actionText = actions[actionIndex] ?? (actionIndex === 4 ? "Drop" : null);
+  const sourceActionText = actions[actionIndex] ?? (actionIndex === 4 ? "Drop" : null);
+  const actionText = actionIndex === 4 && sourceActionText?.toLowerCase() === "drop" && dropActionText
+    ? dropActionText
+    : sourceActionText;
   if (!actionText) {
     return null;
   }

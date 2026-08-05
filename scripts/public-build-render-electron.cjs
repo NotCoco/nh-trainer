@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow } = require("./electron-muted.cjs");
 
 const [, , targetUrl] = process.argv;
 

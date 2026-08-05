@@ -62,7 +62,7 @@ body {
   top: 24px;
   display: grid;
   grid-template-columns: max-content minmax(340px, 580px) minmax(230px, 310px);
-  gap: 10px 28px;
+  gap: 5px 28px;
   align-items: start;
   color: #eee2c9;
 }
@@ -157,8 +157,8 @@ body {
   gap: 13px;
   width: min(620px, 100%);
   border-top: 1px solid rgb(171 129 62 / 0.32);
-  margin-top: 4px;
-  padding-top: 10px;
+  margin-top: 0;
+  padding-top: 6px;
   color: #b9ad95;
 }
 
@@ -184,11 +184,12 @@ body {
 }
 
 .nhSiteUpdates {
+  position: absolute;
+  top: 8px;
+  right: 0;
   display: grid;
-  grid-column: 3;
-  grid-row: 1 / span 4;
   width: min(430px, 34vw);
-  margin-top: 8px;
+  margin-top: 0;
   color: #a99c84;
   font-size: 12px;
   line-height: 1.4;
@@ -329,7 +330,7 @@ body {
 .nhSiteNotice {
   grid-column: 2;
   width: min(620px, 100%);
-  margin: 2px 0 0;
+  margin: 0;
   color: #897f6d;
   font-size: 11px;
   line-height: 1.45;
@@ -368,6 +369,7 @@ body {
   }
 
   .nhSiteUpdates {
+    position: static;
     grid-column: 1;
     grid-row: auto;
     width: auto;
@@ -447,414 +449,6 @@ body {
 
 .clientOnlyShell .browserClientWindow {
   pointer-events: auto;
-}
-
-.nhAimTrainerScrollHint {
-  position: absolute;
-  left: clamp(12px, 2vw, 24px);
-  top: calc(100vh - 44px);
-  z-index: 80;
-  max-width: min(280px, calc(100vw - 24px));
-  border: 1px solid rgb(171 129 62 / 0.45);
-  border-radius: 2px;
-  padding: 6px 8px;
-  background: rgb(18 15 11 / 0.86);
-  box-shadow:
-    inset 1px 1px 0 rgb(255 231 150 / 0.12),
-    0 2px 10px rgb(0 0 0 / 0.45);
-  color: #f0cc7a;
-  font: 700 12px Arial, sans-serif;
-  line-height: 1.2;
-  text-shadow: 1px 1px 0 #000000;
-  pointer-events: none;
-}
-
-.nhAimTrainerSection {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  min-height: 100vh;
-  padding: clamp(28px, 5vh, 56px) clamp(16px, 4vw, 48px);
-  background: #d8d8d8;
-  pointer-events: auto;
-}
-
-.nhAimTrainerPanel {
-  display: grid;
-  gap: 12px;
-  align-content: start;
-  justify-self: center;
-  width: min(100%, 1296px);
-}
-
-.nhAimTrainerHeader {
-  display: flex;
-  gap: 16px;
-  align-items: end;
-  justify-content: space-between;
-}
-
-.nhAimTrainerHeader h2 {
-  margin-bottom: 0;
-  color: #1c1c1c;
-}
-
-.nhAimTrainerControls {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.nhAimTrainerControls button {
-  min-width: 76px;
-  min-height: 30px;
-  border: 1px solid #5b4a31;
-  border-radius: 2px;
-  padding: 5px 10px;
-  background: linear-gradient(#40392d, #29241d);
-  color: #f6c769;
-  font: 700 12px Arial, sans-serif;
-  line-height: 1;
-  text-shadow: 1px 1px 0 #000000;
-  cursor: pointer;
-}
-
-.nhAimTrainerControls button:hover,
-.nhAimTrainerControls button:focus-visible {
-  border-color: #8a6d29;
-  background: linear-gradient(#5a4826, #302717);
-}
-
-.nhAimTrainerStats {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.nhAimTrainerStats span {
-  min-width: 0;
-  min-height: 24px;
-  border: 1px solid #9c9c9c;
-  padding: 5px 7px;
-  background: #eeeeee;
-  color: #202020;
-  font: 700 11px Arial, sans-serif;
-  line-height: 1.1;
-  text-align: center;
-  text-transform: uppercase;
-}
-
-.nhAimTrainerStage {
-  display: grid;
-  grid-template-columns: 236px max-content;
-  gap: 16px;
-  align-items: start;
-}
-
-.nhAimTrainerSidebar {
-  display: grid;
-  gap: 12px;
-}
-
-.nhAimTrainerLegend {
-  display: grid;
-  gap: 8px;
-  padding-top: 8px;
-  color: #202020;
-  font: 700 12px Arial, sans-serif;
-  line-height: 1.15;
-}
-
-.nhAimTrainerLegendItem {
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
-  gap: 8px;
-  align-items: center;
-  min-width: 0;
-}
-
-.nhAimTrainerLegendSwatch {
-  display: block;
-  width: 16px;
-  height: 16px;
-  border: 1px solid rgb(0 0 0 / 0.85);
-  background: #050505;
-}
-
-.nhAimTrainerLegendSwatch[data-required-button="right"] {
-  border-color: #12658d;
-  background: #85dcff;
-}
-
-.nhAimTrainerSave {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 64px;
-  gap: 6px;
-  color: #202020;
-  font: 700 11px Arial, sans-serif;
-  line-height: 1.1;
-}
-
-.nhAimTrainerSave label {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.nhAimTrainerSave label span,
-.nhAimTrainerSave > span {
-  color: #333333;
-  text-transform: uppercase;
-}
-
-.nhAimTrainerSave input {
-  width: 100%;
-  min-width: 0;
-  min-height: 28px;
-  border: 1px solid #9c9c9c;
-  border-radius: 2px;
-  padding: 5px 7px;
-  background: #eeeeee;
-  color: #202020;
-  font: 700 12px Arial, sans-serif;
-  line-height: 1.1;
-}
-
-.nhAimTrainerSave button {
-  align-self: end;
-  min-height: 28px;
-  border: 1px solid #5b4a31;
-  border-radius: 2px;
-  padding: 5px 8px;
-  background: linear-gradient(#40392d, #29241d);
-  color: #f6c769;
-  font: 700 11px Arial, sans-serif;
-  line-height: 1;
-  text-shadow: 1px 1px 0 #000000;
-  cursor: pointer;
-}
-
-.nhAimTrainerSave button:disabled {
-  border-color: #9c9c9c;
-  background: #d0d0d0;
-  color: #666666;
-  text-shadow: none;
-  cursor: default;
-}
-
-.nhAimTrainerSave > span {
-  grid-column: 1 / -1;
-  min-height: 16px;
-}
-
-.nhAimTrainerLeaderboard {
-  display: grid;
-  gap: 7px;
-  min-width: 0;
-}
-
-.nhAimTrainerLeaderboardTabs {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
-}
-
-.nhAimTrainerLeaderboardTabs button {
-  min-width: 0;
-  min-height: 26px;
-  border: 1px solid #9c9c9c;
-  border-radius: 2px;
-  padding: 4px 5px;
-  background: #eeeeee;
-  color: #202020;
-  font: 700 10px Arial, sans-serif;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.nhAimTrainerLeaderboardTabs button[aria-pressed="true"] {
-  border-color: #5b4a31;
-  background: #2f2a22;
-  color: #f6c769;
-  text-shadow: 1px 1px 0 #000000;
-}
-
-.nhAimTrainerLeaderboard ol {
-  display: grid;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.nhAimTrainerLeaderboard li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 38px 30px;
-  gap: 6px;
-  align-items: center;
-  min-height: 24px;
-  border: 1px solid #b4b4b4;
-  padding: 4px 6px;
-  background: #eeeeee;
-  color: #202020;
-  font: 700 11px Arial, sans-serif;
-  line-height: 1.1;
-}
-
-.nhAimTrainerLeaderboard li span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.nhAimTrainerLeaderboard li strong,
-.nhAimTrainerLeaderboard li small {
-  text-align: right;
-}
-
-.nhAimTrainerLeaderboard li small {
-  color: #555555;
-}
-
-.nhAimTrainerLeaderboard .nhAimTrainerLeaderboardEmpty {
-  grid-template-columns: 1fr;
-  color: #555555;
-}
-
-.nhAimTrainerClient {
-  position: relative;
-  width: min(100%, 765px);
-  box-sizing: border-box;
-  border: 1px solid #9c9c9c;
-  background: #cfcfcf;
-  overflow: hidden;
-  cursor: default;
-  touch-action: none;
-  user-select: none;
-}
-
-.nhAimTrainerClient[data-running="false"] {
-  cursor: default;
-}
-
-.nhAimTrainerTarget {
-  position: absolute;
-  display: block;
-  z-index: 1;
-  background: #050505;
-  opacity: 0;
-  transition: opacity 500ms ease-out;
-  box-shadow:
-    0 0 0 1px rgb(0 0 0 / 0.85),
-    0 0 12px rgb(0 0 0 / 0.22);
-  pointer-events: none;
-  will-change: opacity;
-}
-
-.nhAimTrainerTarget[data-entered="true"] {
-  opacity: 1;
-}
-
-.nhAimTrainerTarget[data-required-button="right"] {
-  background: #85dcff;
-  box-shadow:
-    0 0 0 2px #12658d,
-    0 0 14px rgb(18 101 141 / 0.35);
-}
-
-.nhAimTrainerResult {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: 6px;
-  color: #050505;
-  pointer-events: none;
-  text-align: center;
-}
-
-.nhAimTrainerResult span {
-  font: 900 18px Arial, sans-serif;
-  line-height: 1;
-  text-transform: uppercase;
-}
-
-.nhAimTrainerResult strong {
-  font: 900 86px Arial, sans-serif;
-  line-height: 0.9;
-}
-
-.nhAimTrainerResizeHandle {
-  position: absolute;
-  bottom: 0;
-  z-index: 3;
-  display: block;
-  width: 24px;
-  height: 24px;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  pointer-events: auto;
-  touch-action: none;
-}
-
-.nhAimTrainerResizeHandle[data-resize-side="left"] {
-  left: 0;
-  cursor: nesw-resize;
-}
-
-.nhAimTrainerResizeHandle[data-resize-side="right"] {
-  right: 0;
-  cursor: nwse-resize;
-}
-
-.nhAimTrainerResizeHandle::before {
-  content: "";
-  position: absolute;
-  right: 4px;
-  bottom: 4px;
-  width: 15px;
-  height: 15px;
-  background: repeating-linear-gradient(
-    135deg,
-    transparent 0,
-    transparent 3px,
-    rgb(70 70 70 / 0.75) 3px,
-    rgb(70 70 70 / 0.75) 5px
-  );
-  clip-path: polygon(100% 0, 100% 100%, 0 100%);
-}
-
-.nhAimTrainerResizeHandle[data-resize-side="left"]::before {
-  right: auto;
-  left: 4px;
-  transform: scaleX(-1);
-}
-
-@media (max-width: 900px) {
-  .nhAimTrainerPanel {
-    width: min(100%, 765px);
-  }
-
-  .nhAimTrainerStage {
-    grid-template-columns: 1fr;
-  }
-
-  .nhAimTrainerLegend {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    padding-top: 0;
-  }
-
-  .nhAimTrainerSave {
-    grid-template-columns: minmax(0, 1fr) 76px;
-  }
-
-  .nhAimTrainerStats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 }
 
 .header {
@@ -2727,6 +2321,18 @@ h3 {
   z-index: 2;
 }
 
+/*
+ * Sits under every interactive side panel layer but above the scene canvas, which lives outside
+ * .nhClientHud. Gaps between panel controls stay unclickable instead of walking the player.
+ */
+.nhSidePanelClickBlocker {
+  position: absolute;
+  z-index: 0;
+  display: block;
+  background: transparent;
+  pointer-events: auto;
+}
+
 .nhSideTabClickLayer {
   position: absolute;
   inset: 0;
@@ -3078,6 +2684,7 @@ h3 {
 }
 
 .nhMinimapSceneSprite,
+.nhMinimapSceneBackdrop,
 .nhMinimapSceneCell,
 .nhMinimapSceneOverlayPixel,
 .nhMinimapSceneSegment,
@@ -3562,6 +3169,11 @@ h3 {
   outline-offset: -2px;
 }
 
+.nhClientHud button:focus,
+.nhClientHud button:focus-visible {
+  outline: none;
+}
+
 .nhWidgetText {
   position: absolute;
   display: block;
@@ -3820,34 +3432,30 @@ h3 {
   position: absolute;
   z-index: 220001;
   display: grid;
-  grid-template-columns: 190px 224px;
+  grid-template-columns: 224px;
   align-items: flex-start;
   align-content: center;
   justify-content: center;
   justify-items: center;
-  column-gap: 32px;
   row-gap: 12px;
   width: max-content;
   max-width: none;
   pointer-events: none;
 }
 
-.runtimeStartupControls[data-manual-fight-start-pending="true"][data-runtime-setup-selector-open="true"] .runtimeFightStartOverlay {
+/* Start sits under the setup options even though it comes first in the DOM. */
+.runtimeStartupControls[data-manual-fight-start-pending="true"][data-runtime-setup-selector-open="true"] .runtimeSetupSelector {
   grid-column: 1;
   grid-row: 1;
 }
 
-.runtimeStartupControls[data-manual-fight-start-pending="true"][data-runtime-setup-selector-open="true"] .runtimeSetupSelector {
-  grid-column: 2;
-  grid-row: 1;
+.runtimeStartupControls[data-manual-fight-start-pending="true"][data-runtime-setup-selector-open="true"] .runtimeFightStartOverlay {
+  grid-column: 1;
+  grid-row: 2;
 }
 
 .runtimeStartupControls[data-manual-fight-start-pending="true"][data-runtime-setup-selector-open="false"] {
   grid-template-columns: 190px;
-}
-
-.runtimeStartupControls[data-manual-fight-start-pending="false"][data-runtime-setup-selector-open="true"] {
-  grid-template-columns: 224px;
 }
 
 .runtimeFightStartOverlay {
@@ -3866,25 +3474,12 @@ h3 {
 
 @media (max-width: 560px) {
   .runtimeStartupControls {
-    grid-template-columns: max-content;
-    justify-items: center;
-    align-content: center;
     row-gap: 10px;
-  }
-
-  .runtimeStartupControls[data-manual-fight-start-pending="true"][data-runtime-setup-selector-open="true"] {
-    grid-template-columns: max-content;
-  }
-
-  .runtimeStartupControls[data-manual-fight-start-pending="true"][data-runtime-setup-selector-open="true"] .runtimeFightStartOverlay,
-  .runtimeStartupControls[data-manual-fight-start-pending="true"][data-runtime-setup-selector-open="true"] .runtimeSetupSelector {
-    grid-column: 1;
-    grid-row: auto;
   }
 }
 
 .runtimeBotDifficultySelector {
-  width: 176px;
+  width: 238px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -3916,6 +3511,7 @@ h3 {
 
 .runtimeBotDifficultyButtons {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 4px;
 }
@@ -4080,6 +3676,43 @@ h3 {
   max-width: none;
   min-height: 24px;
   text-align: left;
+}
+
+.runtimeDmmSetupToggles {
+  width: 176px;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 6px 7px;
+  border: 1px solid #5b4a31;
+  border-radius: 2px;
+  background: rgba(27, 22, 16, 0.9);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 231, 150, 0.16),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.68),
+    0 2px 8px rgba(0, 0, 0, 0.45);
+  color: #d9c491;
+  font: 700 11px Arial, sans-serif;
+  text-shadow: 1px 1px 0 #000000;
+  pointer-events: auto;
+}
+
+.runtimeDmmSetupToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.runtimeDmmSetupToggle input {
+  width: 12px;
+  height: 12px;
+  margin: 0;
+  accent-color: #caa64f;
 }
 
 .runtimeFightStartButton {

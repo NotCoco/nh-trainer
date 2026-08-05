@@ -6,6 +6,7 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 const distRoot = path.resolve(projectRoot, "dist");
 const forbiddenTerms = [[..."kro"].join("") + [..."nos"].join("")];
 const forbiddenTextMarkers = ["data-source-"];
+const obsoleteDmmCandidatePrefix = "ai/nh-neural-policy-dmm-candidate.json";
 const maxFindings = 50;
 const maxPublicFileBytes = 100_000_000;
 
@@ -48,6 +49,10 @@ function verifyPath(findings, itemPath) {
 
   if (stat.isFile() && stat.size > maxPublicFileBytes) {
     addFinding(findings, { type: "oversized-file", path: relativePath, bytes: stat.size, maxBytes: maxPublicFileBytes });
+  }
+
+  if (relativePath.startsWith(obsoleteDmmCandidatePrefix)) {
+    addFinding(findings, { type: "obsolete-policy", path: relativePath });
   }
 
   for (const term of forbiddenTerms) {

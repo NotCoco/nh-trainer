@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow } = require("./electron-muted.cjs");
 const path = require("node:path");
 
 const [, , projectRoot] = process.argv;
@@ -145,7 +145,7 @@ async function clickSideTab(window, tabId) {
 }
 
 async function enableInternalRuntimeCommands(window) {
-  await execute(window, `(() => { window.__NH_TRAINER_ENABLE_INTERNAL_TEST_COMMANDS = true; })()`);
+  await execute(window, `(() => { window.__NH_TRAINER_ENABLE_INTERNAL_TEST_COMMANDS = true; window.__NH_TRAINER_ENABLE_RUNTIME_MOTION_DEBUG = true; })()`);
 }
 
 async function clickSelector(window, selector, pointerId) {

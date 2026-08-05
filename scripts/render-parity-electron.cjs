@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain } = require("./electron-muted.cjs");
 const fs = require("node:fs/promises");
 const path = require("node:path");
 

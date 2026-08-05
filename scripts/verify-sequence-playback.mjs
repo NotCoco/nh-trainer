@@ -236,6 +236,7 @@ const whipSequence = readJson("fixtures/render/sequences/whip_attack.json");
 const swordStabSequence = readJson("fixtures/render/sequences/sword_stab_attack.json");
 const swordSlashSequence = readJson("fixtures/render/sequences/sword_slash_attack.json");
 const rawSequences = readJson("fixtures/assets/animations/sequences.json");
+const wandAttackSequence = { name: "wand_attack", ...nhRenderSequenceFromRawSequence(rawSequences["393"]) };
 const renderSequenceDefinitions = [
   readJson("fixtures/render/sequences/idle.json"),
   { name: "turn", ...nhRenderSequenceFromRawSequence(rawSequences["823"]) },
@@ -243,6 +244,7 @@ const renderSequenceDefinitions = [
   { name: "wand_ready", ...nhRenderSequenceFromRawSequence(rawSequences["813"]) },
   { name: "wand_walk", ...nhRenderSequenceFromRawSequence(rawSequences["1205"]) },
   { name: "wand_run", ...nhRenderSequenceFromRawSequence(rawSequences["1210"]) },
+  wandAttackSequence,
   walkSequence,
   whipSequence,
   swordStabSequence,
@@ -300,6 +302,7 @@ assert(actorSequenceDefinitions.get(823) === "turn", "shared turn sequence id sh
 assert(actorSequenceDefinitions.get(4591) === "crossbow_ready", "actor sequence store should resolve weapon-ready crossbow pose from Nh render animations");
 assert(actorSequenceDefinitions.get(4226) === "crossbow_walk", "actor sequence store should resolve weapon-specific crossbow walk from Nh render animations");
 assert(actorSequenceDefinitions.get(813) === "wand_ready", "actor sequence store should resolve weapon-ready wand pose from Nh render animations");
+assert(actorSequenceDefinitions.get(393) === "wand_attack", "actor sequence store should resolve source WAND attack animation 393 to staff bash");
 assert(actorSequenceDefinitions.get(440) === "halberd_attack", "actor sequence store should resolve HALBERD attack animation 440");
 assert(actorSequenceDefinitions.get(386) === "sword_stab_attack", "actor sequence store should resolve VLS controlled stab animation 386");
 assert(actorSequenceDefinitions.get(390) === "sword_slash_attack", "actor sequence store should resolve VLS slash animation 390");
@@ -319,6 +322,10 @@ const attacking = resolveNhActorSequence({ pose: 808, movement: 819, action: 423
 assert(attacking.sequenceName === "crossbow_attack", "primary action should win over movement sequence");
 assert(attacking.movementSequenceName === "walk", "movement sequence should remain resolved beside primary action");
 assert(attacking.playbackMode === "primary", "primary action should use non-looping primary playback");
+
+const staffBashing = resolveNhActorSequence({ pose: 813, movement: 813, action: 393 }, actorSequenceDefinitions);
+assert(staffBashing.sequenceName === "wand_attack", "WAND action 393 should resolve to staff bash instead of ready pose");
+assert(staffBashing.playbackMode === "primary", "staff bash action should use non-looping primary playback");
 
 const vlsStabbing = resolveNhActorSequence({ pose: 809, movement: 809, action: 386 }, actorSequenceDefinitions);
 assert(vlsStabbing.sequenceName === "sword_stab_attack", "VLS controlled stab action should resolve to sword_stab_attack instead of idle");
@@ -343,6 +350,8 @@ assert(swordStabSequence.sequenceId === 386 && swordStabSequence.frames.length =
 assert(swordSlashSequence.sequenceId === 390 && swordSlashSequence.frames.length === 10, "VLS slash render sequence should export sequence 390 frames");
 assert(rawSequences["386"]?.frameIDs?.length === swordStabSequence.frames.length, "raw VLS stab sequence should match exported render frame count");
 assert(rawSequences["390"]?.frameIDs?.length === swordSlashSequence.frames.length, "raw VLS slash sequence should match exported render frame count");
+assert(rawSequences["393"]?.frameIDs?.length === wandAttackSequence.frames.length, "raw WAND staff bash sequence should match exported render frame count");
+assert(nhSequencePlaybackMode("wand_attack") === "primary", "WAND staff bash action should use primary playback");
 assert(nhSequencePlaybackMode("sword_stab_attack") === "primary", "VLS stab action should use primary playback");
 assert(nhSequencePlaybackMode("sword_slash_attack") === "primary", "VLS slash action should use primary playback");
 assert(swordStabSequence.interleaveLeave?.includes(9999999), "VLS stab render sequence should export client interleave labels");

@@ -113,7 +113,8 @@ import {
   type RuntimeSkillId,
   type RuntimeSkillState,
   type RuntimeSpriteSheetId,
-  type RuntimeTile
+  type RuntimeTile,
+  NH_DEFAULT_OPTIONS_SOUND_VOLUME
 } from "../render/runtimeScene";
 import { runeliteAttackStyleForWeapon, runeliteAttackStyleIsWarned } from "./runeliteAttackStyles";
 import type { RuneliteAttackStylesConfigSnapshot } from "./RuneliteClientShell";
@@ -412,6 +413,8 @@ interface NhClientHudProps {
   readonly onChatboxContextMenu?: (command: NhChatboxButtonCommand) => void;
   readonly onChatboxDefaultAction?: (command: NhChatboxButtonCommand) => void;
   readonly onChatboxHover?: (command: NhChatboxButtonCommand | null) => void;
+  readonly chatboxHidden?: boolean;
+  readonly activeChatboxTabId?: NhChatboxButtonId;
   readonly chatMessages?: readonly NhChatboxGameMessage[];
   readonly socialLists?: NhSocialListsSnapshot;
   readonly onSocialButtonDefaultAction?: (command: NhSocialButtonCommand) => void;
@@ -842,7 +845,7 @@ const inventoryDragAlpha = 0.5;
 // Nh opens right-click menus from one global last-pressed mouse position, not from later hover/drag positions.
 let nhInventorySuppressContextMenuUntilMs = 0;
 const inventoryContextMenuDuplicateWindowMs = 500;
-const hiddenWidgetSpriteIds = new Set([1183, 1184]);
+const hiddenWidgetSpriteIds = new Set([1183, 1184, 1178, 1179]);
 const equipmentSlotTileSpriteId = 170;
 const statsTileHalfLeftSpriteId = 174;
 const statsTileHalfRightWithSlashSpriteId = 175;
@@ -1024,6 +1027,8 @@ export function NhClientHud({
   onChatboxContextMenu,
   onChatboxDefaultAction,
   onChatboxHover,
+  chatboxHidden,
+  activeChatboxTabId,
   chatMessages,
   socialLists,
   onSocialButtonDefaultAction,
@@ -1136,6 +1141,10 @@ export function NhClientHud({
   const noticeboardPanel =
     activeSidePanelInterface?.groupId === NH_NOTICEBOARD_GROUP_ID ? activeSidePanelInterface : null;
   const emotePanel = activeSidePanelInterface?.groupId === NH_EMOTES_GROUP_ID ? activeSidePanelInterface : null;
+  const chatboxLayout = sourceLayout?.chatbox ?? null;
+  // A hidden chatbox keeps only its tab row mounted, matching the client leaving the tabs
+  // clickable while the message area is collapsed away from the scene.
+  const chatboxMountedLayout = chatboxHidden === true ? nhChatboxTabRowOnlyLayout(chatboxLayout) : chatboxLayout;
   return (
     <div className="nhClientHud" aria-label="NH Trainer fixed-mode client interface">
       <div className="nhFixedClient" style={fixedClientStyle(layout)}>
@@ -1166,6 +1175,21 @@ export function NhClientHud({
           onContextMenu={onXpDropOrbContextMenu}
           shown={xpDropCounterShown !== false}
         />
+        {sourceLayout?.sidePanel ? (
+          <span
+            aria-hidden="true"
+            className="nhSidePanelClickBlocker"
+            data-group-id={sourceLayout.sidePanel.groupId}
+            data-side-panel-click-blocker="true"
+            onPointerDown={(event) => {
+              // Source client chrome consumes its own clicks: only the game viewport walks the
+              // player, so gaps between side panel controls must never reach the scene canvas.
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+            style={rectStyle(sourceLayout.sidePanel.rect)}
+          />
+        ) : null}
         <NhSideTabClickLayer
           activeSideTabId={resolvedActiveSideTabId}
           layout={sourceLayout?.sidePanel ?? null}
@@ -1461,24 +1485,30 @@ export function NhClientHud({
             ))}
           </div>
         ) : null}
-        <NhSprite
-          atlas={atlas}
-          alias="chat_background"
-          className="nhFixedChatbox"
-          style={chatboxBackgroundStyle(sourceLayout?.chatbox ?? null)}
-        />
+        {chatboxHidden === true ? null : (
+          <NhSprite
+            atlas={atlas}
+            alias="chat_background"
+            className="nhFixedChatbox"
+            style={chatboxBackgroundStyle(chatboxLayout)}
+          />
+        )}
         <NhMountedWidgetLayer
           atlas={atlas}
           clientFonts={clientFonts}
-          layout={sourceLayout?.chatbox ?? null}
+          layout={chatboxMountedLayout}
           spriteAtlases={spriteAtlases}
         />
-        <NhChatboxMessageLayer
-          layout={sourceLayout?.chatbox ?? null}
-          messages={chatMessages ?? []}
-        />
+        {chatboxHidden === true ? null : (
+          <NhChatboxMessageLayer
+            layout={chatboxLayout}
+            messages={chatMessages ?? []}
+          />
+        )}
         <NhChatboxClickLayer
-          layout={sourceLayout?.chatbox ?? null}
+          activeTabId={activeChatboxTabId}
+          chatboxHidden={chatboxHidden === true}
+          layout={chatboxLayout}
           onContextMenu={onChatboxContextMenu}
           onDefaultAction={onChatboxDefaultAction}
           onHover={onChatboxHover}
@@ -1539,6 +1569,9 @@ function NhCompassOverlay({
   if (!compassAtlas || !compassSprite) {
     return null;
   }
+  const widgetMaskSprite =
+    widget.widget.spriteId > 0 ? findSpriteById(clientAtlas, widget.widget.spriteId) : undefined;
+  const effectiveMaskSprite = widgetMaskSprite ?? maskSprite;
   const angleDegrees = (Math.trunc(cameraYaw) / 2048) * 360;
   return (
     <div
@@ -1549,10 +1582,10 @@ function NhCompassOverlay({
       data-source-center-x={25}
       data-source-center-y={25}
       data-source-scale={256}
-      data-mask-sprite-id={maskSprite?.spriteId ?? ""}
-      data-mask-row-count={maskSprite?.maskXStarts?.length ?? ""}
+      data-mask-sprite-id={effectiveMaskSprite?.spriteId ?? ""}
+      data-mask-row-count={effectiveMaskSprite?.maskXStarts?.length ?? ""}
       data-compass-sprite-id={compassSprite.spriteId}
-      style={compassOverlayStyle(widget.rect, maskSprite)}
+      style={compassOverlayStyle(widget.rect, effectiveMaskSprite)}
     >
       <span
         className="nhCompassSpriteRotator"
@@ -1597,7 +1630,10 @@ function NhMinimapOverlay({
   }
 
   const minimapMaskSprite = findSprite(clientAtlas, "fixed_mode_minimap_alpha_mask");
-  const mask = spriteMaskFromSprite(minimapMaskSprite, widget.rect.width, widget.rect.height);
+  const widgetMaskSprite =
+    widget.widget.spriteId > 0 ? findSpriteById(clientAtlas, widget.widget.spriteId) : undefined;
+  const effectiveMaskSprite = widgetMaskSprite ?? minimapMaskSprite;
+  const mask = spriteMaskFromSprite(effectiveMaskSprite, widget.rect.width, widget.rect.height);
   const localPlayer = nhMinimapLocalPlayerDot(mask);
   const localActor = snapshot.actors.find((actor) => actor.actorId === "local-player") ?? null;
   const localActorMinimapTile = localActor ? nhMinimapActorTile(localActor) : null;
@@ -1675,11 +1711,11 @@ function NhMinimapOverlay({
       data-camera-yaw={Math.trunc(cameraYaw)}
       data-minimap-state={snapshot.minimapState ?? ""}
       data-minimap-disabled={drawsScene ? "false" : "true"}
-      data-mask-sprite-id={minimapMaskSprite?.spriteId ?? ""}
-      data-mask-sprite-alias={minimapMaskSprite?.alias ?? ""}
+      data-mask-sprite-id={effectiveMaskSprite?.spriteId ?? ""}
+      data-mask-sprite-alias={effectiveMaskSprite?.alias ?? ""}
       data-mask-row-count={mask.xStarts?.length ?? ""}
       data-mask-width-count={mask.xWidths?.length ?? ""}
-      data-mask-visual-source={minimapMaskSprite?.maskXStarts?.length ? "sprite-mask-rows" : ""}
+      data-mask-visual-source={effectiveMaskSprite?.maskXStarts?.length ? "sprite-mask-rows" : ""}
       onPointerDown={(event) => {
         if (!localActor || !localActorMinimapTile || !onTileCommand || event.button !== 0 || !nhMinimapAllowsClick(snapshot.minimapState)) {
           return;
@@ -1713,7 +1749,7 @@ function NhMinimapOverlay({
           click
         });
       }}
-      style={minimapOverlayStyle(widget.rect, minimapMaskSprite)}
+      style={minimapOverlayStyle(widget.rect, effectiveMaskSprite)}
     >
       {!drawsScene ? (
         <span
@@ -1765,6 +1801,7 @@ function NhMinimapSceneSpriteView({
   readonly sprite: NhMinimapSceneSprite;
   readonly transform: NhMinimapSceneTransform;
 }): JSX.Element {
+  const backdropColor = minimapSceneBackdropColor(sprite);
   return (
     <div
       className="nhMinimapSceneSprite"
@@ -1781,6 +1818,14 @@ function NhMinimapSceneSpriteView({
       data-scene-angle-degrees={transform.angleDegrees}
       style={minimapSceneSpriteStyle(sprite, transform)}
     >
+      {backdropColor ? (
+        <span
+          aria-hidden="true"
+          className="nhMinimapSceneBackdrop"
+          data-scene-backdrop="true"
+          style={minimapSceneBackdropStyle(sprite, backdropColor)}
+        />
+      ) : null}
       {sprite.cells.map((cell) => (
         <span
           className="nhMinimapSceneCell"
@@ -2036,6 +2081,40 @@ function nhChatboxMessageLayerStyle(rect: NhRect): CSSProperties {
   };
 }
 
+/**
+ * Ground colour painted behind the exported arena tiles.
+ *
+ * The arena terrain export is bounded to the NH wilderness arena contract (26x27 tiles), which is
+ * smaller than the tile span the minimap viewport covers, so the uncovered ring would otherwise
+ * expose the viewport's black backdrop. The arena GLB export already resolves out-of-bounds tile
+ * lookups by clamping to the arena edge; this keeps the surround reading as continuous ground on
+ * the same basis. It is an approximation of terrain that was cropped out, not exported map data.
+ */
+function minimapSceneBackdropColor(sprite: NhMinimapSceneSprite): string | null {
+  const counts = new Map<string, number>();
+  let backdropColor: string | null = null;
+  let backdropCount = 0;
+  for (const cell of sprite.cells) {
+    const count = (counts.get(cell.color) ?? 0) + 1;
+    counts.set(cell.color, count);
+    if (count > backdropCount) {
+      backdropColor = cell.color;
+      backdropCount = count;
+    }
+  }
+  return backdropColor;
+}
+
+function minimapSceneBackdropStyle(sprite: NhMinimapSceneSprite, color: string): CSSProperties {
+  return {
+    left: 0,
+    top: 0,
+    width: sprite.width,
+    height: sprite.height,
+    background: color
+  };
+}
+
 function minimapOverlayStyle(
   rect: NhResolvedWidget["rect"],
   maskSprite: NhHudSprite | undefined
@@ -2046,13 +2125,15 @@ function minimapOverlayStyle(
     width: rect.width,
     height: rect.height
   };
-  if (!maskSprite) {
-    return style;
-  }
-
-  const maskImage = spriteMaskRowsDataUrl(maskSprite);
+  // The source alpha mask is the accurate shape, but the minimap must never degrade to a bare
+  // square: an unmasked corner paints scene pixels outside the minimap frame.
+  const maskImage = maskSprite ? spriteMaskRowsDataUrl(maskSprite) : null;
   if (!maskImage) {
-    return style;
+    return {
+      ...style,
+      clipPath: "ellipse(50% 50%)",
+      WebkitClipPath: "ellipse(50% 50%)"
+    };
   }
 
   return {
@@ -2063,8 +2144,10 @@ function minimapOverlayStyle(
     WebkitMaskPosition: "0 0",
     maskRepeat: "no-repeat",
     WebkitMaskRepeat: "no-repeat",
-    maskSize: `${maskSprite.width}px ${maskSprite.height}px`,
-    WebkitMaskSize: `${maskSprite.width}px ${maskSprite.height}px`
+    // Sized to the resolved widget rect so a minimap larger than the mask sprite is still fully
+    // covered instead of leaving the overflow unmasked.
+    maskSize: "100% 100%",
+    WebkitMaskSize: "100% 100%"
   };
 }
 
@@ -2978,7 +3061,7 @@ const nhOptionsSoundToggleSpecs = [
     varpId: 169,
     sourceClientScript: "options_sounds_op",
     iconChildId: 50,
-    currentVolume: (hud: RuntimeHudState): number => hud.soundEffectVolume ?? 4,
+    currentVolume: (hud: RuntimeHudState): number => hud.soundEffectVolume ?? NH_DEFAULT_OPTIONS_SOUND_VOLUME,
     stops: [
       { childId: 51, spriteId: 692, sourceVarpValue: 0 },
       { childId: 52, spriteId: 693, sourceVarpValue: 1 },
@@ -2994,7 +3077,7 @@ const nhOptionsSoundToggleSpecs = [
     varpId: 872,
     sourceClientScript: "options_areasounds_op",
     iconChildId: 56,
-    currentVolume: (hud: RuntimeHudState): number => hud.areaSoundEffectVolume ?? 4,
+    currentVolume: (hud: RuntimeHudState): number => hud.areaSoundEffectVolume ?? NH_DEFAULT_OPTIONS_SOUND_VOLUME,
     stops: [
       { childId: 57, spriteId: 692, sourceVarpValue: 0 },
       { childId: 58, spriteId: 693, sourceVarpValue: 1 },
@@ -3582,11 +3665,15 @@ const chatboxButtonDefinitions: readonly {
 ];
 
 function NhChatboxClickLayer({
+  activeTabId,
+  chatboxHidden,
   layout,
   onContextMenu,
   onDefaultAction,
   onHover
 }: {
+  readonly activeTabId: NhChatboxButtonId | undefined;
+  readonly chatboxHidden: boolean;
   readonly layout: NhMountedInterfaceLayout | null;
   readonly onContextMenu: ((command: NhChatboxButtonCommand) => void) | undefined;
   readonly onDefaultAction: ((command: NhChatboxButtonCommand) => void) | undefined;
@@ -3598,11 +3685,17 @@ function NhChatboxClickLayer({
   }
 
   return (
-    <div className="nhChatboxClickLayer" data-group-id={layout.groupId}>
+    <div
+      className="nhChatboxClickLayer"
+      data-chatbox-hidden={String(chatboxHidden)}
+      data-group-id={layout.groupId}
+    >
       {buttons.map((button) => (
         <button
           aria-label={`Chatbox ${button.label} button`}
           className="nhChatboxButton"
+          aria-pressed={button.buttonId === activeTabId}
+          data-active-tab={String(button.buttonId === activeTabId)}
           data-button-id={button.buttonId}
           data-chatbox-button-id={button.buttonId}
           data-child-id={button.widget.widget.childId}
@@ -3679,6 +3772,47 @@ function NhChatboxClickLayer({
       ))}
     </div>
   );
+}
+
+const nhChatboxButtonChildIds: ReadonlySet<number> = new Set(
+  chatboxButtonDefinitions.map((definition) => definition.childId)
+);
+
+/**
+ * Top of the group 162 tab row in source layout units, taken from the button child widgets
+ * themselves so it tracks the exported widget geometry rather than a hard-coded offset.
+ */
+export function nhChatboxTabRowTop(layout: NhMountedInterfaceLayout | null): number | null {
+  if (!layout) {
+    return null;
+  }
+
+  let top: number | null = null;
+  for (const entry of layout.widgets) {
+    if (!nhChatboxButtonChildIds.has(entry.widget.childId) || entry.widget.hidden) {
+      continue;
+    }
+    if (entry.rect.height <= 0 || entry.rect.width <= 0) {
+      continue;
+    }
+    top = top === null ? entry.rect.y : Math.min(top, entry.rect.y);
+  }
+  return top;
+}
+
+/** Chatbox layout reduced to the tab row, used while the message area is collapsed. */
+export function nhChatboxTabRowOnlyLayout(
+  layout: NhMountedInterfaceLayout | null
+): NhMountedInterfaceLayout | null {
+  const tabRowTop = nhChatboxTabRowTop(layout);
+  if (!layout || tabRowTop === null) {
+    return layout;
+  }
+
+  return {
+    ...layout,
+    widgets: layout.widgets.filter((entry) => entry.rect.y >= tabRowTop)
+  };
 }
 
 function nhChatboxButtons(layout: NhMountedInterfaceLayout | null): readonly NhChatboxButtonLayout[] {

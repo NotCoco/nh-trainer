@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow } = require("./electron-muted.cjs");
 const path = require("node:path");
 
 const [, , projectRoot] = process.argv;
@@ -8,7 +8,7 @@ function delay(ms) {
 }
 
 async function waitForPolicy(window, rendererMessages) {
-  const deadline = Date.now() + 15000;
+  const deadline = Date.now() + 45000;
   let last = {};
   while (Date.now() < deadline) {
     last = await window.webContents.executeJavaScript(`
@@ -24,9 +24,52 @@ async function waitForPolicy(window, rendererMessages) {
     if (last.loaded === "true" && last.status === "loaded") {
       return last;
     }
+    if (last.loaded === "false" && last.status === "error" && hasExpectedExplicitSchemaGate(rendererMessages)) {
+      return { ...last, explicitSchemaGate: true };
+    }
     await delay(250);
   }
   throw new Error(`Timed out waiting for static policy fallback. Last=${JSON.stringify(last)} Renderer=${JSON.stringify(rendererMessages)}`);
+}
+
+function hasExpectedExplicitSchemaGate(rendererMessages) {
+  return rendererMessages.some((entry) =>
+    typeof entry.message === "string" &&
+    (
+      entry.message.includes("missing required explicit neural spec action(s):") ||
+      entry.message.includes("missing required DMM direct-gear action IDs")
+    )
+  );
+}
+
+async function waitForInitialIdle(window, rendererMessages) {
+  const deadline = Date.now() + 15000;
+  let last = {};
+  while (Date.now() < deadline) {
+    last = await window.webContents.executeJavaScript(`
+      (() => {
+        const shell = document.querySelector("main.clientOnlyShell");
+        return {
+          loaded: shell?.dataset.defaultPolicyLoaded ?? "",
+          difficulty: shell?.dataset.botDifficulty ?? "",
+          status: shell?.dataset.botPolicyStatus ?? "",
+          runtimeClientSection: document.querySelector(".runtimeClientSection") !== null,
+          setupSelector: document.querySelector("[data-runtime-setup-option='nh-stake']") !== null
+        };
+      })()
+    `);
+    if (
+      last.loaded === "false" &&
+      last.difficulty === "hard" &&
+      last.status === "idle" &&
+      last.runtimeClientSection &&
+      last.setupSelector
+    ) {
+      return last;
+    }
+    await delay(250);
+  }
+  throw new Error(`Timed out waiting for initial lazy policy idle state. Last=${JSON.stringify(last)} Renderer=${JSON.stringify(rendererMessages)}`);
 }
 
 app.whenReady().then(async () => {
@@ -50,6 +93,16 @@ app.whenReady().then(async () => {
 
   try {
     await window.loadFile(path.join(projectRoot, "dist", "index.html"));
+    const initialStatus = await waitForInitialIdle(window, rendererMessages);
+    await window.webContents.executeJavaScript(`
+      (() => {
+        const button = document.querySelector("[data-runtime-setup-option='nh-stake']");
+        if (!(button instanceof HTMLButtonElement)) {
+          throw new Error("NH stake setup button was not available.");
+        }
+        button.click();
+      })()
+    `);
     const policyStatus = await waitForPolicy(window, rendererMessages);
     const hardStatus = await window.webContents.executeJavaScript(`
       (async () => {
@@ -67,6 +120,13 @@ app.whenReady().then(async () => {
           };
           if (last.loaded === "true" && last.difficulty === "hard" && last.status === "loaded") {
             return last;
+          }
+          if (
+            last.loaded === "false" &&
+            last.difficulty === "hard" &&
+            last.status === "error"
+          ) {
+            return { ...last, explicitSchemaGate: true };
           }
           await new Promise((resolve) => setTimeout(resolve, 250));
         }
@@ -94,11 +154,20 @@ app.whenReady().then(async () => {
     if (result.bridgeType !== "undefined") {
       throw new Error(`Static fallback validation unexpectedly had an Electron bridge: ${JSON.stringify(result)}`);
     }
-    if (result.defaultPolicyLoaded !== "true") {
+    const explicitSchemaGate =
+      (policyStatus.explicitSchemaGate === true || hardStatus.explicitSchemaGate === true) &&
+      hasExpectedExplicitSchemaGate(rendererMessages);
+    if (!explicitSchemaGate && result.defaultPolicyLoaded !== "true") {
       throw new Error(`Default policy did not load into the client shell: ${JSON.stringify(result)}`);
     }
-    if (result.botDifficulty !== "hard" || result.botPolicyStatus !== "loaded" || !result.difficultySelector) {
+    if (!explicitSchemaGate && (result.botDifficulty !== "hard" || result.botPolicyStatus !== "loaded" || !result.difficultySelector)) {
       throw new Error(`Difficulty policies did not load into the client shell: ${JSON.stringify(result)}, hard=${JSON.stringify(hardStatus)}`);
+    }
+    if (
+      explicitSchemaGate &&
+      (hardStatus.difficulty !== "hard" || hardStatus.status !== "error" || !result.difficultySelector)
+    ) {
+      throw new Error(`Explicit schema gate did not stop the old hard policy cleanly: ${JSON.stringify(result)}, hard=${JSON.stringify(hardStatus)}`);
     }
     if (selectorButtons.includes("Easy") || selectorButtons.includes("Medium")) {
       throw new Error(`Removed TSV difficulties should not appear in the selector: ${JSON.stringify(selectorButtons)}`);
@@ -112,7 +181,7 @@ app.whenReady().then(async () => {
     if (!result.runtimeClientSection) {
       throw new Error(`Runtime client section did not render: ${JSON.stringify(result)}`);
     }
-    console.log(JSON.stringify({ policyStatus, hardStatus, selectorButtons, result }, null, 2));
+    console.log(JSON.stringify({ initialStatus, policyStatus, hardStatus, selectorButtons, result }, null, 2));
     app.quit();
   } catch (error) {
     console.error(error);

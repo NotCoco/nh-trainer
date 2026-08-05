@@ -4,7 +4,7 @@ import { nhWeaponProfiles } from "../combat/player-combat";
 import { canAct, canAttackThroughLock, isFrozen } from "../entity/locks";
 import { aggregateVisibleEquipmentBonuses, type EquipmentBonusRow } from "../equipment/equipment";
 import { activeProtectionPrayer, protectPrayerForStyle } from "../prayer/prayers";
-import { canMeleeReachThisTick, chebyshevDistance } from "../world/movement";
+import { canMeleeReachThisTick, canMeleeStepInReachNextTick, chebyshevDistance } from "../world/movement";
 import {
   isNhArmadylGodswordItemId,
   isNhGraniteMaulItemId,
@@ -26,7 +26,7 @@ import {
   nhPolicyReservoirSize
 } from "./policy-bridge";
 import type { NhDuelActorState, NhDuelControllerContext } from "./duel";
-import type { NhOffenceStyle } from "./policy-bridge";
+import type { NhOffenceStyle, NhPolicyAction, NhSpecHistoryKind } from "./policy-bridge";
 import type { NhWeaponId } from "./loadouts";
 
 export interface NhPolicyFeatureState {
@@ -35,6 +35,13 @@ export interface NhPolicyFeatureState {
   visibleStyleReliabilityWindow: number[];
   visibleStyleReliabilityLastTick: number | null;
   visibleStyleReliabilityLastOutcome: number;
+  defencePrayerOpponentId: NhDuelActorState["id"] | null;
+  defencePrayerTrackingStartTick: number | null;
+  defencePrayerLastObservedAttackTick: number | null;
+  defencePrayerAttackHistoryCodes: number[];
+  defencePrayerOwnHistoryCodes: number[];
+  defencePrayerOwnHistoryLastDecisionTick: number | null;
+  optionalVlsSetupTick: number | null;
 }
 
 export const nhPolicyReservoirFeatureStart = 0;
@@ -43,7 +50,6 @@ export const nhPolicyInputFeatureStart = nhPolicyReservoirFeatureEnd;
 export const nhPolicyInputFeatureEnd = nhPolicyInputFeatureStart + nhPolicyInputSize;
 export const nhPolicyBiasFeatureIndex = nhPolicyInputFeatureEnd;
 
-const rewardClamp = 12;
 const freezeTicksNormalizer = 80;
 const weaponEmbedFrequency = 0.013;
 const hiddenLeak = 0.68;
@@ -73,7 +79,14 @@ export function createNhPolicyFeatureState(): NhPolicyFeatureState {
     hiddenNext: Array<number>(nhPolicyReservoirSize).fill(0),
     visibleStyleReliabilityWindow: [],
     visibleStyleReliabilityLastTick: null,
-    visibleStyleReliabilityLastOutcome: 0
+    visibleStyleReliabilityLastOutcome: 0,
+    defencePrayerOpponentId: null,
+    defencePrayerTrackingStartTick: null,
+    defencePrayerLastObservedAttackTick: null,
+    defencePrayerAttackHistoryCodes: [0, 0, 0],
+    defencePrayerOwnHistoryCodes: [0, 0],
+    defencePrayerOwnHistoryLastDecisionTick: null,
+    optionalVlsSetupTick: null
   };
 }
 
@@ -83,6 +96,46 @@ export function resetNhPolicyFeatureState(state: NhPolicyFeatureState): void {
   state.visibleStyleReliabilityWindow.length = 0;
   state.visibleStyleReliabilityLastTick = null;
   state.visibleStyleReliabilityLastOutcome = 0;
+  state.defencePrayerOpponentId = null;
+  state.defencePrayerTrackingStartTick = null;
+  state.defencePrayerLastObservedAttackTick = null;
+  state.defencePrayerAttackHistoryCodes.fill(0);
+  state.defencePrayerOwnHistoryCodes.fill(0);
+  state.defencePrayerOwnHistoryLastDecisionTick = null;
+  state.optionalVlsSetupTick = null;
+}
+
+export function commitNhPolicyDecisionState(
+  state: NhPolicyFeatureState,
+  context: NhDuelControllerContext,
+  action: NhPolicyAction
+): void {
+  if (state.defencePrayerOwnHistoryLastDecisionTick !== context.tick) {
+    state.defencePrayerOwnHistoryLastDecisionTick = context.tick;
+    const protection = activeProtectionPrayer(context.self.activePrayers);
+    shiftDefencePrayerHistoryCode(
+      state.defencePrayerOwnHistoryCodes,
+      protection === "protect_from_melee"
+        ? 1
+        : protection === "protect_from_missiles"
+          ? 2
+          : protection === "protect_from_magic"
+            ? 3
+            : 0
+    );
+  }
+
+  state.optionalVlsSetupTick = null;
+  const equipsVls = action.directGearActions?.includes("equip_dmm_vestas_longsword") === true;
+  if (
+    equipsVls &&
+    action.specIntent !== "spec_vesta_longsword" &&
+    context.self.weaponId !== "vesta_longsword" &&
+    !nhWeaponProfiles[context.self.weaponId].hasVisibleSpecBar &&
+    getAttackDelayStatus(context.self.attackTimer, context.tick).remainingTicks === 1
+  ) {
+    state.optionalVlsSetupTick = context.tick;
+  }
 }
 
 export function encodeNhPolicyFeatures(
@@ -107,6 +160,7 @@ export function encodeNhPolicyFeatures(
 export function encodeNhPolicyInput(context: NhDuelControllerContext, state?: NhPolicyFeatureState): number[] {
   const self = context.self;
   const opponent = context.opponent;
+  observeDefencePrayerAttackHistory(context, state);
   const opponentInfoKnown = observedOpponentInfoKnown(context);
   const distance = observedDistance(context);
   // Source: NhStakerBot.OpponentInfoSnapshot.unknown() keeps the target index
@@ -160,9 +214,9 @@ export function encodeNhPolicyInput(context: NhDuelControllerContext, state?: Nh
   input.push(boolFeature(opponentInfoKnown && opponent.movedThisTick));
   input.push(boolFeature(self.ateFoodLastTick));
   input.push(boolFeature(self.drankPotionLastTick));
-  input.push(clampSigned(self.rewardDelta / rewardClamp));
-  input.push(clampSigned(self.rewardDps / 30));
-  input.push(clampSigned(self.rewardTotal / 120));
+  input.push(self.rewardDelta);
+  input.push(self.rewardDps);
+  input.push(self.rewardTotal);
   input.push(clampSigned(self.lastDealtHit / 40));
   input.push(clampSigned(self.lastTakenHit / 40));
   input.push(clamp01((self.gmaul.specialEnergy * 10) / 1000));
@@ -210,11 +264,88 @@ export function encodeNhPolicyInput(context: NhDuelControllerContext, state?: Nh
   input.push(visibleStyleReliability.lastOutcome);
   input.push(opponentVengeanceTrinketRecentFeature(context));
   input.push(opponentVengeanceTrinketCastsFeature(context));
+  input.push(clamp01((self.gmaulSpecsUsed ?? 0) / 4));
+  input.push(clamp01((self.voidwakerSpecsUsed ?? 0) / 4));
+  input.push(clamp01((self.vlsSpecsUsed ?? 0) / 4));
+  pushSpecHistoryKind(input, self.lastSpecKind ?? "none");
+  pushSpecHistoryKind(input, self.previousSpecKind ?? "none");
+  input.push(clamp01(ticksSinceLastSpecFeature(context)));
+  input.push(clamp01(self.gmaul.specialEnergy / 100));
+  const selfFreeInventorySlots = inventoryFreeSlotCount(self);
+  input.push(clamp01(selfFreeInventorySlots / 28));
+  input.push(boolFeature(self.equipment.shield !== undefined));
+  input.push(boolFeature(canEquipTwoHandedWeaponFromCurrentState(self, selfFreeInventorySlots)));
+  input.push(observedOpponentAttackAgeFeature(context, state));
+  input.push(clamp01(selfAttackDelay.remainingTicks / 8));
+  input.push(boolFeature(nhWeaponProfiles[self.weaponId].hasVisibleSpecBar));
+  input.push(boolFeature(state?.optionalVlsSetupTick === context.tick - 1));
 
   if (input.length !== nhPolicyInputSize) {
     throw new Error(`NH policy input encoder produced ${input.length} inputs, expected ${nhPolicyInputSize}.`);
   }
   return input;
+}
+
+function observeDefencePrayerAttackHistory(
+  context: NhDuelControllerContext,
+  state: NhPolicyFeatureState | undefined
+): void {
+  if (!state) {
+    return;
+  }
+  if (state.defencePrayerOpponentId !== context.opponent.id) {
+    state.defencePrayerOpponentId = context.opponent.id;
+    state.defencePrayerTrackingStartTick = context.tick;
+    state.defencePrayerLastObservedAttackTick = null;
+    state.defencePrayerAttackHistoryCodes.fill(0);
+  }
+  const attackTick = context.opponent.attackTimer.lastAttackTick;
+  const trackingStart = state.defencePrayerTrackingStartTick ?? context.tick;
+  if (
+    !Number.isFinite(attackTick) ||
+    attackTick < trackingStart ||
+    attackTick >= context.tick ||
+    (state.defencePrayerLastObservedAttackTick !== null && attackTick <= state.defencePrayerLastObservedAttackTick)
+  ) {
+    return;
+  }
+  state.defencePrayerLastObservedAttackTick = attackTick;
+  shiftDefencePrayerHistoryCode(
+    state.defencePrayerAttackHistoryCodes,
+    context.opponent.lastOffenceStyle === "melee"
+      ? 1
+      : context.opponent.lastOffenceStyle === "ranged"
+        ? 2
+        : context.opponent.lastOffenceStyle === "magic"
+          ? 3
+          : 0
+  );
+}
+
+function observedOpponentAttackAgeFeature(
+  context: NhDuelControllerContext,
+  state: NhPolicyFeatureState | undefined
+): number {
+  const observedTick = state?.defencePrayerLastObservedAttackTick;
+  if (observedTick === null || observedTick === undefined) {
+    return 1;
+  }
+  return clamp01(Math.max(1, context.tick - observedTick) / 8);
+}
+
+function shiftDefencePrayerHistoryCode(history: number[], code: number): void {
+  for (let index = history.length - 1; index > 0; index -= 1) {
+    history[index] = history[index - 1] ?? 0;
+  }
+  history[0] = code >= 1 && code <= 3 ? code : 0;
+}
+
+function inventoryFreeSlotCount(actor: NhDuelActorState): number {
+  return actor.inventorySlots.reduce((count, slot) => count + (slot === null ? 1 : 0), 0);
+}
+
+function canEquipTwoHandedWeaponFromCurrentState(actor: NhDuelActorState, freeSlots: number): boolean {
+  return actor.equipment.shield === undefined || actor.equipment.weapon === undefined || freeSlots > 0;
 }
 
 function advanceStateHidden(state: NhPolicyFeatureState, input: readonly number[]): readonly number[] {
@@ -331,6 +462,22 @@ function opponentVengeanceTrinketCastsFeature(context: NhDuelControllerContext):
   return clamp01((context.opponent.vengeanceTrinketCasts ?? 0) / vengeanceTrinketCastCountNormalizer);
 }
 
+function ticksSinceLastSpecFeature(context: NhDuelControllerContext): number {
+  const lastSpecTick = context.self.lastSpecTick;
+  if (lastSpecTick === undefined || lastSpecTick < 0) {
+    return 1;
+  }
+  return Math.max(0, context.tick - lastSpecTick) / 100;
+}
+
+function pushSpecHistoryKind(input: number[], kind: NhSpecHistoryKind): void {
+  input.push(kind === "none" ? 1 : 0);
+  input.push(kind === "granite_maul" ? 1 : 0);
+  input.push(kind === "voidwaker" ? 1 : 0);
+  input.push(kind === "vesta_longsword" ? 1 : 0);
+  input.push(kind === "other" ? 1 : 0);
+}
+
 function updateVisibleStyleReliabilityState(
   context: NhDuelControllerContext,
   state: NhPolicyFeatureState | undefined
@@ -338,6 +485,7 @@ function updateVisibleStyleReliabilityState(
   if (!state || state.visibleStyleReliabilityLastTick === context.tick || !observedOpponentInfoKnown(context)) {
     return;
   }
+  // Java records visible-style reliability only when positive damage lands.
   if (context.opponent.lastDealtHit <= 0) {
     return;
   }
@@ -440,8 +588,7 @@ function styleForWeapon(weaponId: NhWeaponId): NhOffenceStyle {
     weaponId === "kodai" ||
     weaponId === "ancient_staff" ||
     weaponId === "staff_of_the_dead" ||
-    weaponId === "zuriels_staff" ||
-    weaponId === "voidwaker"
+    weaponId === "zuriels_staff"
   ) {
     return "magic";
   }
@@ -664,8 +811,7 @@ export function nhPolicyGmaulSpecApproachWindow(context: NhDuelControllerContext
   if (specialKind === null || (doubleSpecOnly && specialKind !== "granite_maul")) {
     return 0;
   }
-  const distance = observedDistance(context);
-  if (distance < 0 || distance > 2) {
+  if (!canMeleeSpecialStepInReachNextTick(context, specialKind)) {
     return 0;
   }
   const energy = context.self.gmaul.specialEnergy;
@@ -739,7 +885,28 @@ function canApproachSpecialSpecSoon(
   if (specialKind !== "granite_maul" && getAttackDelayStatus(context.self.attackTimer, context.tick).delayed) {
     return false;
   }
-  return observedDistance(context) === 2 && hasClientSpecControlForSpecial(context, specialKind);
+  return canMeleeSpecialStepInReachNextTick(context, specialKind);
+}
+
+export function canMeleeSpecialStepInReachNextTick(
+  context: NhDuelControllerContext,
+  specialKind: NhSpecialWeaponKind
+): boolean {
+  void specialKind;
+  if (!observedOpponentInfoKnown(context)) {
+    return false;
+  }
+  return canMeleeStepInReachNextTick({
+    attacker: context.self.tile,
+    defender: context.opponent.tile,
+    attackerFrozen: isFrozen(context.self.locks, context.tick),
+    attackRange: meleeSpecialAttackRange(specialKind)
+  });
+}
+
+function meleeSpecialAttackRange(specialKind: NhSpecialWeaponKind): number {
+  void specialKind;
+  return 1;
 }
 
 function hasClientSpecControlForSpecial(context: NhDuelControllerContext, specialKind: NhSpecialWeaponKind): boolean {

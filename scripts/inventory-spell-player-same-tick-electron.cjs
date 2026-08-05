@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow } = require("./electron-muted.cjs");
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -501,6 +501,7 @@ app.whenReady().then(async () => {
 
   try {
     await window.loadFile(path.join(projectRoot, "dist", "index.html"));
+    await window.webContents.executeJavaScript(`(() => { window.__NH_TRAINER_ENABLE_RUNTIME_MOTION_DEBUG = true; })()`);
     await waitForReady(window);
     await dispatchEvent(window, "nh-runtime-camera", { camera: "top" });
     await dispatchEvent(window, "nh-runtime-cycle", { cycle: 200 });

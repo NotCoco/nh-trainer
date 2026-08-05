@@ -20,6 +20,10 @@ const sourceRoot = process.env.NH_SOURCE_ROOT
     `${legacySourceName}-master`
   );
 const serverProjectRoot = path.join(sourceRoot, `${legacySourceNameLower}-server`);
+const serverPracticeDmmDeployedPropertiesPath = path.join(serverProjectRoot, "server.practice.dmm.deployed.properties");
+const serverPracticeDmmDeployedPropertiesSource = existsSync(serverPracticeDmmDeployedPropertiesPath)
+  ? readFileSync(serverPracticeDmmDeployedPropertiesPath, "utf8")
+  : "";
 const serverRuinRoot = process.env.NH_SERVER_JAVA_RUIN_ROOT
   ? path.resolve(process.env.NH_SERVER_JAVA_RUIN_ROOT)
   : path.join(serverProjectRoot, "src", "main", "java", "io", "ruin");
@@ -139,6 +143,8 @@ const spellbookCastableScriptSource = readNhScriptSource("script2614.cs2");
 const spellbookLevelFilterScriptSource = readNhScriptSource("script2619.cs2");
 const nhStakerBotSource = readNhServerSource("model/entity/player/ai/scripts/NhStakerBot.java");
 const nhStakerLoadoutSource = readNhServerSource("model/entity/player/ai/NhStakerLoadout.java");
+const nhStakerSelfPlayManagerSource = readNhServerSource("model/entity/player/ai/NhStakerSelfPlayManager.java");
+const nhNeuralPolicyModelSource = readNhServerSource("model/entity/player/ai/NhNeuralPolicyModel.java");
 const walkHandlerSource = readNhServerSource("network/incoming/handlers/WalkHandler.java");
 const playerSource = readNhServerSource("model/entity/player/Player.java");
 const coreWorkerSource = readNhServerSource("process/CoreWorker.java");
@@ -148,6 +154,7 @@ const targetRouteSource = readNhServerSource("model/map/route/routes/TargetRoute
 const tabInventorySource = readNhServerSource("model/inter/handlers/TabInventory.java");
 const equipmentSource = readNhServerSource("model/item/containers/Equipment.java");
 const consumableSource = readNhServerSource("model/item/actions/impl/Consumable.java");
+const trinketOfVengeanceSource = readNhServerSource("model/item/actions/impl/TrinketOfVengeance.java");
 const tickDelaySource = readNhServerSource("utility/TickDelay.java");
 const tabCombatSource = readNhServerSource("model/inter/handlers/TabCombat.java");
 const weaponTypeLoaderSource = readNhServerSource("data/impl/items/weapon_types.java");
@@ -160,12 +167,16 @@ const weaponTypes = JSON.parse(readFileSync(path.join(projectRoot, "fixtures", "
 const appSource = readFileSync(path.join(projectRoot, "src", "ui", "App.tsx"), "utf8");
 const viewerSource = readFileSync(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
 const hudSource = readFileSync(path.join(projectRoot, "src", "ui", "NhClientHud.tsx"), "utf8");
+const botPolicySource = readFileSync(path.join(projectRoot, "src", "bot", "policy.ts"), "utf8");
 const runtimeCombatSource = readFileSync(path.join(projectRoot, "src", "sim", "runtimePlayerCombat.ts"), "utf8");
 const consumablesSource = readFileSync(path.join(projectRoot, "src", "sim", "items", "consumables.ts"), "utf8");
 const magicRequirementsSource = readFileSync(path.join(projectRoot, "src", "sim", "magic", "spellRequirements.ts"), "utf8");
 const runtimePolicyOpponentSource = readFileSync(path.join(projectRoot, "src", "sim", "nh", "runtime-policy-opponent.ts"), "utf8");
 const nhPolicyFeaturesSource = readFileSync(path.join(projectRoot, "src", "sim", "nh", "policy-features.ts"), "utf8");
 const nhDuelSource = readFileSync(path.join(projectRoot, "src", "sim", "nh", "duel.ts"), "utf8");
+const nhSelfPlayPolicyBridgeSource = nhStakerSelfPlayManagerSource.slice(
+  nhStakerSelfPlayManagerSource.indexOf("private static final class NhStakerSelfPlayPolicyBridge implements")
+);
 
 function readNhServerSource(relativePath) {
   return readFileSync(
@@ -195,6 +206,109 @@ function readNhScriptSource(relativePath) {
   );
 }
 
+function parseProperties(source) {
+  const properties = new Map();
+  for (const rawLine of source.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (line.length === 0 || line.startsWith("#")) {
+      continue;
+    }
+    const equals = line.indexOf("=");
+    if (equals < 0) {
+      continue;
+    }
+    properties.set(line.slice(0, equals).trim(), line.slice(equals + 1).trim());
+  }
+  return properties;
+}
+
+function resolveConfiguredPath(value, basePath) {
+  if (!value) {
+    return "";
+  }
+  return path.isAbsolute(value) ? value : path.resolve(basePath, value);
+}
+
+function parseJavaEnumArray(source, arrayName) {
+  const match = source.match(new RegExp(`\\b${arrayName}\\s*=\\s*\\{([\\s\\S]*?)\\};`));
+  assert(match, `missing Java enum array ${arrayName}`);
+  return [...match[1].matchAll(/\.([A-Z0-9_]+)\b/g)].map((entry) => entry[1].toLowerCase());
+}
+
+function parseRuntimeInventoryItemIds(source, constName) {
+  const match = source.match(new RegExp(`const\\s+${constName}\\s*=\\s*normalizeNhInventorySlots\\(\\[([\\s\\S]*?)\\]\\);`));
+  assert(match, `missing runtime inventory block ${constName}`);
+  return [...match[1].matchAll(/itemId:\s*(\d+)/g)].map((entry) => Number(entry[1]));
+}
+
+function deployedLegacyMovementName(javaName) {
+  const mapped = {
+    move_n1: "step_north",
+    move_s1: "step_south",
+    move_e1: "step_east",
+    move_w1: "step_west",
+    move_e1_n1: "step_north_east",
+    move_w1_n1: "step_north_west",
+    move_e1_s1: "step_south_east",
+    move_w1_s1: "step_south_west"
+  }[javaName];
+  return mapped ?? javaName;
+}
+
+function assertArrayEquals(actual, expected, label) {
+  assert(
+    JSON.stringify(actual) === JSON.stringify(expected),
+    `${label} mismatch: ${JSON.stringify({ actual, expected })}`
+  );
+}
+
+function clampInt(value, min, max) {
+  return Math.max(min, Math.min(max, Math.trunc(value)));
+}
+
+function decodeJavaStyleDeployedLegacyAction(action, surface) {
+  const deployedLegacyBaseActionCount =
+    surface.offence.length * surface.defence.length * surface.movement.length * surface.supply.length;
+  const deployedLegacyExtraBaseActionCount =
+    surface.offence.length * surface.defence.length * surface.movement.length * surface.extraSupply.length;
+  const deployedLegacyActionCount = deployedLegacyBaseActionCount * surface.spec.length;
+  const deployedLegacyPolicyV1ActionCount =
+    deployedLegacyActionCount + deployedLegacyExtraBaseActionCount * surface.spec.length;
+  const deployedLegacyPolicyActionCount =
+    deployedLegacyPolicyV1ActionCount * surface.attack.length * surface.equipment.length;
+
+  const normalizedAction = clampInt(action, 0, deployedLegacyPolicyActionCount - 1);
+  const legacyAction = normalizedAction % deployedLegacyPolicyV1ActionCount;
+  const variantIndex = Math.trunc(normalizedAction / deployedLegacyPolicyV1ActionCount);
+  const attackIndex = variantIndex % surface.attack.length;
+  const equipmentIndex = Math.trunc(variantIndex / surface.attack.length) % surface.equipment.length;
+  const extendedSupplyAction = legacyAction >= deployedLegacyActionCount;
+  const baseAction = extendedSupplyAction
+    ? (legacyAction - deployedLegacyActionCount) % deployedLegacyExtraBaseActionCount
+    : legacyAction % deployedLegacyBaseActionCount;
+  const specIndex = extendedSupplyAction
+    ? Math.trunc((legacyAction - deployedLegacyActionCount) / deployedLegacyExtraBaseActionCount)
+    : Math.trunc(legacyAction / deployedLegacyBaseActionCount);
+  const supplyPool = extendedSupplyAction ? surface.extraSupply : surface.supply;
+  const supplyIndex = baseAction % supplyPool.length;
+  const movementIndex = Math.trunc(baseAction / supplyPool.length) % surface.movement.length;
+  const defenceIndex = Math.trunc(baseAction / (supplyPool.length * surface.movement.length)) % surface.defence.length;
+  const styleIndex =
+    Math.trunc(baseAction / (supplyPool.length * surface.movement.length * surface.defence.length)) %
+    surface.offence.length;
+
+  return {
+    offenceStyle: surface.offence[styleIndex],
+    defencePrayer: surface.defence[defenceIndex],
+    movementIntent: surface.movement[movementIndex],
+    supplyIntent: supplyPool[supplyIndex],
+    specIntent: surface.spec[clampInt(specIndex, 0, surface.spec.length - 1)],
+    extendedSupplyAction,
+    attackIntent: surface.attack[attackIndex],
+    equipmentIntent: surface.equipment[equipmentIndex]
+  };
+}
+
 function createState(seed = 1, overrides = {}) {
   return runtimeCombat.createRuntimePlayerCombatState({
     localTile: { x: 0, z: 0 },
@@ -205,6 +319,15 @@ function createState(seed = 1, overrides = {}) {
     seed,
     ...overrides
   });
+}
+
+function pinProcessOrder(state, processOrder) {
+  return {
+    ...state,
+    processOrder,
+    nextProcessOrderShuffleTick: 999,
+    processOrderSeed: 1
+  };
 }
 
 function combatLevels(overrides = {}) {
@@ -266,6 +389,10 @@ function assertUnequipDeltaMatchesRemovedItem(label, withEquipment, withoutEquip
 
 function requestLocalSpell(state, spellId = "ice-barrage") {
   return runtimeCombat.requestRuntimePlayerCombatSpell(state, "local-player", "opponent", spellId);
+}
+
+function requestOpponentSpell(state, spellId = "ice-barrage") {
+  return runtimeCombat.requestRuntimePlayerCombatSpell(state, "opponent", "local-player", spellId);
 }
 
 function requestOpponentAttack(state) {
@@ -474,9 +601,10 @@ function assertAttackAnimationWindow(result, actorId, label) {
     `${label} should start a visible action animation window with the queued attack: ${JSON.stringify({ actor, attack, hit })}`
   );
   if (hit) {
+    const sourceDelayEndTick = attack.tick + attack.hitDelayTicks;
     assert(
-      actor.actionUntilTick >= hit.dueTick,
-      `${label} action window should cover the queued hit timing boundary so hits cannot land detached from the attack animation: ${JSON.stringify({ actor, attack, hit })}`
+      actor.actionUntilTick >= sourceDelayEndTick,
+      `${label} action window should cover the source hit-delay boundary so hits cannot land detached from the attack animation: ${JSON.stringify({ actor, attack, hit, sourceDelayEndTick })}`
     );
   }
 }
@@ -515,8 +643,10 @@ assert(
   "Nh combat tab config ids should still match the trainer HUD varp/varpbit mapping"
 );
 assert(combatSource.includes("lastAttackTickDelay + attackDelayTicks"), "Nh Combat attack delay should combine weapon and additive delays");
-assert(hitSource.includes("PVP_MAGIC_ACCURACY_MODIFIER = 1.22"), "Nh Hit should apply the PvP magic accuracy modifier");
-assert(hitSource.includes("PVP_MELEE_ACCURACY_MODIFIER = 1.12"), "Nh Hit should apply the PvP melee accuracy modifier");
+assert(
+  !hitSource.includes("PVP_MAGIC_ACCURACY_MODIFIER") && !hitSource.includes("PVP_MELEE_ACCURACY_MODIFIER"),
+  "Nh Hit should not apply hidden global PvP magic or melee accuracy multipliers"
+);
 assert(hitSource.includes("return clientDelay(delay, 16)"), "Nh Hit default clientDelay should use the 16ms cycle-rate bridge");
 assert(
   playerCombatSource.includes("private void postDefend(Hit hit)") &&
@@ -551,7 +681,10 @@ assert(
     dragonBoltEffectSource.includes("Random.rollPercent(6)") &&
     dragonBoltEffectSource.includes("target.graphics(756)") &&
     dragonBoltEffectSource.includes("hit.boostDamage(0.45)") &&
-    onyxBoltEffectSource.includes("Random.rollPercent(target.player != null ? 10 : 11)") &&
+    onyxBoltEffectSource.includes("int procPercent = target.player != null ? 10 : 11") &&
+    onyxBoltEffectSource.includes("NhDeterministicReplay.onyxProc(") &&
+    onyxBoltEffectSource.includes("? Random.rollPercent(procPercent)") &&
+    onyxBoltEffectSource.includes("expectNhStakerRandomDamageBoost(procPercent * 0.01D, 0.20D, proc, \"onyx_bolt\")") &&
     onyxBoltEffectSource.includes("target.graphics(753)") &&
     onyxBoltEffectSource.includes("hit.boostDamage(0.20)") &&
     onyxBoltEffectSource.includes("hit.attacker.incrementHp(heal)"),
@@ -608,6 +741,12 @@ assert(
 const weaponTypeStore = nhCombat.createNhWeaponTypeDefinitionStore(weaponTypes);
 const wandType = weaponTypeStore.get("WAND");
 assert(
+  weaponTypes.WAND?.attackAnimation === 393 &&
+    weaponTypes.WAND?.renderAnimations?.[0] === 813 &&
+    weaponTypes.WAND?.renderAnimations?.[2] === 1205,
+  "exported source WAND type should keep staff bash attack animation 393 and wand render animations."
+);
+assert(
   wandType?.config === 18 &&
     wandType.attackSets[0]?.child === 3 &&
     wandType.attackSets[1]?.child === 7 &&
@@ -634,6 +773,28 @@ assert(
     foodSoundEvent?.soundChannel === "sound-effects",
   `Manta ray supply event should emit source private eat sound 2393 on sound-effects: ${JSON.stringify(foodSoundEvent)}`
 );
+let foodTargetCancelState = requestLocalAttack(createState(143, {
+  localLevels: combatLevels({ hitpoints: 50 })
+}));
+const foodTargetCancelResult = runtimeCombat.consumeRuntimePlayerCombatSupply(
+  foodTargetCancelState,
+  "local-player",
+  "manta_ray"
+);
+let foodTargetCancelAdvanced = foodTargetCancelResult.state;
+for (let index = 0; index < 6; index += 1) {
+  foodTargetCancelAdvanced = advance(foodTargetCancelAdvanced).state;
+}
+assert(
+  foodTargetCancelResult.consumed &&
+    foodTargetCancelResult.state.actors["local-player"].targetId === null &&
+    foodTargetCancelResult.state.actors["local-player"].queuedSpellId === null &&
+    !foodTargetCancelAdvanced.events.some((event) => event.kind === "attack" && event.attackerId === "local-player"),
+  `Food should mirror Consumable.animEat resetActions(..., resetCombat=true) and cancel the active DCB target: ${JSON.stringify({
+    actor: foodTargetCancelResult.state.actors["local-player"],
+    events: foodTargetCancelAdvanced.events
+  })}`
+);
 const drinkSoundResult = runtimeCombat.consumeRuntimePlayerCombatSupply(createState(142, {
   localLevels: combatLevels({ attack: 90, strength: 90, defence: 90 })
 }), "local-player", "super_combat");
@@ -643,6 +804,29 @@ assert(
     JSON.stringify(drinkSoundEvent?.soundIds) === JSON.stringify([2401]) &&
     drinkSoundEvent?.soundChannel === "sound-effects",
   `Super combat supply event should emit source private drink sound 2401 on sound-effects: ${JSON.stringify(drinkSoundEvent)}`
+);
+let drinkTargetCancelState = requestLocalAttack(createState(144, {
+  localLevels: combatLevels({ attack: 90, strength: 90, defence: 90 })
+}));
+const drinkTargetCancelResult = runtimeCombat.consumeRuntimePlayerCombatSupply(
+  drinkTargetCancelState,
+  "local-player",
+  "super_combat"
+);
+const drinkTargetCancelAdvanced = advance(drinkTargetCancelResult.state).state;
+assert(
+  drinkTargetCancelResult.consumed &&
+    drinkTargetCancelResult.state.actors["local-player"].targetId === null &&
+    drinkTargetCancelResult.state.actors["local-player"].queuedSpellId === null &&
+    !drinkTargetCancelAdvanced.events.some((event) => event.kind === "attack" && event.attackerId === "local-player"),
+  `Potions should mirror Consumable.animDrink resetActions(..., resetCombat=true) and cancel the active DCB target: ${JSON.stringify({
+    actor: drinkTargetCancelResult.state.actors["local-player"],
+    events: drinkTargetCancelAdvanced.events
+  })}`
+);
+assert(
+  /if \(action\.kind === "eat" \|\| action\.kind === "drink"\)[\s\S]*targetId: null,[\s\S]*queuedSpellId: null,/.test(viewerSource),
+  "RuntimeSceneViewer queued inventory eat/drink path should clear the local combat target like the shared supply helper"
 );
 for (const spotanimFile of [
   "onyx_bolt_proc.glb",
@@ -668,8 +852,9 @@ assert(targetSpellSource.includes('getStats().check(StatType.Magic, lvlReq, "cas
 assert(
   playerCombatSource.includes("if(!spell.cast(player, target))") &&
     playerCombatSource.includes("reset();") &&
-    playerCombatSource.includes("updateLastAttack(5)"),
-  "Nh PlayerCombat.attackWithMagic should reset failed spell casts before applying the five-tick spell cooldown"
+    playerCombatSource.includes("updateLastAttack(targetSpellAttackTicks(castingWeaponId, ancientSpellbook))") &&
+    playerCombatSource.includes("DmmRuntimeItems.ZURIELS_STAFF_DMM ? 4 : 5"),
+  "Nh PlayerCombat.attackWithMagic should reset failed spell casts before applying the casting weapon's shared cooldown"
 );
 assert(bloodBarrageSource.includes("setLvlReq(92)"), "Nh Blood Barrage source should require Magic level 92");
 assert(iceBarrageSource.includes("setLvlReq(94)"), "Nh Ice Barrage source should require Magic level 94");
@@ -932,6 +1117,320 @@ assert(
   "same-tick attacks should resolve in the current Nh/PID process order, not fixed local-player first"
 );
 
+function processOrderKey(processOrder) {
+  return processOrder.join(",");
+}
+
+function findProcessOrderSeedFor(targetProcessOrder, shuffleTick = 1) {
+  for (let seed = 1; seed < 10000; seed += 1) {
+    const candidate = {
+      ...createState(812, {
+        localLoadoutId: "kodai-robes",
+        opponentLoadoutId: "kodai-robes"
+      }),
+      tick: shuffleTick,
+      processOrder: targetProcessOrder[0] === "local-player" ? ["opponent", "local-player"] : ["local-player", "opponent"],
+      nextProcessOrderShuffleTick: shuffleTick,
+      processOrderSeed: seed
+    };
+    if (processOrderKey(runtimeCombat.runtimePlayerCombatProcessOrderForTick(candidate, shuffleTick)) === processOrderKey(targetProcessOrder)) {
+      return seed;
+    }
+  }
+  throw new Error(`could not find deterministic process-order seed for ${targetProcessOrder.join(" > ")}`);
+}
+
+const flippedToOpponentPidSeed = findProcessOrderSeedFor(["opponent", "local-player"], 1);
+let sameTickMagicAfterPidFlip = createState(813, {
+  localTile: { x: 0, z: 0 },
+  opponentTile: { x: 4, z: 0 },
+  localLoadoutId: "kodai-robes",
+  opponentLoadoutId: "kodai-robes"
+});
+sameTickMagicAfterPidFlip = {
+  ...sameTickMagicAfterPidFlip,
+  tick: 1,
+  processOrder: ["local-player", "opponent"],
+  nextProcessOrderShuffleTick: 1,
+  processOrderSeed: flippedToOpponentPidSeed
+};
+const displayedPidFlipOrder = runtimeCombat.runtimePlayerCombatProcessOrderForTick(
+  sameTickMagicAfterPidFlip,
+  sameTickMagicAfterPidFlip.tick
+);
+sameTickMagicAfterPidFlip = requestOpponentSpell(requestLocalSpell(sameTickMagicAfterPidFlip));
+const sameTickMagicAfterPidFlipResult = advance(sameTickMagicAfterPidFlip);
+const flippedAttackEvents = sameTickMagicAfterPidFlipResult.state.events.filter((event) => event.kind === "attack");
+const opponentPidMagicHit = sameTickMagicAfterPidFlipResult.state.queuedHits.find(
+  (hit) => hit.attackerId === "opponent" && hit.defenderId === "local-player" && hit.spellId === "ice-barrage"
+);
+const localOffPidMagicHit = sameTickMagicAfterPidFlipResult.state.queuedHits.find(
+  (hit) => hit.attackerId === "local-player" && hit.defenderId === "opponent" && hit.spellId === "ice-barrage"
+);
+assert(
+  processOrderKey(displayedPidFlipOrder) === "opponent,local-player" &&
+    processOrderKey(sameTickMagicAfterPidFlipResult.state.processOrder) === "opponent,local-player" &&
+    displayedPidFlipOrder[0] !== displayedPidFlipOrder[1] &&
+    flippedAttackEvents[0]?.attackerId === "opponent" &&
+    flippedAttackEvents[1]?.attackerId === "local-player" &&
+    opponentPidMagicHit &&
+    localOffPidMagicHit &&
+    opponentPidMagicHit.dueTick === opponentPidMagicHit.hitsplatTick &&
+    localOffPidMagicHit.dueTick === localOffPidMagicHit.hitsplatTick &&
+    opponentPidMagicHit.dueTick === localOffPidMagicHit.dueTick - 1,
+  `PID flip should make the overlay-visible process order and same-tick combat order agree, with only the on-PID side getting the earlier magic impact: ${JSON.stringify({
+    displayedPidFlipOrder,
+    stateProcessOrder: sameTickMagicAfterPidFlipResult.state.processOrder,
+    attacks: flippedAttackEvents,
+    opponentPidMagicHit,
+    localOffPidMagicHit
+  })}`
+);
+
+function assertPidAdjustedOutgoingHitsplat(label, attackerId, defenderId, processOrder, overrides = {}) {
+  let state = createState(812, {
+    localTile: { x: 0, z: 0 },
+    opponentTile: { x: 4, z: 0 },
+    localLoadoutId: "acb-hides",
+    opponentLoadoutId: "acb-hides",
+    ...overrides
+  });
+  state = pinProcessOrder(state, processOrder);
+  state = attackerId === "local-player" ? requestLocalAttack(state) : requestOpponentAttack(state);
+  const result = advance(state);
+  const attack = result.state.events.find((event) => event.kind === "attack" && event.attackerId === attackerId);
+  const queuedHit = result.state.queuedHits.find(
+    (candidate) => candidate.attackerId === attackerId && candidate.defenderId === defenderId
+  );
+  const appliedHitEvent = result.state.events.find(
+    (event) => event.kind === "hitsplat" && event.attackerId === attackerId && event.targetActorId === defenderId
+  );
+  assert(
+    attack && (queuedHit || appliedHitEvent),
+    `${label} verifier should launch one attack and either queue or immediately apply one hit: ${JSON.stringify({
+      processOrder,
+      events: result.state.events,
+      queuedHits: result.state.queuedHits
+    })}`
+  );
+  const defenderAlreadyProcessed =
+    processOrder.indexOf(defenderId) >= 0 && processOrder.indexOf(defenderId) < processOrder.indexOf(attackerId);
+  const expectedNormalHitsplatDelay = Math.max(1, attack.hitDelayTicks);
+  const hasProjectile = attack.projectile !== undefined;
+  const expectedPidAdjustedHitsplatDelay = defenderAlreadyProcessed
+    ? expectedNormalHitsplatDelay
+    : hasProjectile && attack.style === "ranged"
+      ? expectedNormalHitsplatDelay
+      : Math.max(0, expectedNormalHitsplatDelay - 1);
+  const expectedDueTick = attack.tick + expectedPidAdjustedHitsplatDelay;
+  const expectedHitsplatTick = attack.tick + expectedPidAdjustedHitsplatDelay;
+  const actualDueTick = queuedHit?.dueTick ?? appliedHitEvent?.tick;
+  const actualHitsplatTick = queuedHit?.hitsplatTick ?? appliedHitEvent?.tick;
+  assert(
+    actualDueTick === expectedDueTick && actualHitsplatTick === expectedHitsplatTick && !("xpDropTick" in (queuedHit ?? {})),
+    `${label} outgoing hit should apply damage, health bar state, and hitsplat on the same PID-adjusted tick: ${JSON.stringify({
+      processOrder,
+      attack,
+      queuedHit,
+      appliedHitEvent,
+      expectedNormalHitsplatDelay,
+      expectedPidAdjustedHitsplatDelay,
+      expectedDueTick,
+      expectedHitsplatTick,
+      actualDueTick,
+      actualHitsplatTick,
+      defenderAlreadyProcessed,
+      hasProjectile
+    })}`
+  );
+  if (appliedHitEvent) {
+    assert(
+      result.state.actors[defenderId].hitpoints === appliedHitEvent.nextHitpoints,
+      `${label} immediately applied hit should update actor HP on the same tick as its hitsplat event: ${JSON.stringify({
+        hitpoints: result.state.actors[defenderId].hitpoints,
+        appliedHitEvent
+      })}`
+    );
+  }
+  return { attack, hit: queuedHit ?? appliedHitEvent, queuedHit, appliedHitEvent, state: result.state };
+}
+
+function observedPidImpactTick(result) {
+  return result.queuedHit?.dueTick ?? result.appliedHitEvent?.tick;
+}
+
+function observedPidHitsplatTick(result) {
+  return result.queuedHit?.hitsplatTick ?? result.queuedHit?.dueTick ?? result.appliedHitEvent?.tick;
+}
+
+const localOnPidHitsplat = assertPidAdjustedOutgoingHitsplat(
+  "local on-PID",
+  "local-player",
+  "opponent",
+  ["local-player", "opponent"]
+);
+const localOffPidHitsplat = assertPidAdjustedOutgoingHitsplat(
+  "local off-PID",
+  "local-player",
+  "opponent",
+  ["opponent", "local-player"]
+);
+assert(
+  observedPidImpactTick(localOffPidHitsplat) === observedPidImpactTick(localOnPidHitsplat) &&
+    observedPidHitsplatTick(localOffPidHitsplat) === observedPidHitsplatTick(localOnPidHitsplat),
+  "local on-PID outgoing projectile damage should keep the source delay instead of drawing like instant melee"
+);
+const opponentOnPidHitsplat = assertPidAdjustedOutgoingHitsplat(
+  "opponent on-PID",
+  "opponent",
+  "local-player",
+  ["opponent", "local-player"]
+);
+const opponentOffPidHitsplat = assertPidAdjustedOutgoingHitsplat(
+  "opponent off-PID",
+  "opponent",
+  "local-player",
+  ["local-player", "opponent"]
+);
+assert(
+  observedPidImpactTick(opponentOffPidHitsplat) === observedPidImpactTick(opponentOnPidHitsplat) &&
+    observedPidHitsplatTick(opponentOffPidHitsplat) === observedPidHitsplatTick(opponentOnPidHitsplat),
+  "opponent on-PID outgoing projectile damage should keep the source delay instead of drawing like instant melee"
+);
+const localCloseRangeRangedOnPidHitsplat = assertPidAdjustedOutgoingHitsplat(
+  "local close-range ranged on-PID",
+  "local-player",
+  "opponent",
+  ["local-player", "opponent"],
+  {
+    opponentTile: { x: 1, z: 0 },
+    localLoadoutId: "acb-hides",
+    opponentLoadoutId: "acb-hides"
+  }
+);
+assert(
+  localCloseRangeRangedOnPidHitsplat.attack.style === "ranged" &&
+    localCloseRangeRangedOnPidHitsplat.attack.projectile?.id === "dragon_bolt" &&
+    localCloseRangeRangedOnPidHitsplat.attack.projectileDurationCycles === 51 &&
+    localCloseRangeRangedOnPidHitsplat.attack.hitDelayTicks === 2 &&
+    observedPidHitsplatTick(localCloseRangeRangedOnPidHitsplat) === localCloseRangeRangedOnPidHitsplat.attack.tick + 2,
+  "close-range on-PID crossbow hits should use the source two-tick dragon-bolt delay and not draw as instant melee"
+);
+const localCloseRangeRangedOneTickLater = advance(localCloseRangeRangedOnPidHitsplat.state).state;
+assert(
+  localCloseRangeRangedOneTickLater.queuedHits.some((hit) => hit.id === localCloseRangeRangedOnPidHitsplat.hit.id) &&
+    !localCloseRangeRangedOneTickLater.events.some(
+      (event) => event.kind === "hitsplat" && event.id === `${localCloseRangeRangedOnPidHitsplat.hit.id}-hitsplat`
+    ),
+  "close-range on-PID crossbow should still be queued one tick after firing instead of splatting at melee speed"
+);
+const localCloseRangeRangedTwoTicksLater = advance(localCloseRangeRangedOneTickLater).state;
+assert(
+  !localCloseRangeRangedTwoTicksLater.queuedHits.some((hit) => hit.id === localCloseRangeRangedOnPidHitsplat.hit.id) &&
+    localCloseRangeRangedTwoTicksLater.events.some(
+      (event) =>
+        event.kind === "hitsplat" &&
+        event.id === `${localCloseRangeRangedOnPidHitsplat.hit.id}-hitsplat` &&
+        event.tick === localCloseRangeRangedOnPidHitsplat.attack.tick + 2
+    ),
+  "close-range on-PID crossbow should splat on the second tick after firing"
+);
+const localMeleeOnPidHitsplat = assertPidAdjustedOutgoingHitsplat(
+  "local melee on-PID",
+  "local-player",
+  "opponent",
+  ["local-player", "opponent"],
+  {
+    opponentTile: { x: 1, z: 0 },
+    localLoadoutId: "tentacle-bandos",
+    opponentLoadoutId: "tentacle-bandos"
+  }
+);
+const localMeleeOffPidHitsplat = assertPidAdjustedOutgoingHitsplat(
+  "local melee off-PID",
+  "local-player",
+  "opponent",
+  ["opponent", "local-player"],
+  {
+    opponentTile: { x: 1, z: 0 },
+    localLoadoutId: "tentacle-bandos",
+    opponentLoadoutId: "tentacle-bandos"
+  }
+);
+assert(
+  localMeleeOnPidHitsplat.attack.hitDelayTicks === 1 &&
+    localMeleeOffPidHitsplat.attack.hitDelayTicks === 1 &&
+    localMeleeOnPidHitsplat.appliedHitEvent?.tick === localMeleeOffPidHitsplat.hit.dueTick - 1 &&
+    localMeleeOnPidHitsplat.state.actors.opponent.hitpoints === localMeleeOnPidHitsplat.appliedHitEvent.nextHitpoints,
+  "instant on-PID melee hits should apply damage and hitsplat one tick earlier, not just draw the visible splat early"
+);
+assert(
+  observedPidHitsplatTick(localCloseRangeRangedOnPidHitsplat) === observedPidHitsplatTick(localMeleeOnPidHitsplat) + 2,
+  "close-range on-PID crossbow hits should stay two ticks slower than on-PID melee hits"
+);
+assert(
+  !viewerSource.includes("queuedRuntimePlayerCombatHitsplatRenderEvent") &&
+    runtimeCombatSource.includes("const immediateAppliedHits = applyRuntimePlayerCombatDueHits(actors, queuedHits, currentTick, input.tileScale)") &&
+    viewerSource.includes("const localQueuedHits = combatState.queuedHits.filter((hit) => hit.attackerId === \"local-player\")"),
+  "RuntimeSceneViewer should not draw hitsplats directly from queued hits; PID-early damage should be applied in combat state while leaving the queued-hit XP-drop scan unchanged"
+);
+
+function resolvedHitState(startState, hitId) {
+  let state = startState;
+  for (let guard = 0; guard < 12 && state.queuedHits.some((hit) => hit.id === hitId); guard += 1) {
+    state = advance(state).state;
+  }
+  return state;
+}
+
+function pidMagicCase(label, processOrder) {
+  for (let seed = 120; seed < 260; seed += 1) {
+    let state = createState(seed, {
+      localTile: { x: 0, z: 0 },
+      opponentTile: { x: 4, z: 0 },
+      localLoadoutId: "kodai-robes",
+      opponentLoadoutId: "kodai-robes"
+    });
+    state = pinProcessOrder(state, processOrder);
+    state = requestLocalSpell(state);
+    const result = advance(state);
+    const attack = result.state.events.find((event) => event.kind === "attack" && event.attackerId === "local-player");
+    const hit = result.state.queuedHits.find((candidate) => candidate.attackerId === "local-player" && candidate.defenderId === "opponent");
+    if (!attack || !hit || hit.damage <= 0) {
+      continue;
+    }
+    const resolved = resolvedHitState(result.state, hit.id);
+    const hitsplat = resolved.events.find((event) => event.kind === "hitsplat" && event.id === `${hit.id}-hitsplat`);
+    assert(hitsplat, `${label} magic case should resolve into a hitsplat event`);
+    assert(
+      resolved.actors.opponent.hitpoints === hitsplat.nextHitpoints,
+      `${label} magic damage should update opponent HP on the exact hitsplat tick: ${JSON.stringify({
+        hit,
+        hitsplat,
+        resolvedHp: resolved.actors.opponent.hitpoints
+      })}`
+    );
+    return { attack, hit, hitsplat, resolved };
+  }
+  throw new Error(`${label} verifier could not find a deterministic damaging Ice Barrage seed`);
+}
+
+const localOnPidMagic = pidMagicCase("local on-PID magic", ["local-player", "opponent"]);
+const localOffPidMagic = pidMagicCase("local off-PID magic", ["opponent", "local-player"]);
+assert(
+  localOnPidMagic.attack.style === "magic" &&
+    localOffPidMagic.attack.style === "magic" &&
+    localOnPidMagic.hit.dueTick === localOnPidMagic.hit.hitsplatTick &&
+    localOffPidMagic.hit.dueTick === localOffPidMagic.hit.hitsplatTick &&
+    localOnPidMagic.hit.dueTick === localOffPidMagic.hit.dueTick - 1 &&
+    localOnPidMagic.hitsplat.tick === localOnPidMagic.hit.dueTick &&
+    localOffPidMagic.hitsplat.tick === localOffPidMagic.hit.dueTick,
+  `on-PID magic should land one tick earlier than off-PID magic, with hit event and HP timing aligned: ${JSON.stringify({
+    onPid: { dueTick: localOnPidMagic.hit.dueTick, hitsplatTick: localOnPidMagic.hitsplat.tick },
+    offPid: { dueTick: localOffPidMagic.hit.dueTick, hitsplatTick: localOffPidMagic.hitsplat.tick }
+  })}`
+);
+
 let opponentPidFreezeCancelsUnderStep = createState(1, {
   localTile: { x: 0, z: 0 },
   opponentTile: { x: 1, z: 0 },
@@ -1016,6 +1515,85 @@ assert(
   localPidUnderStepBlocksLaterFreezeResult.state.queuedHits.length === 0 &&
     !entityLocks.isFrozen(localPidUnderStepBlocksLaterFreezeResult.state.actors["local-player"].locks, localPidUnderStepBlocksLaterFreeze.tick),
   "later-PID frozen caster should not Ice Barrage a target that has already stepped under on its PID turn"
+);
+
+let localPidStepInSpecBeatsLaterTargetStepOut = createState(1121, {
+  localTile: { x: 0, z: 0 },
+  opponentTile: { x: 3, z: 0 },
+  localLoadoutId: "gmaul-bandos",
+  opponentLoadoutId: "kodai-robes"
+});
+localPidStepInSpecBeatsLaterTargetStepOut = pinProcessOrder(localPidStepInSpecBeatsLaterTargetStepOut, [
+  "local-player",
+  "opponent"
+]);
+localPidStepInSpecBeatsLaterTargetStepOut = runtimeCombat.toggleRuntimePlayerCombatSpecial(
+  localPidStepInSpecBeatsLaterTargetStepOut,
+  "local-player"
+).state;
+localPidStepInSpecBeatsLaterTargetStepOut = requestLocalAttack(localPidStepInSpecBeatsLaterTargetStepOut);
+const localPidStepInSpecBeatsLaterTargetStepOutResult = runtimeCombat.advanceRuntimePlayerCombat(
+  localPidStepInSpecBeatsLaterTargetStepOut,
+  {
+    preMovementTiles: {
+      "local-player": { x: 0, z: 0 },
+      opponent: { x: 3, z: 0 }
+    },
+    tiles: {
+      "local-player": { x: 2, z: 0 },
+      opponent: { x: 5, z: 0 }
+    },
+    targetRouteMovementConsumed: {
+      "local-player": true,
+      opponent: true
+    }
+  }
+);
+assert(
+  localPidStepInSpecBeatsLaterTargetStepOutResult.state.events.some(
+    (event) => event.kind === "attack" && event.attackerId === "local-player" && event.specialAttack === "granite_maul"
+  ),
+  "on-PID melee spec step-in should resolve against the defender's pre-movement tile when the defender steps out later in the tick"
+);
+
+let localOffPidStepInSpecChasesEarlierTargetStepOut = createState(1122, {
+  localTile: { x: 0, z: 0 },
+  opponentTile: { x: 3, z: 0 },
+  localLoadoutId: "gmaul-bandos",
+  opponentLoadoutId: "kodai-robes"
+});
+localOffPidStepInSpecChasesEarlierTargetStepOut = pinProcessOrder(localOffPidStepInSpecChasesEarlierTargetStepOut, [
+  "opponent",
+  "local-player"
+]);
+localOffPidStepInSpecChasesEarlierTargetStepOut = runtimeCombat.toggleRuntimePlayerCombatSpecial(
+  localOffPidStepInSpecChasesEarlierTargetStepOut,
+  "local-player"
+).state;
+localOffPidStepInSpecChasesEarlierTargetStepOut = requestLocalAttack(localOffPidStepInSpecChasesEarlierTargetStepOut);
+const localOffPidStepInSpecChasesEarlierTargetStepOutResult = runtimeCombat.advanceRuntimePlayerCombat(
+  localOffPidStepInSpecChasesEarlierTargetStepOut,
+  {
+    preMovementTiles: {
+      "local-player": { x: 0, z: 0 },
+      opponent: { x: 3, z: 0 }
+    },
+    tiles: {
+      "local-player": { x: 2, z: 0 },
+      opponent: { x: 5, z: 0 }
+    },
+    targetRouteMovementConsumed: {
+      "local-player": true,
+      opponent: true
+    }
+  }
+);
+assert(
+  !localOffPidStepInSpecChasesEarlierTargetStepOutResult.state.events.some(
+    (event) => event.kind === "attack" && event.attackerId === "local-player" && event.specialAttack === "granite_maul"
+  ) &&
+    localOffPidStepInSpecChasesEarlierTargetStepOutResult.state.queuedHits.length === 0,
+  "off-PID melee spec step-in should chase instead of hitting when the defender has already stepped out"
 );
 
 let frozenMelee = createState(9, {
@@ -1188,6 +1766,33 @@ assert(
     nhStakeBootDelta.melee_strength_bonus === -4,
   `Dragon boots unequip should gain negative magic/range attack back and lose melee strength: ${JSON.stringify(nhStakeBootDelta)}`
 );
+const nhStakeBootsInInventoryProfile = nhGearProfile.inferNhSelectedGearProfile({
+  equipment: nhStakeUnequippedBoots,
+  previousProfile: nhStakeProfile,
+  inventoryItems: [nhStakeEquipment.feet]
+});
+const nhStakeReequippedBoots = nhGearProfile.nhGearProfileActionEquipment({
+  currentEquipment: nhStakeUnequippedBoots,
+  profile: nhStakeBootsInInventoryProfile,
+  action: {
+    offenceStyle: "ranged",
+    defencePrayer: "protect_from_magic",
+    movementIntent: "pressure",
+    supplyIntent: "none",
+    specIntent: "none",
+    equipmentIntent: "style_loadout"
+  },
+  threatStyle: null,
+  underPressure: false,
+  hitpoints: 99,
+  allowFlexibleGear: false
+});
+assert(
+  nhStakeReequippedBoots.feet?.itemId === nhStakeEquipment.feet.itemId,
+  `Dragon boots should be equippable again after appearing in the inventory view: ${JSON.stringify({
+    feet: nhStakeReequippedBoots.feet
+  })}`
+);
 
 const dmmIndependentEquipment = nhLoadouts.nhLoadouts["noxious-halberd"].equipment;
 const dmmIndependentInventory = Object.values(dmmIndependentEquipment);
@@ -1276,8 +1881,311 @@ const dmmReequippedHead = nhGearProfile.nhGearProfileActionEquipment({
   allowFlexibleGear: false
 });
 assert(
-  !dmmReequippedHead.head,
-  "DMM independent style_loadout should not force a previously unequipped head slot when flexible gear is disabled"
+  dmmReequippedHead.head?.itemId === dmmMagicStyleEquipment.head?.itemId,
+  "DMM independent style_loadout should restore a previously unequipped head slot before flexible gear optimization"
+);
+
+const dmmVectorProbeActionIds = nhPolicyBridge.dmmCurrentActionVectorActionIds();
+const dmmVectorProbeAttackIds = nhPolicyBridge.dmmCanonicalAttackActionIds();
+
+function dmmVectorProbeFindActionId(actionIds, predicate, label) {
+  const actionId = actionIds.find((id) => predicate(nhPolicyBridge.decodeNhPolicyAction(id), id));
+  assert(actionId !== undefined, `missing DMM vector probe action: ${label}`);
+  return actionId;
+}
+
+function dmmVectorProbeDirectGearId(action) {
+  return dmmVectorProbeFindActionId(
+    dmmVectorProbeActionIds,
+    (decoded, id) =>
+      nhPolicyBridge.isNhDirectGearActionId(id) &&
+      decoded.directGearActions?.[0] === action,
+    action
+  );
+}
+
+const dmmVectorProbeIds = {
+  hold: dmmVectorProbeAttackIds[0],
+  magic: dmmVectorProbeFindActionId(
+    dmmVectorProbeAttackIds,
+    (action) => action.offenceStyle === "magic" && action.attackIntent === "attack",
+    "magic attack"
+  ),
+  ranged: dmmVectorProbeFindActionId(
+    dmmVectorProbeAttackIds,
+    (action) => action.offenceStyle === "ranged" && action.attackIntent === "attack",
+    "ranged attack"
+  ),
+  melee: dmmVectorProbeFindActionId(
+    dmmVectorProbeAttackIds,
+    (action) => action.offenceStyle === "melee" && action.attackIntent === "attack",
+    "melee attack"
+  ),
+  noxious: dmmVectorProbeDirectGearId("equip_dmm_noxious_halberd"),
+  torvaLegs: dmmVectorProbeDirectGearId("equip_dmm_torva_platelegs"),
+  virtusTop: dmmVectorProbeDirectGearId("equip_dmm_virtus_robe_top"),
+  masoriBody: dmmVectorProbeDirectGearId("equip_dmm_masori_body"),
+  torvaHelm: dmmVectorProbeDirectGearId("equip_dmm_torva_full_helm"),
+  unequipHead: dmmVectorProbeDirectGearId("unequip_head")
+};
+
+function createDmmVectorProbePolicy(label, scores) {
+  const scoreByAction = new Map(scores);
+  const inputSize = nhPolicyBridge.nhPolicyInputSize;
+  const actionIds = Int32Array.from(dmmVectorProbeActionIds);
+  const policy = {
+    kind: "neural",
+    version: 15,
+    sourceLabel: label,
+    step: 0,
+    inputSize,
+    featureSize: nhPolicyBridge.nhPolicyFeatureSize,
+    actionCount: actionIds.length,
+    actionIds,
+    inputMean: new Float32Array(inputSize),
+    inputStd: new Float32Array(inputSize).fill(1),
+    layers: [
+      {
+        weight: [new Float32Array(inputSize)],
+        bias: Float32Array.of(0),
+        activation: "silu"
+      }
+    ],
+    policy: {
+      weight: Array.from({ length: actionIds.length }, () => Float32Array.of(0)),
+      bias: Float32Array.from(
+        dmmVectorProbeActionIds.map(
+          (actionId, index) => scoreByAction.get(actionId) ?? (-100 - index * 0.001)
+        )
+      )
+    },
+    metrics: {}
+  };
+  botPolicy.assertNhNeuralPolicyHasCurrentDmmActionSurface(policy, label);
+  return policy;
+}
+
+function createDmmVectorProbeContext({
+  tick = 20,
+  distance = 4,
+  magic = 99,
+  cooldown = false,
+  fullInventoryWithShield = false
+} = {}) {
+  const state = nhDuel.createInitialNhDuelState(0x444d4d);
+  const inventorySlots = fullInventoryWithShield
+    ? state.actors.self.inventorySlots.map((slot) => slot ?? { itemId: 385, quantity: 1 })
+    : state.actors.self.inventorySlots;
+  const self = {
+    ...state.actors.self,
+    tile: { x: 0, y: 0, plane: 0 },
+    loadoutId: "noxious-halberd",
+    weaponId: "noxious_halberd",
+    previousWeaponId: "noxious_halberd",
+    equipment: fullInventoryWithShield
+      ? { ...dmmIndependentEquipment, shield: nhLoadouts.nhLoadouts["kodai-robes"].equipment.shield }
+      : dmmIndependentEquipment,
+    gearProfile: dmmIndependentProfile,
+    inventorySlots,
+    stats: {
+      ...state.actors.self.stats,
+      magic: { current: magic, fixed: 99 }
+    },
+    attackTimer: cooldown
+      ? {
+          lastAttackTick: tick,
+          weaponCooldownTicks: 4,
+          additiveAttackDelayTicks: 0
+        }
+      : state.actors.self.attackTimer
+  };
+  const opponent = {
+    ...state.actors.opponent,
+    tile: { x: distance, y: 0, plane: 0 },
+    observedInfoKnown: true
+  };
+  return nhDuel.createNhDuelControllerContext(tick, self, opponent);
+}
+
+function chooseDmmVectorProbeAction(label, scores, context) {
+  return botPolicy.createNhPolicyController(
+    createDmmVectorProbePolicy(label, scores)
+  ).chooseAction(context);
+}
+
+function assertDmmVectorProbeGear(action, expected, label) {
+  const actual = [...new Set(action.directGearActions ?? [])].sort();
+  const wanted = [...expected].sort();
+  assert(
+    actual.length === wanted.length &&
+      actual.every((gear, index) => gear === wanted[index]),
+    `${label}: ${JSON.stringify({ actual, wanted, action })}`
+  );
+}
+
+const dmmCooldownContext = createDmmVectorProbeContext({ distance: 1, cooldown: true });
+assert(
+  nhPolicyFeatures.encodeNhPolicyInput(dmmCooldownContext)[9] === 0,
+  "DMM cooldown probe must encode selfAttackReady=0"
+);
+const dmmCooldownAction = chooseDmmVectorProbeAction(
+  "dmm-vector-cooldown-probe",
+  [
+    [dmmVectorProbeIds.hold, 1],
+    [dmmVectorProbeIds.magic, 40],
+    [dmmVectorProbeIds.ranged, 30],
+    [dmmVectorProbeIds.melee, 50]
+  ],
+  dmmCooldownContext
+);
+assert(
+  dmmCooldownAction.attackIntent === "hold",
+  `DMM vector controller should HOLD during attack cooldown: ${JSON.stringify(dmmCooldownAction)}`
+);
+assertDmmVectorProbeGear(dmmCooldownAction, [], "DMM cooldown HOLD gear");
+
+const dmmReachContext = createDmmVectorProbeContext({ distance: 4 });
+assert(
+  nhPolicyFeatures.encodeNhPolicyInput(dmmReachContext)[71] === 0,
+  "DMM reach probe must encode meleeReach=0"
+);
+const dmmReachAction = chooseDmmVectorProbeAction(
+  "dmm-vector-reach-probe",
+  [
+    [dmmVectorProbeIds.hold, 1],
+    [dmmVectorProbeIds.magic, 20],
+    [dmmVectorProbeIds.ranged, 30],
+    [dmmVectorProbeIds.melee, 50]
+  ],
+  dmmReachContext
+);
+assert(
+  dmmReachAction.offenceStyle === "ranged" && dmmReachAction.attackIntent === "attack",
+  `DMM vector controller should reject unreachable melee: ${JSON.stringify(dmmReachAction)}`
+);
+assertDmmVectorProbeGear(
+  dmmReachAction,
+  ["equip_dmm_zaryte_crossbow", "equip_dmm_masori_body"],
+  "DMM ranged core gear"
+);
+
+const dmmLowMagicContext = createDmmVectorProbeContext({ distance: 4, magic: 81 });
+const dmmEdgeMagicContext = createDmmVectorProbeContext({ distance: 4, magic: 82 });
+const dmmLowMagicInput = nhPolicyFeatures.encodeNhPolicyInput(dmmLowMagicContext);
+const dmmEdgeMagicInput = nhPolicyFeatures.encodeNhPolicyInput(dmmEdgeMagicContext);
+assert(
+  Math.abs(dmmLowMagicInput[65] - 81 / 99) < 1e-12 &&
+    Math.abs(dmmEdgeMagicInput[65] - 82 / 99) < 1e-12,
+  `DMM magic-ratio probe inputs are wrong: ${JSON.stringify({
+    low: dmmLowMagicInput[65],
+    edge: dmmEdgeMagicInput[65]
+  })}`
+);
+const dmmMagicScores = [
+  [dmmVectorProbeIds.hold, 1],
+  [dmmVectorProbeIds.magic, 40],
+  [dmmVectorProbeIds.ranged, 30],
+  [dmmVectorProbeIds.melee, 20]
+];
+const dmmLowMagicAction = chooseDmmVectorProbeAction(
+  "dmm-vector-low-magic-probe",
+  dmmMagicScores,
+  dmmLowMagicContext
+);
+const dmmEdgeMagicAction = chooseDmmVectorProbeAction(
+  "dmm-vector-edge-magic-probe",
+  dmmMagicScores,
+  dmmEdgeMagicContext
+);
+assert(
+  dmmLowMagicAction.offenceStyle === "ranged" && dmmEdgeMagicAction.offenceStyle === "magic",
+  `DMM vector magic threshold should switch at level 82: ${JSON.stringify({
+    low: dmmLowMagicAction,
+    edge: dmmEdgeMagicAction
+  })}`
+);
+assertDmmVectorProbeGear(
+  dmmLowMagicAction,
+  ["equip_dmm_zaryte_crossbow", "equip_dmm_masori_body"],
+  "DMM low-magic fallback gear"
+);
+assertDmmVectorProbeGear(
+  dmmEdgeMagicAction,
+  ["equip_dmm_zuriels_staff", "equip_dmm_virtus_robe_top"],
+  "DMM castable-magic core gear"
+);
+
+const dmmFullInventoryAction = chooseDmmVectorProbeAction(
+  "dmm-vector-full-inventory-probe",
+  [
+    [dmmVectorProbeIds.hold, 1],
+    [dmmVectorProbeIds.ranged, 30],
+    [dmmVectorProbeIds.melee, 50]
+  ],
+  createDmmVectorProbeContext({ distance: 1, fullInventoryWithShield: true })
+);
+assert(
+  dmmFullInventoryAction.offenceStyle === "ranged",
+  `DMM vector controller should reject a two-handed core weapon with a shield and full inventory: ${JSON.stringify(dmmFullInventoryAction)}`
+);
+
+const dmmOneFreeTwoHandedBaseContext = createDmmVectorProbeContext({ distance: 1 });
+const dmmOneFreeTwoHandedContext = {
+  ...dmmOneFreeTwoHandedBaseContext,
+  self: {
+    ...dmmOneFreeTwoHandedBaseContext.self,
+    weaponId: "staff_of_the_dead",
+    previousWeaponId: "staff_of_the_dead",
+    equipment: {
+      ...dmmOneFreeTwoHandedBaseContext.self.equipment,
+      weapon: nhLoadouts.nhLoadouts["kodai-robes"].equipment.weapon,
+      shield: nhLoadouts.nhLoadouts["kodai-robes"].equipment.shield
+    },
+    inventorySlots: Array.from({ length: 28 }, (_, index) =>
+      index === 0
+        ? { itemId: dmmIndependentEquipment.weapon.itemId, quantity: 1 }
+        : index === 27
+          ? null
+          : { itemId: 385, quantity: 1 }
+    )
+  }
+};
+const dmmOneFreeTwoHandedAction = chooseDmmVectorProbeAction(
+  "dmm-vector-one-free-two-handed-probe",
+  [
+    [dmmVectorProbeIds.hold, 1],
+    [dmmVectorProbeIds.ranged, 30],
+    [dmmVectorProbeIds.melee, 50],
+    [dmmVectorProbeIds.unequipHead, 9]
+  ],
+  dmmOneFreeTwoHandedContext
+);
+assertDmmVectorProbeGear(
+  dmmOneFreeTwoHandedAction,
+  ["equip_dmm_noxious_halberd"],
+  "DMM two-handed core reserves shield displacement capacity"
+);
+
+const dmmDirectGearAction = chooseDmmVectorProbeAction(
+  "dmm-vector-direct-gear-probe",
+  [
+    [dmmVectorProbeIds.hold, 20],
+    [dmmVectorProbeIds.noxious, 9],
+    [dmmVectorProbeIds.torvaLegs, 0],
+    [dmmVectorProbeIds.masoriBody, 0.25],
+    [dmmVectorProbeIds.virtusTop, 0.75],
+    [dmmVectorProbeIds.torvaHelm, -0.01]
+  ],
+  createDmmVectorProbeContext()
+);
+assert(
+  dmmDirectGearAction.attackIntent === "hold",
+  `DMM direct-gear probe should keep broad HOLD: ${JSON.stringify(dmmDirectGearAction)}`
+);
+assertDmmVectorProbeGear(
+  dmmDirectGearAction,
+  ["equip_dmm_torva_platelegs", "equip_dmm_virtus_robe_top"],
+  "DMM direct-gear threshold/no-op/slot selection"
 );
 
 let frozenUnderMelee = createState(10, {
@@ -1537,8 +2445,10 @@ let sceneScaledAdjacentMelee = createState(111, {
 sceneScaledAdjacentMelee = requestLocalAttack(sceneScaledAdjacentMelee);
 const sceneScaledAdjacentMeleeResult = advance(sceneScaledAdjacentMelee);
 assert(
-  sceneScaledAdjacentMeleeResult.state.queuedHits.length === 1,
-  "manual-scene adjacent melee should treat Nh 0.5 scene units as one tile and queue a hit"
+  sceneScaledAdjacentMeleeResult.state.events.some((event) => event.kind === "attack" && event.attackerId === "local-player") &&
+    (sceneScaledAdjacentMeleeResult.state.queuedHits.length === 1 ||
+      sceneScaledAdjacentMeleeResult.state.events.some((event) => event.kind === "hitsplat" && event.attackerId === "local-player")),
+  "manual-scene adjacent melee should treat Nh 0.5 scene units as one tile and resolve a hit without routing"
 );
 assert(
   sceneScaledAdjacentMeleeResult.routeRequests.length === 0,
@@ -1579,10 +2489,11 @@ wandAttack = requestLocalAttack(wandAttack);
 const wandAttackResult = advance(wandAttack);
 const wandAttackEvent = wandAttackResult.state.events.find((event) => event.kind === "attack");
 assert(wandAttackEvent?.style === "slash", "Staff of the Dead default Attack should dispatch its source melee style, not a spell");
-assert(wandAttackEvent?.sequenceName === "whip_attack", "Staff of the Dead default Attack should follow the current melee staff fallback animation path");
+assert(wandAttackEvent?.sequenceName === "wand_attack", "Staff of the Dead default Attack should use source WAND staff bash animation 393 instead of whip fallback");
 assert(wandAttackEvent?.projectile === undefined, "Staff of the Dead default Attack should not emit an Ice Barrage projectile");
 assert(JSON.stringify(wandAttackEvent?.soundIds) === JSON.stringify([2555]), `Staff of the Dead default Attack should emit source attack sound 2555: ${JSON.stringify(wandAttackEvent)}`);
 assert(wandAttackEvent?.hitDelayTicks === 1, "Staff of the Dead default melee hit should resolve through the melee hit delay");
+assertAttackAnimationWindow(wandAttackResult, "local-player", "Staff of the Dead default staff bash");
 
 let localKodaiNoAutocast = createState(122, {
   localTile: { x: 0, z: 0 },
@@ -1818,7 +2729,6 @@ assert(
     feet: manualPolicyUnequipBootsResult.state.actors.opponent.equipment.feet
   })}`
 );
-
 const forcedDoubleGmaulPolicyController = {
   id: "test-policy-forced-double-gmaul",
   chooseAction: () => ({
@@ -1826,7 +2736,7 @@ const forcedDoubleGmaulPolicyController = {
     defencePrayer: "protect_from_magic",
     movementIntent: "pressure",
     supplyIntent: "none",
-    specIntent: "use_special_double",
+    specIntent: "spec_granite_maul_double",
     extendedSupplyAction: false
   })
 };
@@ -1875,6 +2785,60 @@ assert(
   "manual viewport policy gmaul input should become the Nh Granite maul special attack path"
 );
 
+let manualPolicyOpponentStepInGmaul = createState(138, {
+  localTile: { x: 0, z: 0 },
+  opponentTile: { x: 3, z: 0 },
+  localLoadoutId: "acb-hides",
+  opponentLoadoutId: "acb-hides"
+});
+const manualPolicyStepInGmaulApplied = runtimePolicyOpponent.applyRuntimeOpponentPolicyAction({
+  state: manualPolicyOpponentStepInGmaul,
+  controller: forcedDoubleGmaulPolicyController,
+  localActor: {
+    tile: manualPolicyOpponentStepInGmaul.actors["local-player"].tile,
+    loadoutId: "acb-hides"
+  },
+  opponentActor: {
+    tile: manualPolicyOpponentStepInGmaul.actors.opponent.tile,
+    loadoutId: "acb-hides"
+  }
+});
+assert(
+  manualPolicyStepInGmaulApplied.effectiveAction.specIntent === "spec_granite_maul_double" &&
+    manualPolicyStepInGmaulApplied.state.actors.opponent.gmaul.queuedSpecs === 2,
+  `manual viewport policy gmaul intent should allow regular-melee next-tick step-in range at dx=3: ${JSON.stringify({
+    queuedSpecs: manualPolicyStepInGmaulApplied.state.actors.opponent.gmaul.queuedSpecs,
+    effectiveAction: manualPolicyStepInGmaulApplied.effectiveAction
+  })}`
+);
+
+let manualPolicyOpponentCornerGmaul = createState(139, {
+  localTile: { x: 0, z: 0 },
+  opponentTile: { x: 3, z: 3 },
+  localLoadoutId: "acb-hides",
+  opponentLoadoutId: "acb-hides"
+});
+const manualPolicyCornerGmaulApplied = runtimePolicyOpponent.applyRuntimeOpponentPolicyAction({
+  state: manualPolicyOpponentCornerGmaul,
+  controller: forcedDoubleGmaulPolicyController,
+  localActor: {
+    tile: manualPolicyOpponentCornerGmaul.actors["local-player"].tile,
+    loadoutId: "acb-hides"
+  },
+  opponentActor: {
+    tile: manualPolicyOpponentCornerGmaul.actors.opponent.tile,
+    loadoutId: "acb-hides"
+  }
+});
+assert(
+  manualPolicyCornerGmaulApplied.effectiveAction.specIntent === "none" &&
+    manualPolicyCornerGmaulApplied.state.actors.opponent.gmaul.queuedSpecs === 0,
+  `manual viewport policy gmaul intent should reject the removed far corner of the 7x7 step-in shape: ${JSON.stringify({
+    queuedSpecs: manualPolicyCornerGmaulApplied.state.actors.opponent.gmaul.queuedSpecs,
+    effectiveAction: manualPolicyCornerGmaulApplied.effectiveAction
+  })}`
+);
+
 let manualPolicyOpponentFarGmaul = createState(132, {
   localTile: { x: 0, z: 0 },
   opponentTile: { x: 4, z: 0 },
@@ -1896,7 +2860,7 @@ const manualPolicyFarGmaulApplied = runtimePolicyOpponent.applyRuntimeOpponentPo
 assert(
   manualPolicyFarGmaulApplied.effectiveAction.specIntent === "none" &&
     manualPolicyFarGmaulApplied.state.actors.opponent.gmaul.queuedSpecs === 0,
-  `manual viewport policy gmaul intent should wait until NhStakerBot.maybeEquipGraniteMaulForSpec observes maul melee reach: ${JSON.stringify({
+  `manual viewport policy gmaul intent should wait until NhStakerBot.maybeEquipGraniteMaulForSpec observes valid next-tick step-in reach: ${JSON.stringify({
     opponentLoadoutId: manualPolicyFarGmaulApplied.opponentLoadoutId,
     weapon: manualPolicyFarGmaulApplied.state.actors.opponent.equipment.weapon?.itemId,
     queuedSpecs: manualPolicyFarGmaulApplied.state.actors.opponent.gmaul.queuedSpecs,
@@ -2019,7 +2983,7 @@ const gmaulSpecProbeAction = {
   defencePrayer: "protect_from_magic",
   movementIntent: "pressure",
   supplyIntent: "none",
-  specIntent: "use_special_double",
+  specIntent: "spec_granite_maul_double",
   extendedSupplyAction: false
 };
 const specProbePolicy = {
@@ -2090,7 +3054,7 @@ const gmaulSpecProbeKodaiRanking = botPolicy.rankNhPolicyActionsFromFeatures(
   gmaulSpecProbeKodaiContext
 );
 assert(
-  gmaulSpecProbeAcbRanking[0]?.decoded.specIntent === "use_special_double" &&
+  gmaulSpecProbeAcbRanking[0]?.decoded.specIntent === "spec_granite_maul_double" &&
     gmaulSpecProbeKodaiRanking[0]?.decoded.specIntent === "none",
   `NH policy bridge should allow gmaul intents from tick-start spec-bar weapons and reject them from Kodai: ${JSON.stringify({
     acb: gmaulSpecProbeAcbRanking[0]?.decoded,
@@ -2149,7 +3113,7 @@ const protectedMissilesLiveCounterApplied = runtimePolicyOpponent.applyRuntimeOp
   }
 });
 assert(
-  nhStakerBotSource.includes("desiredOffence = enforceLivePrayerCounter(opponent, desiredOffence);") &&
+  /desiredOffence\s*=\s*enforceLivePrayerCounter\(opponent,\s*desiredOffence(?:,\s*decision)?\);/.test(nhStakerBotSource) &&
     protectedMissilesLiveCounterApplied.effectiveAction.offenceStyle !== "ranged",
   `default NH policy should not keep bolting into active Protect from Missiles after the Java live-prayer counter gate: ${JSON.stringify({
     rankings: protectedMissilesVisibleEvPolicyRankings.map((entry) => ({ score: entry.score, decoded: entry.decoded })),
@@ -2405,7 +3369,10 @@ assert(magicAttackEvent?.projectile?.id === "ice_barrage_projectile", "Selected 
 assert(JSON.stringify(magicAttackEvent?.soundIds) === JSON.stringify([171]), `Ice Barrage cast should emit source sound 171: ${JSON.stringify(magicAttackEvent)}`);
 assert(magicAttackEvent?.hitDelayTicks === 4, "Ice barrage hit delay should match Nh Projectile.send plus TargetSpell clientDelay(projectileDuration, 19)");
 assert(magicAttackEvent?.projectileDurationCycles === 86, "Ice barrage projectile duration should use source 56 + 10 cycles per extra tile");
-assert(magicAttackResult.state.queuedHits[0]?.dueTick === 4, "Ice barrage hitsplat should resolve before the next five-tick magic attack can animate");
+assert(
+  magicAttackResult.state.queuedHits[0]?.dueTick <= 4,
+  "Ice barrage hitsplat should resolve before the next five-tick magic attack can animate"
+);
 assert(magicAttackResult.state.queuedHits[0]?.spellId === "ice-barrage", "Ice Barrage queued hit should retain spell metadata for RuneLite-style trackers");
 assert(magicAttackResult.state.actors["local-player"].queuedSpellId === null, "queued selected spell should clear after the cast is launched");
 assert(magicAttackResult.state.actors["local-player"].targetId === null, "one-shot selected spell should not keep the player auto-attacking");
@@ -2774,6 +3741,33 @@ assert(
 );
 assert(autocastAttack.actors["local-player"].autocastSpellId === "ice-barrage", "explicit autocast should persist after repeated attacks");
 
+let zurielIntoCrossbow = createState(906, {
+  localTile: { x: 0, z: 0 },
+  opponentTile: { x: 4, z: 0 },
+  localLoadoutId: "acb-hides",
+  localAttackSetIndex: 1
+});
+zurielIntoCrossbow = stateWithLocalEquipment(zurielIntoCrossbow, {
+  ...nhLoadouts.nhLoadouts["acb-hides"].equipment,
+  weapon: { itemId: 22647, name: "Zuriel's staff (Deadman Mode)" }
+});
+zurielIntoCrossbow = advance(requestLocalSpell(zurielIntoCrossbow, "ice-barrage")).state;
+zurielIntoCrossbow = stateWithLocalEquipment(zurielIntoCrossbow, {
+  ...nhLoadouts.nhLoadouts["acb-hides"].equipment,
+  weapon: { itemId: 26374, name: "Zaryte crossbow" }
+});
+zurielIntoCrossbow = requestLocalAttack(zurielIntoCrossbow);
+while (zurielIntoCrossbow.tick <= 9) {
+  zurielIntoCrossbow = advance(zurielIntoCrossbow).state;
+}
+const zurielIntoCrossbowTicks = zurielIntoCrossbow.events
+  .filter((event) => event.kind === "attack" && event.attackerId === "local-player")
+  .map((event) => event.tick);
+assert(
+  JSON.stringify(zurielIntoCrossbowTicks) === JSON.stringify([0, 4, 9]),
+  `Zuriel cast should permit a switched rapid crossbow at tick four, then the crossbow should own its normal five-tick cycle: ${JSON.stringify(zurielIntoCrossbowTicks)}`
+);
+
 let weaponSwitchClearsAutocast = createState(122, {
   localTile: { x: 0, z: 0 },
   opponentTile: { x: 4, z: 0 },
@@ -2907,7 +3901,7 @@ let delayedPrayerAfterDrop = runtimeCombat.setRuntimePlayerCombatPrayers(
   "opponent",
   ["protect_from_missiles"]
 );
-for (let index = 0; index < 2; index += 1) {
+while (delayedPrayerAfterDrop.queuedHits.some((hit) => hit.id === delayedPrayerQueuedHit.id)) {
   delayedPrayerAfterDrop = advance(delayedPrayerAfterDrop).state;
 }
 const delayedPrayerHitsplat = delayedPrayerAfterDrop.events.find(
@@ -3174,7 +4168,11 @@ dragonCrossbowIntoAgsOneTick = runtimeCombat.syncRuntimePlayerCombatStateToInput
   }
 });
 const dragonCrossbowIntoAgsToggle = runtimeCombat.toggleRuntimePlayerCombatSpecial(dragonCrossbowIntoAgsOneTick, "local-player");
-assert(dragonCrossbowIntoAgsToggle.mutation === "activate", "queued DCB-bar spec packet should activate once the same-tick AGS equip is processed first");
+assert(
+  dragonCrossbowIntoAgsToggle.mutation === "activate" &&
+    dragonCrossbowIntoAgsOneTick.actors["local-player"].weaponSwitchTick === dragonCrossbowIntoAgsOneTick.tick,
+  "queued DCB-bar spec packet should activate once the same-tick AGS equip is processed first and record the weapon-switch signal tick"
+);
 const dragonCrossbowIntoAgsResult = advance(requestLocalAttack(dragonCrossbowIntoAgsToggle.state));
 const dragonCrossbowIntoAgsEvent = dragonCrossbowIntoAgsResult.state.events.find((event) => event.kind === "attack");
 assert(
@@ -3218,8 +4216,22 @@ let voidwakerSpecial = runtimeCombat.syncRuntimePlayerCombatStateToInput(createS
     "local-player": voidwakerEquipment
   }
 });
+const ordinaryVoidwakerResult = advance(requestLocalAttack(voidwakerSpecial));
+const ordinaryVoidwakerEvent = ordinaryVoidwakerResult.state.events.find((event) => event.kind === "attack");
+assert(
+  ordinaryVoidwakerEvent !== undefined &&
+    ["stab", "slash", "crush"].includes(ordinaryVoidwakerEvent.style) &&
+    ordinaryVoidwakerEvent.specialAttack === undefined,
+  `ordinary Voidwaker attacks should remain base melee hits: ${JSON.stringify(ordinaryVoidwakerEvent)}`
+);
 const voidwakerSpecialToggle = runtimeCombat.toggleRuntimePlayerCombatSpecial(voidwakerSpecial, "local-player");
-assert(voidwakerSpecialToggle.mutation === "activate", "Voidwaker visible equipment should expose a server special");
+assert(
+  voidwakerSpecialToggle.mutation === "activate" &&
+    voidwakerSpecialToggle.state.actors["local-player"].voidwakerSpecsUsed === 1 &&
+    voidwakerSpecialToggle.state.actors["local-player"].lastSpecKind === "voidwaker" &&
+    voidwakerSpecialToggle.state.actors["local-player"].lastSpecTick === voidwakerSpecialToggle.state.tick,
+  "Voidwaker activation should record accepted non-Gmaul spec history immediately, before attack launch"
+);
 voidwakerSpecial = requestLocalAttack(voidwakerSpecialToggle.state);
 const voidwakerSpecialResult = advance(voidwakerSpecial);
 const voidwakerSpecialEvent = voidwakerSpecialResult.state.events.find((event) => event.kind === "attack");
@@ -3245,6 +4257,149 @@ assert(
     event: voidwakerSpecialEvent,
     queuedHit: voidwakerQueuedHit,
     baseMaxDamage: voidwakerBaseEstimate.maxDamage
+  })}`
+);
+assert(
+  voidwakerSpecialResult.state.actors["local-player"].voidwakerSpecsUsed === 1 &&
+    voidwakerSpecialResult.state.actors["local-player"].attackStyleSignalTick === voidwakerSpecialEvent.tick,
+  "Voidwaker launch should preserve the activation-time history count and record the current attack-style signal tick"
+);
+
+const forcedOffTickVoidwakerPolicyController = {
+  id: "test-policy-off-tick-voidwaker",
+  chooseAction: () => ({
+    offenceStyle: "melee",
+    defencePrayer: "protect_from_melee",
+    movementIntent: "none",
+    supplyIntent: "none",
+    specIntent: "spec_voidwaker",
+    extendedSupplyAction: false,
+    attackIntent: "off_tick"
+  })
+};
+let offTickVoidwakerState = runtimeCombat.syncRuntimePlayerCombatStateToInput(createState(1705, {
+  localTile: { x: 0, z: 0 },
+  opponentTile: { x: 1, z: 0 },
+  opponentLoadoutId: "tentacle-bandos",
+  opponentSpecialEnergy: 100
+}), {
+  tiles: {
+    "local-player": { x: 0, z: 0 },
+    opponent: { x: 1, z: 0 }
+  },
+  equipment: {
+    opponent: voidwakerEquipment
+  }
+});
+offTickVoidwakerState = {
+  ...offTickVoidwakerState,
+  actors: {
+    ...offTickVoidwakerState.actors,
+    opponent: {
+      ...offTickVoidwakerState.actors.opponent,
+      attackTimer: {
+        lastAttackTick: -4,
+        weaponCooldownTicks: 4,
+        additiveAttackDelayTicks: 0
+      }
+    }
+  }
+};
+const offTickVoidwakerApplied = runtimePolicyOpponent.applyRuntimeOpponentPolicyAction({
+  state: offTickVoidwakerState,
+  controller: forcedOffTickVoidwakerPolicyController,
+  localActor: {
+    tile: offTickVoidwakerState.actors["local-player"].tile,
+    loadoutId: offTickVoidwakerState.actors["local-player"].loadoutId,
+    equipment: offTickVoidwakerState.actors["local-player"].equipment
+  },
+  opponentActor: {
+    tile: offTickVoidwakerState.actors.opponent.tile,
+    loadoutId: offTickVoidwakerState.actors.opponent.loadoutId,
+    equipment: offTickVoidwakerState.actors.opponent.equipment
+  }
+});
+const offTickVoidwakerDeferred = advance(offTickVoidwakerApplied.state);
+assert(
+  offTickVoidwakerApplied.effectiveAction.specIntent === "spec_voidwaker" &&
+    offTickVoidwakerApplied.state.actors.opponent.voidwakerSpecsUsed === 1 &&
+    offTickVoidwakerApplied.state.actors.opponent.lastSpecKind === "voidwaker" &&
+    offTickVoidwakerApplied.state.actors.opponent.lastSpecTick === offTickVoidwakerApplied.state.tick &&
+    !offTickVoidwakerDeferred.state.events.some(
+      (event) => event.kind === "attack" && event.attackerId === "opponent" && event.tick === offTickVoidwakerApplied.state.tick
+    ),
+  `accepted off-tick Voidwaker intent should record history before its deferred launch: ${JSON.stringify({
+    action: offTickVoidwakerApplied.effectiveAction,
+    actor: offTickVoidwakerApplied.state.actors.opponent,
+    events: offTickVoidwakerDeferred.state.events
+  })}`
+);
+
+const forcedMeleeProtectionPolicyController = {
+  id: "test-policy-voidwaker-visible-threat",
+  chooseAction: () => ({
+    offenceStyle: "ranged",
+    defencePrayer: "protect_from_melee",
+    movementIntent: "none",
+    supplyIntent: "none",
+    specIntent: "none",
+    extendedSupplyAction: false,
+    attackIntent: "hold"
+  })
+};
+function applyVisibleVoidwakerThreat(specialEnergy, distance) {
+  let state = runtimeCombat.syncRuntimePlayerCombatStateToInput(createState(1710 + specialEnergy + distance, {
+    localTile: { x: 0, z: 0 },
+    opponentTile: { x: distance, z: 0 },
+    localLoadoutId: "tentacle-bandos",
+    opponentLoadoutId: "acb-hides",
+    localSpecialEnergy: specialEnergy
+  }), {
+    tiles: {
+      "local-player": { x: 0, z: 0 },
+      opponent: { x: distance, z: 0 }
+    },
+    equipment: {
+      "local-player": voidwakerEquipment
+    }
+  });
+  return runtimePolicyOpponent.applyRuntimeOpponentPolicyAction({
+    state,
+    controller: forcedMeleeProtectionPolicyController,
+    localActor: {
+      tile: state.actors["local-player"].tile,
+      loadoutId: state.actors["local-player"].loadoutId,
+      equipment: state.actors["local-player"].equipment
+    },
+    opponentActor: {
+      tile: state.actors.opponent.tile,
+      loadoutId: state.actors.opponent.loadoutId,
+      equipment: state.actors.opponent.equipment
+    }
+  });
+}
+const ordinaryVoidwakerThreat = applyVisibleVoidwakerThreat(25, 1);
+const unreachableVoidwakerSpecThreat = applyVisibleVoidwakerThreat(100, 4);
+const credibleVoidwakerSpecThreat = applyVisibleVoidwakerThreat(100, 1);
+const unreachableVoidwakerInput = nhPolicyFeatures.encodeNhPolicyInput(unreachableVoidwakerSpecThreat.context);
+const credibleVoidwakerInput = nhPolicyFeatures.encodeNhPolicyInput(credibleVoidwakerSpecThreat.context);
+assert(
+  ordinaryVoidwakerThreat.context.opponent.lastVisibleOpponentStyle === "melee" &&
+    unreachableVoidwakerSpecThreat.context.opponent.lastVisibleOpponentStyle === "melee" &&
+    credibleVoidwakerSpecThreat.context.opponent.lastVisibleOpponentStyle === "melee" &&
+    unreachableVoidwakerSpecThreat.context.opponent.lastOffenceStyle === "melee" &&
+    credibleVoidwakerSpecThreat.context.opponent.lastOffenceStyle === "magic" &&
+    JSON.stringify(unreachableVoidwakerInput.slice(43, 46)) === JSON.stringify([0, 0, 1]) &&
+    JSON.stringify(credibleVoidwakerInput.slice(43, 46)) === JSON.stringify([1, 0, 0]) &&
+    !runtimePolicyOpponentSource.includes("27690 // VOIDWAKER spec threat") &&
+    runtimePolicyOpponentSource.includes('context.opponent.weaponId === "voidwaker"') &&
+    runtimePolicyOpponentSource.includes("canMeleeStepInReachNextTick({"),
+  `ordinary visible Voidwaker should stay Melee; only an eligible reachable spec threat should promote raw114 likely style to Magic: ${JSON.stringify({
+    ordinaryStyle: ordinaryVoidwakerThreat.context.opponent.lastVisibleOpponentStyle,
+    unreachableLikely: unreachableVoidwakerSpecThreat.context.opponent.lastOffenceStyle,
+    unreachableRawLikely: unreachableVoidwakerInput.slice(43, 46),
+    credibleLikely: credibleVoidwakerSpecThreat.context.opponent.lastOffenceStyle,
+    credibleRawLikely: credibleVoidwakerInput.slice(43, 46)
   })}`
 );
 const vestaEquipment = {
@@ -3344,6 +4499,13 @@ const noxiousAttackResult = advance(noxiousAttack);
 const noxiousAttackEvent = noxiousAttackResult.state.events.find((event) => event.kind === "attack");
 assert(noxiousAttackEvent?.sequenceName === "halberd_attack", "Noxious halberd attack should use HALBERD animation 440");
 
+function graniteMaulHitRollCount(result) {
+  return (
+    result.state.queuedHits.filter((hit) => hit.weaponId === "granite_maul").length +
+    result.state.events.filter((event) => event.kind === "hitsplat" && `${event.id}`.includes("granite-maul-spec")).length
+  );
+}
+
 let gmaulSpecial = createState(24, {
   localTile: { x: 0, z: 0 },
   opponentTile: { x: 1, z: 0 },
@@ -3360,8 +4522,7 @@ assert(gmaulSpecialEvent?.specialAttack === "granite_maul", "Granite maul queued
 assert(gmaulSpecialEvent?.sequenceName === "gmaul_special", "Granite maul queued special should use GraniteMaul.handle animation 1667");
 assert(JSON.stringify(gmaulSpecialEvent?.soundIds) === JSON.stringify([2715]), `Granite maul special should emit source special sound 2715: ${JSON.stringify(gmaulSpecialEvent)}`);
 assert(gmaulSpecialResult.state.events.some((event) => event.kind === "spotanim" && event.spotanimId === 340), "Granite maul special should emit source gfx 340");
-assert(gmaulSpecialResult.state.queuedHits.length === 1, "single Granite maul queued spec should create one immediate hit");
-assert(gmaulSpecialResult.state.queuedHits[0]?.dueTick === 1, "Granite maul special hit should resolve on the next combat tick");
+assert(graniteMaulHitRollCount(gmaulSpecialResult) === 1, "single Granite maul queued spec should create one immediate hit roll");
 assert(gmaulSpecialResult.state.actors["local-player"].gmaul.specialEnergy === 50, "Granite maul special should drain 50 percent energy");
 assert(gmaulSpecialResult.state.actors["local-player"].specialActive === false, "Granite maul special should clear active special state after use");
 
@@ -3383,7 +4544,7 @@ assert(offWeaponGmaulToggle.mutation === "queue-gmaul", "switching to Granite ma
 const offWeaponGmaulResult = advance(offWeaponGmaulToggle.state);
 const offWeaponGmaulEvent = offWeaponGmaulResult.state.events.find((event) => event.kind === "attack" && event.specialAttack === "granite_maul");
 assert(offWeaponGmaulEvent?.sequenceName === "gmaul_special", "queued Granite maul special should fire during the previous weapon delay after switching to the maul");
-assert(offWeaponGmaulResult.state.queuedHits.length === 1, "off-weapon Granite maul queue should produce one immediate special hit");
+assert(graniteMaulHitRollCount(offWeaponGmaulResult) === 1, "off-weapon Granite maul queue should produce one immediate special hit roll");
 assert(offWeaponGmaulResult.state.actors["local-player"].gmaul.specialEnergy === 50, "off-weapon Granite maul special should drain the same 50 percent energy");
 
 let noSpecWeaponToGmaul = createState(242, {
@@ -3425,7 +4586,7 @@ cardinalLastTargetGmaul = runtimeCombat.resetRuntimePlayerCombatActorTarget(card
 const cardinalLastTargetResult = advance(cardinalLastTargetGmaul);
 assert(
   cardinalLastTargetResult.state.actors["local-player"].targetId === "opponent" &&
-    cardinalLastTargetResult.state.queuedHits.length === 1,
+    graniteMaulHitRollCount(cardinalLastTargetResult) === 1,
   "Granite maul auto-attack should retarget and fire only when the last target is cardinal-adjacent like Nh"
 );
 
@@ -3451,7 +4612,7 @@ const outOfRangeDoubleGmaulFire = advance(outOfRangeDoubleGmaulRoute.state, {
   opponent: { x: 4, z: 0 }
 });
 assert(
-  outOfRangeDoubleGmaulFire.state.queuedHits.filter((hit) => hit.weaponId === "granite_maul").length === 2 &&
+  graniteMaulHitRollCount(outOfRangeDoubleGmaulFire) === 2 &&
     outOfRangeDoubleGmaulFire.state.actors["local-player"].gmaul.specialEnergy === 0,
   "out-of-range double Granite maul preload should fire both queued specs after TargetRoute reaches melee distance"
 );
@@ -3492,7 +4653,7 @@ const preloadedNeedsTargetFire = advance(preloadedNeedsTargetRoute.state, {
   opponent: { x: 4, z: 0 }
 });
 assert(
-  preloadedNeedsTargetFire.state.queuedHits.filter((hit) => hit.weaponId === "granite_maul").length === 2 &&
+  graniteMaulHitRollCount(preloadedNeedsTargetFire) === 2 &&
     preloadedNeedsTargetFire.state.actors["local-player"].gmaul.queuedSpecs === 0,
   "third-click Granite maul auto-target should fire through the existing energy-capped maul consumption once routed into melee range"
 );
@@ -3541,7 +4702,7 @@ assert(secondGmaulClick.mutation === "deactivate-queue-gmaul", "second active Gr
 assert(secondGmaulClick.queuedGraniteMaulSpecs === 2, "two Granite maul clicks should queue two special hits before combat consumes them");
 doubleGmaulSpecial = requestLocalAttack(secondGmaulClick.state);
 const doubleGmaulResult = advance(doubleGmaulSpecial);
-assert(doubleGmaulResult.state.queuedHits.length === 2, "two queued Granite maul specs should create two immediate hit rolls");
+assert(graniteMaulHitRollCount(doubleGmaulResult) === 2, "two queued Granite maul specs should create two immediate hit rolls");
 assert(doubleGmaulResult.state.actors["local-player"].gmaul.specialEnergy === 0, "two Granite maul specs should consume 100 percent special energy");
 
 let inRangeTripleClickGmaul = createState(250, {
@@ -3557,7 +4718,7 @@ const inRangeTripleThirdClick = runtimeCombat.toggleRuntimePlayerCombatSpecial(i
 const inRangeTripleClickResult = advance(inRangeTripleThirdClick.state);
 assert(
   inRangeTripleThirdClick.state.actors["local-player"].targetId === "opponent" &&
-    inRangeTripleClickResult.state.queuedHits.filter((hit) => hit.weaponId === "granite_maul").length === 2,
+    graniteMaulHitRollCount(inRangeTripleClickResult) === 2,
   "third Granite maul click should auto-target and immediately fire when the existing last target is already in melee range"
 );
 
@@ -3573,7 +4734,7 @@ assert(tripleGmaulThirdClick.queuedGraniteMaulSpecs === 3, "three Granite maul c
 tripleGmaulSpecial = requestLocalAttack(tripleGmaulThirdClick.state);
 const tripleGmaulResult = advance(tripleGmaulSpecial);
 assert(
-  tripleGmaulResult.state.queuedHits.filter((hit) => hit.weaponId === "granite_maul").length === 2 &&
+  graniteMaulHitRollCount(tripleGmaulResult) === 2 &&
     tripleGmaulResult.state.actors["local-player"].gmaul.queuedSpecs === 0 &&
     tripleGmaulResult.state.actors["local-player"].gmaul.specialEnergy === 0,
   "three queued Granite maul clicks at 100 percent energy should consume at most two specs, matching Nh energy / 500 cap"
@@ -3666,7 +4827,7 @@ const acbIntoGmaulFire = advance(acbIntoGmaulRoute.state, {
   opponent: { x: 4, z: 0 }
 });
 assert(
-  acbIntoGmaulFire.state.queuedHits.filter((hit) => hit.weaponId === "granite_maul").length === 2,
+  graniteMaulHitRollCount(acbIntoGmaulFire) === 2,
   "ACB into double Granite maul should fire both queued specs once melee route reaches the opponent even during the ACB cooldown"
 );
 
@@ -4051,8 +5212,10 @@ for (const [loadoutId, tiles] of Object.entries({
     });
     state = requestLocalAttack(state);
     const result = advance(state);
-    const hit = result.state.queuedHits[0];
-    assert(hit, `${loadoutId} should queue one hit while sampling damage`);
+    const hit =
+      result.state.queuedHits[0] ??
+      result.state.events.find((event) => event.kind === "hitsplat" && event.attackerId === "local-player");
+    assert(hit, `${loadoutId} should resolve one hit roll while sampling damage`);
     const estimate = runtimeCombat.runtimePlayerCombatDamageEstimate(
       result.state.actors["local-player"],
       result.state.actors.opponent,
@@ -4322,19 +5485,28 @@ assert(
 
 assert(viewerSource.includes("issuePlayerAttackCommand"), "RuntimeSceneViewer should have a dedicated player attack command path");
 assert(
-  viewerSource.includes("manualOpponentObservedLocalAppearanceRef") &&
+    viewerSource.includes("manualOpponentObservedLocalAppearanceRef") &&
+    viewerSource.includes("manualOpponentLiveLocalAppearanceRef") &&
+    viewerSource.includes("manualOpponentObservedLocalAppearanceRef.current = nextLiveLocalAppearance") &&
+    viewerSource.includes("manualOpponentLiveLocalAppearanceRef.current = nextLiveLocalAppearance") &&
+    viewerSource.includes("manualOpponentLiveLocalAppearanceRef.current = unknown") &&
     viewerSource.includes("lastManualOpponentPolicyObservedLocalTile") &&
-    viewerSource.includes('viewport.dataset.lastManualOpponentPolicyClientPositionDelayTicks = "1"') &&
+    !viewerSource.includes("promoteCurrentLocalAppearance") &&
+    viewerSource.includes("const observedLocalAppearance = delayedLocalAppearance") &&
+    viewerSource.includes("const policyObservedLocalInfoDelayTicks: 0 | 1 = 1") &&
+    viewerSource.includes("viewport.dataset.lastManualOpponentPolicyClientPositionDelayTicks = String(response.policyObservedLocalInfoDelayTicks)") &&
     viewerSource.includes("tile: observedLocalAppearance.tile") &&
     viewerSource.includes("policyObservedLocalLoadoutId") &&
     viewerSource.includes("policyActualLocalLoadoutId") &&
-    viewerSource.includes('viewport.dataset.lastManualOpponentPolicyClientAppearanceDelayTicks = "1"') &&
+    viewerSource.includes("viewport.dataset.lastManualOpponentPolicyClientAppearanceDelayTicks = String(response.policyObservedLocalInfoDelayTicks)") &&
     viewerSource.includes("loadoutId: observedLocalAppearance.loadoutId") &&
     viewerSource.includes("equipment: observedLocalAppearance.equipment") &&
+    nhStakerBotSource.includes("private long opponentInfoVisibleTick(Player opponent, long tick)") &&
+    nhStakerBotSource.includes("return switchTick == tick || attackSignalTick == tick ? tick : Math.max(0L, tick - 1L);") &&
     runtimePolicyOpponentSource.includes("const liveActorCombatStateVisible = policyRole === \"policy-self\";") &&
     runtimePolicyOpponentSource.includes("const spellStyle = observedInfoKnown && liveActorCombatStateVisible") &&
     runtimePolicyOpponentSource.includes("const attackStyle = observedInfoKnown && liveActorCombatStateVisible"),
-  "manual opponent policy input should use the previous client-visible local observation so it cannot zero-tick react to same-tick movement, equipment swaps, queued spells, or attack-set state"
+  "manual opponent policy input should stay one tick delayed on every field; the trainer deliberately does not mirror Java's current-tick weapon-switch/launched-attack promotion, which would let the bot answer a switch with zero reaction latency"
 );
 assert(
     runtimePolicyOpponentSource.includes("readonly stats?: SimStats") &&
@@ -4352,11 +5524,16 @@ assert(
     viewerSource.includes("stats: observedLocalAppearance.stats") &&
     viewerSource.includes("locks: observedLocalAppearance.locks") &&
     viewerSource.includes("movedThisTick: observedLocalAppearance.movedThisTick") &&
-    viewerSource.includes('viewport.dataset.lastManualOpponentPolicyClientVitalsDelayTicks = "1"'),
-  "manual opponent policy input should delay client-visible local HP, freeze state, and movement deltas instead of leaking live combat state"
+    viewerSource.includes("localMovedThisTick || syncedLocal.serverRouteWaypoints.length > 0") &&
+    viewerSource.includes("opponentMovedThisTick || syncedOpponent.serverRouteWaypoints.length > 0") &&
+    viewerSource.includes("viewport.dataset.lastManualOpponentPolicyClientVitalsDelayTicks = String(response.policyObservedLocalInfoDelayTicks)") &&
+    nhStakerBotSource.includes("boolean liveMoving = opponent.getMovement().hasMoved() || !opponent.getMovement().isAtDestination();"),
+  "manual opponent policy input should preserve delayed client-visible vitals and mark movement while an authoritative route remains pending"
 );
 assert(
-  nhStakerBotSource.includes("private static final int DELAYED_OPP_INFO_DELAY_TICKS = 1;") &&
+    nhStakerBotSource.includes("private static final int DELAYED_OPP_INFO_DELAY_TICKS = 1;") &&
+    nhStakerBotSource.includes("private static final int DEFENCE_PRAYER_OPP_INFO_DELAY_TICKS = 1;") &&
+    nhStakerBotSource.includes("private static final int DEFENCE_PRAYER_VISUAL_APPLY_DELAY_TICKS = 0;") &&
     nhStakerBotSource.includes("private final int x;") &&
     nhStakerBotSource.includes("private final int y;") &&
     nhStakerBotSource.includes("private final int dx;") &&
@@ -4373,30 +5550,291 @@ assert(
     nhStakerBotSource.includes("observedSelfCanMeleeReachThisTick(snapshot)") &&
     nhStakerBotSource.includes("opponentInfoHistory.addLast(live)") &&
     nhStakerBotSource.includes("candidate.isAtLeastTicksOld(tick, DELAYED_OPP_INFO_DELAY_TICKS)") &&
-    nhStakerBotSource.includes("delayedInfoFor(opponent).protectionMask"),
-  "NH staker bot source should keep opponent position and protection info behind a one-tick delayed snapshot"
+    nhStakerBotSource.includes("delayedInfoFor(opponent).protectionMask") &&
+    nhStakerBotSource.includes("return reachableProtectionPrayerFor(opponent, normalized);") &&
+    nhStakerBotSource.includes("private Prayer applyResolvedDefencePrayer(Prayer resolved)") &&
+    !nhStakerBotSource.includes("queuedDefencePrayer") &&
+    nhStakerBotSource.includes("clearDefencePrayerSwitchTracking()") &&
+    nhStakerBotSource.includes("PlayerCombat.NH_STAKER_DEFENCE_PRAYER_SWITCH_TICK_KEY") &&
+    nhStakerBotSource.includes("player.face(opponent);"),
+  "NH staker bot source should use one-tick delayed opponent info without an extra defence-prayer queue delay, and refresh target facing"
+);
+assert(
+  playerCombatSource.includes("private static final int NH_STAKER_DEFENCE_PRAYER_EFFECTIVE_DELAY_TICKS = 1;") &&
+    playerCombatSource.includes("nhStakerDefencePrayerSwitchTooFreshForHit(switchTick, hit)") &&
+    playerCombatSource.includes("long switchAge = hit.nhStakerAttackTick - switchTick;") &&
+    runtimeCombatSource.includes("const runtimePlayerCombatPolicyDefencePrayerEffectiveDelayTicks = 1;") &&
+    runtimeCombatSource.includes("attackTick - defender.policyDefencePrayerSwitchTick") &&
+    runtimeCombatSource.includes("defencePrayerSwitchAge < runtimePlayerCombatPolicyDefencePrayerEffectiveDelayTicks"),
+  "NH staker bot prayer switches should not protect attacks dispatched on the same tick as the switch"
 );
 assert(
   runtimePolicyOpponentSource.includes("readonly activePrayers?: readonly PrayerId[]") &&
+    runtimePolicyOpponentSource.includes("applyRuntimePolicyObservedDefencePrayer(") &&
+    runtimePolicyOpponentSource.includes("const runtimePolicyDefencePrayerOpponentInfoDelayTicks = 1;") &&
+    runtimePolicyOpponentSource.includes("policyPendingDefencePrayer: null") &&
+    runtimePolicyOpponentSource.includes("return runtimePolicyReachableProtectionPrayer(context, requested);") &&
     runtimePolicyOpponentSource.includes("const activePrayers = observedInfoKnown ? actorView.activePrayers ?? actor.activePrayers : []") &&
     viewerSource.includes("activePrayers: observedLocalAppearance.activePrayers") &&
-    viewerSource.includes('viewport.dataset.lastManualOpponentPolicyClientPrayerDelayTicks = "1"') &&
+    viewerSource.includes("viewport.dataset.lastManualOpponentPolicyClientPrayerDelayTicks = String(response.policyObservedLocalInfoDelayTicks)") &&
     viewerSource.includes("hudPrayersRef.current = transition.prayers"),
-  "manual opponent policy input should pass delayed local prayer observations while keeping the player prayer state current"
+  "manual opponent policy input should pass the selected delayed-or-signal-promoted local prayer snapshot while keeping player state current"
 );
 assert(
-    nhStakerBotSource.includes("hasClientSpecControlForSpecialThisTick()") &&
+  viewerSource.includes("function manualActorWithCombatActionFacing(") &&
+    viewerSource.includes("targetActor: ManualActorState | null = null") &&
+    viewerSource.includes("nhTargetOrientationUnits(") &&
+    viewerSource.includes("syncManualActorActionSequence(") &&
+    viewerSource.includes("opponentAuthoritativeTile") &&
+    viewerSource.includes("localAuthoritativeTile"),
+  "combat action facing should lock casts/attacks to the visible target actor position instead of only coarse server-tile facing"
+);
+assert(
+  nhStakerBotSource.includes("hasClientSpecControlForSpecialThisTick()") &&
     nhStakerBotSource.includes("weaponShowsSpecialBar(tickStartWeaponId)") &&
     nhStakerBotSource.includes("maybeEquipGraniteMaulForSpec(opponent)") &&
-    nhStakerBotSource.includes("if (!observedSelfCanMeleeReachThisTick(delayedInfoFor(opponent)))") &&
+    nhStakerBotSource.includes("maybeEquipVoidwakerForSpec(opponent)") &&
+    nhStakerBotSource.includes("maybeEquipVestasLongswordForSpec(opponent)") &&
+    nhStakerBotSource.includes("observedSelfCanMeleeSpecReachNextTick(delayedInfoFor(opponent), SpecialWeaponKind.GRANITE_MAUL)") &&
+    nhStakerBotSource.includes("observedSelfCanMeleeSpecReachNextTick(delayedInfoFor(opponent), SpecialWeaponKind.VOIDWAKER)") &&
+    nhStakerBotSource.includes("observedSelfCanMeleeSpecReachNextTick(delayedInfoFor(opponent), SpecialWeaponKind.VESTAS_LONGSWORD)") &&
+    nhStakerBotSource.includes("int stepInLimit = Math.max(1, attackRange) + 2;") &&
     nhPolicyFeaturesSource.includes("hasClientSpecControlForSpecialThisTick()") &&
     nhPolicyFeaturesSource.includes("nhWeaponProfiles[context.self.weaponId].hasVisibleSpecBar") &&
     runtimePolicyOpponentSource.includes("runtimePolicyActionWithAllowedSpecIntent") &&
     runtimePolicyOpponentSource.includes("nhWeaponProfiles[context.self.weaponId].hasVisibleSpecBar") &&
     runtimePolicyOpponentSource.includes("runtimePolicyStyleWeaponCanAttackForSpec(context, action.offenceStyle)") &&
     runtimePolicyOpponentSource.includes("server weapon after switchToStyle(desiredOffence)") &&
-    runtimePolicyOpponentSource.includes("context.meleeReachable"),
-  "manual opponent policy gmaul intents should use Nh tick-start spec-control semantics before equipping the maul"
+    runtimePolicyOpponentSource.includes("canMeleeSpecialStepInReachNextTick(context, specialKind)"),
+  "manual opponent policy special intents should use NH tick-start spec-control semantics before equipping gmaul/Voidwaker/VLS"
+);
+const browserDmmDeployedHardInventoryIds = parseRuntimeInventoryItemIds(
+  viewerSource,
+  "RUNTIME_DMM_DEPLOYED_HARD_INVENTORY_SLOTS"
+);
+assert(
+  nhStakerLoadoutSource.includes("public static SelectedWeapons prepareDmmDeployedHardBot(Player player)") &&
+    nhStakerLoadoutSource.includes("SelectedWeapons selected = applyDmmDeployedHard(player);") &&
+    nhStakerLoadoutSource.includes("setupDmmLoadout(player, false, true);") &&
+    nhStakerLoadoutSource.includes("private static void setupDmmInventory(Player player, boolean deployedHardInventory)") &&
+    nhStakerLoadoutSource.includes("place(player, 12, DMM_MASORI_BODY_F, 1);") &&
+    nhStakerLoadoutSource.includes("place(player, 13, DMM_ZARYTE_CROSSBOW, 1);") &&
+    nhStakerLoadoutSource.includes("place(player, 17, DRAGONFIRE_SHIELD, 1);") &&
+    nhStakerLoadoutSource.includes("place(player, 18, DMM_NOXIOUS_HALBERD, 1);") &&
+    nhStakerLoadoutSource.includes("place(player, 21, DMM_VESTAS_LONGSWORD, 1);") &&
+    nhStakerLoadoutSource.includes("place(player, 22, DMM_VOIDWAKER, 1);") &&
+    nhStakerLoadoutSource.includes("place(player, 23, deployedHardInventory ? MANTA_RAY : GRANITE_MAUL, 1);") &&
+    nhStakerLoadoutSource.includes("place(player, 24, DMM_VENGEANCE_TRINKET, 2);") &&
+    nhStakerLoadoutSource.includes("place(player, 27, deployedHardInventory ? MANTA_RAY : RunePouch.RUNE_POUCH, 1);") &&
+    viewerSource.includes("const RUNTIME_DMM_DEPLOYED_HARD_INVENTORY_SLOTS = normalizeNhInventorySlots([") &&
+    viewerSource.includes("{ itemId: 27238, quantity: 1 }") &&
+    viewerSource.includes("{ itemId: 26374, quantity: 1 }") &&
+    viewerSource.includes("{ itemId: 11283, quantity: 1 }") &&
+    viewerSource.includes("{ itemId: 29796, quantity: 1 }") &&
+    viewerSource.includes("{ itemId: 22613, quantity: 1 }") &&
+    viewerSource.includes("{ itemId: 27690, quantity: 1 }") &&
+    browserDmmDeployedHardInventoryIds[23] === 391 &&
+    browserDmmDeployedHardInventoryIds[27] === 391 &&
+    !browserDmmDeployedHardInventoryIds.includes(12791) &&
+    !browserDmmDeployedHardInventoryIds.includes(4153) &&
+    viewerSource.includes("if (setupId === \"dmm\" && difficulty === \"deployed-hard\")") &&
+    viewerSource.includes("return normalizeNhInventorySlots(RUNTIME_DMM_DEPLOYED_HARD_INVENTORY_SLOTS);"),
+  "Java and browser DMM deployed-hard loadouts should use the same deployed inventory surface: VLS/Voidwaker/ZCB/DFS/trinket present, gmaul and rune pouch replaced by mantas"
+);
+const javaDeployedLegacySurface = {
+  offence: parseJavaEnumArray(nhSelfPlayPolicyBridgeSource, "OFFENCE_STYLES"),
+  defence: parseJavaEnumArray(nhSelfPlayPolicyBridgeSource, "DEFENCE_PRAYERS"),
+  movement: parseJavaEnumArray(nhSelfPlayPolicyBridgeSource, "DEPLOYED_LEGACY_MOVEMENT_INTENTS").map(deployedLegacyMovementName),
+  supply: parseJavaEnumArray(nhSelfPlayPolicyBridgeSource, "SUPPLY_INTENTS"),
+  extraSupply: parseJavaEnumArray(nhSelfPlayPolicyBridgeSource, "EXTRA_SUPPLY_INTENTS"),
+  spec: parseJavaEnumArray(nhSelfPlayPolicyBridgeSource, "SPEC_INTENTS"),
+  attack: parseJavaEnumArray(nhSelfPlayPolicyBridgeSource, "ATTACK_INTENTS"),
+  equipment: parseJavaEnumArray(nhSelfPlayPolicyBridgeSource, "EQUIPMENT_INTENTS")
+};
+const dmmDeployedPracticeProperties = parseProperties(serverPracticeDmmDeployedPropertiesSource);
+const dmmDeployedPracticePolicyPath = dmmDeployedPracticeProperties.get("kronos.nh.deployed.hard.neural.policy.path") ?? "";
+const dmmDeployedPracticePolicyAbsolutePath = resolveConfiguredPath(dmmDeployedPracticePolicyPath, serverProjectRoot);
+const dmmDeployedPracticePolicyNormalized = dmmDeployedPracticePolicyPath.replaceAll("\\", "/");
+assert(
+  existsSync(serverPracticeDmmDeployedPropertiesPath) &&
+    dmmDeployedPracticeProperties.get("nh_training_setup") === "dmm" &&
+    dmmDeployedPracticeProperties.get("nh_loadout_profile") === "dmm" &&
+    dmmDeployedPracticeProperties.get("nh_reward_profile") === "neural_sparse" &&
+    dmmDeployedPracticeProperties.get("kronos.nh.deployed.hard.expected.decode") === "dmm_deployed_composite" &&
+    dmmDeployedPracticeProperties.get("kronos.nh.dmm.deployed.composite.enabled") === "true" &&
+    dmmDeployedPracticeProperties.get("kronos.nh.current.direct.untrained") === "false" &&
+    typeof dmmDeployedPracticeProperties.get("kronos.nh.neural.policy.path") === "string" &&
+    dmmDeployedPracticeProperties.get("kronos.nh.neural.policy.path").endsWith("/nh-policy-dmm-directmovement-deployed-mimic-headonly-20260620.json") &&
+    dmmDeployedPracticeProperties.get("kronos.nh.neural.train.exploration") === "0" &&
+    dmmDeployedPracticeProperties.get("kronos.nh.spawn.practice.deployed.hard") === "true" &&
+    dmmDeployedPracticeProperties.get("kronos.nh.spawn.practice.deployed.peer") === "false" &&
+    dmmDeployedPracticeProperties.get("kronos.nh.spawn.practice.current.direct") === "true" &&
+    dmmDeployedPracticePolicyNormalized.endsWith("/.codex-logs/deployed-dmm-hard/nh-neural-policy-dmm-candidate.deployed-20260612.json") &&
+    !/directschema|deployed-hard-direct|nh-policy-dmm-deployed-hard/.test(serverPracticeDmmDeployedPropertiesSource) &&
+    existsSync(dmmDeployedPracticePolicyAbsolutePath),
+  `Java DMM deployed practice profile should launch Riven deployed-composite hard plus trained Solana current-direct practice, and fail closed against directschema drift: ${JSON.stringify({
+    propertiesPath: serverPracticeDmmDeployedPropertiesPath,
+    trainingSetup: dmmDeployedPracticeProperties.get("nh_training_setup"),
+    loadoutProfile: dmmDeployedPracticeProperties.get("nh_loadout_profile"),
+    rewardProfile: dmmDeployedPracticeProperties.get("nh_reward_profile"),
+    expectedDecode: dmmDeployedPracticeProperties.get("kronos.nh.deployed.hard.expected.decode"),
+    compositeEnabled: dmmDeployedPracticeProperties.get("kronos.nh.dmm.deployed.composite.enabled"),
+    currentDirectUntrained: dmmDeployedPracticeProperties.get("kronos.nh.current.direct.untrained"),
+    currentDirectPolicyPath: dmmDeployedPracticeProperties.get("kronos.nh.neural.policy.path"),
+    deployedHardSpawn: dmmDeployedPracticeProperties.get("kronos.nh.spawn.practice.deployed.hard"),
+    deployedPeerSpawn: dmmDeployedPracticeProperties.get("kronos.nh.spawn.practice.deployed.peer"),
+    currentDirectSpawn: dmmDeployedPracticeProperties.get("kronos.nh.spawn.practice.current.direct"),
+    policyPath: dmmDeployedPracticePolicyPath,
+    policyExists: existsSync(dmmDeployedPracticePolicyAbsolutePath)
+  })}`
+);
+assertArrayEquals(
+  javaDeployedLegacySurface.offence,
+  [...nhPolicyBridge.nhOffenceStyles],
+  "Java deployed-composite offence styles"
+);
+assertArrayEquals(
+  javaDeployedLegacySurface.defence,
+  [...nhPolicyBridge.nhDefencePrayers],
+  "Java deployed-composite defence prayers"
+);
+assertArrayEquals(
+  javaDeployedLegacySurface.movement,
+  [...nhPolicyBridge.nhDeployedLegacyMovementIntents],
+  "Java deployed-composite movement intents"
+);
+assertArrayEquals(
+  javaDeployedLegacySurface.supply,
+  [...nhPolicyBridge.nhSupplyIntents],
+  "Java deployed-composite supply intents"
+);
+assertArrayEquals(
+  javaDeployedLegacySurface.extraSupply,
+  [...nhPolicyBridge.nhExtraSupplyIntents],
+  "Java deployed-composite extra supply intents"
+);
+assertArrayEquals(
+  javaDeployedLegacySurface.spec,
+  [...nhPolicyBridge.nhLegacySpecIntents],
+  "Java deployed-composite legacy spec intents"
+);
+assertArrayEquals(
+  javaDeployedLegacySurface.attack,
+  [...nhPolicyBridge.nhAttackIntents],
+  "Java deployed-composite attack intents"
+);
+assertArrayEquals(
+  javaDeployedLegacySurface.equipment,
+  [...nhPolicyBridge.nhEquipmentIntents],
+  "Java deployed-composite equipment intents"
+);
+const deployedLegacyBaseActionCount =
+  javaDeployedLegacySurface.offence.length *
+  javaDeployedLegacySurface.defence.length *
+  javaDeployedLegacySurface.movement.length *
+  javaDeployedLegacySurface.supply.length;
+const deployedLegacyExtraBaseActionCount =
+  javaDeployedLegacySurface.offence.length *
+  javaDeployedLegacySurface.defence.length *
+  javaDeployedLegacySurface.movement.length *
+  javaDeployedLegacySurface.extraSupply.length;
+const deployedLegacyActionCount = deployedLegacyBaseActionCount * javaDeployedLegacySurface.spec.length;
+const deployedLegacyPolicyV1ActionCount =
+  deployedLegacyActionCount + deployedLegacyExtraBaseActionCount * javaDeployedLegacySurface.spec.length;
+const deployedLegacyPolicyActionCount =
+  deployedLegacyPolicyV1ActionCount * javaDeployedLegacySurface.attack.length * javaDeployedLegacySurface.equipment.length;
+assert(
+  deployedLegacyPolicyActionCount === nhPolicyBridge.nhDeployedLegacyPolicyActionCount,
+  `Java deployed-composite action count should match TypeScript: ${JSON.stringify({
+    java: deployedLegacyPolicyActionCount,
+    ts: nhPolicyBridge.nhDeployedLegacyPolicyActionCount
+  })}`
+);
+for (const action of [...new Set([
+  0,
+  1,
+  javaDeployedLegacySurface.supply.length - 1,
+  javaDeployedLegacySurface.supply.length,
+  deployedLegacyBaseActionCount - 1,
+  deployedLegacyBaseActionCount,
+  deployedLegacyActionCount - 1,
+  deployedLegacyActionCount,
+  deployedLegacyPolicyV1ActionCount - 1,
+  deployedLegacyPolicyV1ActionCount,
+  deployedLegacyPolicyV1ActionCount * javaDeployedLegacySurface.attack.length - 1,
+  deployedLegacyPolicyV1ActionCount * javaDeployedLegacySurface.attack.length,
+  58871,
+  deployedLegacyPolicyActionCount - 1
+])]) {
+  const javaDecoded = decodeJavaStyleDeployedLegacyAction(action, javaDeployedLegacySurface);
+  const tsDecoded = nhPolicyBridge.decodeNhDeployedLegacyPolicyAction(action);
+  const projectedTsDecoded = {
+    offenceStyle: tsDecoded.offenceStyle,
+    defencePrayer: tsDecoded.defencePrayer,
+    movementIntent: tsDecoded.movementIntent,
+    supplyIntent: tsDecoded.supplyIntent,
+    specIntent: tsDecoded.specIntent,
+    extendedSupplyAction: tsDecoded.extendedSupplyAction,
+    attackIntent: tsDecoded.attackIntent,
+    equipmentIntent: tsDecoded.equipmentIntent
+  };
+  assert(
+    JSON.stringify(javaDecoded) === JSON.stringify(projectedTsDecoded),
+    `Java deployed-composite decode should match TypeScript for action ${action}: ${JSON.stringify({
+      java: javaDecoded,
+      ts: projectedTsDecoded
+    })}`
+  );
+}
+assert(
+  nhStakerSelfPlayManagerSource.includes("private int[] currentPolicyCompatibleInputSizes()") &&
+    /NhStakerLoadout\.isDmmProfile\(\)\s*\?\s*new int\[0\]/.test(nhStakerSelfPlayManagerSource) &&
+    /DEPLOYED_LEGACY_POLICY_ACTION_COUNT,\s*V14_INPUT_SIZE,\s*V13_INPUT_SIZE/.test(nhStakerSelfPlayManagerSource) &&
+    nhStakerSelfPlayManagerSource.includes("DEPLOYED_HARD_EXPECTED_DECODE_PROPERTY") &&
+    nhStakerSelfPlayManagerSource.includes("normalizeExpectedDecode") &&
+    nhStakerSelfPlayManagerSource.includes("DMM deployed hard decode mismatch") &&
+    nhNeuralPolicyModelSource.includes("int... compatibleInputSizes") &&
+    !nhNeuralPolicyModelSource.includes("|| inputSize == 92") &&
+    !nhNeuralPolicyModelSource.includes("|| inputSize == 90") &&
+    botPolicySource.includes("DMM deployed-composite policy produced no legal deployed-legacy rankings; refusing action fallback."),
+  "DMM deployed-composite model loading should explicitly allow legacy inputs only on the deployed-hard bridge and fail closed without fallback"
+);
+assert(
+  /private boolean supportsVectorActionLabels\(NhNeuralPolicyModel model\)[\s\S]*?for \(int action : canonicalCombatActions\(\)\)[\s\S]*?for \(int action : canonicalDefenceActions\(\)\)[\s\S]*?for \(int action : canonicalMovementActions\(\)\)[\s\S]*?for \(int action : requiredCurrentMappedSupplyActions\(\)\)/.test(nhStakerSelfPlayManagerSource),
+  "current action-vector schema detection must require combat/spec, defence, movement, and supply channel actions before routing a model to the vector controller"
+);
+assert(
+  /allowDeployedLegacyEvGuard:\s*!dmmDeployedCompositeMode/.test(runtimePolicyOpponentSource) &&
+    /if\s*\(\s*deployedLegacyMode\s*&&\s*\(options\.allowDeployedLegacyEvGuard\s*\?\?\s*true\)\s*\)/.test(runtimePolicyOpponentSource) &&
+    /function runtimePolicyActionWithDelayedPrayerCounter[\s\S]*?if\s*\(\s*runtimePolicyIsDmmActor\(context\.self\)\s*\)\s*\{\s*return action;\s*\}/.test(runtimePolicyOpponentSource) &&
+    /if\s*\(\s*deployedLegacy\s*&&\s*!dmmDeployedComposite\s*\)/.test(nhStakerBotSource) &&
+    /private OffenceStyle enforceLivePrayerCounter[\s\S]*?if\s*\(\s*NhStakerLoadout\.isDmmProfile\(\)\s*&&\s*getPolicyControlMode\(\)\s*!=\s*PolicyControlMode\.SCRIPTED\s*\)\s*\{\s*return desiredStyle;\s*\}/.test(nhStakerBotSource) &&
+    /String source = isDmmDeployedCompositeModel\(neuralModel\)\s*\?\s*"selfplay_dmm_deployed_composite"\s*:\s*"selfplay_deployed_legacy";/.test(nhStakerSelfPlayManagerSource) &&
+    /private boolean isDmmDeployedCompositeDecision\(CombatDecision decision\)\s*\{\s*return decision != null && decision\.controllerKind\.isDmmDeployedComposite\(\);\s*\}/.test(nhStakerBotSource),
+  "DMM deployed-composite execution should bypass old deployed-legacy EV and live-prayer style overrides using typed controller identity"
+);
+assert(
+  nhStakerSelfPlayManagerSource.includes("setModelInputValue(legacyInput, INPUT_REWARD_DELTA_INDEX") &&
+    nhStakerSelfPlayManagerSource.includes("setModelInputValue(legacyInput, INPUT_REWARD_DPS_INDEX") &&
+    nhStakerSelfPlayManagerSource.includes("setModelInputValue(legacyInput, INPUT_REWARD_TOTAL_INDEX") &&
+    !nhStakerSelfPlayManagerSource.includes("normalizeDmmDeployedCompositeLegacyInputs") &&
+    !nhStakerSelfPlayManagerSource.includes("setModelInputValue(input, INPUT_SELF_MOVING_INDEX, 0.0D);") &&
+    !nhStakerSelfPlayManagerSource.includes("setModelInputValue(input, INPUT_VISIBLE_STYLE_MISMATCH_RATE_INDEX, 0.0D);") &&
+    !nhStakerSelfPlayManagerSource.includes("modelInputValue(input, INPUT_VISIBLE_STYLE_LAST_OUTCOME_INDEX) < 0.0D"),
+  "Java DMM deployed-composite input bridge should scale raw Java reward fields to the browser feature range without zeroing browser-live movement/reliability inputs"
+);
+assert(
+  /nhSpecIntentIsLegacyGeneric\(action\.specIntent\)[\s\S]*?deployedLegacyMode[\s\S]*?runtimePolicyBestAvailableSpecialWeaponKind\(context,\s*nhSpecIntentIsDouble\(action\.specIntent\)\)/.test(runtimePolicyOpponentSource) &&
+    /const specialKind = deployedLegacyMode\s*\?\s*runtimePolicyBestAvailableSpecialWeaponKind\(context,\s*doubleSpec\)/.test(runtimePolicyOpponentSource) &&
+    /if\s*\(specIntent == SpecIntent\.USE_SPECIAL \|\| specIntent == SpecIntent\.USE_SPECIAL_DOUBLE\)\s*\{\s*return bestAvailableSpecialWeaponKind\(opponent,\s*specIntent == SpecIntent\.USE_SPECIAL_DOUBLE\);/.test(nhStakerBotSource),
+  "DMM deployed-composite generic special intents should resolve through the best legal deployed-era special weapon on both browser and Java"
+);
+assert(
+  /if\s*\(\s*deployedLegacyMode\s*&&\s*supplyResult\.consumed\.length === 0\s*\)\s*\{\s*state = runtimePolicyMaybeActivateVengeanceTrinket/.test(runtimePolicyOpponentSource) &&
+    /if\s*\(!supplyConsumed\s*&&\s*isDeployedLegacyDecision\(decision\)\)\s*\{\s*maybeActivateVengeanceTrinket\(opponent\);/.test(nhStakerBotSource) &&
+    /if\s*\(supplyIntent === "vengeance_trinket"\)\s*\{\s*const activated = activateRuntimePlayerCombatVengeanceTrinket/.test(runtimePolicyOpponentSource) &&
+    /if\s*\(player\.vengeanceTrinketCasts >= DMM_VENGEANCE_TRINKET_MAX_CASTS\)\s*\{\s*removeRemainingVengeanceTrinkets\(\);/.test(nhStakerBotSource),
+  "DMM deployed-composite vengeance trinket behavior should match browser legacy mode: explicit supply action first, then capped auto-trinket only when no supply was consumed"
 );
 let capturedDelayedAppearanceContext = null;
 const delayedAppearanceController = {
@@ -4565,6 +6003,148 @@ assert(
     currentServerPrayers: currentServerPrayerState.actors["local-player"].activePrayers
   })}`
 );
+const prayerApplyDelayController = {
+  id: "test-policy-defence-prayer-apply-delay",
+  chooseAction: () => ({
+    offenceStyle: "ranged",
+    defencePrayer: "protect_from_magic",
+    movementIntent: "pressure",
+    supplyIntent: "none",
+    specIntent: "none",
+    extendedSupplyAction: false
+  })
+};
+const prayerRequestedMissilesController = {
+  id: "test-policy-defence-prayer-requested-missiles",
+  chooseAction: () => ({
+    offenceStyle: "magic",
+    defencePrayer: "protect_from_missiles",
+    movementIntent: "pressure",
+    supplyIntent: "none",
+    specIntent: "none",
+    extendedSupplyAction: false
+  })
+};
+let requestedMissilesState = createState(145, {
+  localLoadoutId: "kodai-robes",
+  opponentLoadoutId: "acb-hides",
+  opponentPrayers: ["protect_from_melee"]
+});
+let requestedMissilesResult = runtimePolicyOpponent.applyRuntimeOpponentPolicyAction({
+  state: requestedMissilesState,
+  controller: prayerRequestedMissilesController,
+  localActor: {
+    tile: requestedMissilesState.actors["local-player"].tile,
+    loadoutId: requestedMissilesState.actors["local-player"].loadoutId,
+    equipment: requestedMissilesState.actors["local-player"].equipment
+  },
+  opponentActor: {
+    tile: requestedMissilesState.actors.opponent.tile,
+    loadoutId: requestedMissilesState.actors.opponent.loadoutId
+  }
+});
+assert(
+  requestedMissilesResult.state.actors.opponent.activePrayers.includes("protect_from_missiles") &&
+    requestedMissilesResult.state.actors.opponent.policyPendingDefencePrayer === null,
+  `normal model-selected ranged prayer should apply from the delayed observation without a pending queue: ${JSON.stringify({
+    activePrayers: requestedMissilesResult.state.actors.opponent.activePrayers,
+    pending: requestedMissilesResult.state.actors.opponent.policyPendingDefencePrayer
+  })}`
+);
+const delayedMagicThreatEvent = {
+  kind: "attack",
+  tick: 101,
+  attackerId: "local-player",
+  defenderId: "opponent",
+  style: "magic"
+};
+const delayedMagicThreatFollowupEvent = {
+  ...delayedMagicThreatEvent,
+  tick: 103
+};
+const delayedMagicThreatEvents = [delayedMagicThreatEvent, delayedMagicThreatFollowupEvent];
+let prayerApplyDelayState = {
+  ...createState(141, {
+    localLoadoutId: "kodai-robes",
+    opponentLoadoutId: "acb-hides",
+    opponentPrayers: ["protect_from_missiles"]
+  }),
+  tick: 104,
+  events: delayedMagicThreatEvents
+};
+let prayerApplyDelayResult = runtimePolicyOpponent.applyRuntimeOpponentPolicyAction({
+  state: prayerApplyDelayState,
+  controller: prayerApplyDelayController,
+  localActor: {
+    tile: prayerApplyDelayState.actors["local-player"].tile,
+    loadoutId: prayerApplyDelayState.actors["local-player"].loadoutId,
+    equipment: prayerApplyDelayState.actors["local-player"].equipment
+  },
+  opponentActor: {
+    tile: prayerApplyDelayState.actors.opponent.tile,
+    loadoutId: prayerApplyDelayState.actors.opponent.loadoutId
+  }
+});
+assert(
+  prayerApplyDelayResult.state.actors.opponent.activePrayers.includes("protect_from_magic") &&
+    !prayerApplyDelayResult.state.actors.opponent.activePrayers.includes("protect_from_missiles") &&
+    prayerApplyDelayResult.state.actors.opponent.policyPendingDefencePrayer === null,
+  `defence prayer request should apply immediately from delayed opponent info without an extra queue delay: ${JSON.stringify({
+    activePrayers: prayerApplyDelayResult.state.actors.opponent.activePrayers,
+    pending: prayerApplyDelayResult.state.actors.opponent.policyPendingDefencePrayer,
+    pendingTick: prayerApplyDelayResult.state.actors.opponent.policyPendingDefencePrayerTick
+  })}`
+);
+let sameTickReactionState = null;
+let sameTickReactionHit = null;
+for (let seed = 1600; seed < 1900; seed += 1) {
+  let candidate = createState(seed, {
+    localLoadoutId: "kodai-robes",
+    opponentLoadoutId: "acb-hides",
+    opponentPrayers: ["protect_from_missiles"]
+  });
+  candidate = requestLocalSpell(candidate);
+  const policyResult = runtimePolicyOpponent.applyRuntimeOpponentPolicyAction({
+    state: candidate,
+    controller: prayerApplyDelayController,
+    localActor: {
+      tile: candidate.actors["local-player"].tile,
+      loadoutId: candidate.actors["local-player"].loadoutId,
+      equipment: candidate.actors["local-player"].equipment
+    },
+    opponentActor: {
+      tile: candidate.actors.opponent.tile,
+      loadoutId: candidate.actors.opponent.loadoutId
+    }
+  });
+  assert(
+    policyResult.state.actors.opponent.activePrayers.includes("protect_from_magic") &&
+      policyResult.state.actors.opponent.policyDefencePrayerSwitchTick === policyResult.state.tick,
+    `same-tick defence prayer reaction may switch visually, but the switch tick must be recorded for hit protection: ${JSON.stringify({
+      activePrayers: policyResult.state.actors.opponent.activePrayers,
+      switchTick: policyResult.state.actors.opponent.policyDefencePrayerSwitchTick,
+      pending: policyResult.state.actors.opponent.policyPendingDefencePrayer,
+      pendingTick: policyResult.state.actors.opponent.policyPendingDefencePrayerTick
+    })}`
+  );
+  const advanced = advance(policyResult.state);
+  const hit = advanced.state.queuedHits.find((queuedHit) => queuedHit.attackerId === "local-player");
+  if (hit && hit.rawDamage > 0) {
+    sameTickReactionState = advanced.state;
+    sameTickReactionHit = hit;
+    break;
+  }
+}
+assert(sameTickReactionState && sameTickReactionHit, "same-tick prayer reaction verifier should find a positive magic queued hit");
+assert(
+  sameTickReactionHit.damage === sameTickReactionHit.rawDamage,
+  `bot prayer queued on the same tick as a player magic attack should not protect that attack: ${JSON.stringify({
+    damage: sameTickReactionHit.damage,
+    rawDamage: sameTickReactionHit.rawDamage,
+    defenderPrayers: sameTickReactionState.actors.opponent.activePrayers,
+    attackTick: sameTickReactionHit.attackTick
+  })}`
+);
 let capturedDelayedVitalsContext = null;
 const delayedVitalsController = {
   id: "test-policy-delayed-local-vitals",
@@ -4693,17 +6273,20 @@ assert(
   appSource.includes("<RuntimeSceneViewer") &&
     appSource.includes("policy={loadedPolicy}") &&
     appSource.includes("data-default-policy-loaded") &&
-    appSource.includes("parseNhPolicyTsv") &&
+    appSource.includes("parseNhNeuralPolicyJson") &&
+    !appSource.includes("parseNhPolicyTsv") &&
     viewerSource.includes("manualOpponentPolicyController") &&
     viewerSource.includes("createNhPolicyController(policy)") &&
-    viewerSource.includes("scriptedNhController") &&
+    !viewerSource.includes("scriptedNhController") &&
     viewerSource.includes("queueManualOpponentCombatResponse") &&
     viewerSource.includes("applyRuntimeOpponentPolicyAction({") &&
-    viewerSource.includes("selectedPolicyController ?? scriptedNhController") &&
+    !viewerSource.includes("selectedPolicyController ?? scriptedNhController") &&
+    botPolicySource.includes("produced no allowed action") &&
+    !botPolicySource.includes("scriptedNhController.chooseAction(context)") &&
     viewerSource.includes("lastManualOpponentControllerId") &&
     viewerSource.includes("lastManualOpponentConsumedSupplies") &&
     !viewerSource.includes("runtime-auto-retaliate"),
-  "manual viewport opponent should consume the loaded policy controller when available and fall back to the EV-aware scripted NH controller instead of raw auto-retaliate"
+  "manual viewport opponent should consume only the loaded neural controller and should not fall back to scripted policy control"
 );
 assert(
   viewerSource.includes("isNhPlayerContextMenuEntry(defaultEntry)") &&
@@ -4860,20 +6443,51 @@ assert(
 );
 assert(
   viewerSource.includes("const opponentLoadoutId = setup.loadoutId") &&
-    viewerSource.includes("const opponentInventorySlots = runtimeSetupInventorySlots(setupId)") &&
+    viewerSource.includes("const opponentInventorySlots = runtimeSetupInventorySlots(setupId, runtimeDmmSetupOptionsRef.current)") &&
     viewerSource.includes("const opponentEquipmentItems = runtimeSetupEquipmentItems(setupId)") &&
     viewerSource.includes("opponentLoadoutId,") &&
     viewerSource.includes("viewport.dataset.lastFreshFightResetOpponentSetup = setupId"),
   "DMM rematch reset should respawn the opponent with the active setup preset instead of hardcoding NH stake"
 );
 assert(
-  runtimeCombatSource.includes("const runtimePlayerCombatVengeanceStallTicks = 6") &&
-    runtimeCombatSource.includes("actionSequenceName: \"vengeance_cast\"") &&
+  runtimeCombatSource.includes("actionSequenceName: \"vengeance_cast\"") &&
+    runtimeCombatSource.includes("const runtimePlayerCombatVengeanceAnimationTicks = 6") &&
     runtimeCombatSource.includes("lastVengeanceTrinketCastTick: state.tick") &&
     runtimeCombatSource.includes("vengeanceTrinketCasts: actor.vengeanceTrinketCasts + 1") &&
-    runtimeCombatSource.includes("actionDurationTicks: runtimePlayerCombatVengeanceStallTicks") &&
-    runtimeCombatSource.includes("actionUntilTick: state.tick + runtimePlayerCombatVengeanceStallTicks"),
-  "vengeance trinket activation should track cast timing/count and apply the same vengeance_cast primary action stall for exactly six ticks"
+    trinketOfVengeanceSource.includes("player.vengeanceActive = true;") &&
+    trinketOfVengeanceSource.includes("Config.VENG_COOLDOWN.set(player, 1);") &&
+    trinketOfVengeanceSource.includes("item.remove(1);") &&
+    !trinketOfVengeanceSource.includes("player.resetActions(") &&
+    !viewerSource.includes("activeSequence.sequenceName === RUNTIME_VENGEANCE_CAST_SEQUENCE_NAME"),
+  "vengeance trinket activation should preserve its effect, cooldown, charge use, and cast animation without resetting Java actions or blocking browser movement"
+);
+
+const vengeanceAttackReadyState = requestLocalAttack(
+  createState(0x56454e47, { localVengeanceTrinketCharges: 1 })
+);
+const vengeanceAttackReadyActor = vengeanceAttackReadyState.actors["local-player"];
+const vengeanceActivation = runtimeCombat.activateRuntimePlayerCombatVengeanceTrinket(
+  vengeanceAttackReadyState,
+  "local-player",
+  0
+);
+const vengeanceActivatedActor = vengeanceActivation.state.actors["local-player"];
+assert(
+  vengeanceActivation.activated &&
+    vengeanceActivatedActor.attackTimer === vengeanceAttackReadyActor.attackTimer &&
+    vengeanceActivatedActor.targetId === vengeanceAttackReadyActor.targetId &&
+    vengeanceActivatedActor.vengeanceActive &&
+    vengeanceActivatedActor.vengeanceTrinketCharges === 0 &&
+    vengeanceActivatedActor.vengeanceTrinketCasts === 1 &&
+    vengeanceActivatedActor.vengeanceCooldownUntilTick === 50,
+  "vengeance trinket activation should not change the browser combat attack timer or target"
+);
+const vengeanceSameTickAttack = advance(vengeanceActivation.state);
+assert(
+  vengeanceSameTickAttack.state.events.some(
+    (event) => event.kind === "attack" && event.attackerId === "local-player" && event.tick === 0
+  ),
+  "an attack queued before vengeance trinket activation should still launch on the same tick"
 );
 assert(
   clientActorMovementSource.includes("if(var0.field720 != 0)") &&

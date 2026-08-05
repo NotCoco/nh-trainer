@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow } = require("./electron-muted.cjs");
 const fs = require("node:fs/promises");
 const path = require("node:path");
 
@@ -21,7 +21,7 @@ function delay(ms) {
  * of the next tick — so equip mutations don't apply until the tick fires.
  */
 function waitForGameTick() {
-  return delay(1500);
+  return delay(3000);
 }
 
 async function readInventoryPendingEquip(window, slotIndex) {
@@ -177,7 +177,7 @@ async function focusRuntimeSectionForCapture(window) {
 
 async function selectRuntimeReplay(window, replayId) {
   const result = await window.webContents.executeJavaScript(`
-    (() => {
+    (async () => {
       const select = document.querySelector("#runtime-replay");
       if (!select) {
         return { ok: false, error: "missing runtime replay selector" };
@@ -192,6 +192,15 @@ async function selectRuntimeReplay(window, replayId) {
       }
       select.value = option.value;
       select.dispatchEvent(new Event("change", { bubbles: true }));
+      const deadline = Date.now() + 3000;
+      let label = document.querySelector('label[for="runtime-cycle"]')?.textContent ?? "";
+      while (!label.includes(${JSON.stringify(replayId)}) && Date.now() < deadline) {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        label = document.querySelector('label[for="runtime-cycle"]')?.textContent ?? "";
+      }
+      if (!label.includes(${JSON.stringify(replayId)})) {
+        return { ok: false, error: "replay selection did not render", replayId: ${JSON.stringify(replayId)}, label };
+      }
       return { ok: true };
     })()
   `);
@@ -201,13 +210,75 @@ async function selectRuntimeReplay(window, replayId) {
   await delay(150);
 }
 
-async function setManualControl(window, enabled) {
+async function selectRuntimeSetup(window, setupId) {
   const result = await window.webContents.executeJavaScript(`
     (() => {
-      const button = Array.from(document.querySelectorAll("button")).find((candidate) => {
+      const button = document.querySelector('[data-runtime-setup-option="${setupId}"]');
+      if (!button) {
+        return {
+          ok: false,
+          error: "missing runtime setup option",
+          setupId: ${JSON.stringify(setupId)},
+          selectorOpen: document.querySelector("[data-runtime-setup-selector]") !== null
+        };
+      }
+      button.click();
+      return { ok: true, setupId: ${JSON.stringify(setupId)} };
+    })()
+  `);
+  if (!result.ok) {
+    throw new Error(JSON.stringify(result));
+  }
+  await delay(350);
+  return result;
+}
+
+async function readRuntimeDmmSetupOptions(window) {
+  return window.webContents.executeJavaScript(`
+    (() => {
+      const root = document.querySelector(".runtimeDmmSetupToggles");
+      return {
+        present: root !== null,
+        graniteMaul: root?.getAttribute("data-dmm-granite-maul-enabled") ?? "",
+        armadylGodsword: root?.getAttribute("data-dmm-armadyl-godsword-enabled") ?? "",
+        inputs: Array.from(document.querySelectorAll("[data-dmm-setup-option]")).map((input) => ({
+          option: input.getAttribute("data-dmm-setup-option") ?? "",
+          checked: Boolean(input.checked)
+        }))
+      };
+    })()
+  `);
+}
+
+async function setRuntimeDmmSetupOption(window, option, enabled) {
+  const result = await window.webContents.executeJavaScript(`
+    (() => {
+      const input = document.querySelector('[data-dmm-setup-option="${option}"]');
+      if (!input) {
+        return { ok: false, error: "missing dmm setup option", option: ${JSON.stringify(option)} };
+      }
+      const current = Boolean(input.checked);
+      if (current !== ${JSON.stringify(enabled)}) {
+        input.click();
+      }
+      return { ok: true, option: ${JSON.stringify(option)}, current, requested: ${JSON.stringify(enabled)}, clicked: current !== ${JSON.stringify(enabled)} };
+    })()
+  `);
+  if (!result.ok) {
+    throw new Error(JSON.stringify(result));
+  }
+  await delay(250);
+  return result;
+}
+
+async function setManualControl(window, enabled) {
+  const result = await window.webContents.executeJavaScript(`
+    (async () => {
+      const findButton = () => Array.from(document.querySelectorAll("button")).find((candidate) => {
         const text = candidate.textContent?.trim() ?? "";
         return text === "Manual on" || text === "Manual";
       });
+      const button = findButton();
       if (!button) {
         return { ok: false, error: "missing manual control button" };
       }
@@ -215,7 +286,16 @@ async function setManualControl(window, enabled) {
       if (current !== ${JSON.stringify(enabled)}) {
         button.click();
       }
-      return { ok: true, current, requested: ${JSON.stringify(enabled)}, clicked: current !== ${JSON.stringify(enabled)} };
+      const deadline = Date.now() + 3000;
+      let rendered = findButton()?.getAttribute("aria-pressed") === "true";
+      while (rendered !== ${JSON.stringify(enabled)} && Date.now() < deadline) {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        rendered = findButton()?.getAttribute("aria-pressed") === "true";
+      }
+      if (rendered !== ${JSON.stringify(enabled)}) {
+        return { ok: false, error: "manual control did not render requested state", current, requested: ${JSON.stringify(enabled)}, rendered };
+      }
+      return { ok: true, current, requested: ${JSON.stringify(enabled)}, clicked: current !== ${JSON.stringify(enabled)}, rendered };
     })()
   `);
   if (!result.ok) {
@@ -441,6 +521,20 @@ async function setRuntimeInventory(window, inventory) {
   await delay(150);
 }
 
+async function setRuntimeEquipment(window, equipment, loadoutId = null) {
+  await window.webContents.executeJavaScript(`
+    (() => {
+      window.dispatchEvent(new CustomEvent("nh-runtime-inventory", {
+        detail: {
+          equipment: ${JSON.stringify(equipment)},
+          loadoutId: ${JSON.stringify(loadoutId)}
+        }
+      }));
+    })()
+  `);
+  await delay(150);
+}
+
 async function clickSideTab(window, tabId) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
@@ -512,6 +606,17 @@ async function clearRuntimeInventory(window) {
   await delay(150);
 }
 
+async function clearRuntimeEquipment(window) {
+  await window.webContents.executeJavaScript(`
+    (() => {
+      window.dispatchEvent(new CustomEvent("nh-runtime-inventory", {
+        detail: { clearEquipment: true }
+      }));
+    })()
+  `);
+  await delay(150);
+}
+
 async function openInventoryContextMenu(window, slotIndex) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
@@ -520,24 +625,65 @@ async function openInventoryContextMenu(window, slotIndex) {
         return { ok: false, error: "missing inventory slot" };
       }
       const rect = slot.getBoundingClientRect();
-      slot.dispatchEvent(new MouseEvent("contextmenu", {
+      const clientX = rect.left + rect.width / 2;
+      const clientY = rect.top + rect.height / 2;
+      slot.dispatchEvent(new PointerEvent("pointerdown", {
         bubbles: true,
         cancelable: true,
         view: window,
+        pointerId: 1,
+        pointerType: "mouse",
         button: 2,
         buttons: 2,
-        clientX: rect.left + rect.width / 2,
-        clientY: rect.top + rect.height / 2
+        clientX,
+        clientY
       }));
 
       let menu = document.querySelector(".nhContextMenu");
+      if (!menu) {
+        slot.dispatchEvent(new MouseEvent("contextmenu", {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+          button: 2,
+          buttons: 2,
+          clientX,
+          clientY
+        }));
+        menu = document.querySelector(".nhContextMenu");
+      }
+      slot.dispatchEvent(new PointerEvent("pointerup", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        pointerId: 1,
+        pointerType: "mouse",
+        button: 2,
+        buttons: 0,
+        clientX,
+        clientY
+      }));
+
       const deadline = Date.now() + 1000;
       while (!menu && Date.now() < deadline) {
         await new Promise((resolve) => requestAnimationFrame(resolve));
         menu = document.querySelector(".nhContextMenu");
       }
       if (!menu) {
-        return { ok: false, error: "inventory context menu did not open" };
+        const item = slot.querySelector(".nhInventoryItemSprite");
+        const viewport = document.querySelector(".runtimeViewport");
+        return {
+          ok: false,
+          error: "inventory context menu did not open",
+          slotIndex: ${JSON.stringify(slotIndex)},
+          slotText: slot.textContent ?? "",
+          slotItemId: item?.getAttribute("data-item-id") ?? "",
+          slotSelected: slot.getAttribute("data-selected") ?? "",
+          selectedInventoryItemId: viewport?.dataset.selectedInventoryItemId ?? "",
+          selectedInventorySlot: viewport?.dataset.selectedInventorySlot ?? "",
+          selectedInventoryWidgetId: viewport?.dataset.selectedInventoryWidgetId ?? "",
+          existingMenuCount: document.querySelectorAll(".nhContextMenu").length
+        };
       }
       return {
         ok: true,
@@ -571,7 +717,31 @@ async function clickContextMenuOption(window, optionIndex) {
       if (!option) {
         return { ok: false, error: "missing context menu option" };
       }
-      option.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
+      const rect = option.getBoundingClientRect();
+      const clientX = rect.left + rect.width / 2;
+      const clientY = rect.top + rect.height / 2;
+      option.dispatchEvent(new PointerEvent("pointerdown", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        pointerId: 1,
+        pointerType: "mouse",
+        button: 0,
+        buttons: 1,
+        clientX,
+        clientY
+      }));
+      option.dispatchEvent(new PointerEvent("pointerup", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        pointerId: 1,
+        pointerType: "mouse",
+        button: 0,
+        buttons: 0,
+        clientX,
+        clientY
+      }));
       await new Promise((resolve) => requestAnimationFrame(resolve));
       const viewport = document.querySelector(".runtimeViewport");
       return { ok: true, dataset: { ...viewport?.dataset } };
@@ -947,6 +1117,102 @@ function countItem(inventory, itemId) {
   return inventory.counts[String(itemId)] ?? inventory.counts[itemId] ?? 0;
 }
 
+async function readRuntimeGroundItemState(window) {
+  return window.webContents.executeJavaScript(`
+    (() => {
+      const viewport = document.querySelector(".runtimeViewport");
+      return {
+        lastGroundItemAction: viewport?.dataset.lastGroundItemAction ?? "",
+        groundItemCount: document.querySelectorAll("[data-ground-item-id]").length
+      };
+    })()
+  `);
+}
+
+async function resetRuntimeGroundItemState(window) {
+  await window.webContents.executeJavaScript(`
+    (() => {
+      const viewport = document.querySelector(".runtimeViewport");
+      if (viewport) {
+        viewport.dataset.lastGroundItemAction = "";
+      }
+    })()
+  `);
+}
+
+async function verifyDmmSetupEditing(window) {
+  await selectRuntimeSetup(window, "dmm");
+  let options = await readRuntimeDmmSetupOptions(window);
+  let inventory = await readRuntimeInventory(window);
+  if (
+    !options.present ||
+    options.graniteMaul !== "true" ||
+    options.armadylGodsword !== "false" ||
+    countItem(inventory, 4153) !== 1 ||
+    countItem(inventory, 11802) !== 0
+  ) {
+    throw new Error(`DMM setup should default to Gmaul on and AGS off: ${JSON.stringify({ options, inventory })}`);
+  }
+  const defaultMantaCount = countItem(inventory, 391);
+
+  await setRuntimeDmmSetupOption(window, "granite-maul", false);
+  inventory = await readRuntimeInventory(window);
+  if (countItem(inventory, 4153) !== 0 || countItem(inventory, 391) !== defaultMantaCount + 1) {
+    throw new Error(`Turning DMM Gmaul off should restore exactly one Manta ray: ${JSON.stringify(inventory)}`);
+  }
+
+  await setRuntimeDmmSetupOption(window, "armadyl-godsword", true);
+  inventory = await readRuntimeInventory(window);
+  if (countItem(inventory, 11802) !== 1 || countItem(inventory, 391) !== defaultMantaCount) {
+    throw new Error(`Turning DMM AGS on should replace exactly one Manta ray: ${JSON.stringify(inventory)}`);
+  }
+
+  await setRuntimeDmmSetupOption(window, "armadyl-godsword", false);
+  inventory = await readRuntimeInventory(window);
+  if (countItem(inventory, 11802) !== 0 || countItem(inventory, 391) !== defaultMantaCount + 1) {
+    throw new Error(`Turning DMM AGS back off should remove AGS without corrupting Manta count: ${JSON.stringify(inventory)}`);
+  }
+
+  await setRuntimeDmmSetupOption(window, "granite-maul", true);
+  inventory = await readRuntimeInventory(window);
+  const gmaulSlotIndex = inventory.slots.findIndex((slot) => slot.itemId === 4153);
+  if (gmaulSlotIndex === -1 || countItem(inventory, 4153) !== 1 || countItem(inventory, 391) !== defaultMantaCount) {
+    throw new Error(`Turning DMM Gmaul back on should restore a single Gmaul: ${JSON.stringify(inventory)}`);
+  }
+
+  await resetRuntimeGroundItemState(window);
+  const destroyMenu = await openInventoryContextMenu(window, gmaulSlotIndex);
+  const destroyActionIndex = destroyMenu.options.findIndex(
+    (option) => option.action === "Destroy" && option.actionKind === "inventory-action" && option.opcode === 37
+  );
+  if (destroyActionIndex === -1) {
+    throw new Error(`DMM pre-fight Gmaul menu did not expose Destroy: ${JSON.stringify(destroyMenu)}`);
+  }
+  const destroyDispatch = await clickContextMenuOption(window, destroyActionIndex);
+  inventory = await readRuntimeInventory(window);
+  const groundItemState = await readRuntimeGroundItemState(window);
+  if (
+    destroyDispatch.lastInventoryMutation !== "destroy-remove" ||
+    countItem(inventory, 4153) !== 0 ||
+    groundItemState.lastGroundItemAction === "drop" ||
+    groundItemState.groundItemCount !== 0
+  ) {
+    throw new Error(`DMM pre-fight Destroy should clear Gmaul without a ground item: ${JSON.stringify({ destroyDispatch, inventory, groundItemState })}`);
+  }
+
+  await setRuntimeDmmSetupOption(window, "granite-maul", false);
+  inventory = await readRuntimeInventory(window);
+  if (countItem(inventory, 4153) !== 0) {
+    throw new Error(`Turning off a destroyed DMM Gmaul should not resurrect or duplicate it: ${JSON.stringify(inventory)}`);
+  }
+
+  await setRuntimeDmmSetupOption(window, "granite-maul", true);
+  inventory = await readRuntimeInventory(window);
+  if (countItem(inventory, 4153) !== 1) {
+    throw new Error(`Turning a destroyed DMM Gmaul back on should add one clean replacement: ${JSON.stringify(inventory)}`);
+  }
+}
+
 app.whenReady().then(async () => {
   const window = new BrowserWindow({
     width: 1280,
@@ -966,6 +1232,58 @@ app.whenReady().then(async () => {
     await selectRuntimeReplay(window, "two-actor-barrage-into-range-v1");
     await setRuntimeCycle(window, 0);
     await focusRuntimeSectionForCapture(window);
+    await verifyDmmSetupEditing(window);
+
+    await loadRuntimeWindow(window);
+    await selectRuntimeReplay(window, "two-actor-barrage-into-range-v1");
+    await setRuntimeCycle(window, 0);
+    await focusRuntimeSectionForCapture(window);
+    await selectRuntimeSetup(window, "nh-stake");
+    const nhStakeDmmOptions = await readRuntimeDmmSetupOptions(window);
+    if (nhStakeDmmOptions.present) {
+      throw new Error(`NH stake should not expose DMM-only Gmaul/AGS toggles: ${JSON.stringify(nhStakeDmmOptions)}`);
+    }
+    await setRuntimeInventory(window, [
+      { itemId: 21006, quantity: 1 },
+      { itemId: 21791, quantity: 1 },
+      { itemId: 12002, quantity: 1 },
+      { itemId: 4712, quantity: 1 },
+      { itemId: 4714, quantity: 1 },
+      { itemId: 12006, quantity: 1 },
+      { itemId: 12954, quantity: 1 },
+      { itemId: 6570, quantity: 1 },
+      { itemId: 19553, quantity: 1 },
+      { itemId: 11832, quantity: 1 },
+      { itemId: 11834, quantity: 1 },
+      { itemId: 4153, quantity: 1 },
+      { itemId: 3144, quantity: 1 },
+      { itemId: 3144, quantity: 1 },
+      { itemId: 3144, quantity: 1 },
+      { itemId: 3144, quantity: 1 },
+      { itemId: 385, quantity: 1 },
+      { itemId: 385, quantity: 1 },
+      { itemId: 385, quantity: 1 },
+      { itemId: 385, quantity: 1 },
+      { itemId: 6685, quantity: 1 },
+      { itemId: 6685, quantity: 1 },
+      { itemId: 3024, quantity: 1 },
+      { itemId: 3024, quantity: 1 },
+      { itemId: 12695, quantity: 1 },
+      { itemId: 22461, quantity: 1 }
+    ]);
+    await setRuntimeEquipment(window, [
+      [0, 12929],
+      [1, 22109],
+      [2, 19547],
+      [3, 11785],
+      [4, 11828],
+      [5, 6889],
+      [7, 11830],
+      [9, 7462],
+      [10, 11840],
+      [12, 19710],
+      [13, 21948]
+    ], "acb-hides");
     const initialInventory = await readRuntimeInventory(window);
     const maxCycle = Number.parseInt(initialInventory.maxCycle, 10);
     if (!Number.isInteger(maxCycle) || maxCycle < 1) {
@@ -1191,6 +1509,19 @@ app.whenReady().then(async () => {
       { itemId: 12695, quantity: 1 },
       { itemId: 22461, quantity: 1 }
     ]);
+    await setRuntimeEquipment(window, [
+      [0, 12929],
+      [1, 21791],
+      [2, 12002],
+      [3, 21006],
+      [4, 4712],
+      [5, 6889],
+      [7, 4714],
+      [9, 7462],
+      [10, 11840],
+      [12, 19710],
+      [13, 21948]
+    ], "kodai-robes");
 
     await resetRuntimeTickOrigin(window);
     await resetActorModelSwapCapture(window);
@@ -1261,8 +1592,9 @@ app.whenReady().then(async () => {
     const expectedInventoryMenuOptions = [
       { text: "Wield Armadyl crossbow", action: "Wield", actionKind: "inventory-action", opcode: 34, identifier: 11785, argument1: 0, argument2: 9764864 },
       { text: "Use Armadyl crossbow", action: "Use", actionKind: "inventory-use", opcode: 38, identifier: 11785, argument1: 0, argument2: 9764864 },
-      { text: "Drop Armadyl crossbow", action: "Drop", actionKind: "inventory-action", opcode: 37, identifier: 11785, argument1: 0, argument2: 9764864 },
-      { text: "Examine Armadyl crossbow", action: "Examine", actionKind: "inventory-examine", opcode: 1005, identifier: 11785, argument1: 0, argument2: 9764864 }
+      { text: "Destroy Armadyl crossbow", action: "Destroy", actionKind: "inventory-action", opcode: 37, identifier: 11785, argument1: 0, argument2: 9764864 },
+      { text: "Examine Armadyl crossbow", action: "Examine", actionKind: "inventory-examine", opcode: 1005, identifier: 11785, argument1: 0, argument2: 9764864 },
+      { text: "Cancel", action: "Cancel", actionKind: "cancel", opcode: 1006, identifier: 0, argument1: 0, argument2: 0 }
     ];
     if (inventoryMenu.title !== "Choose Option") {
       throw new Error(`Unexpected inventory context menu title: ${JSON.stringify(inventoryMenu)}`);
@@ -1635,6 +1967,7 @@ app.whenReady().then(async () => {
       throw new Error(`Equipment Remove did not clear the combat-tab weapon state after tick: ${JSON.stringify(removePostTickCombat)}`);
     }
     await clickSideTab(window, "inventory");
+    await setRuntimeInventory(window, [{ itemId: 11785, quantity: 1 }, { itemId: 385, quantity: 1 }]);
 
     const useSourceMenu = await openInventoryContextMenu(window, 0);
     const useActionIndex = useSourceMenu.options.findIndex(
@@ -1689,6 +2022,7 @@ app.whenReady().then(async () => {
     if (worldClickClearedSlotState.slots[0].selected !== "false" || worldClickClearedSlotState.slots[0].spriteVariant !== "normal") {
       throw new Error(`World tile command should clear the selected source sprite: ${JSON.stringify(worldClickClearedSlotState.slots[0])}`);
     }
+    await delay(150);
     const useSourceMenuAfterWorldClick = await openInventoryContextMenu(window, 0);
     const useActionIndexAfterWorldClick = useSourceMenuAfterWorldClick.options.findIndex(
       (option) => option.action === "Use" && option.actionKind === "inventory-use" && option.opcode === 38
@@ -1715,6 +2049,15 @@ app.whenReady().then(async () => {
         identifier: 385,
         argument1: 1,
         argument2: 9764864
+      },
+      {
+        text: "Cancel",
+        action: "Cancel",
+        actionKind: "cancel",
+        opcode: 1006,
+        identifier: 0,
+        argument1: 0,
+        argument2: 0
       }
     ];
     if (JSON.stringify(useTargetMenu.options) !== JSON.stringify(expectedUseTargetMenuOptions)) {
@@ -1862,31 +2205,51 @@ app.whenReady().then(async () => {
     if (emptyInventory.slots[0].itemId !== 229 || emptyInventory.slots[0].label !== "Inventory slot 1: Vial") {
       throw new Error(`Inventory Empty did not render the vial replacement sprite: ${JSON.stringify(emptyInventory.slots[0])}`);
     }
-    const dropSourceMenu = await openInventoryContextMenu(window, 0);
-    const dropActionIndex = dropSourceMenu.options.findIndex(
-      (option) => option.action === "Drop" && option.actionKind === "inventory-action" && option.opcode === 37
+    await window.webContents.executeJavaScript(`
+      (() => {
+        const viewport = document.querySelector(".runtimeViewport");
+        if (viewport) {
+          viewport.dataset.lastGroundItemAction = "";
+        }
+      })()
+    `);
+    const destroySourceMenu = await openInventoryContextMenu(window, 0);
+    const destroyActionIndex = destroySourceMenu.options.findIndex(
+      (option) => option.action === "Destroy" && option.actionKind === "inventory-action" && option.opcode === 37
     );
-    if (dropActionIndex === -1) {
-      throw new Error(`Inventory source vial menu did not expose opcode-37 Drop: ${JSON.stringify(dropSourceMenu)}`);
+    if (destroyActionIndex === -1) {
+      throw new Error(`Pre-fight inventory source vial menu did not expose opcode-37 Destroy: ${JSON.stringify(destroySourceMenu)}`);
     }
-    const dropDispatch = await clickContextMenuOption(window, dropActionIndex);
+    const destroyDispatch = await clickContextMenuOption(window, destroyActionIndex);
     if (
-      dropDispatch.lastInventoryActivation !== "context-menu" ||
-      dropDispatch.lastInventoryAction !== "Drop" ||
-      dropDispatch.lastInventoryActionKind !== "inventory-action" ||
-      dropDispatch.lastInventoryOpcode !== "37" ||
-      dropDispatch.lastInventoryIdentifier !== "229" ||
-      dropDispatch.lastInventoryArgument1 !== "0" ||
-      dropDispatch.lastInventoryArgument2 !== "9764864" ||
-      dropDispatch.lastInventoryActionIndex !== "4" ||
-      dropDispatch.lastInventoryMutation !== "drop-remove" ||
-      dropDispatch.lastInventoryMutationNextItemId !== ""
+      destroyDispatch.lastInventoryActivation !== "context-menu" ||
+      destroyDispatch.lastInventoryAction !== "Destroy" ||
+      destroyDispatch.lastInventoryActionKind !== "inventory-action" ||
+      destroyDispatch.lastInventoryOpcode !== "37" ||
+      destroyDispatch.lastInventoryIdentifier !== "229" ||
+      destroyDispatch.lastInventoryArgument1 !== "0" ||
+      destroyDispatch.lastInventoryArgument2 !== "9764864" ||
+      destroyDispatch.lastInventoryActionIndex !== "4" ||
+      destroyDispatch.lastInventoryMutation !== "destroy-remove" ||
+      destroyDispatch.lastInventoryMutationNextItemId !== ""
     ) {
-      throw new Error(`Inventory Drop did not dispatch a source-backed slot clear: ${JSON.stringify(dropDispatch)}`);
+      throw new Error(`Pre-fight inventory Destroy did not dispatch a slot clear: ${JSON.stringify(destroyDispatch)}`);
     }
-    const dropInventory = await readRuntimeInventory(window);
-    if (dropInventory.slots[0].itemId !== null) {
-      throw new Error(`Inventory Drop did not clear the source slot: ${JSON.stringify(dropInventory.slots[0])}`);
+    const destroyInventory = await readRuntimeInventory(window);
+    if (destroyInventory.slots[0].itemId !== null) {
+      throw new Error(`Pre-fight inventory Destroy did not clear the source slot: ${JSON.stringify(destroyInventory.slots[0])}`);
+    }
+    const destroyGroundItemState = await window.webContents.executeJavaScript(`
+      (() => {
+        const viewport = document.querySelector(".runtimeViewport");
+        return {
+          lastGroundItemAction: viewport?.dataset.lastGroundItemAction ?? "",
+          groundItemCount: document.querySelectorAll("[data-ground-item-id]").length
+        };
+      })()
+    `);
+    if (destroyGroundItemState.lastGroundItemAction === "drop" || destroyGroundItemState.groundItemCount !== 0) {
+      throw new Error(`Pre-fight inventory Destroy spawned a ground item: ${JSON.stringify(destroyGroundItemState)}`);
     }
     await clearRuntimeInventory(window);
     await setRuntimeCycle(window, 0);
@@ -1918,11 +2281,13 @@ app.whenReady().then(async () => {
       await setRuntimeCycle(window, cycle);
       generatedSnapshots.push(await readRuntimeInventory(window));
     }
+    const generatedRangeWeaponId = 21902;
+    const generatedMageWeaponId = 11791;
     const rangeEquippedSnapshot = generatedSnapshots.find(
-      (inventory) => countItem(inventory, 11785) === 0 && countItem(inventory, 21006) > 0
+      (inventory) => countItem(inventory, generatedRangeWeaponId) === 0 && countItem(inventory, generatedMageWeaponId) > 0
     );
     const mageEquippedSnapshot = generatedSnapshots.find(
-      (inventory) => countItem(inventory, 21006) === 0 && countItem(inventory, 11785) > 0
+      (inventory) => countItem(inventory, generatedMageWeaponId) === 0 && countItem(inventory, generatedRangeWeaponId) > 0
     );
     if (!rangeEquippedSnapshot || !mageEquippedSnapshot) {
       throw new Error(
@@ -1933,7 +2298,7 @@ app.whenReady().then(async () => {
             generatedSnapshots: generatedSnapshots.map((inventory) => ({
               cycle: inventory.cycle,
               counts: inventory.counts,
-              slots: inventory.slots
+              itemIds: inventory.slots.map((slot) => slot.itemId)
             }))
           })
       );
@@ -2021,6 +2386,8 @@ app.whenReady().then(async () => {
     }
 
     const sparseReplayReadyMessage = await loadRuntimeWindow(window);
+    await clearRuntimeInventory(window);
+    await clearRuntimeEquipment(window);
     await selectRuntimeReplay(window, "two-actor-barrage-into-range-v1");
     await setRuntimeCycle(window, 0);
     await setManualControl(window, false);
@@ -2039,17 +2406,17 @@ app.whenReady().then(async () => {
     await clickSideTab(window, "equipment");
     const sparsePreEquipment = await readRuntimeEquipment(window);
     assertEquipmentContains("Sparse client appearance before ACB Wield", sparsePreEquipment, {
-      head: 12929,
+      head: 10828,
       cape: 21791,
-      amulet: 12002,
+      amulet: 6585,
       weapon: 6914,
       body: 21021,
       shield: 6889,
       legs: 21024,
       hands: 7462,
       feet: 11840,
-      ring: 19710,
-      ammo: 21948
+      ring: 11770,
+      ammo: 21932
     });
     await clickSideTab(window, "inventory");
     await setRuntimeInventory(window, [{ itemId: 11785, quantity: 1 }, { itemId: 385, quantity: 1 }]);
@@ -2081,22 +2448,22 @@ app.whenReady().then(async () => {
     await clickSideTab(window, "equipment");
     const sparsePostEquipment = await readRuntimeEquipment(window);
     assertEquipmentContains("Sparse client appearance after ACB Wield", sparsePostEquipment, {
-      head: 12929,
+      head: 10828,
       cape: 21791,
-      amulet: 12002,
+      amulet: 6585,
       weapon: 11785,
       body: 21021,
       shield: 6889,
       legs: 21024,
       hands: 7462,
       feet: 11840,
-      ring: 19710,
-      ammo: 21948
+      ring: 11770,
+      ammo: 21932
     });
     assertActorAppearanceContains(
       "Sparse client appearance after ACB Wield",
       sparsePostLocalActor,
-      [12929, 21791, 12002, 11785, 21021, 6889, 21024, 7462, 11840, 19710, 21948]
+      [10828, 21791, 6585, 11785, 21021, 6889, 21024, 7462, 11840, 11770, 21932]
     );
 
     await setRuntimeInventory(window, [{ itemId: 11785, quantity: 1 }, { itemId: 385, quantity: 1 }]);
@@ -2164,9 +2531,9 @@ app.whenReady().then(async () => {
           emptySourceMenu,
           emptyDispatch,
           emptyInventory,
-          dropSourceMenu,
-          dropDispatch,
-          dropInventory,
+          destroySourceMenu,
+          destroyDispatch,
+          destroyInventory,
           eatDispatch,
           eatInventory,
           finalInventory,

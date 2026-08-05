@@ -7,6 +7,7 @@ const distRoot = path.resolve(projectRoot, "dist");
 const brandSource = ["kro", "nos"].join("");
 const brandTarget = "source";
 const maxPublicFileBytes = 100_000_000;
+const obsoleteDmmCandidatePrefix = "ai/nh-neural-policy-dmm-candidate.json";
 const textExtensions = new Set([
   ".css",
   ".csv",
@@ -151,9 +152,15 @@ function renamePath(currentPath, variants) {
 
 assertDistRoot();
 
+let removedObsoletePolicyFiles = 0;
 let removedOversizedFiles = 0;
 for (const filePath of walk(distRoot).files) {
   const relativePath = path.relative(distRoot, filePath).replace(/\\/g, "/");
+  if (relativePath.startsWith(obsoleteDmmCandidatePrefix)) {
+    fs.unlinkSync(filePath);
+    removedObsoletePolicyFiles += 1;
+    continue;
+  }
   const stat = fs.statSync(filePath);
   if (
     stat.size > maxPublicFileBytes &&
@@ -194,6 +201,7 @@ console.log(
         distRoot,
         changedFiles,
         renamedPaths,
+        removedObsoletePolicyFiles,
         removedOversizedFiles,
         publicDebugAttrs: "data-source-* -> data-ref-*"
       },

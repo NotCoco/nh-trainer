@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow } = require("./electron-muted.cjs");
 const path = require("node:path");
 
 const [, , projectRoot] = process.argv;
@@ -121,6 +121,81 @@ async function setManualControl(window, enabled) {
   await delay(150);
 }
 
+async function startManualFight(window) {
+  const result = await window.webContents.executeJavaScript(`
+    (() => {
+      const button = document.querySelector(".runtimeFightStartButton");
+      if (!button) {
+        return { ok: true, started: false, reason: "not-pending" };
+      }
+      if (button.disabled) {
+        return { ok: false, error: "manual fight start button is disabled" };
+      }
+      button.click();
+      return {
+        ok: true,
+        started: true,
+        dataset: { ...document.querySelector(".runtimeViewport")?.dataset }
+      };
+    })()
+  `);
+  if (!result.ok) {
+    throw new Error(JSON.stringify(result));
+  }
+  if (result.started) {
+    await delay(4000);
+  }
+}
+
+async function waitForSelectedNeuralPolicy(window) {
+  const deadline = Date.now() + 180000;
+  let last = {};
+  while (Date.now() < deadline) {
+    last = await window.webContents.executeJavaScript(`
+      (() => {
+        const shell = document.querySelector("main.clientOnlyShell");
+        const viewport = document.querySelector(".runtimeViewport");
+        return {
+          difficulty: shell?.dataset.botDifficulty ?? "",
+          status: shell?.dataset.botPolicyStatus ?? "",
+          dmmStatus: shell?.dataset.dmmHardPolicyStatus ?? "",
+          setup: viewport?.dataset.lastRuntimeSetupPreset ?? ""
+        };
+      })()
+    `);
+    if (last.status === "loaded") {
+      return last;
+    }
+    if (last.status === "error") {
+      throw new Error(`Selected neural policy failed to load: ${JSON.stringify(last)}`);
+    }
+    await delay(250);
+  }
+  throw new Error(`Timed out waiting for selected neural policy. Last=${JSON.stringify(last)}`);
+}
+
+async function ensureNhStakeSetupLoaded(window) {
+  const result = await window.webContents.executeJavaScript(`
+    (() => {
+      const button = document.querySelector("[data-runtime-setup-option='nh-stake']");
+      if (!button) {
+        return { ok: true, clicked: false, reason: "setup-selector-not-open" };
+      }
+      if (button.disabled) {
+        return { ok: false, error: "nh-stake setup button is disabled" };
+      }
+      button.click();
+      return { ok: true, clicked: true };
+    })()
+  `);
+  if (!result.ok) {
+    throw new Error(JSON.stringify(result));
+  }
+  if (result.clicked) {
+    await delay(250);
+  }
+}
+
 async function setRuntimeCamera(window, camera) {
   await window.webContents.executeJavaScript(`
     (() => {
@@ -208,6 +283,54 @@ async function openPlayerContextMenu(window) {
         return { ok: false, error: "missing runtime canvas" };
       }
       const rect = canvas.getBoundingClientRect();
+      const waitForMenu = async () => {
+        const deadline = Date.now() + 700;
+        while (Date.now() < deadline) {
+          const menu = document.querySelector(".nhContextMenu");
+          if (menu) {
+            return menu;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 20));
+        }
+        return null;
+      };
+      const menuOptions = (menu) =>
+        menu
+          ? Array.from(menu.querySelectorAll(".nhContextMenuOption")).map((option) => ({
+              text: option.textContent ?? "",
+              actionKind: option.getAttribute("data-menu-action-kind") ?? "",
+              opcode: Number(option.getAttribute("data-menu-opcode"))
+            }))
+          : [];
+      const tryRightClick = async (x, y, clientX = rect.left + x, clientY = rect.top + y) => {
+        canvas.dispatchEvent(new PointerEvent("pointerdown", {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+          pointerId: 99,
+          pointerType: "mouse",
+          isPrimary: true,
+          button: 2,
+          buttons: 2,
+          clientX,
+          clientY
+        }));
+        let menu = await waitForMenu();
+        if (!menu) {
+          canvas.dispatchEvent(new MouseEvent("contextmenu", {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+            button: 2,
+            buttons: 0,
+            clientX,
+            clientY
+          }));
+          menu = await waitForMenu();
+        }
+        const options = menuOptions(menu);
+        return { x, y, clientX, clientY, options };
+      };
       const offsets = [
         [260, 180],
         [240, 180],
@@ -225,47 +348,40 @@ async function openPlayerContextMenu(window) {
         }
       }
       const attempts = [];
-      for (const [x, y] of offsets) {
-        canvas.dispatchEvent(new PointerEvent("pointerdown", {
-          bubbles: true,
-          cancelable: true,
-          view: window,
-          pointerId: 99,
-          pointerType: "mouse",
-          isPrimary: true,
-          button: 2,
-          buttons: 2,
-          clientX: rect.left + x,
-          clientY: rect.top + y
-        }));
+      const cameraAttempts = [];
+      for (const camera of ["top", "north", "south", "isometric"]) {
+        window.dispatchEvent(new CustomEvent("nh-runtime-camera", { detail: { camera } }));
         await delayFrame();
-        let menu = document.querySelector(".nhContextMenu");
-        if (!menu) {
-          canvas.dispatchEvent(new MouseEvent("contextmenu", {
-            bubbles: true,
-            cancelable: true,
-            view: window,
-            button: 2,
-            buttons: 2,
-            clientX: rect.left + x,
-            clientY: rect.top + y
-          }));
-          await delayFrame();
-          menu = document.querySelector(".nhContextMenu");
-        }
-        const options = menu
-          ? Array.from(menu.querySelectorAll(".nhContextMenuOption")).map((option) => ({
-              text: option.textContent ?? "",
-              actionKind: option.getAttribute("data-menu-action-kind") ?? "",
-              opcode: Number(option.getAttribute("data-menu-opcode"))
-            }))
-          : [];
-        attempts.push({ x, y, options });
-        if (options.some((option) => option.text.includes("Attack Opponent") && option.actionKind === "attack")) {
-          return { ok: true, x, y, options, attempts };
+        for (let attempt = 0; attempt < 20; attempt += 1) {
+          const motion = window.__nhRuntimeDebug?.motion;
+          const opponent = motion?.actors?.find((actor) => actor.actorId === "opponent");
+          if (opponent?.clickbox?.dom) {
+            const click = await tryRightClick(
+              opponent.clickbox.canvas.centerX,
+              opponent.clickbox.canvas.centerY,
+              opponent.clickbox.dom.centerX,
+              opponent.clickbox.dom.centerY
+            );
+            attempts.push({ ...click, source: "debug-clickbox", camera });
+            if (click.options.some((option) => option.text.includes("Attack Opponent") && option.actionKind === "attack")) {
+              return { ok: true, ...click, attempts };
+            }
+            break;
+          }
+          if (attempt === 19) {
+            cameraAttempts.push({ camera, opponent: opponent ?? null, layout: motion?.layout ?? null });
+          }
+          await new Promise((resolve) => setTimeout(resolve, 50));
         }
       }
-      return { ok: false, error: "could not open player Attack context menu", attempts };
+      for (const [x, y] of offsets) {
+        const click = await tryRightClick(x, y);
+        attempts.push(click);
+        if (click.options.some((option) => option.text.includes("Attack Opponent") && option.actionKind === "attack")) {
+          return { ok: true, ...click, attempts };
+        }
+      }
+      return { ok: false, error: "could not open player Attack context menu", cameraAttempts, attempts };
     })()
   `);
   if (!result.ok) {
@@ -277,14 +393,30 @@ async function openPlayerContextMenu(window) {
 async function clickTopContextMenuOption(window) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
-      const option = document.querySelector(".nhContextMenuOption");
+      const option = Array.from(document.querySelectorAll(".nhContextMenuOption")).find(
+        (candidate) => candidate.getAttribute("data-menu-action-kind") === "attack"
+      ) ?? document.querySelector(".nhContextMenuOption");
       if (!option) {
-        return { ok: false, error: "missing top context menu option" };
+        return { ok: false, error: "missing context menu option" };
       }
-      option.click();
+      const rect = option.getBoundingClientRect();
+      option.dispatchEvent(new PointerEvent("pointerdown", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        pointerId: 101,
+        pointerType: "mouse",
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+        clientX: rect.left + rect.width / 2,
+        clientY: rect.top + rect.height / 2
+      }));
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       return {
         ok: true,
+        actionKind: option.getAttribute("data-menu-action-kind") ?? "",
+        text: option.textContent ?? "",
         dataset: { ...document.querySelector(".runtimeViewport")?.dataset }
       };
     })()
@@ -303,18 +435,19 @@ async function waitForManualCombatOverlays(window) {
     await waitForPaint(window);
     const snapshot = await readOverlaySnapshot(window);
     lastSnapshot = snapshot;
-    const opponentOverlays = Array.isArray(snapshot?.overlays)
-      ? snapshot.overlays.filter((overlay) => overlay.actorId === "opponent")
-      : [];
-    const healthBars = opponentOverlays.filter((overlay) => overlay.spriteSheetId === "health_bars");
-    const hitsplats = opponentOverlays.filter((overlay) => overlay.spriteSheetId === "hitsplats");
-    if (
-      snapshot?.cycle >= 1 &&
-      healthBars.length === 1 &&
-      hitsplats.length >= 1 &&
-      hitsplats.some((overlay) => overlay.hitsplat && Number.isFinite(overlay.hitsplat.value))
-    ) {
-      return { snapshot, healthBar: healthBars[0], hitsplat: hitsplats[0] };
+    const overlays = Array.isArray(snapshot?.overlays) ? snapshot.overlays : [];
+    for (const actorId of ["opponent", "local-player"]) {
+      const actorOverlays = overlays.filter((overlay) => overlay.actorId === actorId);
+      const healthBars = actorOverlays.filter((overlay) => overlay.spriteSheetId === "health_bars");
+      const hitsplats = actorOverlays.filter((overlay) => overlay.spriteSheetId === "hitsplats");
+      if (
+        snapshot?.cycle >= 1 &&
+        healthBars.length === 1 &&
+        hitsplats.length >= 1 &&
+        hitsplats.some((overlay) => overlay.hitsplat && Number.isFinite(overlay.hitsplat.value))
+      ) {
+        return { snapshot, actorId, healthBar: healthBars[0], hitsplat: hitsplats[0] };
+      }
     }
     await delay(150);
   }
@@ -392,7 +525,10 @@ app.whenReady().then(async () => {
   });
 
   try {
-    const runtimeReadyMessage = await window.loadFile(path.join(projectRoot, "dist", "index.html")).then(() => waitForReady(window));
+    const runtimeReadyMessage = await window.loadFile(path.join(projectRoot, "dist", "index.html")).then(async () => {
+      await window.webContents.executeJavaScript(`(() => { window.__NH_TRAINER_ENABLE_RUNTIME_OVERLAY_DEBUG = true; window.__NH_TRAINER_ENABLE_RUNTIME_MOTION_DEBUG = true; })()`);
+      return waitForReady(window);
+    });
     await setManualControl(window, false);
     await selectRuntimeReplay(window, "two-actor-barrage-into-range-v1");
     await setRuntimeCamera(window, "isometric");
@@ -450,6 +586,9 @@ app.whenReady().then(async () => {
     await setManualControl(window, true);
     await setRuntimeCamera(window, "isometric");
     await setRuntimeCycle(window, 200);
+    await ensureNhStakeSetupLoaded(window);
+    await waitForSelectedNeuralPolicy(window);
+    await startManualFight(window);
     const manualMenu = await openPlayerContextMenu(window);
     const manualAttack = await clickTopContextMenuOption(window);
     if (manualAttack.dataset.lastPlayerAttackCommand !== "Attack") {
@@ -465,40 +604,40 @@ app.whenReady().then(async () => {
     const domOverlays = await waitForDomOverlaySnapshot(
       window,
       (overlays) => {
-        const opponentDomOverlays = domOverlaysForActor(overlays, "opponent");
-        const sheets = new Set(domOverlaySheetIds(opponentDomOverlays));
-        return opponentDomOverlays.filter((overlay) => overlay.sheetId === "health_bars").length === 1 && sheets.has("hitsplats") && sheets.has("pk_skull");
+        const actorDomOverlays = domOverlaysForActor(overlays, manualCombat.actorId);
+        const sheets = new Set(domOverlaySheetIds(actorDomOverlays));
+        return actorDomOverlays.filter((overlay) => overlay.sheetId === "health_bars").length === 1 && sheets.has("hitsplats") && sheets.has("pk_skull");
       },
       "manual combat health bar, hitsplat, and skull"
     );
-    const opponentDomOverlays = domOverlaysForActor(domOverlays, "opponent");
-    const opponentDomHealthBars = opponentDomOverlays.filter((overlay) => overlay.sheetId === "health_bars");
-    const opponentDomHitsplats = opponentDomOverlays.filter((overlay) => overlay.sheetId === "hitsplats");
-    const opponentDomSkull = opponentDomOverlays.find((overlay) => overlay.sheetId === "pk_skull");
-    const opponentDomHealthSprites = opponentDomHealthBars.flatMap((overlay) => overlay.sprites);
-    const opponentDomHitsplatSprites = opponentDomHitsplats.flatMap((overlay) => overlay.sprites);
+    const manualActorDomOverlays = domOverlaysForActor(domOverlays, manualCombat.actorId);
+    const manualActorDomHealthBars = manualActorDomOverlays.filter((overlay) => overlay.sheetId === "health_bars");
+    const manualActorDomHitsplats = manualActorDomOverlays.filter((overlay) => overlay.sheetId === "hitsplats");
+    const manualActorDomSkull = manualActorDomOverlays.find((overlay) => overlay.sheetId === "pk_skull");
+    const manualActorDomHealthSprites = manualActorDomHealthBars.flatMap((overlay) => overlay.sprites);
+    const manualActorDomHitsplatSprites = manualActorDomHitsplats.flatMap((overlay) => overlay.sprites);
     assert(domOverlays.length > 0, `actor overlays should be present in the Nh 2D DOM overlay layer: ${JSON.stringify(domOverlays)}`);
     assert(
-      opponentDomHealthBars.length === 1,
-      `opponent should have one visible DOM health bar, not missing or stacked bars: ${JSON.stringify(opponentDomOverlays)}`
+      manualActorDomHealthBars.length === 1,
+      `manual combat target should have one visible DOM health bar, not missing or stacked bars: ${JSON.stringify(manualActorDomOverlays)}`
     );
-    assert(opponentDomHitsplats.length >= 1, `opponent should have a visible DOM hitsplat: ${JSON.stringify(opponentDomOverlays)}`);
-    assert(opponentDomSkull, `opponent should have a visible DOM pk skull: ${JSON.stringify(opponentDomOverlays)}`);
+    assert(manualActorDomHitsplats.length >= 1, `manual combat target should have a visible DOM hitsplat: ${JSON.stringify(manualActorDomOverlays)}`);
+    assert(manualActorDomSkull, `manual combat target should have a visible DOM pk skull: ${JSON.stringify(manualActorDomOverlays)}`);
     assert(
-      opponentDomHealthSprites.some((sprite) => sprite.backgroundImage.includes("health_bars.png")),
-      `DOM health bar should draw from the health bar atlas: ${JSON.stringify(opponentDomHealthSprites)}`
-    );
-    assert(
-      opponentDomHitsplatSprites.some((sprite) => sprite.backgroundImage.includes("hitsplats.png")) &&
-        opponentDomHitsplatSprites.some((sprite) => sprite.backgroundImage.includes("hitsplat_digits.png")),
-      `DOM hitsplat should draw both the splat and digit atlases: ${JSON.stringify(opponentDomHitsplatSprites)}`
+      manualActorDomHealthSprites.some((sprite) => sprite.backgroundImage.includes("health_bars.png")),
+      `DOM health bar should draw from the health bar atlas: ${JSON.stringify(manualActorDomHealthSprites)}`
     );
     assert(
-      manualCombat.healthBar.id === "opponent-runtime-health",
+      manualActorDomHitsplatSprites.some((sprite) => sprite.backgroundImage.includes("hitsplats.png")) &&
+        manualActorDomHitsplatSprites.some((sprite) => sprite.backgroundImage.includes("hitsplat_digits.png")),
+      `DOM hitsplat should draw both the splat and digit atlases: ${JSON.stringify(manualActorDomHitsplatSprites)}`
+    );
+    assert(
+      manualCombat.healthBar.id === `${manualCombat.actorId}-runtime-health`,
       `manual health bar should be sourced from live combat state: ${JSON.stringify(manualCombat.healthBar)}`
     );
     assert(
-      manualCombat.hitsplat.id.includes("opponent") && manualCombat.hitsplat.hitsplat.value >= 0,
+      manualCombat.hitsplat.id.includes(manualCombat.actorId) && manualCombat.hitsplat.hitsplat.value >= 0,
       `manual hitsplat should be sourced from live combat state: ${JSON.stringify(manualCombat.hitsplat)}`
     );
 
@@ -522,7 +661,8 @@ app.whenReady().then(async () => {
             hitsplat: manualCombat.hitsplat,
             replayDomOverlaySheets: domOverlaySheetIds(replayOpponentDomOverlays),
             domOverlayCount: domOverlays.length,
-            domOpponentOverlaySheets: opponentDomOverlays.map((overlay) => overlay.sheetId)
+            domManualActorId: manualCombat.actorId,
+            domManualActorOverlaySheets: manualActorDomOverlays.map((overlay) => overlay.sheetId)
           }
         },
         null,

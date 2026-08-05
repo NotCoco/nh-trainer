@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow } = require("./electron-muted.cjs");
 const fs = require("node:fs/promises");
 const path = require("node:path");
 
@@ -69,11 +69,16 @@ async function focusRuntimeSectionForCapture(window) {
 }
 
 async function clickStartAndWaitForGo(window) {
-  await window.webContents.executeJavaScript(`
-    (() => {
+  const startDeadline = Date.now() + 15000;
+  while (Date.now() < startDeadline) {
+    const result = await window.webContents.executeJavaScript(`
+      (() => {
       const button = document.querySelector(".runtimeFightStartButton");
       if (!button) {
-        return;
+        return { ok: true, started: false, reason: "not-pending" };
+      }
+      if (button.disabled) {
+        return { ok: true, started: false, reason: "disabled", status: document.querySelector(".runtimeBotDifficultyStatus")?.textContent ?? "" };
       }
       const rect = button.getBoundingClientRect();
       const x = rect.left + rect.width / 2;
@@ -103,8 +108,17 @@ async function clickStartAndWaitForGo(window) {
         clientY: y
       }));
       button.click();
+      return { ok: true, started: true };
     })()
-  `);
+    `);
+    if (!result.ok) {
+      throw new Error(JSON.stringify(result));
+    }
+    if (result.started || result.reason === "not-pending") {
+      break;
+    }
+    await delay(100);
+  }
   const deadline = Date.now() + 7000;
   while (Date.now() < deadline) {
     const ready = await window.webContents.executeJavaScript(`
@@ -591,6 +605,7 @@ app.whenReady().then(async () => {
 
   try {
     await window.loadFile(path.join(projectRoot, "dist", "index.html"));
+    await window.webContents.executeJavaScript(`(() => { window.__NH_TRAINER_ENABLE_RUNTIME_MOTION_DEBUG = true; })()`);
     const runtimeReadyMessage = await waitForReady(
       window,
       'section[aria-labelledby="runtime-scene"]',

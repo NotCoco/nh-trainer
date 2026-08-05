@@ -1,0 +1,220 @@
+{
+  "schema": "kronos.nh.java-browser-policy-boundary-parity.v1",
+  "pass": true,
+  "mode": "java-snapshot-replay",
+  "independentSeededFightParityClaimed": false,
+  "modeExplanation": "Uses real Java fight snapshots as canonical inputs and replays them through current browser inference and the Java model probe. Browser and Java fight RNGs are not claimed to match.",
+  "policyPath": "C:\\Kronos\\KronosNHTrainer\\fixtures\\ai\\nh-neural-policy-dmm-current.json",
+  "policySha256": "ccb88e7616ff170b7415755beefc25d888f1155ffae9f27914e4716dd2f393cf",
+  "javaTracePath": "C:\\Kronos\\kronos-osrs-184-master\\kronos-osrs-184-master\\Kronos-master\\kronos-server\\data\\ai\\diagnostics\\current-direct-prayer-head-trace-t180-20260803.jsonl",
+  "javaTraceSha256": "2e9b871f2455132b94511b4f92a35bc8cbc18adaaffe66db5037f72cbec783d1",
+  "browserTracePath": null,
+  "browserTraceSha256": null,
+  "rawInputFields": 114,
+  "attackHistoryCodes": 3,
+  "ownPrayerHistoryCodes": 2,
+  "priorStateLags": 16,
+  "priorStateFieldsPerLag": 114,
+  "actionCount": 86,
+  "scoreTolerance": 0.00005,
+  "normalizedTolerance": 0.00001,
+  "limitations": [
+    "This is a policy-boundary snapshot/replay gate, not an independently seeded simulator-fight equivalence claim.",
+    "The live controller case exercises browser observation construction and then asks Java to score that emitted snapshot; it does not prove the Java observation encoder would construct the same raw114 from an independently simulated fight.",
+    "Without --browser-trace, retained Java cases start at Java-supplied raw114/history. True cross-simulator observation-construction comparison requires a paired browser boundary trace.",
+    "The retained Java trace exposes only defence-channel legality, so full 86-action legality is compared only when a browser trace supplies it.",
+    "NhPolicyModelProbe scores the neural model and conditioned-v10 heads before the separate runtime direct-gear conditioner and channel resolver.",
+    "When a browser trace is supplied, its post-direct-gear scores are checked against the Java probe only on non-direct-gear rows; selected runtime actions are mapping-validated but not falsely equated to an unmasked model argmax."
+  ],
+  "browserControllerTraceCase": {
+    "tick": 32,
+    "rewardEpisodeId": 4242,
+    "traceExplicitlyEnabled": true,
+    "opponentVengeanceTrinketRecent": 0.9375,
+    "opponentVengeanceTrinketCasts": 1,
+    "selfGmaulSpecsUsed": 0.25,
+    "selfVoidwakerSpecsUsed": 0.5,
+    "selfVlsSpecsUsed": 0.75,
+    "legalActions": 65,
+    "selectedActionId": 420450,
+    "selectedModelRow": 1,
+    "runtimeScoreRowsCompared": 57,
+    "maxAbsoluteJavaReplayScoreDelta": 5.323875988949567e-7
+  },
+  "cases": [
+    {
+      "sourceIndex": 0,
+      "tick": 242,
+      "episodeId": 1,
+      "episodeTick": 0,
+      "validPriorStates": 0,
+      "opponentVengeanceTrinketRecent": 0.9125,
+      "opponentVengeanceTrinketCasts": 1,
+      "selfGmaulSpecsUsed": 0,
+      "selfVoidwakerSpecsUsed": 0,
+      "selfVlsSpecsUsed": 0,
+      "selfOptionalVlsSetupPending": 0,
+      "legalDefenceActionIds": [
+        420467,
+        420468,
+        420469
+      ],
+      "legalDefenceModelRows": [
+        18,
+        19,
+        20
+      ],
+      "javaUnmaskedArgmaxActionId": 420508,
+      "browserUnmaskedArgmaxActionId": 420508,
+      "javaLegalDefenceArgmaxActionId": 420467,
+      "browserLegalDefenceArgmaxActionId": 420467,
+      "pairedBrowserScoreRowsCompared": 0,
+      "maxAbsoluteScoreDelta": 7.046851031589085e-7
+    },
+    {
+      "sourceIndex": 4,
+      "tick": 246,
+      "episodeId": 1,
+      "episodeTick": 4,
+      "validPriorStates": 4,
+      "opponentVengeanceTrinketRecent": 0.8625,
+      "opponentVengeanceTrinketCasts": 1,
+      "selfGmaulSpecsUsed": 0,
+      "selfVoidwakerSpecsUsed": 0,
+      "selfVlsSpecsUsed": 0,
+      "selfOptionalVlsSetupPending": 1,
+      "legalDefenceActionIds": [
+        420467,
+        420468,
+        420469
+      ],
+      "legalDefenceModelRows": [
+        18,
+        19,
+        20
+      ],
+      "javaUnmaskedArgmaxActionId": 420508,
+      "browserUnmaskedArgmaxActionId": 420508,
+      "javaLegalDefenceArgmaxActionId": 420467,
+      "browserLegalDefenceArgmaxActionId": 420467,
+      "pairedBrowserScoreRowsCompared": 0,
+      "maxAbsoluteScoreDelta": 0.0000011496435234903402
+    },
+    {
+      "sourceIndex": 5,
+      "tick": 247,
+      "episodeId": 1,
+      "episodeTick": 5,
+      "validPriorStates": 5,
+      "opponentVengeanceTrinketRecent": 0.85,
+      "opponentVengeanceTrinketCasts": 1,
+      "selfGmaulSpecsUsed": 0,
+      "selfVoidwakerSpecsUsed": 0,
+      "selfVlsSpecsUsed": 0,
+      "selfOptionalVlsSetupPending": 0,
+      "legalDefenceActionIds": [
+        420467,
+        420468,
+        420469
+      ],
+      "legalDefenceModelRows": [
+        18,
+        19,
+        20
+      ],
+      "javaUnmaskedArgmaxActionId": 420508,
+      "browserUnmaskedArgmaxActionId": 420508,
+      "javaLegalDefenceArgmaxActionId": 420467,
+      "browserLegalDefenceArgmaxActionId": 420467,
+      "pairedBrowserScoreRowsCompared": 0,
+      "maxAbsoluteScoreDelta": 8.887498275100825e-7
+    },
+    {
+      "sourceIndex": 16,
+      "tick": 258,
+      "episodeId": 1,
+      "episodeTick": 16,
+      "validPriorStates": 16,
+      "opponentVengeanceTrinketRecent": 0.7125,
+      "opponentVengeanceTrinketCasts": 1,
+      "selfGmaulSpecsUsed": 0,
+      "selfVoidwakerSpecsUsed": 0,
+      "selfVlsSpecsUsed": 0,
+      "selfOptionalVlsSetupPending": 0,
+      "legalDefenceActionIds": [
+        420467,
+        420468,
+        420469
+      ],
+      "legalDefenceModelRows": [
+        18,
+        19,
+        20
+      ],
+      "javaUnmaskedArgmaxActionId": 420508,
+      "browserUnmaskedArgmaxActionId": 420508,
+      "javaLegalDefenceArgmaxActionId": 420467,
+      "browserLegalDefenceArgmaxActionId": 420467,
+      "pairedBrowserScoreRowsCompared": 0,
+      "maxAbsoluteScoreDelta": 0.00000153003766900639
+    },
+    {
+      "sourceIndex": 35,
+      "tick": 277,
+      "episodeId": 1,
+      "episodeTick": 35,
+      "validPriorStates": 16,
+      "opponentVengeanceTrinketRecent": 0.475,
+      "opponentVengeanceTrinketCasts": 1,
+      "selfGmaulSpecsUsed": 0,
+      "selfVoidwakerSpecsUsed": 0,
+      "selfVlsSpecsUsed": 0.25,
+      "selfOptionalVlsSetupPending": 0,
+      "legalDefenceActionIds": [
+        420467,
+        420468,
+        420469
+      ],
+      "legalDefenceModelRows": [
+        18,
+        19,
+        20
+      ],
+      "javaUnmaskedArgmaxActionId": 420508,
+      "browserUnmaskedArgmaxActionId": 420508,
+      "javaLegalDefenceArgmaxActionId": 420467,
+      "browserLegalDefenceArgmaxActionId": 420467,
+      "pairedBrowserScoreRowsCompared": 0,
+      "maxAbsoluteScoreDelta": 3.4691753292293015e-7
+    },
+    {
+      "sourceIndex": 135,
+      "tick": 377,
+      "episodeId": 1,
+      "episodeTick": 135,
+      "validPriorStates": 16,
+      "opponentVengeanceTrinketRecent": 0,
+      "opponentVengeanceTrinketCasts": 1,
+      "selfGmaulSpecsUsed": 0,
+      "selfVoidwakerSpecsUsed": 0,
+      "selfVlsSpecsUsed": 1,
+      "selfOptionalVlsSetupPending": 0,
+      "legalDefenceActionIds": [
+        420467,
+        420468,
+        420469
+      ],
+      "legalDefenceModelRows": [
+        18,
+        19,
+        20
+      ],
+      "javaUnmaskedArgmaxActionId": 420467,
+      "browserUnmaskedArgmaxActionId": 420467,
+      "javaLegalDefenceArgmaxActionId": 420467,
+      "browserLegalDefenceArgmaxActionId": 420467,
+      "pairedBrowserScoreRowsCompared": 0,
+      "maxAbsoluteScoreDelta": 0.000001363075543991954
+    }
+  ]
+}

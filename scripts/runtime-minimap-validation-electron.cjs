@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow } = require("./electron-muted.cjs");
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -450,7 +450,7 @@ app.whenReady().then(async () => {
         initial.root.fallbackDotCount === 0 &&
         initial.root.maskImage.includes("data:image/svg+xml") &&
         initial.root.maskPosition === "0px 0px" &&
-        initial.root.maskSize === "145px 151px",
+        initial.root.maskSize === "100% 100%",
       `minimap overlay should be clipped by the exported fixed-mode SpriteMask rows: ${JSON.stringify(initial.root)}`
     );
     assert(

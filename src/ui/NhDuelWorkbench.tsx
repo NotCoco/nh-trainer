@@ -32,7 +32,7 @@ interface NhDuelWorkbenchProps {
 const defaultManualAction: NhPolicyAction = {
   offenceStyle: "ranged",
   defencePrayer: "protect_from_magic",
-  movementIntent: "pressure",
+  movementIntent: "none",
   supplyIntent: "none",
   specIntent: "none",
   extendedSupplyAction: false
@@ -237,7 +237,7 @@ export function NhDuelWorkbench({ policy, onTraceChange }: NhDuelWorkbenchProps)
         <div className="duelActionPanel">
           <h3>Move</h3>
           <div className="segmentedButtons segmentedButtons-wide">
-            {(["pressure", "stand_under", "step_out"] as const).map((movement) => (
+            {(["none", "stand_under", "move_e2"] as const).map((movement) => (
               <button
                 key={movement}
                 type="button"

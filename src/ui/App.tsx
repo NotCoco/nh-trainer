@@ -1,12 +1,13 @@
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { Analytics } from "@vercel/analytics/react";
 import {
+  assertNhNeuralPolicyHasCurrentDmmActionSurface,
+  assertNhNeuralPolicyHasExplicitSpecActions,
   parseNhNeuralPolicyJson,
-  parseNhPolicyTsv,
-  type NhRuntimePolicy
+  type ParsedNhNeuralPolicy
 } from "../bot";
 import type { DefaultPolicyReadResult } from "../client/bridge";
-import { NhAimTrainer } from "./NhAimTrainer";
+import type { NhSpecIntent } from "../sim";
 import "./styles.css";
 
 const RuntimeSceneViewer = lazy(() =>
@@ -16,43 +17,53 @@ const RuntimeSceneViewer = lazy(() =>
 type BotDifficulty = "hard" | "test";
 
 type BotPolicyLoadState =
+  | { readonly status: "idle"; readonly label: string }
   | { readonly status: "loading"; readonly label: string }
   | { readonly status: "loaded"; readonly label: string }
   | { readonly status: "error"; readonly label: string };
 
-type BotPolicyAssetFormat = "tsv" | "neural-json";
 type BotPolicyAsset = {
   readonly label: string;
   readonly staticUrl?: string;
   readonly staticUrls?: readonly string[];
-  readonly format: BotPolicyAssetFormat;
+  readonly requiredExplicitSpecIntents?: readonly NhSpecIntent[];
+  readonly requireDmmDirectGearActions?: boolean;
 };
 
+const BOT_POLICY_LOAD_TIMEOUT_MS = 180_000;
+
+const DMM_CURRENT_POLICY_URL = "./ai/nh-neural-policy-dmm-current.json";
+const DMM_REQUIRED_EXPLICIT_SPEC_INTENTS = [
+  "spec_granite_maul",
+  "spec_granite_maul_double",
+  "spec_armadyl_godsword",
+  "spec_voidwaker",
+  "spec_vesta_longsword"
+] as const;
+
 const DMM_HARD_POLICY: BotPolicyAsset = {
-  label: "DMM Hard",
-  staticUrl: "./ai/nh-neural-policy-dmm-candidate.json",
-  staticUrls: [
-    "./ai/nh-neural-policy-dmm-candidate.json.part-001",
-    "./ai/nh-neural-policy-dmm-candidate.json.part-002"
-  ],
-  format: "neural-json"
+  label: "DMM",
+  requireDmmDirectGearActions: true,
+  requiredExplicitSpecIntents: DMM_REQUIRED_EXPLICIT_SPEC_INTENTS,
+  staticUrl: DMM_CURRENT_POLICY_URL
 };
+
 const BOT_DIFFICULTY_STORAGE_KEY = "nh-trainer.bot-difficulty";
 const BOT_DIFFICULTY_POLICIES: Record<BotDifficulty, BotPolicyAsset> = {
   hard: {
+    // The deployed NH stake model is the 90-input/44,550-action checkpoint, which predates the
+    // explicit per-weapon spec actions. Requiring them here rejects the model the site ships.
     label: "Hard",
     staticUrl: "./ai/nh-neural-policy-hard.json",
     staticUrls: [
       "./ai/nh-neural-policy-hard.json.part-001",
       "./ai/nh-neural-policy-hard.json.part-002",
       "./ai/nh-neural-policy-hard.json.part-003"
-    ],
-    format: "neural-json"
+    ]
   },
   test: {
     label: "Test",
-    staticUrl: "./ai/nh-neural-policy-test.json",
-    format: "neural-json"
+    staticUrl: "./ai/nh-neural-policy-test.json"
   }
 };
 
@@ -76,72 +87,140 @@ function RuntimeSceneViewerFallback(): JSX.Element {
 }
 
 export function App(): JSX.Element {
-  const [loadedPolicy, setLoadedPolicy] = useState<NhRuntimePolicy | null>(null);
-  const [loadedDmmHardPolicy, setLoadedDmmHardPolicy] = useState<NhRuntimePolicy | null>(null);
+  const [loadedPolicy, setLoadedPolicy] = useState<ParsedNhNeuralPolicy | null>(null);
+  const [loadedDmmHardPolicy, setLoadedDmmHardPolicy] = useState<ParsedNhNeuralPolicy | null>(null);
   const [botDifficulty, setBotDifficulty] = useState<BotDifficulty>(() => readStoredBotDifficulty());
   const [policyLoadState, setPolicyLoadState] = useState<BotPolicyLoadState>({
-    status: "loading",
+    status: "idle",
     label: BOT_DIFFICULTY_POLICIES[botDifficulty].label
   });
-  const policyCacheRef = useRef(new Map<BotDifficulty, NhRuntimePolicy>());
+  const [dmmHardPolicyLoadState, setDmmHardPolicyLoadState] = useState<BotPolicyLoadState>({
+    status: "idle",
+    label: DMM_HARD_POLICY.label
+  });
+  const policyCacheRef = useRef(new Map<BotDifficulty, ParsedNhNeuralPolicy>());
+  const policyLoadPromiseRef = useRef(new Map<BotDifficulty, Promise<void>>());
+  const botDifficultyRef = useRef<BotDifficulty>(botDifficulty);
+  const dmmHardPolicyRef = useRef<ParsedNhNeuralPolicy | null>(null);
+  const dmmHardPolicyLoadPromiseRef = useRef<Promise<void> | null>(null);
+  const appMountedRef = useRef(true);
 
   useEffect(() => {
-    let cancelled = false;
-    void readStaticPolicyAsset(DMM_HARD_POLICY)
-      .then((result) => {
-        if (!cancelled) {
-          setLoadedDmmHardPolicy(parseDifficultyPolicy(result, DMM_HARD_POLICY));
-        }
-      })
-      .catch((error: unknown) => {
-        console.warn(error instanceof Error ? error.message : `Could not load DMM hard policy.`);
-        if (!cancelled) {
-          setLoadedDmmHardPolicy(null);
-        }
-      });
+    appMountedRef.current = true;
     return () => {
-      cancelled = true;
+      appMountedRef.current = false;
     };
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    const policyInfo = BOT_DIFFICULTY_POLICIES[botDifficulty];
+    botDifficultyRef.current = botDifficulty;
     window.localStorage?.setItem(BOT_DIFFICULTY_STORAGE_KEY, botDifficulty);
-
+    const policyInfo = BOT_DIFFICULTY_POLICIES[botDifficulty];
     const cached = policyCacheRef.current.get(botDifficulty);
     if (cached) {
       setLoadedPolicy(cached);
       setPolicyLoadState({ status: "loaded", label: policyInfo.label });
-      return () => {
-        cancelled = true;
-      };
+      return;
+    }
+    setLoadedPolicy(null);
+    setPolicyLoadState({
+      status: policyLoadPromiseRef.current.has(botDifficulty) ? "loading" : "idle",
+      label: policyInfo.label
+    });
+  }, [botDifficulty]);
+
+  const ensureBotPolicyLoaded = useCallback((difficulty: BotDifficulty = botDifficultyRef.current): void => {
+    const policyInfo = BOT_DIFFICULTY_POLICIES[difficulty];
+    const cached = policyCacheRef.current.get(difficulty);
+    if (cached) {
+      if (botDifficultyRef.current === difficulty && appMountedRef.current) {
+        setLoadedPolicy(cached);
+        setPolicyLoadState({ status: "loaded", label: policyInfo.label });
+      }
+      return;
     }
 
-    setLoadedPolicy(null);
-    setPolicyLoadState({ status: "loading", label: policyInfo.label });
-    void loadDifficultyPolicy(botDifficulty)
+    const existing = policyLoadPromiseRef.current.get(difficulty);
+    if (existing) {
+      if (botDifficultyRef.current === difficulty && appMountedRef.current) {
+        setPolicyLoadState({ status: "loading", label: policyInfo.label });
+      }
+      return;
+    }
+
+    if (botDifficultyRef.current === difficulty && appMountedRef.current) {
+      setLoadedPolicy(null);
+      setPolicyLoadState({ status: "loading", label: policyInfo.label });
+    }
+    const loadPromise = withPolicyLoadTimeout(readStaticPolicyAsset(policyInfo), policyInfo.label)
       .then((result) => {
-        if (cancelled) {
-          return;
-        }
         const parsed = parseDifficultyPolicy(result, policyInfo);
-        policyCacheRef.current.set(botDifficulty, parsed);
-        setLoadedPolicy(parsed);
-        setPolicyLoadState({ status: "loaded", label: policyInfo.label });
+        policyCacheRef.current.set(difficulty, parsed);
+        if (botDifficultyRef.current === difficulty && appMountedRef.current) {
+          setLoadedPolicy(parsed);
+          setPolicyLoadState({ status: "loaded", label: policyInfo.label });
+        }
       })
       .catch((error: unknown) => {
         const message = error instanceof Error ? error.message : `Could not load the ${policyInfo.label} NH policy.`;
         console.warn(message);
-        if (!cancelled) {
+        if (botDifficultyRef.current === difficulty && appMountedRef.current) {
+          setLoadedPolicy(null);
           setPolicyLoadState({ status: "error", label: policyInfo.label });
         }
+      })
+      .finally(() => {
+        policyLoadPromiseRef.current.delete(difficulty);
       });
+    policyLoadPromiseRef.current.set(difficulty, loadPromise);
+    void loadPromise;
+  }, []);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [botDifficulty]);
+  const selectBotDifficulty = useCallback((difficulty: BotDifficulty): void => {
+    botDifficultyRef.current = difficulty;
+    setBotDifficulty(difficulty);
+    const policyInfo = BOT_DIFFICULTY_POLICIES[difficulty];
+    const cached = policyCacheRef.current.get(difficulty);
+    if (cached) {
+      setLoadedPolicy(cached);
+      setPolicyLoadState({ status: "loaded", label: policyInfo.label });
+      return;
+    }
+    setLoadedPolicy(null);
+    setPolicyLoadState({
+      status: policyLoadPromiseRef.current.has(difficulty) ? "loading" : "idle",
+      label: policyInfo.label
+    });
+  }, []);
+
+  const ensureDmmHardPolicyLoaded = useCallback((): void => {
+    if (dmmHardPolicyRef.current || dmmHardPolicyLoadPromiseRef.current) {
+      return;
+    }
+
+    setDmmHardPolicyLoadState({ status: "loading", label: DMM_HARD_POLICY.label });
+    const loadPromise = withPolicyLoadTimeout(readStaticPolicyAsset(DMM_HARD_POLICY), DMM_HARD_POLICY.label)
+      .then((result) => {
+        const parsed = parseDifficultyPolicy(result, DMM_HARD_POLICY);
+        dmmHardPolicyRef.current = parsed;
+        if (appMountedRef.current) {
+          setLoadedDmmHardPolicy(parsed);
+          setDmmHardPolicyLoadState({ status: "loaded", label: DMM_HARD_POLICY.label });
+        }
+      })
+      .catch((error: unknown) => {
+        console.warn(error instanceof Error ? error.message : `Could not load DMM hard policy.`);
+        if (appMountedRef.current) {
+          setLoadedDmmHardPolicy(null);
+          setDmmHardPolicyLoadState({ status: "error", label: DMM_HARD_POLICY.label });
+        }
+      })
+      .finally(() => {
+        dmmHardPolicyLoadPromiseRef.current = null;
+      });
+    dmmHardPolicyLoadPromiseRef.current = loadPromise;
+    void loadPromise;
+  }, []);
 
   return (
     <main
@@ -149,6 +228,7 @@ export function App(): JSX.Element {
       data-default-policy-loaded={loadedPolicy ? "true" : "false"}
       data-bot-difficulty={botDifficulty}
       data-bot-policy-status={policyLoadState.status}
+      data-dmm-hard-policy-status={dmmHardPolicyLoadState.status}
     >
       <div className="nhSiteBackdrop" aria-label="NH Trainer project information">
         <section className="nhSiteIntro" aria-labelledby="nh-site-title">
@@ -186,14 +266,25 @@ export function App(): JSX.Element {
             <details className="nhSiteUpdatesDropdown" open>
               <summary>
                 <span>Latest update</span>
-                <strong>June 11, 2026</strong>
+                <strong>August 5, 2026</strong>
               </summary>
               <div className="nhSiteUpdateHistory">
-                <section className="nhSiteUpdateCard" aria-label="Updates - June 11, 2026">
-                  <span>Updates - June 11, 2026</span>
+                <section className="nhSiteUpdateCard" aria-label="Updates - August 5, 2026">
+                  <span>Updates - August 5, 2026</span>
+                  <ul>
+                    <li>DMM opponent upgraded to teacher165, the v26 ranged multi-gear prayer checkpoint: the best prayer reading of the top Elo league finishers, a balanced magic/ranged/melee mix, and strong expected damage per fight.</li>
+                    <li>Added the Elo league: every compatible checkpoint and scripted opponent played one full fight against every other entrant (313 entrants, 48,828 fights). teacher165 was picked as the deployed model because it was the most balanced of the top three - the leader was a no-opponent-prayer ablation and second place had noticeably weaker prayer reading.</li>
+                    <li>Deployed model parity is now gate-checked against the Java checkpoint: defence-prayer and policy-boundary replay gates pass within 1e-5 score tolerance.</li>
+                    <li>Fixed the resizable-mode minimap mask so it uses the real source mask sprite and scales with the client frame instead of assuming a fixed 145x151 mask.</li>
+                    <li>Fixed same-tick combat resolution order (PID): an attack now resolves against the defender's pre-movement tile when the defender already moved earlier in the same tick, matching Java's player-processing order.</li>
+                    <li>Removed the old aim trainer section; the site is now the NH practice client with NH stake and DMM setups.</li>
+                  </ul>
+                </section>
+                <section className="nhSiteUpdateCard" aria-label="Updates - June 15, 2026">
+                  <span>Updates - June 15, 2026</span>
                   <ul>
                     <li>Hard mode now uses neural models for both NH stake and DMM setups.</li>
-                    <li>DMM Hard was promoted to the 3x256 loop-four checkpoint: 5,785,234 parameters, 92 inputs, 141 encoded features, and 21,906 action outputs.</li>
+                    <li>DMM Hard is using the direct-gear Java DMM checkpoint with explicit action IDs matched to the Java/TypeScript action bridge.</li>
                     <li>Both large neural hard-mode models now load through deployable chunks.</li>
                     <li>PID and vengeance trinket overlays are Alt-draggable and no longer overlap by default; fight deaths reset back to setup selection.</li>
                   </ul>
@@ -219,14 +310,13 @@ export function App(): JSX.Element {
                   <ul>
                     <li>DMM setup added with the captured inventory, new gear, and its own hard-mode policy path.</li>
                     <li>Noxious halberd, Voidwaker, VLS, Zaryte crossbow, trinket of vengeance, and bolt procs are wired in.</li>
-                    <li>Game sounds, continuous audio sliders, aim training, camera zoom, right-click timing, and combat animation parity were tightened.</li>
+                    <li>Game sounds, continuous audio sliders, camera zoom, right-click timing, and combat animation parity were tightened.</li>
                   </ul>
                 </section>
                 <section className="nhSiteUpdateCard" aria-label="Updates - June 4, 2026">
                   <span>Updates - June 4, 2026</span>
                   <ul>
                     <li>Hard-mode policy evaluation gained runtime head-to-head and cohort checks.</li>
-                    <li>The aim trainer was added below the client with timed click reps, local scoring, and UI/game-world target locations.</li>
                     <li>The public shell was simplified around the playable trainer instead of internal workbench controls.</li>
                   </ul>
                 </section>
@@ -261,11 +351,12 @@ export function App(): JSX.Element {
           dmmHardPolicy={loadedDmmHardPolicy}
           botDifficulty={botDifficulty}
           botPolicyLoadState={policyLoadState.status}
-          onBotDifficultyChange={setBotDifficulty}
+          dmmHardPolicyLoadState={dmmHardPolicyLoadState.status}
+          onBotDifficultyChange={selectBotDifficulty}
+          onBotPolicyNeeded={ensureBotPolicyLoaded}
+          onDmmHardPolicyNeeded={ensureDmmHardPolicyLoaded}
         />
       </Suspense>
-      <div className="nhAimTrainerScrollHint">Scroll down to try the aim trainer</div>
-      <NhAimTrainer />
       <Analytics />
     </main>
   );
@@ -292,24 +383,22 @@ function isBotDifficulty(value: unknown): value is BotDifficulty {
 }
 
 function isLocalNhTrainerDevSurface(): boolean {
-  if (typeof window === "undefined") {
+  if (!isLocalNhTrainerHost()) {
     return false;
   }
   const params = new URLSearchParams(window.location.search);
-  return params.get("watchPanel") === "1" && (
+  return params.get("watchPanel") === "1";
+}
+
+function isLocalNhTrainerHost(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  return (
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1" ||
     window.location.hostname === "::1"
   );
-}
-
-async function loadDifficultyPolicy(difficulty: BotDifficulty): Promise<DefaultPolicyReadResult> {
-  return readStaticDifficultyPolicy(difficulty);
-}
-
-async function readStaticDifficultyPolicy(difficulty: BotDifficulty): Promise<DefaultPolicyReadResult> {
-  const policyInfo = BOT_DIFFICULTY_POLICIES[difficulty];
-  return readStaticPolicyAsset(policyInfo);
 }
 
 async function readStaticPolicyAsset(policyInfo: BotPolicyAsset): Promise<DefaultPolicyReadResult> {
@@ -328,6 +417,24 @@ async function readStaticPolicyAsset(policyInfo: BotPolicyAsset): Promise<Defaul
   return readStaticPolicyUrl(policyInfo.staticUrl);
 }
 
+function withPolicyLoadTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timeoutId = window.setTimeout(() => {
+      reject(new Error(`${label} model did not finish loading within ${BOT_POLICY_LOAD_TIMEOUT_MS / 1000} seconds.`));
+    }, BOT_POLICY_LOAD_TIMEOUT_MS);
+    promise.then(
+      (value) => {
+        window.clearTimeout(timeoutId);
+        resolve(value);
+      },
+      (error: unknown) => {
+        window.clearTimeout(timeoutId);
+        reject(error);
+      }
+    );
+  });
+}
+
 async function readStaticPolicyUrl(url: string): Promise<DefaultPolicyReadResult> {
   const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) {
@@ -342,11 +449,14 @@ async function readStaticPolicyUrl(url: string): Promise<DefaultPolicyReadResult
   };
 }
 
-function parseDifficultyPolicy(result: DefaultPolicyReadResult, policyInfo: BotPolicyAsset): NhRuntimePolicy {
+function parseDifficultyPolicy(result: DefaultPolicyReadResult, policyInfo: BotPolicyAsset): ParsedNhNeuralPolicy {
   const sourceLabel = formatPolicySourceLabel(result);
-  return policyInfo.format === "neural-json"
-    ? parseNhNeuralPolicyJson(result.text, sourceLabel)
-    : parseNhPolicyTsv(result.text, sourceLabel);
+  const policy = parseNhNeuralPolicyJson(result.text, sourceLabel);
+  assertNhNeuralPolicyHasExplicitSpecActions(policy, policyInfo.requiredExplicitSpecIntents ?? [], policyInfo.label);
+  if (policyInfo.requireDmmDirectGearActions) {
+    assertNhNeuralPolicyHasCurrentDmmActionSurface(policy, policyInfo.label);
+  }
+  return policy;
 }
 
 function formatPolicySourceLabel(result: DefaultPolicyReadResult): string {

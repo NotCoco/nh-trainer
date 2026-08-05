@@ -511,6 +511,15 @@ export const defaultRuntimeSkillStates: Readonly<Record<RuntimeSkillId, RuntimeS
   farming: { current: 1, fixed: 1 }
 };
 
+/**
+ * Options sound level applied when a profile has no stored level, on the source 0-4 slider scale.
+ *
+ * 0.8 is 20% of the slider. Full volume on a first load is painfully loud, and the trainer's
+ * quiet-low-end audio curve puts this near a tenth of full amplitude. A level the player has
+ * already chosen is read from storage and still wins, so this only affects fresh profiles.
+ */
+export const NH_DEFAULT_OPTIONS_SOUND_VOLUME = 0.8;
+
 export const defaultRuntimeHudState: RuntimeHudState = {
   hitpoints: 99,
   hitpointsMax: 99,
@@ -525,8 +534,8 @@ export const defaultRuntimeHudState: RuntimeHudState = {
   weaponTypeConfig: 18,
   autocast: 0,
   defensiveCast: false,
-  soundEffectVolume: 4,
-  areaSoundEffectVolume: 4,
+  soundEffectVolume: NH_DEFAULT_OPTIONS_SOUND_VOLUME,
+  areaSoundEffectVolume: NH_DEFAULT_OPTIONS_SOUND_VOLUME,
   prayers: {},
   skills: defaultRuntimeSkillStates
 };

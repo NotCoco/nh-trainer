@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain } = require("./electron-muted.cjs");
 const fs = require("node:fs/promises");
 const path = require("node:path");
 
@@ -50,6 +50,14 @@ function registerIpc() {
     text: await fs.readFile(defaultPolicyPath, "utf8")
   }));
   ipcMain.handle("client-shell:apply-frame-config", async () => undefined);
+}
+
+function isRuntimePolicyControllerId(value) {
+  return (
+    typeof value === "string" &&
+    (value.includes("parsed-policy:") || value.includes("neural-policy:")) &&
+    !value.includes("missing")
+  );
 }
 
 async function waitForValue(window, expression, predicate, label, rendererMessages) {
@@ -126,7 +134,11 @@ app.whenReady().then(async () => {
   });
 
   try {
-    await window.loadFile(path.join(projectRoot, "dist", "index.html"));
+    await window.loadFile(path.join(projectRoot, "dist", "index.html"), {
+      query: {
+        watchPanel: "1"
+      }
+    });
     await window.webContents.executeJavaScript(`
       window.__nhValidationErrors = [];
       window.addEventListener("error", (event) => {
@@ -135,6 +147,28 @@ app.whenReady().then(async () => {
       window.addEventListener("unhandledrejection", (event) => {
         window.__nhValidationErrors.push(String(event.reason));
       });
+    `);
+    await waitForValue(
+      window,
+      `document.querySelector("[data-runtime-setup-option='nh-stake']") instanceof HTMLButtonElement`,
+      (value) => value === true,
+      "NH stake setup selector",
+      rendererMessages
+    );
+    await window.webContents.executeJavaScript(`
+      document.querySelector("[data-runtime-setup-option='nh-stake']")?.click();
+    `);
+    await waitForValue(
+      window,
+      `Array.from(document.querySelectorAll(".runtimeBotDifficultyButtons button")).some((button) => button.textContent?.trim() === "Test")`,
+      (value) => value === true,
+      "Test difficulty button",
+      rendererMessages
+    );
+    await window.webContents.executeJavaScript(`
+      Array.from(document.querySelectorAll(".runtimeBotDifficultyButtons button"))
+        .find((button) => button.textContent?.trim() === "Test")
+        ?.click();
     `);
     const policyLoaded = await waitForValue(
       window,
@@ -152,9 +186,22 @@ app.whenReady().then(async () => {
     );
     await waitForValue(
       window,
+      `(() => {
+        const button = document.querySelector(".runtimeFightStartButton");
+        return button instanceof HTMLButtonElement && !button.disabled;
+      })()`,
+      (value) => value === true,
+      "fight start button",
+      rendererMessages
+    );
+    await window.webContents.executeJavaScript(`
+      document.querySelector(".runtimeFightStartButton")?.click();
+    `);
+    await waitForValue(
+      window,
       `document.querySelector(".runtimeViewport")?.dataset.lastManualOpponentControllerId ?? ""`,
-      (value) => typeof value === "string" && value.includes("parsed-policy:"),
-      "manual opponent parsed policy tick",
+      isRuntimePolicyControllerId,
+      "manual opponent policy tick",
       rendererMessages
     );
     await waitForValue(
@@ -189,8 +236,8 @@ app.whenReady().then(async () => {
         };
       })()
     `);
-    if (!result.controllerId.includes("parsed-policy:")) {
-      throw new Error(`Runtime opponent did not use parsed policy controller: ${JSON.stringify(result)}`);
+    if (!isRuntimePolicyControllerId(result.controllerId)) {
+      throw new Error(`Runtime opponent did not use a policy controller: ${JSON.stringify(result)}`);
     }
     if (Number.parseInt(result.policyTick, 10) < 1) {
       throw new Error(`Runtime policy tick did not advance, got ${result.policyTick}.`);

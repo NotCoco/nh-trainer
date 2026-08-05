@@ -3,6 +3,8 @@ dist/
 dist-electron/
 .npm-cache/
 .playwright-cli/
+.codex-logs/
+.codex-profiles/
 test-results/
 coverage/
 .vercel/

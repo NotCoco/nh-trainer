@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow } = require("./electron-muted.cjs");
 const path = require("node:path");
 const fs = require("node:fs");
 
@@ -1263,6 +1263,48 @@ async function clickPrayerIcon(window, prayerId) {
   return result.dataset;
 }
 
+async function clickPrayerIconImmediateDataset(window, prayerId) {
+  const result = await window.webContents.executeJavaScript(`
+    (() => {
+      const prayer = document.querySelector(${JSON.stringify(`.nhPrayerSlotButton[data-prayer-id="${prayerId}"]`)});
+      if (!prayer) {
+        return { ok: false, error: "missing prayer icon" };
+      }
+      const rect = prayer.getBoundingClientRect();
+      prayer.dispatchEvent(new PointerEvent("pointerdown", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        pointerId: 1,
+        pointerType: "mouse",
+        button: 0,
+        buttons: 1,
+        clientX: rect.left + rect.width / 2,
+        clientY: rect.top + rect.height / 2
+      }));
+      const viewport = document.querySelector(".runtimeViewport");
+      return { ok: true, dataset: { ...viewport?.dataset } };
+    })()
+  `);
+  if (!result.ok) {
+    throw new Error(JSON.stringify(result));
+  }
+  return result.dataset;
+}
+
+async function readRuntimeViewportDataset(window) {
+  const result = await window.webContents.executeJavaScript(`
+    (() => {
+      const viewport = document.querySelector(".runtimeViewport");
+      return { ok: true, dataset: { ...viewport?.dataset } };
+    })()
+  `);
+  if (!result.ok) {
+    throw new Error(JSON.stringify(result));
+  }
+  return result.dataset;
+}
+
 async function clickSpellbookIcon(window, spellId) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
@@ -2404,7 +2446,36 @@ app.whenReady().then(async () => {
     }
     const prayerIconState = (hud, prayerId) => hud.prayerIcons.find((icon) => icon.prayerId === prayerId);
     const overheadDisallowedIds = "protect-from-magic,protect-from-missiles,protect-from-melee,retribution,redemption,smite";
-    const protectMagicDispatch = await clickPrayerIcon(window, "protect-from-magic");
+    const protectMagicDispatch = await clickPrayerIconImmediateDataset(window, "protect-from-magic");
+    const protectMagicSoundQueuedAtMs = Number(protectMagicDispatch.lastPrayerSoundQueuedAtMs);
+    const protectMagicSoundReadyAtMs = Number(protectMagicDispatch.lastPrayerSoundReadyAtMs);
+    if (
+      protectMagicDispatch.lastPrayerSoundQueuedForTick !== "true" ||
+      protectMagicDispatch.lastPrayerSoundQueuedSoundId !== "2675" ||
+      protectMagicDispatch.lastRuntimeSoundId === "2675" ||
+      !Number.isFinite(protectMagicSoundQueuedAtMs) ||
+      !Number.isFinite(protectMagicSoundReadyAtMs) ||
+      protectMagicSoundReadyAtMs <= protectMagicSoundQueuedAtMs
+    ) {
+      throw new Error(`Protect-from-magic prayer sound should queue for the next game tick instead of playing immediately: ${JSON.stringify(protectMagicDispatch)}`);
+    }
+    let protectMagicSoundAfterTick = await readRuntimeViewportDataset(window);
+    const protectMagicSoundDeadline = Date.now() + 2500;
+    while (
+      Date.now() < protectMagicSoundDeadline &&
+      protectMagicSoundAfterTick.lastPrayerSoundPlayedSoundId !== "2675"
+    ) {
+      await delay(50);
+      protectMagicSoundAfterTick = await readRuntimeViewportDataset(window);
+    }
+    if (
+      protectMagicSoundAfterTick.lastRuntimeSoundId !== "2675" ||
+      protectMagicSoundAfterTick.lastPrayerSoundPlayedSoundId !== "2675" ||
+      protectMagicSoundAfterTick.lastPrayerSoundPlayedPrayerId !== "protect-from-magic" ||
+      protectMagicSoundAfterTick.lastReadyPrayerSoundPacketCount !== "1"
+    ) {
+      throw new Error(`Protect-from-magic prayer sound did not play on the queued game tick: ${JSON.stringify(protectMagicSoundAfterTick)}`);
+    }
     const protectMagicHud = await readRuntimeHud(window);
     const protectMagicIcon = prayerIconState(protectMagicHud, "protect-from-magic");
     const activeAfterProtectMagic = protectMagicHud.prayerIcons

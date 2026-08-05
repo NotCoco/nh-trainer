@@ -44,7 +44,8 @@ import {
   type SimStats,
   type SupplyDelayState
 } from "../items/consumables";
-import type { NhEquipmentIntent, NhMovementIntent, NhOffenceStyle, NhPolicyAction, NhSupplyIntent } from "./policy-bridge";
+import { nhMovementDeltas } from "./policy-bridge";
+import type { NhEquipmentIntent, NhMovementIntent, NhOffenceStyle, NhPolicyAction, NhSpecHistoryKind, NhSupplyIntent } from "./policy-bridge";
 import type { PrayerId, ProtectionPrayerId } from "../prayer/prayers";
 import {
   activeOverheadPrayer,
@@ -100,6 +101,13 @@ export interface NhDuelActorState {
   readonly observedInfoKnown?: boolean;
   readonly lastVengeanceTrinketCastTick?: number;
   readonly vengeanceTrinketCasts?: number;
+  readonly canUseVengeanceTrinket?: boolean;
+  readonly gmaulSpecsUsed?: number;
+  readonly voidwakerSpecsUsed?: number;
+  readonly vlsSpecsUsed?: number;
+  readonly lastSpecKind?: NhSpecHistoryKind;
+  readonly previousSpecKind?: NhSpecHistoryKind;
+  readonly lastSpecTick?: number;
   readonly lastOffenceStyle: NhOffenceStyle | null;
   readonly lastVisibleOpponentStyle: NhOffenceStyle | null;
 }
@@ -111,6 +119,7 @@ export interface NhQueuedHit {
   readonly defenderId: ClientViewActorId;
   readonly style: CombatStyle;
   readonly rawDamage: number;
+  readonly defenderProtectionPrayer?: ProtectionPrayerId;
   readonly source: "weapon" | "gmaul";
   readonly freezeTicks?: number;
 }
@@ -167,6 +176,14 @@ export interface NhDuelControllerContext {
 
 export interface NhDuelController {
   readonly id: string;
+  /**
+   * True for current-direct neural controllers whose defence prayer must be
+   * applied exactly as the model chose it (Source: NhStakerBot.resolveDefencePrayer()
+   * returns isCurrentDirectNeuralDecision() prayers untouched). Deployed-composite
+   * and legacy controllers leave this unset and keep the reachability/visible-threat
+   * guards in the runtime opponent resolver.
+   */
+  readonly defencePrayerStrictModelChoice?: boolean;
   readonly chooseAction: (context: NhDuelControllerContext) => NhPolicyAction;
 }
 
@@ -334,7 +351,7 @@ const inventorySwitchController: NhDuelController = {
     return {
       offenceStyle,
       defencePrayer: chooseScriptedFallbackDefence(context),
-      movementIntent: "pressure",
+      movementIntent: "none",
       supplyIntent: "none",
       specIntent: "none",
       extendedSupplyAction: false
@@ -947,13 +964,13 @@ function scriptedCounterFromProtectionMask(mask: number, wantsFreeze: boolean): 
 }
 
 function chooseScriptedFallbackMovement(context: NhDuelControllerContext): NhMovementIntent {
-  // Source: NhStakerBot.scriptedFallbackDecision() only switches from PRESSURE to
+  // Source: NhStakerBot.scriptedFallbackDecision() only switches from NONE to
   // STAND_UNDER when the delayed opponent is frozen, self can move, and distance is non-zero.
   return !isFrozen(context.self.locks, context.tick) &&
     isFrozen(context.opponent.locks, context.tick) &&
     chebyshevDistance(context.self.tile, context.opponent.tile) > 0
     ? "stand_under"
-    : "pressure";
+    : "none";
 }
 
 function applyActorAction(
@@ -1026,6 +1043,7 @@ function applyActorAction(
         defenderId: opponentId,
         style: combatStyleForOffence(action.offenceStyle),
         rawDamage: hit.damage,
+        defenderProtectionPrayer: activeProtectionPrayer(opponent.activePrayers),
         source: weaponId === "granite_maul" ? "gmaul" : "weapon",
         freezeTicks: action.offenceStyle === "magic" && hit.damage > 0 ? 32 : undefined
       });
@@ -1063,6 +1081,7 @@ function applyActorAction(
             defenderId: opponentId,
             style: "crush",
             rawDamage: hit.damage,
+            defenderProtectionPrayer: activeProtectionPrayer(opponent.activePrayers),
             source: "gmaul"
           });
         }
@@ -1123,14 +1142,11 @@ function nextTileForMovement(
   weaponId: NhWeaponId
 ): TilePosition {
   const movement = action.movementIntent;
-  if (movement === "pressure") {
-    return pressureTileForAction(self, opponent, action, weaponId);
+  if (movement === "none") {
+    return self;
   }
   if (movement === "stand_under") {
     return { ...opponent };
-  }
-  if (movement === "step_out") {
-    return stepAway(self, opponent);
   }
 
   const direction = directionForMovement(movement);
@@ -1141,71 +1157,9 @@ function nextTileForMovement(
   };
 }
 
-function pressureTileForAction(
-  self: TilePosition,
-  opponent: TilePosition,
-  action: NhPolicyAction,
-  weaponId: NhWeaponId
-): TilePosition {
-  const distance = chebyshevDistance(self, opponent);
-  if (action.offenceStyle === "melee") {
-    return distance <= 1 ? self : stepToward(self, opponent);
-  }
-  const range = attackRangeForNhDuelAction(action, weaponId, distance);
-  if (distance >= 1 && distance <= range) {
-    return self;
-  }
-  return distance === 0 ? stepAway(self, opponent) : stepToward(self, opponent);
-}
-
 function directionForMovement(movement: NhMovementIntent): { readonly dx: number; readonly dy: number } {
-  if (movement === "step_north") {
-    return { dx: 0, dy: 1 };
-  }
-  if (movement === "step_south") {
-    return { dx: 0, dy: -1 };
-  }
-  if (movement === "step_east") {
-    return { dx: 1, dy: 0 };
-  }
-  if (movement === "step_west") {
-    return { dx: -1, dy: 0 };
-  }
-  if (movement === "step_north_east") {
-    return { dx: 1, dy: 1 };
-  }
-  if (movement === "step_north_west") {
-    return { dx: -1, dy: 1 };
-  }
-  if (movement === "step_south_east") {
-    return { dx: 1, dy: -1 };
-  }
-  if (movement === "step_south_west") {
-    return { dx: -1, dy: -1 };
-  }
-  return { dx: 0, dy: 0 };
-}
-
-function stepToward(self: TilePosition, target: TilePosition): TilePosition {
-  return {
-    ...self,
-    x: self.x + Math.sign(target.x - self.x),
-    y: self.y + Math.sign(target.y - self.y)
-  };
-}
-
-function stepAway(self: TilePosition, target: TilePosition): TilePosition {
-  if (self.x === target.x && self.y === target.y) {
-    return {
-      ...self,
-      x: self.x - 1
-    };
-  }
-  return {
-    ...self,
-    x: self.x + Math.sign(self.x - target.x),
-    y: self.y + Math.sign(self.y - target.y)
-  };
+  const [dx, dy] = nhMovementDeltas[movement];
+  return { dx, dy };
 }
 
 function applySupplyIntent(
@@ -1616,7 +1570,7 @@ function applyQueuedHit(
   const reducedDamage = applyProtectionDamageReduction({
     damage: hit.rawDamage,
     attackStyle: hit.style,
-    defenderPrayers: defender.activePrayers,
+    defenderPrayers: hit.defenderProtectionPrayer ? [hit.defenderProtectionPrayer] : [],
     attackerIsPlayer: true
   });
   const damage = Math.min(defender.stats.hitpoints.current, reducedDamage);

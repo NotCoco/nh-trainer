@@ -18,7 +18,7 @@ export const botBoundary = {
       evidenceStatus: "verified",
       sourceAnchorIds: ["server-nh-policy-bridge-contract", "server-nh-observation-contract"],
       acceptanceGate:
-        "The current versioned bridge can load current action-count policies while preserving old action ids as attack/style-loadout decisions."
+        "The versioned bridge loads each policy only through its matching action surface: current direct-action policies use explicit action IDs, while deployed-composite DMM hard uses its dedicated deployed controller."
     },
     {
       id: "client-visible-observation",
