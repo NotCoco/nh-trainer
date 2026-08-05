@@ -1,0 +1,10 @@
+gradle.projectsEvaluated {
+    def server = gradle.rootProject.findProject(':kronos-server')
+    server.tasks.register('exportNhFastSimMap', JavaExec) {
+        dependsOn server.tasks.named('classes')
+        classpath = server.sourceSets.main.runtimeClasspath
+        main = 'io.ruin.tools.NhFastSimMapExporter'
+        workingDir = server.projectDir
+        args server.findProperty('fastsimMapOut')
+    }
+}

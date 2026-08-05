@@ -1,0 +1,11 @@
+.venv/
+out/
+tmp/
+__pycache__/
+*.pyc
+*.nhrl
+*.nhev
+*.pt
+*.pth
+*.fastsim.json
+tmp-t164-smoke.json
