@@ -1142,10 +1142,30 @@ h3 {
   width: 242px;
   height: 100%;
   min-height: 503px;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  scrollbar-color: rgb(63 63 63) rgb(25 25 25);
   background: rgb(40, 40, 40);
   color: rgb(165, 165, 165);
   font: 12px Arial, sans-serif;
+}
+
+.runelitePluginPanel::-webkit-scrollbar {
+  width: 17px;
+}
+
+.runelitePluginPanel::-webkit-scrollbar-track {
+  background: rgb(25, 25, 25);
+}
+
+.runelitePluginPanel::-webkit-scrollbar-thumb {
+  background: rgb(63, 63, 63);
+  border: 3px solid rgb(25, 25, 25);
+}
+
+.runelitePluginPanel::-webkit-scrollbar-thumb:hover {
+  background: rgb(80, 80, 80);
 }
 
 .runelitePluginPanelInner {
@@ -1160,7 +1180,7 @@ h3 {
 .runeliteConfigPanel {
   display: flex;
   flex-direction: column;
-  width: 225px;
+  width: 100%;
   min-height: 100%;
   background: rgb(40, 40, 40);
 }
@@ -1182,7 +1202,7 @@ h3 {
 }
 
 .runeliteConfigSearch {
-  width: 205px;
+  width: 100%;
   height: 30px;
 }
 
@@ -1245,7 +1265,7 @@ h3 {
   grid-template-columns: 1fr;
   row-gap: 5px;
   box-sizing: border-box;
-  width: 225px;
+  width: 100%;
   padding: 8px 10px 10px;
 }
 
@@ -1253,7 +1273,7 @@ h3 {
   display: grid;
   grid-template-columns: 21px minmax(0, 1fr) 50px;
   align-items: center;
-  width: 225px;
+  width: 100%;
   height: 20px;
   color: #ffffff;
   font: 12px Arial, sans-serif;
@@ -1344,7 +1364,7 @@ h3 {
   column-gap: 5px;
   align-items: center;
   box-sizing: border-box;
-  width: 225px;
+  width: 100%;
   min-height: 50px;
   padding: 10px;
 }
@@ -1388,7 +1408,7 @@ h3 {
   grid-template-columns: 1fr;
   row-gap: 5px;
   box-sizing: border-box;
-  width: 225px;
+  width: 100%;
   padding: 8px 10px 10px;
 }
 
@@ -1398,12 +1418,12 @@ h3 {
   grid-template-columns: 1fr;
   row-gap: 5px;
   box-sizing: border-box;
-  width: 205px;
+  width: 100%;
 }
 
 .runeliteConfigTitleSectionHeader {
   box-sizing: border-box;
-  width: 205px;
+  width: 100%;
   padding-top: 10px;
   color: rgb(229, 57, 53);
   font: 12px Arial, sans-serif;
@@ -1413,7 +1433,7 @@ h3 {
   display: grid;
   grid-template-columns: 20px minmax(0, 1fr);
   align-items: center;
-  width: 205px;
+  width: 100%;
   min-height: 20px;
   border: 0;
   padding: 0;
@@ -1454,7 +1474,7 @@ h3 {
   grid-template-columns: 1fr;
   row-gap: 5px;
   box-sizing: border-box;
-  width: 205px;
+  width: 100%;
   padding: 6px 0 0 5px;
 }
 
@@ -1464,7 +1484,7 @@ h3 {
   column-gap: 6px;
   align-items: center;
   box-sizing: border-box;
-  width: 200px;
+  width: 100%;
   min-height: 25px;
   color: #ffffff;
   font: 12px Arial, sans-serif;
@@ -1521,7 +1541,7 @@ h3 {
 
 .runeliteConfigTextInput {
   box-sizing: border-box;
-  width: 200px;
+  width: 100%;
   min-height: 30px;
   border: 0;
   padding: 5px;
@@ -1579,7 +1599,7 @@ h3 {
 }
 
 .runeliteConfigFooterButton {
-  width: 205px;
+  width: 100%;
   background: rgb(30, 30, 30);
 }
 
@@ -1820,6 +1840,7 @@ h3 {
   flex-direction: column;
   box-sizing: border-box;
   width: 225px;
+  height: 100%;
   min-height: 100%;
   padding: 8px;
   background: rgb(40, 40, 40);
@@ -1880,11 +1901,27 @@ h3 {
   min-height: 80px;
   overflow-y: auto;
   overflow-x: hidden;
+  scrollbar-gutter: stable;
+  scrollbar-color: rgb(70 70 70) rgb(30 30 30);
+  scrollbar-width: thin;
   background: rgb(40, 40, 40);
 }
 
 .runelitePvpFightHistoryScroller::-webkit-scrollbar {
   width: 6px;
+}
+
+.runelitePvpFightHistoryScroller::-webkit-scrollbar-track {
+  background: rgb(30, 30, 30);
+}
+
+.runelitePvpFightHistoryScroller::-webkit-scrollbar-thumb {
+  background: rgb(70, 70, 70);
+  border-radius: 3px;
+}
+
+.runelitePvpFightHistoryScroller::-webkit-scrollbar-thumb:hover {
+  background: rgb(90, 90, 90);
 }
 
 .runelitePvpFightHistoryContainer {
@@ -1895,7 +1932,7 @@ h3 {
 
 .runelitePvpFightHistoryEntry {
   box-sizing: border-box;
-  width: 209px;
+  width: auto;
   margin: 0 0 4px;
   padding: 4px 6px;
   border: 0 solid transparent;
@@ -1931,10 +1968,22 @@ h3 {
   text-align: left;
 }
 
+.runelitePvpFightHistoryNames span:first-child {
+  grid-column: 1;
+}
+
+.runelitePvpFightHistoryNames span:nth-child(2) {
+  grid-column: 2;
+}
+
 .runelitePvpFightHistoryNames span:last-child,
 .runelitePvpFightHistoryLine span:last-child {
   justify-self: end;
   text-align: right;
+}
+
+.runelitePvpFightHistoryNames span:last-child {
+  grid-column: 3;
 }
 
 .runelitePvpFightWorld,
@@ -2272,6 +2321,32 @@ h3 {
 .runtimeSetupSelector button:hover {
   border-color: #a0823f;
   color: #ffe29c;
+}
+
+.runtimeSetupSelectorHint {
+  position: absolute;
+  z-index: 2;
+  top: calc(100% + 6px);
+  left: 50%;
+  display: none;
+  width: max-content;
+  max-width: 220px;
+  box-sizing: border-box;
+  padding: 4px 8px;
+  border: 1px solid rgba(98, 78, 42, 0.96);
+  border-radius: 2px;
+  background: rgba(23, 20, 15, 0.96);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.48);
+  color: #d9c491;
+  font-size: 11px;
+  line-height: 14px;
+  text-align: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.runtimeSetupSelector:hover .runtimeSetupSelectorHint {
+  display: block;
 }
 
 .nhClientHud {

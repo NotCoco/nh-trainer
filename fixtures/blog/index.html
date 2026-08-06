@@ -155,12 +155,27 @@
             <li>5th - lr050-ancestry20-r01 - 1790.4</li>
           </ul>
           <p>
+            One thing worth knowing before I quote prayer numbers at you: against a skilled opponent
+            who genuinely mixes styles, correct prayer settles somewhere around 33-35%. You're
+            reacting at least a tick behind, you can't predict everything, and the other side knows
+            it. So 50%-ish is not a bad floor in absolute terms - what makes the top checkpoints
+            stand out is that they sit so far above it. The only reason that's possible is the meta:
+            magic is the dominant damage source, so everyone throws a lot more magic than anything
+            else, and if you can bet on "he's probably casting", you can pray against it far more
+            often. And it cuts the other way too, though less obviously: Zuriel's staff is a 4-tick
+            weapon, just like the DMM version of the staff, and it's naturally strong - a cast
+            often carries enough expected damage that attacking straight through their magic prayer
+            is genuinely the right call sometimes, accuracy penalty or not. That's an EV tradeoff,
+            not a habit.
+          </p>
+          <p>
             The interesting part is that the league winner is not the one I shipped. First place is
             teacher139, and its name tells you exactly what's wrong with it: it's an ablation that
             literally cannot see the opponent's prayer. It still wins fights - it puts out 95.4
-            expected damage per fight and went 245-67 - but it only prays correctly 52% of the time.
-            It wins on raw output, not on reading. That's not a useful practice opponent, that's a
-            DPS check.
+            expected damage per fight and went 245-67 - but it only reads prayer correctly 52% of
+            the time, which is above the ~33-35% you'd expect against a proper style-mixer but miles
+            below the 80%+ the top checkpoints reach on the same field. It wins on raw output, not
+            on reading. That's not a useful practice opponent, that's a DPS check.
           </p>
           <p>
             Second place (teacher111, 1833.3) is closer to being good: 79.2% prayer correctness and
@@ -224,17 +239,21 @@
         </section>
 
         <section>
-          <h2>Why the bot uses a learned policy</h2>
+          <h2>Why it started as a policy and became a neural network</h2>
           <p>
-            NH fights are too reactive for a fixed rotation to stay interesting. The opponent needs
-            to adapt to timing, pressure, and the player's rhythm rather than simply looping through
-            a script.
+            When I first wrote about this project, the plan was a policy: something reactive that
+            adapts to timing, pressure, and the player's rhythm instead of looping through a fixed
+            rotation. That part of the idea never changed. What changed is what the policy actually
+            is - the opponent on the site now is a trained neural network, not the simpler decision
+            logic those early posts described. It reads 114 fight inputs every tick and picks from
+            86 actions. Where the older sections below still say "learned policy", that's me
+            describing how the idea started, not what it is now.
           </p>
           <p>
-            The training process uses many paired fights and records a rolling window of recent
-            combat state. That short memory lets rewards connect an action to future outcomes:
-            a good freeze, a defensive gear swap, a delayed special attack, or a supply decision
-            may only prove useful several ticks later.
+            The training idea is the same one I began with: many paired fights, with a rolling
+            window of recent combat state recorded against each decision. That short memory lets
+            rewards connect an action to future outcomes: a good freeze, a defensive gear swap, a
+            delayed special attack, or a supply decision may only prove useful several ticks later.
           </p>
         </section>
 

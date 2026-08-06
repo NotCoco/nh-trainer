@@ -403,6 +403,10 @@ import {
 import {
   RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT,
   RUNELITE_CLIENT_TICK_MS,
+  RUNELITE_FIXED_CLIENT_HEIGHT,
+  RUNELITE_FIXED_CLIENT_WIDTH,
+  RUNELITE_PLUGIN_TOOLBAR_WIDTH,
+  RUNELITE_PLUGIN_WRAPPED_WIDTH,
   RuneliteClientShell,
   type RuneliteAntiDragConfigSnapshot,
   type RuneliteAnimationSmoothingConfigSnapshot,
@@ -7747,6 +7751,37 @@ function clampBrowserClientWindowBounds(bounds: BrowserClientWindowBounds): Brow
   };
 }
 
+/**
+ * Fixed-mode snap: when RuneLite Stretched Mode is off, the client stays at exactly 765x503 (1:1).
+ * Resizing the window snaps it to the client size plus exactly the sidebar width on the right, so
+ * there is no black padding around the fixed client.
+ */
+function browserClientWindowFixedSnapSize(
+  element: HTMLElement | null
+): { readonly width: number; readonly height: number } | null {
+  const shell = element?.querySelector<HTMLElement>(".runeliteClientShell");
+  if (!shell || shell.dataset.runeliteStretchedEnabled !== "false") {
+    return null;
+  }
+  const sidebarOpen = shell.dataset.sidebarOpen === "true";
+  const panelOpen = shell.dataset.pluginPanelOpen === "true";
+  const sidebarWidth = sidebarOpen
+    ? RUNELITE_PLUGIN_TOOLBAR_WIDTH + (panelOpen ? RUNELITE_PLUGIN_WRAPPED_WIDTH : 0)
+    : 0;
+  return {
+    width: RUNELITE_FIXED_CLIENT_WIDTH + sidebarWidth,
+    height: RUNELITE_FIXED_CLIENT_HEIGHT + BROWSER_CLIENT_WINDOW_TITLEBAR_HEIGHT
+  };
+}
+
+function clampBrowserClientWindowBoundsWithFixedSnap(
+  bounds: BrowserClientWindowBounds,
+  element: HTMLElement | null
+): BrowserClientWindowBounds {
+  const snap = browserClientWindowFixedSnapSize(element);
+  return clampBrowserClientWindowBounds(snap ? { ...bounds, width: snap.width, height: snap.height } : bounds);
+}
+
 function BrowserClientWindow({ children }: { readonly children: JSX.Element }): JSX.Element {
   const [bounds, setBounds] = useState<BrowserClientWindowBounds>(() => readBrowserClientWindowBounds());
   const windowRef = useRef<HTMLDivElement | null>(null);
@@ -7756,6 +7791,30 @@ function BrowserClientWindow({ children }: { readonly children: JSX.Element }): 
     readonly startClientY: number;
     readonly startBounds: BrowserClientWindowBounds;
   } | null>(null);
+
+  const syncWindowBounds = (candidate: Partial<BrowserClientWindowBounds>): void => {
+    setBounds((current) => {
+      const element = windowRef.current;
+      const snap = browserClientWindowFixedSnapSize(element);
+      const next = clampBrowserClientWindowBoundsWithFixedSnap({ ...current, ...candidate }, element);
+      const equal =
+        next.width === current.width && next.height === current.height && next.x === current.x && next.y === current.y;
+      if (equal && !snap) {
+        return current;
+      }
+      if (snap && element) {
+        // The window can be resized outside React (CSS resize handle), so React's style diff cannot
+        // see the external mutation. Write the snapped bounds directly to force the window back to
+        // the exact client size plus the sidebar, leaving no black padding around the fixed client.
+        element.style.width = `${next.width}px`;
+        element.style.height = `${next.height}px`;
+        element.style.left = `${next.x}px`;
+        element.style.top = `${next.y}px`;
+      }
+      writeBrowserClientWindowBounds(next);
+      return next;
+    });
+  };
 
   useEffect(() => {
     const element = windowRef.current;
@@ -7775,18 +7834,7 @@ function BrowserClientWindow({ children }: { readonly children: JSX.Element }): 
       animationFrame = window.requestAnimationFrame(() => {
         animationFrame = 0;
         const rect = element.getBoundingClientRect();
-        setBounds((current) => {
-          const next = clampBrowserClientWindowBounds({
-            ...current,
-            width: Math.round(rect.width),
-            height: Math.round(rect.height)
-          });
-          if (next.width === current.width && next.height === current.height && next.x === current.x && next.y === current.y) {
-            return current;
-          }
-          writeBrowserClientWindowBounds(next);
-          return next;
-        });
+        syncWindowBounds({ width: Math.round(rect.width), height: Math.round(rect.height) });
       });
     });
 
@@ -7801,18 +7849,29 @@ function BrowserClientWindow({ children }: { readonly children: JSX.Element }): 
 
   useEffect(() => {
     const handleResize = (): void => {
-      setBounds((current) => {
-        const next = clampBrowserClientWindowBounds(current);
-        if (next.width === current.width && next.height === current.height && next.x === current.x && next.y === current.y) {
-          return current;
-        }
-        writeBrowserClientWindowBounds(next);
-        return next;
-      });
+      syncWindowBounds({});
     };
 
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    const element = windowRef.current;
+    if (!element || typeof MutationObserver === "undefined") {
+      return;
+    }
+
+    // Re-snap the fixed-mode window when the sidebar, plugin panel, or stretched mode changes.
+    const observer = new MutationObserver(() => {
+      syncWindowBounds({});
+    });
+    observer.observe(element, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ["data-sidebar-open", "data-plugin-panel-open", "data-runelite-stretched-enabled"]
+    });
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -7843,9 +7902,7 @@ function BrowserClientWindow({ children }: { readonly children: JSX.Element }): 
   }, []);
 
   const updateBounds = (nextBounds: BrowserClientWindowBounds): void => {
-    const next = clampBrowserClientWindowBounds(nextBounds);
-    setBounds(next);
-    writeBrowserClientWindowBounds(next);
+    syncWindowBounds(nextBounds);
   };
 
   return (
@@ -11539,11 +11596,9 @@ function runtimeFightStartOverlayStyle(
     };
   }
   return {
-    left: viewportRect.x,
-    top: viewportRect.y,
-    width: Math.max(1, Math.round(viewportRect.width / scale)),
-    height: Math.max(1, Math.round(viewportRect.height / scale)),
-    transform: `scale(${scale})`,
+    left: viewportRect.x + viewportRect.width / 2,
+    top: viewportRect.y + viewportRect.height / 2,
+    transform: `translate(-50%, -50%) scale(${scale})`,
     transformOrigin: "left top"
   };
 }
@@ -14280,6 +14335,9 @@ export function RuntimeSceneViewer({
   const cameraWheelDeltaAccumulatorRef = useRef(0);
   const suppressNextCanvasContextMenuRef = useRef(false);
   const suppressCanvasContextMenuUntilRef = useRef(0);
+  const canvasContextMenuSeenForPressRef = useRef(false);
+  const rightButtonPressHandledRef = useRef(false);
+  const rightButtonDownRef = useRef(false);
   const contextMenuPointerRef = useRef<{ readonly x: number; readonly y: number } | null>(null);
   const lastRightButtonPressAtMsRef = useRef<number | null>(null);
   const [cycle, setCycle] = useState(0);
@@ -17054,6 +17112,16 @@ export function RuntimeSceneViewer({
     const onKeyDown = (event: KeyboardEvent): void => {
       if (dispatchFunctionKeySideTab(event)) {
         return;
+      }
+      const functionKey = runeliteDirectFunctionKeyFromKeyboardEvent(event);
+      if (functionKey !== null && functionKey !== "Escape") {
+        // dispatchFunctionKeySideTab bails without consuming the event when the
+        // target is a focused text entry, the key is a held repeat, or the key
+        // is unbound in the game keybind snapshot; the browser would then take
+        // F4/F6 (address bar), F5 (reload), or F7 (caret browsing) as its own
+        // shortcuts as if the client had no focus. The real client never lets
+        // F-keys escape the game, so block the browser default here.
+        event.preventDefault();
       }
       if (updateArrowKeyState(event, true)) {
         setCameraMode("free");
@@ -22276,28 +22344,67 @@ export function RuntimeSceneViewer({
       }, pressedAtMs);
   };
 
+  // A right-button press opens exactly one menu, from the press itself, because
+  // MouseHandler.copy$mousePressed is what sets MouseHandler_lastButton and
+  // copy$mouseReleased never opens anything. Browsers disagree about when the
+  // fallback contextmenu arrives - on the release on Windows, on the press on
+  // macOS and Linux - so the suppression is scoped to the press instead of to a
+  // wall clock window. A window short enough to expire mid-press let the release
+  // open a second menu whenever the button was held past it, which read as
+  // right-click only working once the button was let go.
   const suppressNextCanvasContextMenu = (): void => {
-    const duplicateWindowMs = 250;
+    const stalePressWindowMs = 5000;
     suppressNextCanvasContextMenuRef.current = true;
-    suppressCanvasContextMenuUntilRef.current = performance.now() + duplicateWindowMs;
-    window.setTimeout(() => {
-      if (performance.now() >= suppressCanvasContextMenuUntilRef.current) {
-        suppressNextCanvasContextMenuRef.current = false;
-        suppressCanvasContextMenuUntilRef.current = 0;
-      }
-    }, duplicateWindowMs + 16);
+    canvasContextMenuSeenForPressRef.current = false;
+    suppressCanvasContextMenuUntilRef.current = performance.now() + stalePressWindowMs;
+  };
+
+  const disarmSuppressedCanvasContextMenu = (): void => {
+    suppressNextCanvasContextMenuRef.current = false;
+    canvasContextMenuSeenForPressRef.current = false;
+    suppressCanvasContextMenuUntilRef.current = 0;
   };
 
   const consumeSuppressedCanvasContextMenu = (): boolean => {
     if (!suppressNextCanvasContextMenuRef.current) {
       return false;
     }
-    if (performance.now() <= suppressCanvasContextMenuUntilRef.current) {
-      return true;
+    if (performance.now() > suppressCanvasContextMenuUntilRef.current) {
+      disarmSuppressedCanvasContextMenu();
+      return false;
     }
-    suppressNextCanvasContextMenuRef.current = false;
-    suppressCanvasContextMenuUntilRef.current = 0;
-    return false;
+
+    canvasContextMenuSeenForPressRef.current = true;
+    if (!rightButtonDownRef.current) {
+      // The button is already up, so this is the release's contextmenu and the
+      // press is finished. Anything after it belongs to a new press.
+      disarmSuppressedCanvasContextMenu();
+    }
+    return true;
+  };
+
+  // Source: MouseHandler_lastButton is written by copy$mousePressed, so the menu
+  // opens once per press. Browsers can deliver that press as pointerdown, as a
+  // mousedown compatibility event, or - on input paths that expose no pointer
+  // events for the secondary button - only as the contextmenu that follows the
+  // release. Route them all through one press handler and let the first one win.
+  const handleRuntimeSceneRightButtonPress = (event: PointerEvent | MouseEvent): void => {
+    if (rightButtonPressHandledRef.current) {
+      return;
+    }
+    rightButtonPressHandledRef.current = true;
+    rightButtonDownRef.current = true;
+    lastRightButtonPressAtMsRef.current = nhEventTimestampMs(event);
+    suppressNextCanvasContextMenu();
+    openRuntimeSceneContextMenu(event);
+  };
+
+  const endRuntimeSceneRightButtonPress = (): void => {
+    rightButtonPressHandledRef.current = false;
+    rightButtonDownRef.current = false;
+    if (canvasContextMenuSeenForPressRef.current) {
+      disarmSuppressedCanvasContextMenu();
+    }
   };
 
   const beginClientMouseCameraDrag = (event: ReactPointerEvent<HTMLElement>): void => {
@@ -22434,6 +22541,30 @@ export function RuntimeSceneViewer({
   }, []);
 
   useEffect(() => {
+    // Source: copy$mouseReleased clears MouseHandler_currentButton only, so the
+    // release ends the press without opening anything. Listen on the window so a
+    // release outside the canvas still re-arms the next press.
+    const endPress = (): void => endRuntimeSceneRightButtonPress();
+    const onRightButtonRelease = (event: PointerEvent | MouseEvent): void => {
+      if (event.button !== 2) {
+        return;
+      }
+      endPress();
+    };
+
+    window.addEventListener("pointerup", onRightButtonRelease);
+    window.addEventListener("mouseup", onRightButtonRelease);
+    window.addEventListener("pointercancel", endPress);
+    window.addEventListener("blur", endPress);
+    return () => {
+      window.removeEventListener("pointerup", onRightButtonRelease);
+      window.removeEventListener("mouseup", onRightButtonRelease);
+      window.removeEventListener("pointercancel", endPress);
+      window.removeEventListener("blur", endPress);
+    };
+  }, []);
+
+  useEffect(() => {
     if (
       temporarySavedSetupLoadedRef.current ||
       inventoryItemDefinitions.size === 0 ||
@@ -22525,6 +22656,9 @@ export function RuntimeSceneViewer({
             onPointerCancelCapture={endClientMouseCameraDrag}
             onPointerDownCapture={(event) => {
               if (event.button === 2) {
+                // Covers HUD widget presses as well as the scene canvas, so the
+                // fallback contextmenu stays suppressed for the whole press.
+                rightButtonDownRef.current = true;
                 lastRightButtonPressAtMsRef.current = nhEventTimestampMs(event.nativeEvent);
               }
               beginClientMouseCameraDrag(event);
@@ -22622,8 +22756,7 @@ export function RuntimeSceneViewer({
               if (event.button === 2) {
                 event.preventDefault();
                 event.stopPropagation();
-                suppressNextCanvasContextMenu();
-                openRuntimeSceneContextMenu(event.nativeEvent);
+                handleRuntimeSceneRightButtonPress(event.nativeEvent);
                 return;
               }
 
@@ -22711,6 +22844,17 @@ export function RuntimeSceneViewer({
                 isNhSceneObjectContextMenuEntry(defaultEntry) ? "scene-object" : "scene-tile",
                 isNhSceneObjectContextMenuEntry(defaultEntry) ? defaultEntry.objectPlacement : undefined
               );
+            }}
+            onMouseDown={(event) => {
+              // Compatibility path for input devices that report the secondary
+              // button through mouse events only. A handled pointerdown cancels
+              // its own mousedown, so this never double-opens a normal press.
+              if (event.button !== 2) {
+                return;
+              }
+              event.preventDefault();
+              event.stopPropagation();
+              handleRuntimeSceneRightButtonPress(event.nativeEvent);
             }}
             onPointerUp={(event) => {
               if (mouseCameraDragRef.current?.pointerId !== event.pointerId) {
@@ -22802,6 +22946,14 @@ export function RuntimeSceneViewer({
               });
             }}
             onInventoryEmptyContextMenu={(command) => {
+              suppressNextCanvasContextMenu();
+              openContextMenuFromPressedPosition({
+                x: command.position.x,
+                y: command.position.y,
+                entries: withNhCancelContextMenuEntry([])
+              });
+            }}
+            onHudBackgroundContextMenu={(command) => {
               suppressNextCanvasContextMenu();
               openContextMenuFromPressedPosition({
                 x: command.position.x,
@@ -23106,6 +23258,9 @@ export function RuntimeSceneViewer({
                     >
                       DMM
                     </button>
+                  </div>
+                  <div className="runtimeSetupSelectorHint" role="tooltip">
+                    Hold Alt + left-click and drag to move this panel
                   </div>
                 </div>
               ) : null}

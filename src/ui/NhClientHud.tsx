@@ -382,6 +382,7 @@ interface NhClientHudProps {
   readonly onMinimapTileCommand?: (command: NhMinimapTileCommand) => void;
   readonly onInventoryContextMenu?: (command: NhInventorySlotCommand) => void;
   readonly onInventoryEmptyContextMenu?: (command: NhInventoryEmptyCommand) => void;
+  readonly onHudBackgroundContextMenu?: (command: NhHudBackgroundContextMenuCommand) => void;
   readonly onInventoryDefaultAction?: (command: NhInventorySlotCommand) => void;
   readonly onInventoryDragReorder?: (command: NhInventorySlotDragCommand) => void;
   readonly onInventoryHover?: (command: NhInventorySlotCommand | null) => void;
@@ -517,6 +518,17 @@ export interface NhInventorySlotCommand {
 
 export interface NhInventoryEmptyCommand {
   readonly widgetId: number;
+  readonly position: {
+    readonly x: number;
+    readonly y: number;
+  };
+}
+
+// Any right-button press over client chrome that no mounted widget owns still
+// opens once from the pressed coordinates, so no area of the HUD is a dead
+// zone that could retarget a later release into a widget menu (Java's
+// MouseHandler.lastPressedX/Y semantics hold for the whole client surface).
+export interface NhHudBackgroundContextMenuCommand {
   readonly position: {
     readonly x: number;
     readonly y: number;
@@ -844,7 +856,10 @@ const inventoryDefaultDragDelayClientTicks = 5;
 const inventoryDragAlpha = 0.5;
 // Nh opens right-click menus from one global last-pressed mouse position, not from later hover/drag positions.
 let nhInventorySuppressContextMenuUntilMs = 0;
-const inventoryContextMenuDuplicateWindowMs = 500;
+let nhInventoryContextMenuSeenForPress = false;
+let nhRightButtonDown = false;
+let nhRightButtonReleaseTracked = false;
+const inventoryContextMenuStalePressWindowMs = 5000;
 const hiddenWidgetSpriteIds = new Set([1183, 1184, 1178, 1179]);
 const equipmentSlotTileSpriteId = 170;
 const statsTileHalfLeftSpriteId = 174;
@@ -855,20 +870,64 @@ function nhInventoryPointerNowMs(): number {
   return typeof performance !== "undefined" ? performance.now() : Date.now();
 }
 
+// Browsers emit the fallback contextmenu on the release on Windows and on the
+// press on macOS/Linux, so the suppression runs for as long as the right button
+// is held rather than for a fixed window. A window that could expire mid-press
+// let the release open a second menu, which reads as right-click only working
+// once the button is let go: MouseHandler.copy$mousePressed opens the one menu.
+function nhTrackRightButtonRelease(): void {
+  if (nhRightButtonReleaseTracked || typeof window === "undefined") {
+    return;
+  }
+
+  nhRightButtonReleaseTracked = true;
+  const endPress = (): void => {
+    nhRightButtonDown = false;
+    if (nhInventoryContextMenuSeenForPress) {
+      nhInventorySuppressContextMenuUntilMs = 0;
+      nhInventoryContextMenuSeenForPress = false;
+    }
+  };
+
+  window.addEventListener("pointerup", (event) => {
+    if (event.button === 2) {
+      endPress();
+    }
+  });
+  window.addEventListener("mouseup", (event) => {
+    if (event.button === 2) {
+      endPress();
+    }
+  });
+  window.addEventListener("pointercancel", endPress);
+  window.addEventListener("blur", endPress);
+}
+
 function nhInventorySuppressNextContextMenuEvent(): void {
+  nhTrackRightButtonRelease();
+  nhRightButtonDown = true;
+  nhInventoryContextMenuSeenForPress = false;
   nhInventorySuppressContextMenuUntilMs =
-    nhInventoryPointerNowMs() + inventoryContextMenuDuplicateWindowMs;
+    nhInventoryPointerNowMs() + inventoryContextMenuStalePressWindowMs;
 }
 
 function consumeNhInventorySuppressedContextMenuEvent(): boolean {
   if (nhInventorySuppressContextMenuUntilMs <= 0) {
     return false;
   }
-  if (nhInventoryPointerNowMs() <= nhInventorySuppressContextMenuUntilMs) {
-    return true;
+  if (nhInventoryPointerNowMs() > nhInventorySuppressContextMenuUntilMs) {
+    nhInventorySuppressContextMenuUntilMs = 0;
+    nhInventoryContextMenuSeenForPress = false;
+    return false;
   }
-  nhInventorySuppressContextMenuUntilMs = 0;
-  return false;
+
+  nhInventoryContextMenuSeenForPress = true;
+  if (!nhRightButtonDown) {
+    // Already released, so this is the release's contextmenu and the press is done.
+    nhInventorySuppressContextMenuUntilMs = 0;
+    nhInventoryContextMenuSeenForPress = false;
+  }
+  return true;
 }
 const activatedPrayerBackgroundSpriteId = 155;
 const prayerIconGraphicSize = { width: 30, height: 30 } as const;
@@ -996,6 +1055,7 @@ export function NhClientHud({
   onMinimapTileCommand,
   onInventoryContextMenu,
   onInventoryEmptyContextMenu,
+  onHudBackgroundContextMenu,
   onInventoryDefaultAction,
   onInventoryDragReorder,
   onInventoryHover,
@@ -1146,7 +1206,24 @@ export function NhClientHud({
   // clickable while the message area is collapsed away from the scene.
   const chatboxMountedLayout = chatboxHidden === true ? nhChatboxTabRowOnlyLayout(chatboxLayout) : chatboxLayout;
   return (
-    <div className="nhClientHud" aria-label="NH Trainer fixed-mode client interface">
+    <div
+      className="nhClientHud"
+      aria-label="NH Trainer fixed-mode client interface"
+      onPointerDown={(event) => {
+        // Any right-button press on HUD chrome that no mounted widget owns opens one
+        // menu from the pressed coordinates instead of leaving the press unowned; an
+        // unowned press must not retarget a later release into a widget's menu.
+        if (event.button !== 2) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        nhInventorySuppressNextContextMenuEvent();
+        onHudBackgroundContextMenu?.({
+          position: runtimeViewportPointerPosition(event)
+        });
+      }}
+    >
       <div className="nhFixedClient" style={fixedClientStyle(layout)}>
         <NhMinimapOverlay
           cameraYaw={minimapCameraYaw}
@@ -1184,6 +1261,17 @@ export function NhClientHud({
             onPointerDown={(event) => {
               // Source client chrome consumes its own clicks: only the game viewport walks the
               // player, so gaps between side panel controls must never reach the scene canvas.
+              // A right-button press in such a gap still opens one press-anchored menu and arms
+              // release-fallback suppression so it cannot retarget into a widget menu.
+              if (event.button === 2) {
+                event.preventDefault();
+                event.stopPropagation();
+                nhInventorySuppressNextContextMenuEvent();
+                onHudBackgroundContextMenu?.({
+                  position: runtimeViewportPointerPosition(event)
+                });
+                return;
+              }
               event.preventDefault();
               event.stopPropagation();
             }}
