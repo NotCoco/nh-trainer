@@ -42,15 +42,21 @@ const helpers = `
         open: Boolean(menu),
         options: menu ? menu.querySelectorAll(".nhContextMenuOption").length : 0,
         pressedAtMs: viewport ? viewport.dataset.lastContextMenuPressedAtMs ?? "" : "",
-        openDelayMs: viewport ? viewport.dataset.lastContextMenuOpenDelayMs ?? "" : ""
+        openDelayMs: viewport ? viewport.dataset.lastContextMenuOpenDelayMs ?? "" : "",
+        tileCommandSource: viewport ? viewport.dataset.lastTileCommandSource ?? "" : "",
+        tileCommandX: viewport ? viewport.dataset.lastTileCommandTileX ?? "" : "",
+        tileCommandZ: viewport ? viewport.dataset.lastTileCommandTileZ ?? "" : "",
+        pointerDownDefaultPrevented: window.__nhPressOpen.lastPointerDownDefaultPrevented ?? false
       };
     },
     pointerdown: (button) => {
       const point = window.__nhPressOpen.point();
-      window.__nhPressOpen.canvas().dispatchEvent(new PointerEvent("pointerdown", {
+      const event = new PointerEvent("pointerdown", {
         bubbles: true, cancelable: true, view: window, pointerId: 71, pointerType: "mouse",
         isPrimary: true, button, buttons: button === 2 ? 2 : 1, ...point
-      }));
+      });
+      window.__nhPressOpen.canvas().dispatchEvent(event);
+      window.__nhPressOpen.lastPointerDownDefaultPrevented = event.defaultPrevented;
     },
     mousedown: (button) => {
       const point = window.__nhPressOpen.point();
@@ -137,7 +143,11 @@ app.whenReady().then(async () => {
     await run(`window.__nhPressOpen.pointerdown(2); "ok"`);
     await delay(80);
     const afterPress = await run(`window.__nhPressOpen.state()`);
-    check("press opens the menu", afterPress.open && afterPress.options > 0, afterPress);
+    check(
+      "press opens the menu without canceling the held-button pointer sequence",
+      afterPress.open && afterPress.options > 0 && !afterPress.pointerDownDefaultPrevented,
+      afterPress
+    );
 
     // Holding the button and releasing must not build a second menu.
     await delay(400);
@@ -170,6 +180,38 @@ app.whenReady().then(async () => {
     await delay(150);
     const driftRelease = await run(`window.__nhPressOpen.state()`);
     check("release after drift opens nothing", !driftRelease.open, { driftClosed, driftRelease });
+
+    // Run the exact Chromium input sequence: right down, move, then left down
+    // before right up. This catches pointerdown cancellation suppressing the
+    // compatibility mousedown for the second physical button.
+    const nativeChordPoints = await run(`(() => {
+      const canvas = window.__nhPressOpen.canvas();
+      const rect = canvas.getBoundingClientRect();
+      const viewport = document.querySelector(".runtimeViewport");
+      viewport.dataset.lastTileCommandSource = "";
+      viewport.dataset.lastTileCommandTileX = "";
+      viewport.dataset.lastTileCommandTileZ = "";
+      return {
+        right: { x: Math.round(rect.left + rect.width * 0.45), y: Math.round(rect.top + rect.height * 0.55) },
+        left: { x: Math.round(rect.left + rect.width * 0.25), y: Math.round(rect.top + rect.height * 0.72) }
+      };
+    })()`);
+    window.webContents.sendInputEvent({ type: "mouseDown", button: "right", clickCount: 1, ...nativeChordPoints.right });
+    await delay(100);
+    window.webContents.sendInputEvent({ type: "mouseMove", ...nativeChordPoints.left });
+    await delay(150);
+    window.webContents.sendInputEvent({ type: "mouseDown", button: "left", clickCount: 1, ...nativeChordPoints.left });
+    await delay(150);
+    const nativeChordedLeft = await run(`window.__nhPressOpen.state()`);
+    window.webContents.sendInputEvent({ type: "mouseUp", button: "left", clickCount: 1, ...nativeChordPoints.left });
+    window.webContents.sendInputEvent({ type: "mouseUp", button: "right", clickCount: 1, ...nativeChordPoints.left });
+    await delay(120);
+    check(
+      "native right-held left press dispatches terrain",
+      !nativeChordedLeft.open && nativeChordedLeft.tileCommandSource === "scene-tile" &&
+        nativeChordedLeft.tileCommandX !== "" && nativeChordedLeft.tileCommandZ !== "",
+      nativeChordedLeft
+    );
 
     // Input paths that only report the secondary button through mouse events.
     await run(`window.__nhPressOpen.closeMenu(); "ok"`);

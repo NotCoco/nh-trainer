@@ -1216,7 +1216,6 @@ export function NhClientHud({
         if (event.button !== 2) {
           return;
         }
-        event.preventDefault();
         event.stopPropagation();
         nhInventorySuppressNextContextMenuEvent();
         onHudBackgroundContextMenu?.({
@@ -1264,7 +1263,6 @@ export function NhClientHud({
               // A right-button press in such a gap still opens one press-anchored menu and arms
               // release-fallback suppression so it cannot retarget into a widget menu.
               if (event.button === 2) {
-                event.preventDefault();
                 event.stopPropagation();
                 nhInventorySuppressNextContextMenuEvent();
                 onHudBackgroundContextMenu?.({
@@ -1539,7 +1537,6 @@ export function NhClientHud({
               if (event.button !== 2 || event.target !== event.currentTarget) {
                 return;
               }
-              event.preventDefault();
               event.stopPropagation();
               nhInventorySuppressNextContextMenuEvent();
               onInventoryEmptyContextMenu?.({
@@ -2530,7 +2527,6 @@ function NhSideTabClickLayer({
                 return;
               }
               if (event.button === 2) {
-                event.preventDefault();
                 event.stopPropagation();
                 onContextMenu?.(command(event, defaultAction));
                 return;
@@ -3820,7 +3816,6 @@ function NhChatboxClickLayer({
           onPointerLeave={() => onHover?.(null)}
           onPointerDown={(event) => {
             if (event.button === 2) {
-              event.preventDefault();
               event.stopPropagation();
               onContextMenu?.({
                 buttonId: button.buttonId,
@@ -4796,7 +4791,9 @@ function NhEquipmentItemLayer({
           if (!onContextMenu || !equipmentCommand) {
             return;
           }
-          event.preventDefault();
+          if (event.type === "contextmenu") {
+            event.preventDefault();
+          }
           event.stopPropagation();
           onContextMenu(equipmentCommand);
         };
@@ -7876,7 +7873,6 @@ function NhInventorySlotView({
       }}
       onPointerDown={(event) => {
         if (event.button === 2) {
-          event.preventDefault();
           event.stopPropagation();
           nhInventorySuppressNextContextMenuEvent();
           const menuCommand = command(event);

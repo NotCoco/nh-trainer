@@ -14338,6 +14338,7 @@ export function RuntimeSceneViewer({
   const canvasContextMenuSeenForPressRef = useRef(false);
   const rightButtonPressHandledRef = useRef(false);
   const rightButtonDownRef = useRef(false);
+  const leftButtonPressHandledRef = useRef(false);
   const contextMenuPointerRef = useRef<{ readonly x: number; readonly y: number } | null>(null);
   const lastRightButtonPressAtMsRef = useRef<number | null>(null);
   const [cycle, setCycle] = useState(0);
@@ -22544,8 +22545,15 @@ export function RuntimeSceneViewer({
     // Source: copy$mouseReleased clears MouseHandler_currentButton only, so the
     // release ends the press without opening anything. Listen on the window so a
     // release outside the canvas still re-arms the next press.
-    const endPress = (): void => endRuntimeSceneRightButtonPress();
+    const endPress = (): void => {
+      leftButtonPressHandledRef.current = false;
+      endRuntimeSceneRightButtonPress();
+    };
     const onRightButtonRelease = (event: PointerEvent | MouseEvent): void => {
+      if (event.button === 0) {
+        leftButtonPressHandledRef.current = false;
+        return;
+      }
       if (event.button !== 2) {
         return;
       }
@@ -22653,8 +22661,46 @@ export function RuntimeSceneViewer({
               event.preventDefault();
               event.stopPropagation();
             }}
+            onMouseDownCapture={(event) => {
+              if (event.button !== 0 || (event.buttons & 2) === 0 || leftButtonPressHandledRef.current) {
+                return;
+              }
+              const target = event.target instanceof Element ? event.target : null;
+              if (!target?.closest('.nhClientHud, .nhContextMenu, canvas[aria-label="Two actor runtime arena scene"]')) {
+                return;
+              }
+
+              // Pointer Events emits pointerdown only for the first pressed
+              // button. Re-emit a left pointerdown at the real client target so
+              // terrain, inventory, prayers, tabs, and menu options still work
+              // while the right button remains held.
+              leftButtonPressHandledRef.current = true;
+              event.preventDefault();
+              event.stopPropagation();
+              target.dispatchEvent(new PointerEvent("pointerdown", {
+                bubbles: true,
+                cancelable: true,
+                composed: true,
+                pointerId: 1,
+                pointerType: "mouse",
+                isPrimary: true,
+                button: 0,
+                buttons: event.buttons,
+                clientX: event.clientX,
+                clientY: event.clientY,
+                screenX: event.screenX,
+                screenY: event.screenY,
+                ctrlKey: event.ctrlKey,
+                shiftKey: event.shiftKey,
+                altKey: event.altKey,
+                metaKey: event.metaKey
+              }));
+            }}
             onPointerCancelCapture={endClientMouseCameraDrag}
             onPointerDownCapture={(event) => {
+              if (event.button === 0) {
+                leftButtonPressHandledRef.current = true;
+              }
               if (event.button === 2) {
                 // Covers HUD widget presses as well as the scene canvas, so the
                 // fallback contextmenu stays suppressed for the whole press.
@@ -22754,7 +22800,9 @@ export function RuntimeSceneViewer({
               }
 
               if (event.button === 2) {
-                event.preventDefault();
+                // Canceling the initial pointerdown suppresses compatibility
+                // mouse events for the entire held-button sequence, including a
+                // later left mousedown. The contextmenu event is canceled below.
                 event.stopPropagation();
                 handleRuntimeSceneRightButtonPress(event.nativeEvent);
                 return;
