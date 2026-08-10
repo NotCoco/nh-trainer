@@ -299,23 +299,6 @@
         </section>
 
         <section>
-          <h2>Tiny signals are the interesting part</h2>
-          <p>
-            One thing I kept thinking about was why the DMM model was not clearly learning to take
-            off Torva helm for magic. I did a mechanics-only simulation with Augury on and the same
-            opponent setup, then compared a large number of casts with the helm on versus off. The
-            edge was real, but tiny: roughly a tenth of a damage per cast in expected value.
-          </p>
-          <p>
-            That is the kind of signal I am curious about now. I do not want to hard-code "take the
-            helm off" or "take the boots off" as a reward. I want the model to find those edges
-            because the outcomes are better over enough fights. The interesting question is how much
-            training it needs before it notices something that small, especially when the wrong timing
-            can make the same action bad.
-          </p>
-        </section>
-
-        <section>
           <h2>Fixing what the bot was learning from</h2>
           <p>
             Some of the early problems were not model size problems. They were measurement problems.
