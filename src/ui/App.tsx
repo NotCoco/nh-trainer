@@ -239,9 +239,8 @@ export function App(): JSX.Element {
             </span>
           </h1>
           <p className="nhSiteIntroStatement">
-            An open-source browser practice client for getting real NH reps against an AI opponent.
-            It is playable now, still being tightened, and built around one honest goal: make
-            switches, prayers, pathing, supplies, and pressure feel useful enough to practice.
+            Free OSRS-style NH PvP practice against a trained AI opponent, in your browser.
+            Practise tribrid gear switches, prayers, movement and supplies with NH stake and DMM setups.
           </p>
           <p className="nhSiteSourceLine">
             <a href="https://github.com/NotCoco/nh-trainer" target="_blank" rel="noreferrer">
@@ -251,6 +250,8 @@ export function App(): JSX.Element {
             <a href="/blog/">
               Training blog
             </a>
+            <span aria-hidden="true"> / </span>
+            <a href="#practice-guide">Practice guide</a>
           </p>
           <div className="nhSiteIntroDetails" aria-label="Project focus and browser profile">
             <div>

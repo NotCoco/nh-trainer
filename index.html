@@ -5,17 +5,157 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="NH Trainer is an open-source browser practice client for OSRS-style NH PvP, with trained AI opponents and configurable difficulty."
+      content="Practice OSRS NH PvP in your browser against a trained AI opponent. Free tribrid gear switching, prayer and movement practice with NH stake and DMM setups."
     />
     <meta
-      name="keywords"
-      content="NH Trainer, NH AI training, OSRS NH trainer, OSRS PvP practice, tribrid practice, browser NH trainer"
+      name="robots"
+      content="index, follow, max-image-preview:large"
     />
+    <link rel="canonical" href="https://nh-train.com/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>NH Trainer</title>
+    <meta name="theme-color" content="#15130f" />
+    <title>OSRS NH Trainer | Free PvP &amp; Tribrid Practice</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="NH Trainer" />
+    <meta property="og:url" content="https://nh-train.com/" />
+    <meta property="og:title" content="OSRS NH Trainer | Free PvP &amp; Tribrid Practice" />
+    <meta property="og:description" content="Practise gear switches, prayers and movement against a trained AI opponent. Free browser practice with NH stake and DMM setups." />
+    <meta property="og:image" content="https://nh-train.com/nh-trainer-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="NH Trainer browser client with NH stake and DMM practice setups" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="OSRS NH Trainer | Free PvP &amp; Tribrid Practice" />
+    <meta name="twitter:description" content="Free OSRS-style NH and tribrid PvP practice against a trained AI opponent, directly in your browser." />
+    <meta name="twitter:image" content="https://nh-train.com/nh-trainer-preview.png" />
+    <meta name="twitter:image:alt" content="NH Trainer browser client with NH stake and DMM practice setups" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://nh-train.com/#website",
+            "url": "https://nh-train.com/",
+            "name": "NH Trainer",
+            "alternateName": "OSRS NH Trainer",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "WebApplication",
+            "@id": "https://nh-train.com/#app",
+            "name": "NH Trainer",
+            "url": "https://nh-train.com/",
+            "description": "Free browser-based OSRS-style NH and tribrid PvP practice against a trained AI opponent, with NH stake and DMM setups.",
+            "applicationCategory": "GameApplication",
+            "operatingSystem": "Any",
+            "browserRequirements": "Requires JavaScript and WebGL.",
+            "isAccessibleForFree": true,
+            "image": "https://nh-train.com/nh-trainer-preview.png",
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+          }
+        ]
+      }
+    </script>
+    <style>
+      body { margin: 0; background: #15130f; }
+      .nhLoadingIntro, .nhPracticeInfo {
+        box-sizing: border-box;
+        color: #eadfc8;
+        font-family: Aptos, "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+        font-size: 16px;
+        line-height: 1.7;
+        width: min(1080px, calc(100% - 40px));
+        margin: 0 auto;
+      }
+      .nhLoadingIntro { min-height: 100vh; padding: 32px 0; }
+      .nhPracticeInfo { padding: 48px 0 56px; border-top: 1px solid #4a3d28; }
+      .nhPracticeInfo h2, .nhPracticeInfo h3 { color: #f1c86c; line-height: 1.3; }
+      .nhPracticeInfo h2 { margin: 8px 0 18px; font-size: clamp(25px, 4vw, 34px); }
+      .nhPracticeInfo h3 { margin: 0 0 12px; font-size: 20px; }
+      .nhPracticeInfo p { margin: 0 0 16px; }
+      .nhPracticeInfo a, .nhLoadingIntro a { color: #dfbd72; text-underline-offset: 4px; }
+      .nhPracticeInfo a:hover, .nhPracticeInfo a:focus-visible { color: #fff0c5; }
+      .nhPracticeInfoGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px 48px; margin: 32px 0; }
+      .nhPracticeInfo ol { padding-left: 24px; margin: 0; }
+      .nhPracticeInfo li + li { margin-top: 12px; }
+      .nhPracticeInfo nav { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 24px 0; }
+      .nhPracticeNotice { color: #a99c84; font-size: 13px; }
+      @media (max-width: 640px) {
+        .nhPracticeInfoGrid { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <header class="nhLoadingIntro">
+        <h1>NH Trainer</h1>
+        <p>Free OSRS-style NH PvP practice against a trained AI opponent, in your browser.</p>
+        <p>Loading the interactive trainer. <a href="#practice-guide">Read the practice guide</a> while it loads.</p>
+        <noscript><p>Enable JavaScript to play. You can still read the practice guide and training blog below.</p></noscript>
+      </header>
+    </div>
+    <section class="nhPracticeInfo" id="practice-guide" aria-labelledby="practice-guide-title">
+      <h2 id="practice-guide-title">Free OSRS NH and tribrid PvP practice</h2>
+      <p>
+        NH Trainer is a free, open-source browser practice client for Old School RuneScape-style
+        PvP. Fight a trained AI opponent using NH stake or DMM setups, and practise gear switches,
+        protection prayers, movement and supply timing without risking items or using a player account.
+      </p>
+      <div class="nhPracticeInfoGrid">
+        <section aria-labelledby="start-practising-title">
+          <h3 id="start-practising-title">How to start practising</h3>
+          <ol>
+            <li>Choose <strong>NH stake</strong> or <strong>DMM</strong> in the trainer above. Each setup loads its own Hard AI opponent.</li>
+            <li>Arrange your inventory and equipment before the fight. Use <strong>Save setup</strong> to keep your setup in this browser.</li>
+            <li>Wait for the opponent to load, then press <strong>Start</strong>. Focus on one skill at a time: clean switches, prayer changes or staying in control of your supplies.</li>
+          </ol>
+        </section>
+        <section aria-labelledby="nh-practice-title">
+          <h3 id="nh-practice-title">What are NH and tribrid fights?</h3>
+          <p>
+            NH means &ldquo;no honour&rdquo;, a style of OSRS PvP that uses protection prayers and switches
+            between melee, ranged and magic. Tribrid practice brings those three attack styles together:
+            changing your gear, choosing an attack and defending against the opponent's next move.
+          </p>
+          <p>
+            Use repeated fights to work on switching accurately under pressure, responding with the
+            right prayer, moving around freezes and finding time to eat or restore prayer.
+          </p>
+        </section>
+        <section aria-labelledby="ai-practice-title">
+          <h3 id="ai-practice-title">Practise against a trained AI opponent</h3>
+          <p>
+            The opponent learns through self-play and chooses gear, prayers, attacks, movement and
+            supplies from the fight state. The public trainer offers Hard difficulty, with the selected
+            NH stake or DMM setup deciding which opponent model is loaded.
+          </p>
+          <p>Read the <a href="/blog/">NH AI training blog</a> for the development story and how the opponents were trained.</p>
+        </section>
+        <section aria-labelledby="browser-practice-title">
+          <h3 id="browser-practice-title">Do I need to download a client or log in?</h3>
+          <p>
+            No download or RuneScape login is needed. The trainer runs in a browser with JavaScript
+            and WebGL enabled. Your settings and saved setup stay in this browser. A mouse and
+            keyboard give you the intended practice controls.
+          </p>
+          <p>
+            This is a standalone practice simulation. It does not connect to the live game, use
+            player accounts or transfer items or progress into OSRS.
+          </p>
+        </section>
+      </div>
+      <nav aria-label="NH Trainer resources">
+        <a href="#root">Back to the trainer</a>
+        <a href="/blog/">AI training blog</a>
+        <a href="https://github.com/NotCoco/nh-trainer">View the open-source project</a>
+      </nav>
+      <p class="nhPracticeNotice">
+        Free unofficial fan/practice project. Created using intellectual property belonging to
+        Jagex Limited under the terms of Jagex's Fan Content Policy. This content is not endorsed
+        by or affiliated with Jagex.
+      </p>
+    </section>
     <script type="module" src="/src/ui/main.tsx"></script>
   </body>
 </html>
