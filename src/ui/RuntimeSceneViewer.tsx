@@ -17045,9 +17045,10 @@ export function RuntimeSceneViewer({
       }
 
       const keyRemappingConfig = runeliteClientConfigRef.current.keyRemapping;
+      // KeyRemappingListener rewrites the key before the client's tab binding lookup.
       const functionKey =
-        runeliteDirectFunctionKeyFromKeyboardEvent(event) ??
-        runeliteKeyRemappingFunctionKeyFromKeyboardEvent(keyRemappingConfig, event);
+        runeliteKeyRemappingFunctionKeyFromKeyboardEvent(keyRemappingConfig, event) ??
+        runeliteDirectFunctionKeyFromKeyboardEvent(event);
       if (!functionKey) {
         return false;
       }
