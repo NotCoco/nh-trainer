@@ -2266,6 +2266,16 @@ h3 {
   bottom: calc(100% + 4px);
 }
 
+.runtimeAttackSpeedMenu::after,
+.runtimeAttackSpeedOptions::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 6px;
+}
+
 .runtimeAttackSpeedMenu summary {
   box-sizing: border-box;
   padding: 3px 6px;
