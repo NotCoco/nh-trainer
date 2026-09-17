@@ -273,6 +273,11 @@ export function App(): JSX.Element {
                 <section className="nhSiteUpdateCard" aria-label="Updates - September 17, 2026">
                   <span>Updates - September 17, 2026</span>
                   <ul>
+                    <li>Fixed missing XP drops from instant melee hits, including Armadyl godsword attacks and specials.</li>
+                    <li>Added independent four- or five-tick attack speed settings for Zuriel's staff and crossbows in DMM.</li>
+                    <li>DMM now uses the improved ornate granite maul visuals and special-attack preloading behavior.</li>
+                    <li>Added an eye button to hide the practice controls; hover over the dimmed eye to reveal them.</li>
+                    <li>PID stays visible when the controls are hidden and sits above the special-attack buttons by default.</li>
                     <li>Attack now replaces a queued manual spell while preserving configured autocast.</li>
                     <li>Eating can free inventory space for a two-handed weapon switch in the same tick.</li>
                     <li>Removing two equipment items in one tick preserves both changes.</li>

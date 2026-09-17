@@ -328,6 +328,10 @@ export type RuntimePlayerCombatEvent =
   | {
       readonly kind: "hitsplat";
       readonly id: string;
+      readonly xpDrop?: {
+        readonly hitId: string;
+        readonly drops: readonly RuntimePlayerCombatXpDrop[];
+      };
       readonly tick: number;
       readonly attackerId: RuntimeActorId;
       readonly targetActorId: RuntimeActorId;
@@ -3169,6 +3173,9 @@ function applyRuntimePlayerQueuedHit(
     {
       kind: "hitsplat",
       id: `${hit.id}-hitsplat`,
+      // Keep the hit's XP available when same-tick damage leaves no pending hit
+      // for the renderer. Reflected damage deliberately has no XP payload.
+      xpDrop: { hitId: hit.id, drops: runtimePlayerCombatXpDropsForDamage(hit, damage) },
       tick: hitsplatTick,
       attackerId: hit.attackerId,
       targetActorId: hit.defenderId,

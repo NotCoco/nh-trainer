@@ -7941,12 +7941,31 @@ function syncRuneliteXpDropDomOverlays(
   }
 
   // Source: XpDropPlugin responds once to ExperienceChanged/ScriptCallbackEvent hpXpGained.
-  // Trainer extension: queued-hit pre-hit XP drops are emitted before damage lands, so the
-  // emission guard must outlive the droplet animation while the same queued hit is pending.
+  // Keep pre-hit drops for projectiles and include hits resolved in the latest tick:
+  // instant melee (including AGS) can leave the pending queue before this frame.
   const localQueuedHits = combatState.queuedHits.filter((hit) => hit.attackerId === "local-player");
-  const localQueuedHitIds = new Set(localQueuedHits.map((hit) => hit.id));
+  const localHits = new Map(localQueuedHits.map((hit) => {
+    const damage = runtimePlayerCombatQueuedHitDamage(combatState.actors, hit, combatState.tick);
+    return [hit.id, {
+      id: hit.id,
+      defenderId: hit.defenderId,
+      damage,
+      xpDrops: runtimePlayerCombatXpDropsForDamage(hit, damage)
+    }];
+  }));
+  for (const event of combatState.events) {
+    if (event.kind === "hitsplat" && event.attackerId === "local-player" && event.xpDrop && event.tick >= combatState.tick - 1) {
+      localHits.set(event.xpDrop.hitId, {
+        id: event.xpDrop.hitId,
+        defenderId: event.targetActorId,
+        damage: event.damage,
+        xpDrops: event.xpDrop.drops
+      });
+    }
+  }
+  // A hit keeps the same emission guard as it moves from pending to resolved.
   for (const hitId of emittedQueuedHitIds) {
-    if (!localQueuedHitIds.has(hitId) && !activeDroplets.has(hitId)) {
+    if (!localHits.has(hitId) && !activeDroplets.has(hitId)) {
       emittedQueuedHitIds.delete(hitId);
     }
   }
@@ -7960,13 +7979,12 @@ function syncRuneliteXpDropDomOverlays(
       (textSizeSpec.textHeight * textScale * RUNELITE_XP_DROP_DURATION_CLIENT_CYCLES) /
         Math.max(1, moveDistance)
     ) + 1;
-  for (const hit of localQueuedHits) {
+  for (const hit of localHits.values()) {
     if (activeDroplets.has(hit.id) || emittedQueuedHitIds.has(hit.id)) {
       continue;
     }
 
-    const damage = runtimePlayerCombatQueuedHitDamage(combatState.actors, hit, combatState.tick);
-    const xpDrops = runtimePlayerCombatXpDropsForDamage(hit, damage);
+    const { damage, xpDrops } = hit;
     const xpTotal = Math.max(0, Math.round(xpDrops.reduce((sum, drop) => sum + drop.xp, 0)));
     if (xpTotal <= 0 && config.trainerDisplayMode === "XP") {
       continue;
