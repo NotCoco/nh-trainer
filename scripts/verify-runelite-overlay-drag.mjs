@@ -117,7 +117,7 @@ for (const trainerAnchor of [
   "runtimeFightStartOverlayStyle(fixedClientCssLayout, runeliteOverlayLocations)",
   "data-runelite-overlay-name={RUNELITE_FIGHT_START_OVERLAY_NAME}",
   "RUNTIME_PID_OVERLAY_NAME",
-  "runtimePidOverlayStyle(fixedClientCssLayout, runeliteOverlayLocations)",
+  "runtimePidOverlayStyle(fixedClientCssLayout, runeliteOverlayLocations, clientDisplayMode)",
   "data-runelite-overlay-name={RUNTIME_PID_OVERLAY_NAME}",
   "RUNTIME_VENGEANCE_TRINKET_OVERLAY_NAME",
   "runtimeVengeanceTrinketIndicatorStyle(",

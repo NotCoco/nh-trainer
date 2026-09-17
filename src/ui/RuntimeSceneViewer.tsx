@@ -3,7 +3,7 @@ import {
   type RuntimeTrainerSetupId,
   type RuntimeDmmSetupOptions,
   RUNTIME_NH_STAKE_LOADOUT_ID,
-  RUNTIME_GRANITE_MAUL_ITEM_ID,
+  RUNTIME_DMM_GRANITE_MAUL_ITEM_ID,
   RUNTIME_VENGEANCE_TRINKET_ITEM_ID,
   RUNTIME_NH_STAKE_EQUIPMENT_ENTRIES,
   RUNTIME_NH_STAKE_INVENTORY_SLOTS,
@@ -8251,7 +8251,8 @@ function runtimeFightCountdownOverlayStyle(layout: NhFixedClientCssLayout | null
 
 function runtimePidOverlayStyle(
   layout: NhFixedClientCssLayout | null,
-  overlayLocations: RuneliteOverlayPreferredLocations
+  overlayLocations: RuneliteOverlayPreferredLocations,
+  displayMode: NhClientDisplayMode
 ): CSSProperties {
   const scale = layout?.scale ?? 1;
   const preferredLocation = runeliteOverlayPreferredLocationStyle(RUNTIME_PID_OVERLAY_NAME, overlayLocations, scale);
@@ -8263,7 +8264,9 @@ function runtimePidOverlayStyle(
     RUNTIME_VENGEANCE_TRINKET_OVERLAY_HEIGHT_PX +
     RUNTIME_PID_OVERLAY_STACK_GAP_PX +
     RUNTIME_PID_OVERLAY_HEIGHT_PX +
-    RUNTIME_PID_OVERLAY_MARGIN_PX;
+    RUNTIME_PID_OVERLAY_MARGIN_PX +
+    // Resizable mode extends the viewport behind the chat's spec/control row.
+    (displayMode === "resizable" ? RUNTIME_PID_OVERLAY_HEIGHT_PX + RUNTIME_PID_OVERLAY_STACK_GAP_PX : 0);
   return {
     left: viewportRect ? viewportRect.x + RUNTIME_PID_OVERLAY_MARGIN_PX * scale : RUNTIME_PID_OVERLAY_MARGIN_PX,
     top: viewportRect
@@ -8348,6 +8351,7 @@ function runtimeTemporaryDevControlsStyle(
 
   return {
     bottom: "auto",
+    maxWidth: (fixedLayout?.chatbox?.rect.width ?? 512) * cssLayout.scale - 12,
     top: cssLayout.surfaceRect.y + tabRowTop * cssLayout.scale,
     transform: `translateY(calc(-100% - ${RUNTIME_TEMPORARY_DEV_CONTROLS_GAP_PX}px))`
   };
@@ -11095,6 +11099,13 @@ export function RuntimeSceneViewer({
     RUNTIME_DMM_DEFAULT_SETUP_OPTIONS
   );
   const runtimeDmmSetupOptionsRef = useRef<RuntimeDmmSetupOptions>(RUNTIME_DMM_DEFAULT_SETUP_OPTIONS);
+  const [zurielsStaffFiveTick, setZurielsStaffFiveTick] = useState(false);
+  const zurielsStaffFiveTickRef = useRef(false);
+  const [trainerControlsHidden, setTrainerControlsHidden] = useState(false);
+  const [trainerControlsRevealed, setTrainerControlsRevealed] = useState(false);
+  const trainerControlsVisible = !trainerControlsHidden || trainerControlsRevealed;
+  const [crossbowFourTick, setCrossbowFourTick] = useState(false);
+  const crossbowFourTickRef = useRef(false);
   const manualOpponentObservedLocalAppearanceRef = useRef<ManualPolicyActorAppearanceView>({
     tile: initialManualActor.tile,
     loadoutId: initialManualActor.loadoutId,
@@ -14167,6 +14178,8 @@ export function RuntimeSceneViewer({
       runtimeDmmSetupOptionsRef.current
     );
     const combatState = createRuntimePlayerCombatState({
+      zurielsStaffCastCooldownTicks: runtimeSetupPresetIdRef.current === "dmm" && zurielsStaffFiveTickRef.current ? 5 : 4,
+      crossbowRapidCooldownTicks: runtimeSetupPresetIdRef.current === "dmm" && crossbowFourTickRef.current ? 4 : 5,
       localTile: localActor.tile,
       opponentTile: opponentActor.tile,
       localLoadoutId: localActor.loadoutId,
@@ -14359,6 +14372,8 @@ export function RuntimeSceneViewer({
       (typeof window === "undefined" ? null : readStoredAttackSetIndex()) ??
       afterRespawnState.actors["local-player"].attackSetIndex;
     const freshBaseState = createRuntimePlayerCombatState({
+      zurielsStaffCastCooldownTicks: setupId === "dmm" && zurielsStaffFiveTickRef.current ? 5 : 4,
+      crossbowRapidCooldownTicks: setupId === "dmm" && crossbowFourTickRef.current ? 4 : 5,
       localTile: localSpawn.tile,
       opponentTile: opponentSpawn.tile,
       localLoadoutId,
@@ -16586,6 +16601,8 @@ export function RuntimeSceneViewer({
     const localActor = manualActorRef.current;
     const opponentActor = manualOpponentRef.current;
     const freshCombatState = createRuntimePlayerCombatState({
+      zurielsStaffCastCooldownTicks: setupId === "dmm" && zurielsStaffFiveTickRef.current ? 5 : 4,
+      crossbowRapidCooldownTicks: setupId === "dmm" && crossbowFourTickRef.current ? 4 : 5,
       localTile: localActor.tile,
       opponentTile: opponentActor.tile,
       localLoadoutId: loadoutId,
@@ -16735,7 +16752,7 @@ export function RuntimeSceneViewer({
       viewport.dataset.lastRuntimeSetupInventoryItemIds = inventorySlots
         .flatMap((slot) => slot ? [slot.itemId] : [])
         .join(",");
-      viewport.dataset.lastRuntimeSetupHasGmaul = String(inventorySlots.some((slot) => slot?.itemId === RUNTIME_GRANITE_MAUL_ITEM_ID));
+      viewport.dataset.lastRuntimeSetupHasGmaul = String(inventorySlots.some((slot) => slot?.itemId === RUNTIME_DMM_GRANITE_MAUL_ITEM_ID));
       viewport.dataset.lastRuntimeSetupHasZaryteCrossbow = String(inventorySlots.some((slot) => slot?.itemId === 26374));
       viewport.dataset.lastRuntimeSetupHasNoxiousHalberd = String(inventorySlots.some((slot) => slot?.itemId === 29796));
       viewport.dataset.lastRuntimeSetupHasVestaLongsword = String(inventorySlots.some((slot) => slot?.itemId === 22613));
@@ -16751,6 +16768,26 @@ export function RuntimeSceneViewer({
         nextCombatState.actors.opponent.equipment.weapon?.itemId ?? ""
       );
     }
+  };
+
+  const updateRuntimeAttackSpeed = (weapon: "zuriel" | "crossbow", ticks: 4 | 5): void => {
+    if (runtimeSetupPresetIdRef.current !== "dmm") {
+      return;
+    }
+    if (weapon === "zuriel") {
+      zurielsStaffFiveTickRef.current = ticks === 5;
+      setZurielsStaffFiveTick(ticks === 5);
+    } else {
+      crossbowFourTickRef.current = ticks === 4;
+      setCrossbowFourTick(ticks === 4);
+    }
+    const nextCombatState: RuntimePlayerCombatState = {
+      ...manualCombatStateRef.current,
+      zurielsStaffCastCooldownTicks: zurielsStaffFiveTickRef.current ? 5 : 4,
+      crossbowRapidCooldownTicks: crossbowFourTickRef.current ? 4 : 5
+    };
+    manualCombatStateRef.current = nextCombatState;
+    setManualCombatState(nextCombatState);
   };
 
   const updateRuntimeDmmSetupOption = (key: keyof RuntimeDmmSetupOptions, enabled: boolean): void => {
@@ -16799,7 +16836,7 @@ export function RuntimeSceneViewer({
           .flatMap((slot) => slot ? [slot.itemId] : [])
           .join(",");
         viewport.dataset.lastRuntimeSetupHasGmaul = String(
-          nextLocalInventorySlots.some((slot) => slot?.itemId === RUNTIME_GRANITE_MAUL_ITEM_ID)
+          nextLocalInventorySlots.some((slot) => slot?.itemId === RUNTIME_DMM_GRANITE_MAUL_ITEM_ID)
         );
         viewport.dataset.lastRuntimeSetupHasZaryteCrossbow = String(nextLocalInventorySlots.some((slot) => slot?.itemId === 26374));
         viewport.dataset.lastRuntimeSetupHasNoxiousHalberd = String(nextLocalInventorySlots.some((slot) => slot?.itemId === 29796));
@@ -17061,9 +17098,12 @@ export function RuntimeSceneViewer({
       setManualControl(true);
       setFollowTarget("local-player");
       if (scene) {
-        manualActorRef.current = scene.localActor;
+        const localActor = toggled.state.actors["local-player"].gmaul.preloaded
+          ? clearManualActorMovementRoute(scene.localActor)
+          : scene.localActor;
+        manualActorRef.current = localActor;
         manualOpponentRef.current = scene.opponentActor;
-        setManualActor(scene.localActor);
+        setManualActor(localActor);
         setManualOpponent(scene.opponentActor);
       }
       setHudOverride((current) => {
@@ -20097,7 +20137,7 @@ export function RuntimeSceneViewer({
             data-source-overlay-position-storage={RUNELITE_OVERLAY_POSITION_SOURCE}
             data-source-overlay-drag={RUNELITE_FIGHT_START_OVERLAY_DRAG_SOURCE}
             data-runelite-overlay-name={RUNTIME_PID_OVERLAY_NAME}
-            style={runtimePidOverlayStyle(fixedClientCssLayout, runeliteOverlayLocations)}
+            style={runtimePidOverlayStyle(fixedClientCssLayout, runeliteOverlayLocations, clientDisplayMode)}
           >
             {runtimePidLabel}
           </div>
@@ -21052,36 +21092,99 @@ export function RuntimeSceneViewer({
           <div
             className="runtimeTemporaryDevControls"
             data-temporary-dev-controls="true"
+            data-controls-hidden={String(!trainerControlsVisible)}
+            onMouseLeave={() => setTrainerControlsRevealed(false)}
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) {
+                setTrainerControlsRevealed(false);
+              }
+            }}
             data-removal-note="Trainer-only test harness; remove this block plus the matching temporary helper functions when full account/bank setup exists."
             style={runtimeTemporaryDevControlsStyle(fixedClientCssLayout, fixedClientLayout)}
           >
-            <button type="button" onClick={restoreLocalSpecialEnergyForTesting}>
-              Spec 100
-            </button>
             <button
               type="button"
-              aria-pressed={localFreezeBypass}
-              onClick={toggleLocalFreezeBypassForTesting}
+              className="runtimeTrainerControlsVisibility"
+              aria-label={trainerControlsHidden ? "Keep trainer controls visible" : "Hide trainer controls"}
+              aria-expanded={trainerControlsVisible}
+              aria-controls="runtime-trainer-controls"
+              title={trainerControlsHidden ? "Hover to show controls. Click to keep visible." : "Hide trainer controls"}
+              onMouseEnter={() => {
+                if (trainerControlsHidden) setTrainerControlsRevealed(true);
+              }}
+              onFocus={() => {
+                if (trainerControlsHidden) setTrainerControlsRevealed(true);
+              }}
+              onClick={() => {
+                setTrainerControlsHidden((hidden) => !hidden);
+                setTrainerControlsRevealed(false);
+              }}
             >
-              {localFreezeBypass ? "Freeze off" : "Freeze immune"}
+              <svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                <circle cx="12" cy="12" r="3" />
+                {!trainerControlsVisible ? <path d="m3 3 18 18" /> : null}
+              </svg>
             </button>
-            <button type="button" onClick={saveTemporaryCurrentSetup}>
-              Save setup
-            </button>
-            <button type="button" onClick={resetTemporarySetupToDefault}>
-              Reset default
-            </button>
-            <button
-              type="button"
-              aria-pressed={treesRemoved}
-              disabled={loadState.kind !== "ready"}
-              onClick={toggleArenaTrees}
-            >
-              {treesRemoved ? "Restore trees" : "Remove trees"}
-            </button>
-            {temporarySetupStatus ? (
+            <div id="runtime-trainer-controls" className="runtimeTemporaryDevActions" hidden={!trainerControlsVisible}>
+              <button type="button" onClick={restoreLocalSpecialEnergyForTesting}>
+                Spec 100
+              </button>
+              <button
+                type="button"
+                aria-pressed={localFreezeBypass}
+                onClick={toggleLocalFreezeBypassForTesting}
+              >
+                {localFreezeBypass ? "Freeze off" : "Freeze immune"}
+              </button>
+              <button type="button" onClick={saveTemporaryCurrentSetup}>
+                Save setup
+              </button>
+              <button type="button" onClick={resetTemporarySetupToDefault}>
+                Reset default
+              </button>
+              <button
+                type="button"
+                aria-pressed={treesRemoved}
+                disabled={loadState.kind !== "ready"}
+                onClick={toggleArenaTrees}
+              >
+                {treesRemoved ? "Restore trees" : "Remove trees"}
+              </button>
+              {runtimeSetupPresetId === "dmm" ? (
+                <details className="runtimeAttackSpeedMenu">
+                  <summary>Attack speed</summary>
+                  <div className="runtimeAttackSpeedOptions">
+                    <label>
+                      <span>Zuriel's staff</span>
+                      <select
+                        aria-label="Zuriel's staff cast speed"
+                        value={zurielsStaffFiveTick ? 5 : 4}
+                        onChange={(event) => updateRuntimeAttackSpeed("zuriel", event.currentTarget.value === "5" ? 5 : 4)}
+                      >
+                        <option value="4">4 ticks</option>
+                        <option value="5">5 ticks</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>Crossbow (Rapid)</span>
+                      <select
+                        aria-label="Crossbow rapid attack speed"
+                        value={crossbowFourTick ? 4 : 5}
+                        onChange={(event) => updateRuntimeAttackSpeed("crossbow", event.currentTarget.value === "4" ? 4 : 5)}
+                      >
+                        <option value="4">4 ticks</option>
+                        <option value="5">5 ticks</option>
+                      </select>
+                    </label>
+                    <span>Both fighters. Applies after the current cooldown.</span>
+                  </div>
+                </details>
+              ) : null}
+              {temporarySetupStatus ? (
               <span className="runtimeTemporaryDevStatus">{temporarySetupStatus}</span>
-            ) : null}
+              ) : null}
+            </div>
           </div>
           </div>
           </RuneliteClientShell>

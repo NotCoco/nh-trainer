@@ -3714,7 +3714,9 @@ function runtimePolicyEquipExplicitSpecialWeaponForSpec(
     return state;
   }
   const actor = state.actors[actorId];
-  const weapon = runtimePolicySpecialWeaponEquipment(specialKind);
+  const weapon = specialKind === "granite_maul"
+    ? actor.gearProfile?.ownedItems.find((item) => isNhGraniteMaulItemId(item.itemId)) ?? canonicalNhGear.graniteMaul
+    : runtimePolicySpecialWeaponEquipment(specialKind);
   if (!weapon) {
     return state;
   }
@@ -5290,8 +5292,11 @@ function applyRuntimeOpponentPolicyDirectGearActions(
       equipment = withoutSlot;
       continue;
     }
-    equipment = { ...equipment, [gear.slot]: gear.item };
-    if (gear.slot === "weapon" && runtimePolicyItemIsTwoHanded(gear.item.itemId)) {
+    const item = directGearAction === "equip_granite_maul"
+      ? actor.gearProfile?.ownedItems.find((owned) => isNhGraniteMaulItemId(owned.itemId)) ?? gear.item
+      : gear.item;
+    equipment = { ...equipment, [gear.slot]: item };
+    if (gear.slot === "weapon" && runtimePolicyItemIsTwoHanded(item.itemId)) {
       const { shield: _removedShield, ...withoutShield } = equipment;
       equipment = withoutShield;
     } else if (gear.slot === "shield" && equipment.weapon && runtimePolicyItemIsTwoHanded(equipment.weapon.itemId)) {

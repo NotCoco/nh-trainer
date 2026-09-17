@@ -8,6 +8,7 @@ import {
   clearQueuedGmaulSpecs,
   consumeQueuedGmaulSpecs,
   createGmaulSpecState,
+  graniteMaulQueueTimeoutTicks,
   graniteMaulSpecEnergyCost,
   queueGmaulSpec,
   tickGmaulQueue,
@@ -490,6 +491,8 @@ export interface RuntimePlayerCombatTargetRouteProfile {
 export interface RuntimePlayerCombatState {
   readonly tick: number;
   readonly combatStartTick: number;
+  readonly zurielsStaffCastCooldownTicks?: 4 | 5;
+  readonly crossbowRapidCooldownTicks?: 4 | 5;
   readonly randomSeed: number;
   readonly processOrder?: RuntimePlayerCombatProcessOrder;
   readonly nextProcessOrderShuffleTick?: number;
@@ -959,6 +962,8 @@ export function createRuntimePlayerCombatState(input: {
   readonly localSpecialEnergy?: number;
   readonly opponentSpecialEnergy?: number;
   readonly combatStartTick?: number;
+  readonly zurielsStaffCastCooldownTicks?: 4 | 5;
+  readonly crossbowRapidCooldownTicks?: 4 | 5;
   readonly seed?: number;
 }): RuntimePlayerCombatState {
   const randomSeed = input.seed ?? 0x4e485254;
@@ -966,6 +971,8 @@ export function createRuntimePlayerCombatState(input: {
   return {
     tick: 0,
     combatStartTick: runtimePlayerCombatSafeStartTick(input.combatStartTick),
+    zurielsStaffCastCooldownTicks: input.zurielsStaffCastCooldownTicks ?? 4,
+    crossbowRapidCooldownTicks: input.crossbowRapidCooldownTicks ?? 5,
     randomSeed,
     ...processOrderState,
     actors: {
@@ -1022,7 +1029,16 @@ export function requestRuntimePlayerCombatAttack(
         targetId: defenderId,
         queuedSpellId: null,
         lastTargetId: defenderId,
-        lastTargetTimeoutTicks: 5
+        lastTargetTimeoutTicks: 5,
+        // Clicking the opponent releases the double-click preload into the normal melee route.
+        gmaul: state.actors[attackerId].gmaul.preloaded
+          ? {
+              ...state.actors[attackerId].gmaul,
+              preloaded: false,
+              queuedTargetId: defenderId,
+              timeoutTicks: graniteMaulQueueTimeoutTicks
+            }
+          : state.actors[attackerId].gmaul
       }
     }
   };
@@ -1434,16 +1450,15 @@ export function toggleRuntimePlayerCombatSpecial(
     }
 
     const queuedTargetId = actor.targetId ?? actor.gmaul.queuedTargetId ?? actor.lastTargetId ?? undefined;
-    const nextGmaul =
-      queued.state.queuedSpecs >= 2 && queuedTargetId !== undefined
-        ? {
-            ...queued.state,
-            queuedTargetId
-          }
-        : queued.state;
+    // OSRS preload input: one click requests a hit, two hold the queue, a third releases it.
+    // Demonstration: https://www.reddit.com/r/2007scape/comments/j8ljnw/
+    // Extra clicks after release cannot re-arm the queue; energy still caps the number of hits.
+    const preloaded = queued.state.queuedSpecs === 2;
+    const nextGmaul = { ...queued.state, preloaded, queuedTargetId };
     const nextActor = {
       ...actor,
-      specialActive: actor.specialActive ? false : true,
+      targetId: preloaded ? null : actor.targetId,
+      specialActive: !preloaded,
       gmaul: nextGmaul
     };
     const nextState = applyGmaulTripleClickAutoTarget(
@@ -1563,7 +1578,8 @@ function applyGmaulTripleClickAutoTarget(
     return state;
   }
   const actor = state.actors[actorId];
-  const targetId = (actor.targetId ?? actor.gmaul.queuedTargetId ?? actor.lastTargetId) as RuntimeActorId | null | undefined;
+  const targetId = (actor.targetId ?? actor.gmaul.queuedTargetId ?? actor.lastTargetId ??
+    (actorId === "local-player" ? "opponent" : "local-player")) as RuntimeActorId;
   if (targetId == null || targetId === actorId) {
     return state;
   }
@@ -1571,8 +1587,8 @@ function applyGmaulTripleClickAutoTarget(
   if (!target || isRuntimePlayerCombatActorDead(target, state.tick)) {
     return state;
   }
-  // Trainer QoL extension: Nh queues the third maul click, then normally needs a player-click packet.
-  // This promotes the existing target/last-target into that same source-backed TargetRoute path.
+  // The third click releases against the remembered target (or the practice opponent
+  // on a first strike), using the same TargetRoute as an explicit opponent click.
   return requestRuntimePlayerCombatAttack(state, actorId, targetId);
 }
 
@@ -1763,7 +1779,9 @@ export function advanceRuntimePlayerCombat(
         input.targetRouteMovementConsumed?.[actorId] === true,
         input.projectileLineOfSight?.[actorId],
         targetHasAlreadyProcessed,
-        input.tileScale
+        input.tileScale,
+        state.zurielsStaffCastCooldownTicks ?? 4,
+        state.crossbowRapidCooldownTicks ?? 5
       );
       actors = mergeRuntimePlayerCombatAttemptActorsAfterPidMovement(
         actors,
@@ -1794,6 +1812,8 @@ export function advanceRuntimePlayerCombat(
     state: {
       tick: currentTick + 1,
       combatStartTick: nextCombatStartTick,
+      zurielsStaffCastCooldownTicks: state.zurielsStaffCastCooldownTicks ?? 4,
+      crossbowRapidCooldownTicks: state.crossbowRapidCooldownTicks ?? 5,
       randomSeed,
       ...processOrderState,
       actors,
@@ -2383,7 +2403,9 @@ function tickRuntimePlayerCombatSpecialQueues(
   for (const actorId of ["local-player", "opponent"] as const) {
     const actor = nextActors[actorId];
     const ticked = tickGmaulQueue(actor.gmaul);
-    let nextActor: RuntimePlayerCombatActorState = ticked.state === actor.gmaul ? actor : { ...actor, gmaul: ticked.state };
+    let nextActor: RuntimePlayerCombatActorState = ticked.state === actor.gmaul
+      ? actor
+      : { ...actor, gmaul: ticked.state, specialActive: ticked.expired ? false : actor.specialActive };
     const queuedTargetId = (nextActor.gmaul.queuedTargetId ?? nextActor.lastTargetId) as RuntimeActorId | null | undefined;
     if (ticked.autoAttackRequested && nextActor.targetId === null && queuedTargetId !== null && queuedTargetId !== undefined) {
       const target = nextActors[queuedTargetId];
@@ -2489,7 +2511,9 @@ function tryRuntimePlayerAttack(
   targetRouteMovementConsumed: boolean,
   projectileLineOfSight: boolean | undefined,
   defenderAlreadyProcessedThisTick: boolean,
-  tileScale: number | undefined
+  tileScale: number | undefined,
+  zurielsStaffCastCooldownTicks: 4 | 5,
+  crossbowRapidCooldownTicks: 4 | 5
 ): {
   readonly actors: Readonly<Record<RuntimeActorId, RuntimePlayerCombatActorState>>;
   readonly queuedHits: readonly RuntimePlayerQueuedHit[];
@@ -2506,7 +2530,9 @@ function tryRuntimePlayerAttack(
     : runtimeBotDefaultAutocastSpell(attackerId, attacker);
   const spell = queuedSpell ?? autocastSpell;
   const spellIsAutocast = queuedSpell === null && autocastSpell !== null;
-  const profile = spell ? weaponProfileForRuntimeSpell(spell, weaponId) : weaponProfileForRuntimeActor(attacker);
+  const profile = spell
+    ? weaponProfileForRuntimeSpell(spell, weaponId, zurielsStaffCastCooldownTicks)
+    : weaponProfileForRuntimeActor(attacker, crossbowRapidCooldownTicks);
   if (!spell && runtimePlayerCombatStyleIsMelee(profile.style) && attacker.gmaul.queuedSpecs > 0) {
     const gmaulSpec = tryRuntimePlayerGmaulSpecial(
       actors,
@@ -2854,6 +2880,9 @@ function tryRuntimePlayerGmaulSpecial(
   const defender = actors[defenderId];
   if (attacker.gmaul.queuedSpecs <= 0) {
     return null;
+  }
+  if (attacker.gmaul.preloaded) {
+    return { handled: true, actors, queuedHits: [], events: [], randomSeed: seed };
   }
   const equippedGraniteMaul = weaponIdForRuntimeActor(attacker) === "granite_maul";
 
@@ -3541,7 +3570,10 @@ function weaponProfileForRuntimeLoadout(loadoutId: RuntimeLoadoutId): WeaponTimi
   return nhWeaponProfiles[nhLoadouts[loadoutId].weaponId];
 }
 
-function weaponProfileForRuntimeActor(actor: RuntimePlayerCombatActorState): WeaponTimingProfile {
+function weaponProfileForRuntimeActor(
+  actor: RuntimePlayerCombatActorState,
+  crossbowRapidCooldownTicks: 4 | 5 = 5
+): WeaponTimingProfile {
   const weaponId = weaponIdForRuntimeActor(actor);
   const profile = nhWeaponProfiles[weaponId];
   const attackType = runtimePlayerCombatAttackTypeForWeapon(weaponId, actor.attackSetIndex);
@@ -3550,21 +3582,25 @@ function weaponProfileForRuntimeActor(actor: RuntimePlayerCombatActorState): Wea
     style: runtimePlayerCombatStyleForWeapon(weaponId, actor.attackSetIndex) ?? profile.style,
     // Source: PlayerCombat.preAttack() adds two tiles for AttackType.LONG_RANGED, capped by TargetRoute at 10.
     attackRange: attackType === "LONG_RANGED" ? Math.min(profile.attackRange + 2, 10) : profile.attackRange,
-    cooldownTicks: runtimeWeaponCooldownTicks(profile, actor.attackSetIndex)
+    cooldownTicks: attackType === "RAPID_RANGED" && (
+      weaponId === "armadyl_crossbow" || weaponId === "zaryte_crossbow" ||
+      weaponId === "rune_crossbow" || weaponId === "dragon_crossbow"
+    ) ? crossbowRapidCooldownTicks : runtimeWeaponCooldownTicks(profile, actor.attackSetIndex)
   };
 }
 
 function weaponProfileForRuntimeSpell(
   spell: RuntimePlayerCombatSpellDefinition,
-  castingWeaponId: NhWeaponId
+  castingWeaponId: NhWeaponId,
+  zurielsStaffCastCooldownTicks: 4 | 5 = 4
 ): WeaponTimingProfile {
   return {
     id: spell.id,
     style: spell.style,
-    // Kronos DMM rule: a successful Ancient cast with Zuriel's owns a four-tick
-    // shared attack timer. A weapon switch preserves that timer; the next attack
-    // then starts the newly equipped weapon's normal cycle.
-    cooldownTicks: castingWeaponId === "zuriels_staff" ? 4 : spell.cooldownTicks,
+    // Kronos defaults to four ticks; the trainer can opt both fighters into five.
+    // A weapon switch preserves the cast's shared timer; the next attack then
+    // starts the newly equipped weapon's normal cycle.
+    cooldownTicks: castingWeaponId === "zuriels_staff" ? zurielsStaffCastCooldownTicks : spell.cooldownTicks,
     attackRange: spell.attackRange,
     hasVisibleSpecBar: false
   };

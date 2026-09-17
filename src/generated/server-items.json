@@ -2499,6 +2499,48 @@
     }
   },
   {
+    "id": 24225,
+    "name": "Granite maul (ornate handle)",
+    "source": "external:osrs-wiki:granite-maul-ornate-handle",
+    "tradeable": false,
+    "equipSlot": 3,
+    "weaponType": "GRANITE_MAUL",
+    "rangedWeapon": null,
+    "twoHanded": true,
+    "hideHair": false,
+    "hideBeard": false,
+    "hideArms": false,
+    "specialAttack": {
+      "drainPercent": 50,
+      "source": "osrs-wiki:granite-maul-ornate-handle"
+    },
+    "weight": 4.535,
+    "protectValue": 50000,
+    "requirements": {
+      "attack": 50,
+      "strength": 50,
+      "defence": 0,
+      "ranged": 0,
+      "magic": 0
+    },
+    "bonuses": {
+      "stab_attack_bonus": 0,
+      "slash_attack_bonus": 0,
+      "crush_attack_bonus": 81,
+      "magic_attack_bonus": 0,
+      "range_attack_bonus": 0,
+      "stab_defence_bonus": 0,
+      "slash_defence_bonus": 0,
+      "crush_defence_bonus": 0,
+      "magic_defence_bonus": 0,
+      "range_defence_bonus": 0,
+      "melee_strength_bonus": 79,
+      "ranged_strength_bonus": 0,
+      "magic_damage_bonus": 0,
+      "prayer_bonus": 0
+    }
+  },
+  {
     "id": 26243,
     "name": "Virtus robe top",
     "source": "external:osrs-wiki:virtus-robe-top",

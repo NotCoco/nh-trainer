@@ -2205,6 +2205,7 @@ h3 {
   bottom: 6px;
   z-index: 80;
   display: flex;
+  box-sizing: border-box;
   align-items: center;
   gap: 4px;
   padding: 3px;
@@ -2215,7 +2216,40 @@ h3 {
   font: 11px Arial, sans-serif;
 }
 
-.runtimeTemporaryDevControls button {
+.runtimeTemporaryDevActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.runtimeTemporaryDevActions[hidden] {
+  display: none;
+}
+
+.runtimeTemporaryDevControls[data-controls-hidden="true"] {
+  background: transparent;
+  border-color: transparent;
+}
+
+.runtimeTemporaryDevControls .runtimeTrainerControlsVisibility {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  padding: 2px;
+}
+
+.runtimeTemporaryDevControls[data-controls-hidden="true"] .runtimeTrainerControlsVisibility {
+  color: #979797;
+  border-color: #555;
+  background: rgba(28, 24, 18, 0.55);
+}
+
+.runtimeTemporaryDevControls button,
+.runtimeAttackSpeedMenu summary {
+  flex-shrink: 0;
   min-height: 20px;
   border: 1px solid #5b4a31;
   border-radius: 2px;
@@ -2224,6 +2258,43 @@ h3 {
   font: inherit;
   line-height: 1;
   cursor: pointer;
+}
+
+.runtimeAttackSpeedMenu {
+  position: absolute;
+  right: 3px;
+  bottom: calc(100% + 4px);
+}
+
+.runtimeAttackSpeedMenu summary {
+  box-sizing: border-box;
+  padding: 3px 6px;
+}
+
+.runtimeAttackSpeedOptions {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  width: 220px;
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #5b4a31;
+  background: #1c1812;
+}
+
+.runtimeAttackSpeedOptions label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.runtimeAttackSpeedOptions select {
+  background: #2f2a22;
+  color: #f6c769;
+  border: 1px solid #5b4a31;
+  font: inherit;
 }
 
 .runtimeTemporaryDevControls button[aria-pressed="true"] {
@@ -2272,6 +2343,7 @@ h3 {
 }
 
 .runtimeTemporaryDevStatus {
+  min-width: 0;
   max-width: 96px;
   overflow: hidden;
   text-overflow: ellipsis;

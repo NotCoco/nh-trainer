@@ -5,6 +5,7 @@ export type GmaulSpecFailureReason =
   | "spec-bar-hidden"
   | "not-enough-energy"
   | "queue-empty"
+  | "preloaded"
   | "not-melee-reachable";
 
 export interface GmaulSpecState {
@@ -13,6 +14,7 @@ export interface GmaulSpecState {
   readonly gmaulEquippedTick?: number;
   readonly specBarVisibleTick?: number;
   readonly queuedSpecs: number;
+  readonly preloaded: boolean;
   readonly timeoutTicks: number;
   readonly specialEnergy: number;
   readonly queuedTargetId?: string;
@@ -39,6 +41,8 @@ export interface GmaulQueueOptions {
 }
 
 export const graniteMaulSpecEnergyCost = 50;
+// Retain PlayerCombat.queueGraniteMaulSpecial()'s five-tick expiry;
+// the exact OSRS preload expiry has not been independently confirmed.
 export const graniteMaulQueueTimeoutTicks = 5;
 
 export function createGmaulSpecState(specialEnergy = 100): GmaulSpecState {
@@ -46,6 +50,7 @@ export function createGmaulSpecState(specialEnergy = 100): GmaulSpecState {
     equippedGraniteMaul: false,
     previousWeaponHadVisibleSpecBar: false,
     queuedSpecs: 0,
+    preloaded: false,
     timeoutTicks: 0,
     specialEnergy: clampEnergy(specialEnergy)
   };
@@ -67,6 +72,7 @@ export function updateGmaulEquipment(
       gmaulEquippedTick: undefined,
       specBarVisibleTick: undefined,
       queuedSpecs: 0,
+      preloaded: false,
       timeoutTicks: 0,
       queuedTargetId: undefined
     };
@@ -165,6 +171,7 @@ export function tickGmaulQueue(state: GmaulSpecState): GmaulTickResult {
         ...state,
         timeoutTicks: 0,
         queuedSpecs: 0,
+        preloaded: false,
         queuedTargetId: undefined
       },
       autoAttackRequested: false,
@@ -177,7 +184,7 @@ export function tickGmaulQueue(state: GmaulSpecState): GmaulTickResult {
       ...state,
       timeoutTicks
     },
-    autoAttackRequested: timeoutTicks === graniteMaulQueueTimeoutTicks - 1,
+    autoAttackRequested: !state.preloaded && timeoutTicks === graniteMaulQueueTimeoutTicks - 1,
     expired: false
   };
 }
@@ -190,6 +197,7 @@ export function clearQueuedGmaulSpecs(state: GmaulSpecState): GmaulSpecState {
   return {
     ...state,
     queuedSpecs: 0,
+    preloaded: false,
     queuedTargetId: undefined
   };
 }
@@ -202,7 +210,7 @@ export function consumeQueuedGmaulSpecs(
     readonly attackStyle?: CombatStyle;
   }
 ): { readonly state: GmaulSpecState; readonly event: GmaulSpecEvent } {
-  if (state.queuedSpecs <= 0) {
+  if (state.queuedSpecs <= 0 || state.preloaded) {
     return {
       state,
       event: {
@@ -211,7 +219,7 @@ export function consumeQueuedGmaulSpecs(
         count: 0,
         tick: currentTick,
         audible: false,
-        reason: "queue-empty"
+        reason: state.preloaded ? "preloaded" : "queue-empty"
       }
     };
   }
@@ -221,6 +229,7 @@ export function consumeQueuedGmaulSpecs(
       state: {
         ...state,
         queuedSpecs: 0,
+        preloaded: false,
         queuedTargetId: undefined
       },
       event: {
@@ -240,6 +249,7 @@ export function consumeQueuedGmaulSpecs(
       state: {
         ...state,
         queuedSpecs: 0,
+        preloaded: false,
         queuedTargetId: undefined
       },
       event: {
@@ -257,6 +267,7 @@ export function consumeQueuedGmaulSpecs(
     state: {
       ...state,
       queuedSpecs: 0,
+      preloaded: false,
       timeoutTicks: 0,
       queuedTargetId: undefined,
       specialEnergy: clampEnergy(state.specialEnergy - usableSpecs * graniteMaulSpecEnergyCost)

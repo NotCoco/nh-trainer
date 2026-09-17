@@ -47,6 +47,7 @@ export const RUNTIME_NH_STAKE_LOADOUT_ID: RuntimeLoadoutId = "kodai-robes";
 export const RUNTIME_MANTA_RAY_ITEM_ID = 391;
 
 export const RUNTIME_GRANITE_MAUL_ITEM_ID = 4153;
+export const RUNTIME_DMM_GRANITE_MAUL_ITEM_ID = 24225;
 
 export const RUNTIME_ARMADYL_GODSWORD_ITEM_ID = 11802;
 
@@ -184,7 +185,7 @@ export function runtimeDmmInventorySlotsWithOptions(
 ): readonly (RuntimeInventorySlot | null)[] {
   const slots = [...normalizeNhInventorySlots(RUNTIME_DMM_CAPTURED_INVENTORY_SLOTS)];
   if (options.graniteMaul) {
-    runtimeDmmReplacePreferredMantaSlot(slots, RUNTIME_DMM_GRANITE_MAUL_SLOT_INDEX, RUNTIME_GRANITE_MAUL_ITEM_ID);
+    runtimeDmmReplacePreferredMantaSlot(slots, RUNTIME_DMM_GRANITE_MAUL_SLOT_INDEX, RUNTIME_DMM_GRANITE_MAUL_ITEM_ID);
   }
   if (options.armadylGodsword) {
     runtimeDmmReplacePreferredMantaSlot(slots, RUNTIME_DMM_ARMADYL_GODSWORD_SLOT_INDEX, RUNTIME_ARMADYL_GODSWORD_ITEM_ID);
@@ -194,7 +195,7 @@ export function runtimeDmmInventorySlotsWithOptions(
 
 
 export function runtimeDmmSetupOptionItemId(key: keyof RuntimeDmmSetupOptions): number {
-  return key === "graniteMaul" ? RUNTIME_GRANITE_MAUL_ITEM_ID : RUNTIME_ARMADYL_GODSWORD_ITEM_ID;
+  return key === "graniteMaul" ? RUNTIME_DMM_GRANITE_MAUL_ITEM_ID : RUNTIME_ARMADYL_GODSWORD_ITEM_ID;
 }
 
 
@@ -293,6 +294,7 @@ export const EMPTY_RUNTIME_SUPPLIES: RuntimePlayerCombatSupplies = {
 
 export const RUNTIME_NH_STAKE_ALLOWED_SETUP_ITEM_IDS = new Set<number>([
   RUNTIME_GRANITE_MAUL_ITEM_ID,
+  RUNTIME_DMM_GRANITE_MAUL_ITEM_ID,
   RUNTIME_ARMADYL_GODSWORD_ITEM_ID,
   ...Object.values(RUNTIME_TRAINER_SETUP_PRESETS).flatMap((setup) => [
     ...setup.inventorySlots.flatMap((slot) => slot ? [slot.itemId] : []),
