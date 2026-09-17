@@ -19835,6 +19835,10 @@ export function RuntimeSceneViewer({
             }}
             onStatsSkillDefaultAction={dispatchStatsSkillAction}
             onSpellDefaultAction={dispatchSpellDefaultAction}
+            onSpellbookBackgroundDefaultAction={() => {
+              closeContextMenu();
+              clearSelectedSpell("spellbook-background-click");
+            }}
             onSpellDragReorder={dispatchSpellbookDragReorder}
             onCombatStyleDefaultAction={dispatchCombatStyleAction}
             onCombatAutocastDefaultAction={dispatchCombatAutocastAction}

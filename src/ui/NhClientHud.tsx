@@ -391,6 +391,7 @@ interface NhClientHudProps {
   readonly onEquipmentItemHover?: (command: NhEquipmentItemCommand | null) => void;
   readonly onStatsSkillDefaultAction?: (command: NhStatsSkillCommand) => void;
   readonly onSpellDefaultAction?: (command: NhSpellbookSpellCommand) => void;
+  readonly onSpellbookBackgroundDefaultAction?: () => void;
   readonly onSpellDragReorder?: (command: NhSpellbookSpellDragCommand) => void;
   readonly onCombatStyleDefaultAction?: (command: NhCombatStyleCommand) => void;
   readonly onCombatAutocastDefaultAction?: (command: NhCombatAutocastCommand) => void;
@@ -1064,6 +1065,7 @@ export function NhClientHud({
   onEquipmentItemHover,
   onStatsSkillDefaultAction,
   onSpellDefaultAction,
+  onSpellbookBackgroundDefaultAction,
   onSpellDragReorder,
   onCombatStyleDefaultAction,
   onCombatAutocastDefaultAction,
@@ -1272,6 +1274,10 @@ export function NhClientHud({
               }
               event.preventDefault();
               event.stopPropagation();
+              if (event.button === 0 && resolvedActiveSideTabId === "magic") {
+                // Empty spellbook space has only the source client's Cancel (1006) action.
+                onSpellbookBackgroundDefaultAction?.();
+              }
             }}
             style={rectStyle(sourceLayout.sidePanel.rect)}
           />
