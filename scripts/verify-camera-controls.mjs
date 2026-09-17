@@ -1,3 +1,4 @@
+import { readRuntimeViewerSource } from "./lib/runtime-viewer-source.mjs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import vm from "node:vm";
@@ -154,7 +155,7 @@ const clientPlayerSourcePath = path.join(
 
 const source = await readFile(sourcePath, "utf8");
 const fixedLayoutSource = await readFile(fixedLayoutPath, "utf8");
-const runtimeViewerSource = await readFile(runtimeViewerPath, "utf8");
+const runtimeViewerSource = await readRuntimeViewerSource();
 const clientCameraSource = await readFile(clientCameraSourcePath, "utf8");
 const clientScriptOpcodesSource = await readFile(clientScriptOpcodesSourcePath, "utf8");
 const clientSceneCameraSource = await readFile(clientSceneCameraSourcePath, "utf8");

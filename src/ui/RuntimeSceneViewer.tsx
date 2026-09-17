@@ -1,5 +1,151 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
-import { flushSync, unstable_batchedUpdates } from "react-dom";
+import {
+  type RuntimeEquipmentItemIdsBySlot,
+  type RuntimeTrainerSetupId,
+  type RuntimeDmmSetupOptions,
+  RUNTIME_NH_STAKE_LOADOUT_ID,
+  RUNTIME_GRANITE_MAUL_ITEM_ID,
+  RUNTIME_VENGEANCE_TRINKET_ITEM_ID,
+  RUNTIME_NH_STAKE_EQUIPMENT_ENTRIES,
+  RUNTIME_NH_STAKE_INVENTORY_SLOTS,
+  RUNTIME_DMM_DEFAULT_SETUP_OPTIONS,
+  runtimeSetupPreset,
+  runtimeDmmInventorySlotsWithOptions,
+  runtimeDmmInventorySlotsAfterOptionToggle,
+  runtimeSetupInventorySlots,
+  runtimeSetupEquipmentItems,
+  RUNTIME_CONSUMABLE_IDS,
+  runtimeConsumableIdForItemId,
+  runtimeSuppliesFromInventorySlots,
+  runtimeVengeanceTrinketChargesFromInventorySlots,
+  runtimeNhStakeSupplies,
+  runtimeNhStakeVengeanceTrinketCharges,
+  runtimeSetupInventorySlotsForSupplies,
+  runtimePersistentOpponentInventorySlotsAfterPolicyResult,
+  RUNTIME_EQUIPMENT_SLOT_ORDER
+} from "./runtimeSetupPresets";
+import {
+  type TemporarySavedSetupSnapshot,
+  NH_TRAINER_ATTACK_SET_STORAGE_KEY,
+  NH_AUTO_RETALIATE_STORAGE_KEY,
+  NH_SOUND_EFFECT_VOLUME_STORAGE_KEY,
+  NH_AREA_SOUND_EFFECT_VOLUME_STORAGE_KEY,
+  NH_TEST_MUTED_STORAGE_KEY,
+  NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY,
+  NH_TRAINER_BROWSER_CLIENT_WINDOW_STORAGE_KEY,
+  NH_TRAINER_PRAYER_REORDER_ENABLED_STORAGE_KEY,
+  NH_TRAINER_PRAYER_REORDER_ORDER_STORAGE_KEY,
+  NH_TRAINER_SPELLBOOK_REORDER_ENABLED_STORAGE_KEY,
+  NH_TRAINER_PVP_FIGHT_HISTORY_LIMIT,
+  isRuntimeInventory,
+  readStoredAttackSetIndex,
+  writeStoredAttackSetIndex,
+  writeStoredAutoRetaliate,
+  normalizeStoredOptionsSoundVolume,
+  writeStoredOptionsSoundVolume,
+  readStoredClientDisplayMode,
+  writeStoredClientDisplayMode,
+  readStoredBoolean,
+  writeStoredBoolean,
+  readStoredStringArray,
+  writeStoredStringArray,
+  readStoredSpellbookOrders,
+  writeStoredSpellbookOrders,
+  initialHudOverrideFromStorage,
+  readTemporarySavedSetupSnapshot,
+  writeTemporarySavedSetupSnapshot,
+  clearTemporarySavedSetupSnapshot,
+  readStoredRunelitePvpFightHistory,
+  writeStoredRunelitePvpFightHistory,
+  type BrowserClientWindowBounds,
+  readBrowserClientWindowBounds,
+  writeBrowserClientWindowBounds,
+  browserClientWindowFixedSnapSize,
+  clampBrowserClientWindowBoundsWithFixedSnap
+} from "./runtimePreferences";
+import {
+  type RuntimeClientPosition,
+  type ManualActorState,
+  NH_CLIENT_CYCLE_MS,
+  NH_CLIENT_CYCLES_PER_GAME_TICK,
+  manualActorFromSnapshot,
+  snapManualActorToCollision,
+  teleportManualActorToTile,
+  routeManualActor,
+  routeManualActorToTarget,
+  manualActorRouteLogicalClientPosition,
+  expandNhManualRoutePath,
+  advanceManualActorServerRouteTick,
+  enqueueManualActorClientPathSteps,
+  enqueueManualActorLogicalClientPathSteps,
+  sameNhTile,
+  runtimeSequenceIsMovement,
+  manualActorHasPendingMovement,
+  manualActorHasHeldActionMovement,
+  clearManualActorMovementRoute,
+  stopManualActorMovementIfMovementGated,
+  syncManualActorServerTileToCombatActor,
+  manualActorHasActiveCombatTargetRoute,
+  preAttackRouteManualActorToCombatTarget,
+  runtimeCombatProjectileLineOfSight,
+  runtimeManualPolicyCanAttackSignal,
+  manualActorBaseSequenceName,
+  manualActorVisibleSequenceName,
+  nhMovementFrameCursor,
+  nhClientPositionFromRuntimeTile,
+  runtimeTileFromNhClientPosition,
+  nhFacingDegreesToOrientationUnits,
+  nhActorModelRotationRadiansFromFacingDegrees,
+  nhTargetOrientationUnits,
+  manualActorWithClientTargetIndexHold,
+  manualActorActiveSequenceContext,
+  syncManualActorActionSequence,
+  manualActorWithPrimarySequence,
+  manualActorWithMovementState,
+  manualActorSequenceCursorState,
+  manualActorWithAuthoritativeSequenceCursor,
+  nhPrimaryFrameCursor,
+  manualActorClientPathHeldByNhSequence,
+  advanceManualActor,
+  advanceManualActorBeforeAcceptedPlayerUpdate
+} from "./runtimeMovement";
+import {
+  runtimePolicyRecentManualCombatSignal,
+  runtimePolicyRecentManualIncomingPressureSignal,
+  runtimePolicyRecentManualDirectCombatSignal,
+  nhEquipmentSlotByServerSlot,
+  visibleEquipmentFromRuntimeItemIdsBySlot,
+  visibleEquipmentItemsFromRuntimeInventory,
+  type ManualPolicyActorMovementView,
+  manualPolicyStationaryMovementView,
+  runtimePolicyVisibleStatsFromCombatActor,
+  runtimePolicyVisibleLocksFromCombatActor,
+  runtimePolicyLocksFrozenAtTick,
+  manualPolicyActorMovementViewFromTiles,
+  manualPolicyActorAppearanceView,
+  manualPolicyUnknownOpponentInfoAppearanceView,
+  runtimePlayerCombatStateWithLocalSpecialEnergy,
+  runtimePlayerCombatStateWithLocalFreezeBypass,
+  runtimeWeaponLoadoutForItemId,
+  runtimeCombatSpellIdFromSelectedSpell,
+  runtimeCombatLevelsFromHud,
+  runtimeCombatLevelsFromSimStats,
+  runtimeManualCombatAuthoritativeHud,
+  runtimeCombatActorRespawnedForFreshFightReset,
+  type ManualPolicyActorAppearanceView
+} from "./runtimeCombatState";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent
+} from "react";
+import {
+  flushSync,
+  unstable_batchedUpdates
+} from "react-dom";
 import equipmentRowsJson from "../generated/equipment-bonuses.json";
 import kitsJson from "../generated/kits.json";
 import serverItemsJson from "../generated/server-items.json";
@@ -25,8 +171,12 @@ import {
   Vector3,
   WebGLRenderer
 } from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
+import {
+  GLTFLoader
+} from "three/examples/jsm/loaders/GLTFLoader.js";
+import {
+  type GLTF
+} from "three/examples/jsm/loaders/GLTFLoader.js";
 import {
   clientViewTraceToRuntimeReplay,
   sampleRuntimeReplayEvents,
@@ -107,7 +257,6 @@ import {
 } from "../render/nhContextMenu";
 import {
   createNhActorSequenceDefinitionStore,
-  nhRuntimeSequenceNameForId,
   type NhActorSequenceDefinitionStore
 } from "../render/nhActorSequence";
 import {
@@ -194,7 +343,9 @@ import {
   type NhSceneCollision,
   type NhWorldTile
 } from "../render/nhSceneCollision";
-import { nhNhBotCombatTileAllowed } from "../render/nhWilderness";
+import {
+  nhNhBotCombatTileAllowed
+} from "../render/nhWilderness";
 import {
   buildNhSceneObjectContextEntries,
   findNhSceneObjectForWorldTile,
@@ -203,7 +354,9 @@ import {
   type NhSceneObjectContextMenuEntry,
   type NhSelectedSpell
 } from "../render/nhSceneObjects";
-import { nhPickSceneTileFromViewportPoint } from "../render/nhSceneTilePicking";
+import {
+  nhPickSceneTileFromViewportPoint
+} from "../render/nhSceneTilePicking";
 import {
   buildNhMinimapSceneSprite,
   type NhFloorDefinitionStore,
@@ -214,8 +367,6 @@ import {
   applyNhActorAnimation,
   applyNhSequenceAnimation,
   attachNhAnimationMetadata,
-  nhSequencePrecedenceAnimating,
-  nhSequencePriority,
   nhRenderSequenceFromRawSequence,
   nhSequencePlaybackMode,
   type NhAnimationFixtures,
@@ -223,8 +374,7 @@ import {
   type NhLoadoutMeshMetadata,
   type NhRawSequenceStore,
   type NhRenderSequenceDefinition,
-  type NhSequencePlaybackMode,
-  type NhSequenceFrameCursorOverride
+  type NhSequencePlaybackMode
 } from "../render/nhSequencePlayback";
 import {
   getRuntimeSceneTodoGates,
@@ -237,7 +387,6 @@ import {
   sampleRuntimeRenderEvents,
   sampleRuntimeScene,
   type RuntimeActorId,
-  type RuntimeKeyframe,
   type RuntimeActorPose,
   type RuntimeInventorySlot,
   type RuntimeHudState,
@@ -251,12 +400,8 @@ import {
   NH_DEFAULT_OPTIONS_SOUND_VOLUME
 } from "../render/runtimeScene";
 import {
-  findNhTileRouteWaypoints,
-  findNhObjectRouteWaypoints,
   findNhTargetRouteWaypoints,
-  nhSceneObjectRouteReached,
   nhSceneProjectileRouteClear,
-  nhSceneTargetRouteReached,
   NH_GAME_TICK_MS,
   NH_TILE_WORLD_UNITS
 } from "../render/nhTileMovement";
@@ -279,18 +424,20 @@ import {
   createNhWeaponTypeDefinitionStore,
   type NhWeaponTypeDefinitionStore
 } from "../render/nhCombat";
-import { nhActivePrayerIds, nhTogglePrayerState, type NhPrayerStates } from "../render/nhPrayer";
+import {
+  nhActivePrayerIds,
+  nhTogglePrayerState,
+  type NhPrayerStates
+} from "../render/nhPrayer";
 import {
   advanceRuntimePlayerCombat,
   assertValidClientViewTrace,
   applyConsumable,
-  consumableItemIdForDoseCount,
   consumeRuntimePlayerCombatSupply,
   applyRuntimePlayerCombatPreMovementHits,
   activateRuntimePlayerCombatVengeanceTrinket,
   clearRuntimePlayerCombatActorPolicyNoTargetGrace,
   consumableDefinitions,
-  consumableUseCountForItemId,
   createItemActionQueue,
   createSupplyDelayState,
   createRuntimePlayerCombatState,
@@ -300,7 +447,6 @@ import {
   createMinimapSemanticClientViewTrace,
   equipmentRowsByItemId,
   applyRuntimeOpponentPolicyAction,
-  nhDirectGearActionSlot,
   protectPrayerForStyle,
   pvpProtectionDamageMultiplier,
   requestRuntimePlayerCombatAttack,
@@ -308,7 +454,6 @@ import {
   resetRuntimePlayerCombatActorPolicyFreshFight,
   resetRuntimePlayerCombatActorPolicyDisengage,
   resetRuntimePlayerCombatActorTarget,
-  runtimePlayerCombatActionDurationTicks,
   runtimePlayerCombatActiveOverheadPrayer,
   runtimePlayerCombatActiveProtectionPrayer,
   runtimePlayerCombatConsumableSoundIds,
@@ -343,7 +488,6 @@ import {
   type RuntimePlayerCombatRouteRequest,
   type RuntimePlayerCombatSpellId,
   type RuntimePlayerCombatState,
-  type RuntimePlayerCombatSupplies,
   type RuntimePlayerCombatXpSkillId,
   type RuntimePolicyOpponentResult,
   type SimStats,
@@ -352,16 +496,26 @@ import {
   type NhPolicyAction,
   type ClientViewTrace
 } from "../sim";
-import { canAttackThroughLock, createEntityLockState, movementGate, resetFreeze, type EntityLockState } from "../sim/entity/locks";
-import { getAttackDelayStatus } from "../sim/combat/timers";
-import type { EquipmentSlot, VisibleEquipment, VisibleEquipmentItem } from "../sim/clientView";
+import {
+  movementGate
+} from "../sim/entity/locks";
+import {
+  getAttackDelayStatus
+} from "../sim/combat/timers";
+import {
+  type EquipmentSlot,
+  type VisibleEquipment,
+  type VisibleEquipmentItem
+} from "../sim/clientView";
 import {
   createNhPolicyController,
   type NhPolicyDecisionTrace,
   type NhPolicyRuntimeController,
   type ParsedNhNeuralPolicy
 } from "../bot";
-import type { NhDuelControllerContext } from "../sim/nh/duel";
+import {
+  type NhDuelControllerContext
+} from "../sim/nh/duel";
 import {
   emptyRuntimePolicyTargetTrackingState,
   resolveRuntimePolicyTargetTracking,
@@ -369,8 +523,12 @@ import {
   shouldRuntimePolicyRouteResetToSpawn,
   type RuntimePolicyTargetTrackingState
 } from "../sim/nh/runtimePolicyTargeting";
-import { inferNhSelectedGearProfile } from "../sim/nh/gearProfile";
-import { nhLoadouts } from "../sim/nh/loadouts";
+import {
+  inferNhSelectedGearProfile
+} from "../sim/nh/gearProfile";
+import {
+  nhLoadouts
+} from "../sim/nh/loadouts";
 import {
   NhClientHud,
   nhChatboxTabRowTop,
@@ -403,10 +561,6 @@ import {
 import {
   RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT,
   RUNELITE_CLIENT_TICK_MS,
-  RUNELITE_FIXED_CLIENT_HEIGHT,
-  RUNELITE_FIXED_CLIENT_WIDTH,
-  RUNELITE_PLUGIN_TOOLBAR_WIDTH,
-  RUNELITE_PLUGIN_WRAPPED_WIDTH,
   RuneliteClientShell,
   type RuneliteAntiDragConfigSnapshot,
   type RuneliteAnimationSmoothingConfigSnapshot,
@@ -464,15 +618,9 @@ import {
   type NhGameKeybindSnapshot
 } from "./nhGameKeybinds";
 import {
-  RUNELITE_FREEZE_TIMERS_BARRAGE_DURATION_MS,
-  RUNELITE_FREEZE_TIMERS_BARRAGE_SPOTANIM_ID,
-  RUNELITE_FREEZE_TIMERS_FREEZE_IMAGE_PATH,
-  RUNELITE_FREEZE_TIMERS_FREEZE_IMMUNE_IMAGE_PATH,
-  RUNELITE_FREEZE_TIMERS_FREEZE_IMMUNITY_MS,
   RUNELITE_FREEZE_TIMERS_IMAGE_HEIGHT_PX,
   RUNELITE_FREEZE_TIMERS_IMAGE_TEXT_GAP_PX,
   RUNELITE_FREEZE_TIMERS_IMAGE_WIDTH_PX,
-  RUNELITE_FREEZE_TIMERS_OVERLAY_Y_OFFSET_PX,
   RUNELITE_FREEZE_TIMERS_TIMER_FONT_PX,
   RUNELITE_TIMERS_ICE_BARRAGE_SPRITE_ID,
   runeliteFreezeTimerOverlaySnapshotsFromCombatState,
@@ -552,7 +700,6 @@ import {
   type RuneliteBoostsOverlaySnapshot
 } from "./runeliteBoosts";
 import {
-  RUNELITE_ATTACK_STYLES_OVERLAY_HEIGHT,
   RUNELITE_ATTACK_STYLES_OVERLAY_POSITION,
   RUNELITE_ATTACK_STYLES_PANEL_PADDING_X,
   RUNELITE_ATTACK_STYLES_TEXT_NORMAL_RGBA,
@@ -696,77 +843,10 @@ interface RuntimeSceneObjectPick {
   readonly actionTile: RuntimeTile;
   readonly depthClientUnits: number;
 }
-
-interface RuntimeClientPosition {
-  readonly x: number;
-  readonly z: number;
-}
-
-interface ManualActorState {
-  /** Snapped scene tile that represents the server-side actor position. */
-  readonly tile: RuntimeTile;
-  /** Visual-only tile used while the model interpolates between server ticks. */
-  readonly renderTile: RuntimeTile;
-  readonly routeWaypoints: readonly RuntimeTile[];
-  readonly routeTraversalModes: readonly number[];
-  readonly serverRouteWaypoints: readonly RuntimeTile[];
-  readonly serverRouteTraversalModes: readonly number[];
-  /** Server route is already represented in the held client path buffer. */
-  readonly serverRouteVisualQueued: boolean;
-  readonly clientPosition: RuntimeClientPosition | null;
-  /** Source server-side/true location used by minimap while a primary sequence holds the visible model. */
-  readonly logicalClientPosition: RuntimeClientPosition | null;
-  readonly logicalRouteWaypoints: readonly RuntimeTile[];
-  readonly logicalRouteTraversalModes: readonly number[];
-  readonly lastMovementClientCycle: number | null;
-  readonly clientTargetIndexUntilClientCycle: number;
-  readonly movementStallTicks: number;
-  readonly sequencePathLengthAtStart: number;
-  readonly activeSequenceKey: string | null;
-  readonly completedSequenceKey: string | null;
-  readonly primaryFrame: number;
-  readonly primaryFrameCycle: number;
-  readonly primarySequenceLoops: number;
-  readonly primarySequenceCycle: number;
-  readonly primarySequenceDelayCycles: number;
-  readonly movementBlockedBySequence: boolean;
-  readonly movementFrame: number;
-  readonly movementFrameCycle: number;
-  readonly orientationUnits: number;
-  readonly rotationUnits: number;
-  readonly turnTicks: number;
-  readonly running: boolean;
-  readonly loadoutId: RuntimeLoadoutId;
-  readonly appearance?: RuntimePlayerAppearance;
-  readonly sequenceName: RuntimeSequenceName;
-  readonly facingDegrees: number;
-  readonly markerLabel: string;
-  readonly animationCycle: number;
-}
-
-type RuntimeEquipmentItemIdsBySlot = ReadonlyMap<number, number>;
-type RuntimeTrainerSetupId = "nh-stake" | "dmm";
-interface RuntimeDmmSetupOptions {
-  readonly graniteMaul: boolean;
-  readonly armadylGodsword: boolean;
-}
-interface RuntimeTrainerSetupPreset {
-  readonly id: RuntimeTrainerSetupId;
-  readonly label: string;
-  readonly loadoutId: RuntimeLoadoutId;
-  readonly inventorySlots: readonly (RuntimeInventorySlot | null)[];
-  readonly equipmentEntries: readonly (readonly [number, number])[];
-}
 const runtimePlayerAppearanceKits = kitsJson as NhPlayerModelSources["kits"];
 const runtimePlayerAppearanceServerItemsById = new Map(
   (serverItemsJson as NhPlayerModelSources["serverItems"]).map((item) => [item.id, item])
 );
-
-const RUNTIME_NH_STAKE_LOADOUT_ID: RuntimeLoadoutId = "kodai-robes";
-const RUNTIME_MANTA_RAY_ITEM_ID = 391;
-const RUNTIME_GRANITE_MAUL_ITEM_ID = 4153;
-const RUNTIME_ARMADYL_GODSWORD_ITEM_ID = 11802;
-const RUNTIME_VENGEANCE_TRINKET_ITEM_ID = 28561;
 const RUNTIME_VENGEANCE_CAST_SEQUENCE_NAME: RuntimeSequenceName = "vengeance_cast";
 const RUNTIME_VENGEANCE_CAST_SEQUENCE_ID = 8316;
 const RUNTIME_VENGEANCE_CAST_SPOTANIM_ID = 726;
@@ -792,201 +872,7 @@ const RUNTIME_GAME_SOUND_EFFECT_ASSET_IDS = [
   2907, 2910, 2917, 3825, 3826, 3846, 3869, 5027, 6182
 ] as const;
 const RUNTIME_GAME_SOUND_EFFECT_ASSET_ID_SET: ReadonlySet<number> = new Set(RUNTIME_GAME_SOUND_EFFECT_ASSET_IDS);
-const RUNTIME_NH_STAKE_INVENTORY_ITEM_IDS = [
-  12695,
-  22461,
-  6685,
-  6685,
-  13441,
-  391,
-  391,
-  10925,
-  391,
-  6685,
-  391,
-  10925,
-  4736,
-  21902,
-  391,
-  391,
-  4759,
-  22322,
-  391,
-  391,
-  11802,
-  12006,
-  391,
-  391,
-  391,
-  391,
-  391,
-  12791
-] as const;
-const RUNTIME_NH_STAKE_EQUIPMENT_ENTRIES = [
-  [0, 10828],
-  [1, 21791],
-  [2, 6585],
-  [3, 11791],
-  [4, 4091],
-  [5, 12831],
-  [7, 4093],
-  [9, 7462],
-  [10, 11840],
-  [12, 11770],
-  [13, 21932]
-] as const satisfies readonly (readonly [number, number])[];
-const RUNTIME_NH_STAKE_INVENTORY_SLOTS = normalizeNhInventorySlots(
-  RUNTIME_NH_STAKE_INVENTORY_ITEM_IDS.map((itemId) => ({ itemId, quantity: 1 }))
-);
-const RUNTIME_DMM_CAPTURED_INVENTORY_SLOTS = normalizeNhInventorySlots([
-  { itemId: 12695, quantity: 1 },
-  { itemId: 22461, quantity: 1 },
-  { itemId: 10925, quantity: 1 },
-  { itemId: 10925, quantity: 1 },
-  { itemId: 13441, quantity: 1 },
-  { itemId: 391, quantity: 1 },
-  { itemId: 6685, quantity: 1 },
-  { itemId: 10925, quantity: 1 },
-  { itemId: 391, quantity: 1 },
-  { itemId: 391, quantity: 1 },
-  { itemId: 6685, quantity: 1 },
-  { itemId: 6685, quantity: 1 },
-  { itemId: 27238, quantity: 1 },
-  { itemId: 26374, quantity: 1 },
-  { itemId: 391, quantity: 1 },
-  { itemId: 391, quantity: 1 },
-  { itemId: 26386, quantity: 1 },
-  { itemId: 11283, quantity: 1 },
-  { itemId: 29796, quantity: 1 },
-  { itemId: 391, quantity: 1 },
-  { itemId: 7462, quantity: 1 },
-  { itemId: 22613, quantity: 1 },
-  { itemId: 27690, quantity: 1 },
-  { itemId: 391, quantity: 1 },
-  { itemId: 28561, quantity: 2 },
-  { itemId: 391, quantity: 1 },
-  { itemId: 391, quantity: 1 },
-  { itemId: 12791, quantity: 1 }
-]);
-const RUNTIME_DMM_GRANITE_MAUL_SLOT_INDEX = 23;
-const RUNTIME_DMM_ARMADYL_GODSWORD_SLOT_INDEX = 25;
-const RUNTIME_DMM_DEFAULT_SETUP_OPTIONS: RuntimeDmmSetupOptions = {
-  graniteMaul: true,
-  armadylGodsword: false
-};
-const RUNTIME_DMM_EQUIPMENT_ENTRIES = [
-  [0, 26382],
-  [1, 21791],
-  [2, 6585],
-  [3, 22647],
-  [4, 26243],
-  [5, 27251],
-  [7, 26245],
-  [9, 31106],
-  [10, 31097],
-  [12, 19710],
-  [13, 21950]
-] as const satisfies readonly (readonly [number, number])[];
-const RUNTIME_TRAINER_SETUP_PRESETS = {
-  "nh-stake": {
-    id: "nh-stake",
-    label: "NH stake",
-    loadoutId: RUNTIME_NH_STAKE_LOADOUT_ID,
-    inventorySlots: RUNTIME_NH_STAKE_INVENTORY_SLOTS,
-    equipmentEntries: RUNTIME_NH_STAKE_EQUIPMENT_ENTRIES
-  },
-  dmm: {
-    id: "dmm",
-    label: "DMM",
-    loadoutId: RUNTIME_NH_STAKE_LOADOUT_ID,
-    inventorySlots: RUNTIME_DMM_CAPTURED_INVENTORY_SLOTS,
-    equipmentEntries: RUNTIME_DMM_EQUIPMENT_ENTRIES
-  }
-} as const satisfies Readonly<Record<RuntimeTrainerSetupId, RuntimeTrainerSetupPreset>>;
 const RUNTIME_NH_STAKE_EQUIPMENT_ITEMS = new Map(RUNTIME_NH_STAKE_EQUIPMENT_ENTRIES);
-function runtimeSetupPreset(setupId: RuntimeTrainerSetupId): RuntimeTrainerSetupPreset {
-  return RUNTIME_TRAINER_SETUP_PRESETS[setupId];
-}
-
-function runtimeDmmInventorySlotsWithOptions(
-  options: RuntimeDmmSetupOptions = RUNTIME_DMM_DEFAULT_SETUP_OPTIONS
-): readonly (RuntimeInventorySlot | null)[] {
-  const slots = [...normalizeNhInventorySlots(RUNTIME_DMM_CAPTURED_INVENTORY_SLOTS)];
-  if (options.graniteMaul) {
-    runtimeDmmReplacePreferredMantaSlot(slots, RUNTIME_DMM_GRANITE_MAUL_SLOT_INDEX, RUNTIME_GRANITE_MAUL_ITEM_ID);
-  }
-  if (options.armadylGodsword) {
-    runtimeDmmReplacePreferredMantaSlot(slots, RUNTIME_DMM_ARMADYL_GODSWORD_SLOT_INDEX, RUNTIME_ARMADYL_GODSWORD_ITEM_ID);
-  }
-  return slots;
-}
-
-function runtimeDmmSetupOptionItemId(key: keyof RuntimeDmmSetupOptions): number {
-  return key === "graniteMaul" ? RUNTIME_GRANITE_MAUL_ITEM_ID : RUNTIME_ARMADYL_GODSWORD_ITEM_ID;
-}
-
-function runtimeDmmSetupOptionPreferredSlotIndex(key: keyof RuntimeDmmSetupOptions): number {
-  return key === "graniteMaul" ? RUNTIME_DMM_GRANITE_MAUL_SLOT_INDEX : RUNTIME_DMM_ARMADYL_GODSWORD_SLOT_INDEX;
-}
-
-function runtimeDmmReplacePreferredMantaSlot(
-  slots: (RuntimeInventorySlot | null)[],
-  preferredSlotIndex: number,
-  itemId: number
-): boolean {
-  const preferredSlot = slots[preferredSlotIndex];
-  const slotIndex = preferredSlot?.itemId === RUNTIME_MANTA_RAY_ITEM_ID
-    ? preferredSlotIndex
-    : slots.findIndex((slot) => slot?.itemId === RUNTIME_MANTA_RAY_ITEM_ID);
-  if (slotIndex === -1) {
-    return false;
-  }
-  slots[slotIndex] = { itemId, quantity: 1 };
-  return true;
-}
-
-function runtimeDmmInventorySlotsAfterOptionToggle(
-  currentSlots: readonly (RuntimeInventorySlot | null)[],
-  key: keyof RuntimeDmmSetupOptions,
-  enabled: boolean
-): readonly (RuntimeInventorySlot | null)[] {
-  const slots = [...normalizeNhInventorySlots(currentSlots)];
-  const itemId = runtimeDmmSetupOptionItemId(key);
-  const existingSlotIndexes = slots
-    .map((slot, index) => slot?.itemId === itemId ? index : -1)
-    .filter((index) => index !== -1);
-
-  if (!enabled) {
-    for (const slotIndex of existingSlotIndexes) {
-      slots[slotIndex] = { itemId: RUNTIME_MANTA_RAY_ITEM_ID, quantity: 1 };
-    }
-    return normalizeNhInventorySlots(slots);
-  }
-
-  if (existingSlotIndexes.length > 0) {
-    for (const duplicateSlotIndex of existingSlotIndexes.slice(1)) {
-      slots[duplicateSlotIndex] = { itemId: RUNTIME_MANTA_RAY_ITEM_ID, quantity: 1 };
-    }
-    return normalizeNhInventorySlots(slots);
-  }
-
-  runtimeDmmReplacePreferredMantaSlot(slots, runtimeDmmSetupOptionPreferredSlotIndex(key), itemId);
-  return normalizeNhInventorySlots(slots);
-}
-
-function runtimeSetupInventorySlots(
-  setupId: RuntimeTrainerSetupId,
-  dmmOptions: RuntimeDmmSetupOptions = RUNTIME_DMM_DEFAULT_SETUP_OPTIONS
-): readonly (RuntimeInventorySlot | null)[] {
-  if (setupId === "dmm") {
-    return runtimeDmmInventorySlotsWithOptions(dmmOptions);
-  }
-  return normalizeNhInventorySlots(runtimeSetupPreset(setupId).inventorySlots);
-}
-
-function runtimeSetupEquipmentItems(setupId: RuntimeTrainerSetupId): RuntimeEquipmentItemIdsBySlot {
-  return new Map(runtimeSetupPreset(setupId).equipmentEntries);
-}
 
 function runtimeEquipmentItemsFromTestPayload(value: unknown): RuntimeEquipmentItemIdsBySlot | null {
   const entries: [number, number][] = [];
@@ -1013,221 +899,6 @@ function runtimeEquipmentItemsFromTestPayload(value: unknown): RuntimeEquipmentI
   }
 
   return new Map(entries);
-}
-
-function runtimeNhStakeInventorySlots(): readonly (RuntimeInventorySlot | null)[] {
-  return runtimeSetupInventorySlots("nh-stake");
-}
-
-function runtimeNhStakeEquipmentItems(): RuntimeEquipmentItemIdsBySlot {
-  return runtimeSetupEquipmentItems("nh-stake");
-}
-
-const RUNTIME_CONSUMABLE_IDS = Object.keys(consumableDefinitions) as ConsumableId[];
-const EMPTY_RUNTIME_SUPPLIES: RuntimePlayerCombatSupplies = {
-  manta_ray: 0,
-  shark: 0,
-  anglerfish: 0,
-  karambwan: 0,
-  saradomin_brew: 0,
-  super_restore: 0,
-  sanfew_serum: 0,
-  super_combat: 0,
-  ranging_potion: 0,
-  bastion: 0
-};
-const RUNTIME_NH_STAKE_ALLOWED_SETUP_ITEM_IDS = new Set<number>([
-  RUNTIME_GRANITE_MAUL_ITEM_ID,
-  RUNTIME_ARMADYL_GODSWORD_ITEM_ID,
-  ...Object.values(RUNTIME_TRAINER_SETUP_PRESETS).flatMap((setup) => [
-    ...setup.inventorySlots.flatMap((slot) => slot ? [slot.itemId] : []),
-    ...setup.equipmentEntries.map(([, itemId]) => itemId)
-  ]),
-  ...Object.values(RUNTIME_TRAINER_SETUP_PRESETS).flatMap((setup) => setup.inventorySlots).flatMap((slot) => {
-    const itemId = slot?.itemId;
-    if (itemId === undefined) {
-      return [];
-    }
-    const consumableId = RUNTIME_CONSUMABLE_IDS.find((id) => consumableDefinitions[id].itemIds.includes(itemId));
-    return consumableId ? consumableDefinitions[consumableId].itemIds : [itemId];
-  })
-]);
-
-function runtimeConsumableIdForItemId(itemId: number): ConsumableId | null {
-  for (const id of RUNTIME_CONSUMABLE_IDS) {
-    if (consumableDefinitions[id].itemIds.includes(itemId)) {
-      return id;
-    }
-  }
-  return null;
-}
-
-function runtimeSuppliesFromInventorySlots(
-  slots: readonly (RuntimeInventorySlot | null)[]
-): RuntimePlayerCombatSupplies {
-  // Source: sim/nh/duel.ts createSuppliesFromInventory() and runtime-policy-opponent.ts
-  // runtimePolicySuppliesForInventorySlots() count usable supplies from the inventory container.
-  const supplies: Record<ConsumableId, number> = { ...EMPTY_RUNTIME_SUPPLIES };
-  for (const slot of slots) {
-    if (!slot) {
-      continue;
-    }
-    const item = runtimeConsumableIdForItemId(slot.itemId);
-    if (item) {
-      supplies[item] += consumableUseCountForItemId(slot.itemId, slot.quantity);
-    }
-  }
-  return supplies;
-}
-
-function runtimeVengeanceTrinketChargesFromInventorySlots(
-  slots: readonly (RuntimeInventorySlot | null)[]
-): number {
-  return slots.reduce(
-    (total, slot) =>
-      slot?.itemId === RUNTIME_VENGEANCE_TRINKET_ITEM_ID
-        ? total + Math.max(0, Math.trunc(slot.quantity))
-        : total,
-    0
-  );
-}
-
-function runtimeNhStakeSupplies(): RuntimePlayerCombatSupplies {
-  return runtimeSuppliesFromInventorySlots(RUNTIME_NH_STAKE_INVENTORY_SLOTS);
-}
-
-function runtimeNhStakeVengeanceTrinketCharges(): number {
-  return runtimeVengeanceTrinketChargesFromInventorySlots(RUNTIME_NH_STAKE_INVENTORY_SLOTS);
-}
-
-function runtimeSetupInventorySlotsForSupplies(
-  setupId: RuntimeTrainerSetupId,
-  supplies: RuntimePlayerCombatSupplies,
-  dmmOptions: RuntimeDmmSetupOptions = RUNTIME_DMM_DEFAULT_SETUP_OPTIONS
-): readonly (RuntimeInventorySlot | null)[] {
-  const remainingSupplies: Record<ConsumableId, number> = { ...supplies };
-  return runtimeSetupInventorySlots(setupId, dmmOptions).map((slot) => {
-    if (!slot) {
-      return null;
-    }
-
-    const supply = runtimeConsumableIdForItemId(slot.itemId);
-    if (!supply) {
-      return slot;
-    }
-    if (remainingSupplies[supply] <= 0) {
-      return null;
-    }
-
-    const slotUses = consumableUseCountForItemId(slot.itemId, slot.quantity);
-    const visibleUses = Math.min(slotUses, remainingSupplies[supply]);
-    remainingSupplies[supply] -= visibleUses;
-    return {
-      ...slot,
-      itemId: consumableItemIdForDoseCount(supply, visibleUses, slot.itemId),
-      quantity: 1
-    };
-  });
-}
-
-function runtimeInventorySlotsAfterConsumedSupplies(
-  inventorySlots: readonly (RuntimeInventorySlot | null)[],
-  consumedSupplies: readonly ConsumableId[]
-): readonly (RuntimeInventorySlot | null)[] {
-  const slots = [...normalizeNhInventorySlots(inventorySlots)];
-  for (const consumed of consumedSupplies) {
-    const slotIndex = slots.findIndex((slot) => slot !== null && runtimeConsumableIdForItemId(slot.itemId) === consumed);
-    if (slotIndex === -1) {
-      continue;
-    }
-    const slot = slots[slotIndex]!;
-    const remainingUses = consumableUseCountForItemId(slot.itemId, slot.quantity) - 1;
-    slots[slotIndex] = remainingUses <= 0
-      ? null
-      : {
-          ...slot,
-          itemId: consumableItemIdForDoseCount(consumed, remainingUses, slot.itemId),
-          quantity: 1
-        };
-  }
-  return slots;
-}
-
-function runtimeInventorySlotsAfterVengeanceTrinketUse(
-  inventorySlots: readonly (RuntimeInventorySlot | null)[],
-  previousCharges: number,
-  nextCharges: number
-): readonly (RuntimeInventorySlot | null)[] {
-  const slots = [...normalizeNhInventorySlots(inventorySlots)];
-  let chargesConsumed = Math.max(0, Math.trunc(previousCharges) - Math.trunc(nextCharges));
-  for (let slotIndex = 0; slotIndex < slots.length && chargesConsumed > 0; slotIndex += 1) {
-    const slot = slots[slotIndex];
-    if (slot?.itemId !== RUNTIME_VENGEANCE_TRINKET_ITEM_ID) {
-      continue;
-    }
-    const consumedHere = Math.min(chargesConsumed, Math.max(0, Math.trunc(slot.quantity)));
-    const remainingQuantity = Math.max(0, Math.trunc(slot.quantity) - consumedHere);
-    slots[slotIndex] = remainingQuantity > 0 ? { ...slot, quantity: remainingQuantity } : null;
-    chargesConsumed -= consumedHere;
-  }
-  return slots;
-}
-
-function runtimeInventorySlotsAfterEquipmentChange(
-  inventorySlots: readonly (RuntimeInventorySlot | null)[],
-  previousEquipment: VisibleEquipment,
-  nextEquipment: VisibleEquipment,
-  preferredSlotOrder: readonly EquipmentSlot[] = []
-): readonly (RuntimeInventorySlot | null)[] {
-  const slots = [...normalizeNhInventorySlots(inventorySlots)];
-  const equipmentSlotOrder = [...new Set([...preferredSlotOrder, ...RUNTIME_EQUIPMENT_SLOT_ORDER])];
-  for (const equipmentSlot of equipmentSlotOrder) {
-    const previousItem = previousEquipment[equipmentSlot];
-    const nextItem = nextEquipment[equipmentSlot];
-    if (previousItem?.itemId === nextItem?.itemId) {
-      continue;
-    }
-
-    if (nextItem) {
-      const selectedSlotIndex = slots.findIndex((slot) => slot?.itemId === nextItem.itemId);
-      if (selectedSlotIndex === -1) {
-        continue;
-      }
-      // Equipment.equip() swaps the worn item into the selected item's exact
-      // inventory slot. An empty equipment slot leaves that same slot empty.
-      slots[selectedSlotIndex] = previousItem ? { itemId: previousItem.itemId, quantity: 1 } : null;
-      continue;
-    }
-
-    if (previousItem) {
-      // Equipment.unequip() uses Inventory.freeSlot(), preserving every other slot.
-      const freeSlotIndex = slots.findIndex((slot) => slot === null);
-      if (freeSlotIndex !== -1) {
-        slots[freeSlotIndex] = { itemId: previousItem.itemId, quantity: 1 };
-      }
-    }
-  }
-  return slots;
-}
-
-function runtimePersistentOpponentInventorySlotsAfterPolicyResult(
-  inventorySlots: readonly (RuntimeInventorySlot | null)[],
-  previousActor: RuntimePlayerCombatActorState,
-  result: RuntimePolicyOpponentResult
-): readonly (RuntimeInventorySlot | null)[] {
-  const afterSupplies = runtimeInventorySlotsAfterConsumedSupplies(inventorySlots, result.consumedSupplies);
-  const afterTrinket = runtimeInventorySlotsAfterVengeanceTrinketUse(
-    afterSupplies,
-    previousActor.vengeanceTrinketCharges,
-    result.state.actors.opponent.vengeanceTrinketCharges
-  );
-  const directGearSlotOrder = (result.effectiveAction.directGearActions ?? []).map(nhDirectGearActionSlot);
-  return runtimeInventorySlotsAfterEquipmentChange(
-    afterTrinket,
-    previousActor.equipment,
-    result.state.actors.opponent.equipment,
-    directGearSlotOrder
-  );
 }
 
 const RUNTIME_NH_STAKE_ITEM_NAMES = new Map(
@@ -1307,19 +978,6 @@ interface RuntimeEquipmentRemoveMutationResolution {
 interface QueuedEquipmentRemoveContext {
   readonly resolution: RuntimeEquipmentRemoveMutationResolution;
   readonly slotId: string;
-}
-
-interface TemporarySavedSetupSnapshot {
-  readonly version: 1;
-  readonly savedAt: number;
-  readonly loadoutId: RuntimeLoadoutId;
-  readonly inventory: readonly (RuntimeInventorySlot | null)[];
-  readonly equipment: readonly (readonly [number, number])[];
-}
-
-interface ManualActorRouteResult {
-  readonly actor: ManualActorState;
-  readonly reached: boolean;
 }
 
 interface RuntimeActorModelAsset {
@@ -2086,8 +1744,6 @@ const equipmentItemNameColorTag = "<col=ff9040>";
 const equipmentItemDefaultActionOpcode = 57;
 const equipmentItemHighActionOpcode = 1007;
 const widgetHighActionOpcode = 1007;
-const NH_CLIENT_CYCLE_MS = 20;
-const NH_CLIENT_CYCLES_PER_GAME_TICK = NH_GAME_TICK_MS / NH_CLIENT_CYCLE_MS;
 // Source-backed by Nh NanoClock.vmethod3511: the client may process up to 10 client cycles before one draw.
 const NH_CLIENT_MAX_CYCLES_PER_RENDER_FRAME = 10;
 
@@ -2115,29 +1771,7 @@ const NH_CLIENT_TARGET_INDEX_EQUIP_RESET_HOLD_CYCLES = NH_CLIENT_TARGET_INDEX_RE
 // Browser timers can resume late after a busy frame; catch up bounded game ticks so the trainer hitches instead of stretching time.
 const NH_GAME_TICK_CATCH_UP_LIMIT = 10;
 const NH_GAME_TICK_PROCESS_LIMIT_PER_CALLBACK = 1;
-// The JS trainer can enqueue several accepted server steps before the next draw
-// after a busy frame. Keep those steps instead of dropping the unreached head,
-// because client class329 only snaps when an impossible next path tile is fed in.
-const NH_CLIENT_ROUTE_BUFFER_LIMIT = 9;
-const NH_TRAINER_ATTACK_SET_STORAGE_KEY = "nhTrainer.attackSet.v1";
-const NH_AUTO_RETALIATE_STORAGE_KEY = "nhTrainer.autoRetaliate.v1";
-const LEGACY_AUTO_RETALIATE_STORAGE_KEYS = ["source.autoRetaliate.v1"] as const;
-const NH_SOUND_EFFECT_VOLUME_STORAGE_KEY = "nhTrainer.soundEffectVolume.var169.v1";
-const NH_AREA_SOUND_EFFECT_VOLUME_STORAGE_KEY = "nhTrainer.areaSoundEffectVolume.var872.v1";
-const NH_TEST_MUTED_STORAGE_KEY = "nhTrainer.testMuted.v1";
-const NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY = "nhTrainer.temporaryNhStakeSetup.v1";
-const NH_TRAINER_PVP_FIGHT_HISTORY_STORAGE_KEY = "nhTrainer.pvpFightHistory.v1";
-const NH_TRAINER_BROWSER_CLIENT_WINDOW_STORAGE_KEY = "nhTrainer.browserClientWindow.v2";
-const NH_TRAINER_CLIENT_DISPLAY_MODE_STORAGE_KEY = "nhTrainer.clientDisplayMode.v1";
-const NH_TRAINER_PRAYER_REORDER_ENABLED_STORAGE_KEY = "nhTrainer.prayerReorder.enabled.v1";
-const NH_TRAINER_PRAYER_REORDER_ORDER_STORAGE_KEY = "nhTrainer.prayerReorder.order.v1";
-const NH_TRAINER_SPELLBOOK_REORDER_ENABLED_STORAGE_KEY = "nhTrainer.spellbookReorder.enabled.v1";
-const NH_TRAINER_SPELLBOOK_REORDER_ORDERS_STORAGE_KEY = "nhTrainer.spellbookReorder.orders.v1";
 const NH_TRAINER_MANUAL_START_PENDING_TICK = 1_000_000_000;
-const NH_TRAINER_PVP_FIGHT_HISTORY_LIMIT = 50;
-const BROWSER_CLIENT_WINDOW_TITLEBAR_HEIGHT = 24;
-const BROWSER_CLIENT_WINDOW_MIN_WIDTH = 420;
-const BROWSER_CLIENT_WINDOW_MIN_HEIGHT = 300;
 const NH_DEV_SOCIAL_LISTS: NhSocialListsSnapshot = {
   loaded: true,
   friends: [
@@ -2149,61 +1783,6 @@ const NH_DEV_SOCIAL_LISTS: NhSocialListsSnapshot = {
   ],
   ignores: []
 };
-
-function runtimePolicyRecentManualCombatSignal(state: RuntimePlayerCombatState): boolean {
-  const earliestTick = state.tick - 12;
-  return state.events.some((event) => {
-    if (event.tick < earliestTick) {
-      return false;
-    }
-    if (event.kind === "attack") {
-      return runtimePolicyManualCombatPair(event.attackerId, event.defenderId);
-    }
-    if (event.kind === "hitsplat") {
-      return runtimePolicyManualCombatPair(event.attackerId, event.targetActorId);
-    }
-    return false;
-  });
-}
-
-function runtimePolicyRecentManualIncomingPressureSignal(state: RuntimePlayerCombatState): boolean {
-  const earliestTick = state.tick - 12;
-  return state.events.some((event) => {
-    if (event.tick < earliestTick) {
-      return false;
-    }
-    if (event.kind === "attack") {
-      return event.attackerId === "local-player" && event.defenderId === "opponent";
-    }
-    if (event.kind === "hitsplat") {
-      return event.attackerId === "local-player" && event.targetActorId === "opponent";
-    }
-    return false;
-  });
-}
-
-function runtimePolicyRecentManualDirectCombatSignal(state: RuntimePlayerCombatState): boolean {
-  const earliestTick = state.tick - 2;
-  return state.events.some((event) => {
-    if (event.tick < earliestTick) {
-      return false;
-    }
-    if (event.kind === "attack") {
-      return runtimePolicyManualCombatPair(event.attackerId, event.defenderId);
-    }
-    if (event.kind === "hitsplat") {
-      return runtimePolicyManualCombatPair(event.attackerId, event.targetActorId);
-    }
-    return false;
-  });
-}
-
-function runtimePolicyManualCombatPair(attackerId: RuntimeActorId, defenderId: RuntimeActorId): boolean {
-  return (
-    (attackerId === "local-player" && defenderId === "opponent") ||
-    (attackerId === "opponent" && defenderId === "local-player")
-  );
-}
 const NH_DEV_CLAN_CHAT: NhClanChatSnapshot = {
   active: true,
   displayName: "Nh",
@@ -2291,10 +1870,6 @@ const RUNELITE_RESIZABLE_VIEWPORT_WIDGET_CHILD_ID = 12;
 const RUNELITE_XP_DROP_TEXT_COLOR = "#ffff40";
 const RUNELITE_XP_DROP_DURATION_CLIENT_CYCLES = 120;
 const RUNELITE_XP_DROP_STACK_MIN_PANEL_HEIGHT = 100;
-const NH_ACTOR_TILE_CLIENT_UNITS = 128;
-const NH_ACTOR_ORIENTATION_UNITS = 2048;
-const NH_ACTOR_TURN_SPEED_UNITS = 32;
-const NH_ACTOR_TURN_ANIMATION_DELAY_TICKS = 25;
 const RUNELITE_OVERLAY_MENU_OPCODE = 1501;
 const RUNELITE_OVERLAY_CONFIG_MENU_OPCODE_SOURCE = "MenuOpcode.RUNELITE_OVERLAY(1501) wraps OverlayMenuEntry RUNELITE_OVERLAY_CONFIG";
 const RUNELITE_FIGHT_START_OVERLAY_NAME = "TrainerStartOverlay";
@@ -3299,1391 +2874,6 @@ function renderRuntimeBoundary(boundary: RuntimeSceneBoundary): void {
   boundary.renderer.setScissorTest(false);
 }
 
-function manualActorFromSnapshot(
-  snapshot: RuntimeSceneSnapshot,
-  actorId: RuntimeActorId = "local-player",
-  markerLabel = actorId === "local-player" ? "local control" : "opponent"
-): ManualActorState {
-  const localPose = snapshot.actors.find((pose) => pose.actorId === actorId) ?? snapshot.actors[0];
-  const orientationUnits = localPose.orientationUnits ?? nhFacingDegreesToOrientationUnits(localPose.facingDegrees);
-  const rotationUnits = localPose.rotationUnits ?? orientationUnits;
-  return {
-    tile: localPose.tile,
-    renderTile: localPose.renderTile ?? localPose.tile,
-    routeWaypoints: [],
-    routeTraversalModes: [],
-    serverRouteWaypoints: [],
-    serverRouteTraversalModes: [],
-    serverRouteVisualQueued: false,
-    clientPosition: null,
-    logicalClientPosition: null,
-    logicalRouteWaypoints: [],
-    logicalRouteTraversalModes: [],
-    lastMovementClientCycle: null,
-    clientTargetIndexUntilClientCycle: 0,
-    movementStallTicks: 0,
-    sequencePathLengthAtStart: 0,
-    activeSequenceKey: null,
-    completedSequenceKey: null,
-    primaryFrame: 0,
-    primaryFrameCycle: 0,
-    primarySequenceLoops: 0,
-    primarySequenceCycle: 0,
-    primarySequenceDelayCycles: 0,
-    movementBlockedBySequence: false,
-    movementFrame: 0,
-    movementFrameCycle: 0,
-    orientationUnits,
-    rotationUnits,
-    turnTicks: 0,
-    running: snapshot.hud.running ?? true,
-    loadoutId: localPose.loadoutId,
-    appearance: localPose.appearance,
-    sequenceName: "idle",
-    facingDegrees: localPose.facingDegrees,
-    markerLabel,
-    animationCycle: 0
-  };
-}
-
-function snapManualActorToCollision(actor: ManualActorState, collision: NhSceneCollision): ManualActorState {
-  const tile = collision.snapTile(actor.tile);
-  return {
-    ...actor,
-    tile,
-    renderTile: tile,
-    clientPosition: nhClientPositionFromRuntimeTile(tile),
-    logicalClientPosition: nhClientPositionFromRuntimeTile(tile),
-    logicalRouteWaypoints: [],
-    logicalRouteTraversalModes: [],
-    routeWaypoints: [],
-    routeTraversalModes: [],
-    serverRouteWaypoints: [],
-    serverRouteTraversalModes: [],
-    serverRouteVisualQueued: false,
-    clientTargetIndexUntilClientCycle: 0,
-    movementBlockedBySequence: false
-  };
-}
-
-function teleportManualActorToTile(actor: ManualActorState, tile: RuntimeTile): ManualActorState {
-  return {
-    ...actor,
-    tile,
-    renderTile: tile,
-    clientPosition: nhClientPositionFromRuntimeTile(tile),
-    logicalClientPosition: nhClientPositionFromRuntimeTile(tile),
-    logicalRouteWaypoints: [],
-    logicalRouteTraversalModes: [],
-    routeWaypoints: [],
-    routeTraversalModes: [],
-    serverRouteWaypoints: [],
-    serverRouteTraversalModes: [],
-    serverRouteVisualQueued: false,
-    clientTargetIndexUntilClientCycle: 0,
-    movementBlockedBySequence: false,
-    movementStallTicks: 0,
-    sequenceName: "idle"
-  };
-}
-
-function manualActorHeldClientRouteStartTile(
-  actor: ManualActorState,
-  fallbackStartTile: RuntimeTile,
-  collision: NhSceneCollision
-): RuntimeTile {
-  const tailTile = actor.routeWaypoints.length > 0
-    ? actor.routeWaypoints[actor.routeWaypoints.length - 1]
-    : null;
-  return collision.snapTile(tailTile ?? fallbackStartTile);
-}
-
-function manualActorHeldLogicalRouteStartTile(
-  actor: ManualActorState,
-  fallbackStartTile: RuntimeTile,
-  collision: NhSceneCollision
-): RuntimeTile {
-  const tailTile = actor.logicalRouteWaypoints.length > 0
-    ? actor.logicalRouteWaypoints[actor.logicalRouteWaypoints.length - 1]
-    : null;
-  return collision.snapTile(tailTile ?? fallbackStartTile);
-}
-
-function routeManualActor(
-  actor: ManualActorState,
-  destinationTile: RuntimeTile,
-  collision: NhSceneCollision,
-  objectPlacement: NhArenaObjectPlacement | undefined,
-  now: number,
-  preserveClientPath = false,
-  deferClientPathUntilServerTick = false
-): ManualActorRouteResult {
-  const startTile = collision.snapTile(actor.tile);
-  const destination = collision.snapTile(destinationTile);
-  const routeSegment = objectPlacement
-    ? findNhObjectRouteWaypoints(startTile, objectPlacement, collision)
-    : findNhTileRouteWaypoints(startTile, destination, collision);
-  const routePath = expandNhManualRoutePath(startTile, routeSegment, collision);
-  const serverRoute = setNhManualServerRoutePath(routePath);
-  const deferredPreservedServerRoute =
-    preserveClientPath && deferClientPathUntilServerTick
-      ? (() => {
-          const heldStartTile = manualActorHeldLogicalRouteStartTile(actor, startTile, collision);
-          const heldRouteSegment = objectPlacement
-            ? findNhObjectRouteWaypoints(heldStartTile, objectPlacement, collision)
-            : findNhTileRouteWaypoints(heldStartTile, destination, collision);
-          const heldRoutePath = expandNhManualRoutePath(heldStartTile, heldRouteSegment, collision);
-          return setNhManualServerRoutePath(heldRoutePath);
-        })()
-      : null;
-  const heldClientRoute =
-    preserveClientPath && !deferClientPathUntilServerTick
-      ? (() => {
-          const heldStartTile = manualActorHeldClientRouteStartTile(actor, startTile, collision);
-          const heldRouteSegment = objectPlacement
-            ? findNhObjectRouteWaypoints(heldStartTile, objectPlacement, collision)
-            : findNhTileRouteWaypoints(heldStartTile, destination, collision);
-          const heldRoutePath = expandNhManualRoutePath(heldStartTile, heldRouteSegment, collision);
-          return enqueueManualActorClientPathSteps(actor, heldRoutePath, actor.running ? 2 : 1);
-        })()
-      : null;
-  const heldLogicalRoute =
-    preserveClientPath && !deferClientPathUntilServerTick
-      ? (() => {
-          const heldStartTile = manualActorHeldLogicalRouteStartTile(actor, startTile, collision);
-          const heldRouteSegment = objectPlacement
-            ? findNhObjectRouteWaypoints(heldStartTile, objectPlacement, collision)
-            : findNhTileRouteWaypoints(heldStartTile, destination, collision);
-          const heldRoutePath = expandNhManualRoutePath(heldStartTile, heldRouteSegment, collision);
-          return enqueueManualActorLogicalClientPathSteps(actor, heldRoutePath, actor.running ? 2 : 1);
-        })()
-      : null;
-  const reached = objectPlacement
-    ? nhSceneObjectRouteReached(startTile, objectPlacement, collision)
-    : sameNhTile(startTile, destination);
-  const clientPosition = manualActorRouteClientPosition(actor, startTile);
-  const lastMovementClientCycle = deferClientPathUntilServerTick && !preserveClientPath
-    ? actor.lastMovementClientCycle
-    : preserveClientPath
-      ? actor.lastMovementClientCycle ?? Math.floor(now / NH_CLIENT_CYCLE_MS)
-      : Math.floor(now / NH_CLIENT_CYCLE_MS);
-  const settlementWaypoints = nhClientSettlementWaypoints(clientPosition, startTile);
-  // Source: Player.method1100() adds new path steps without class329 consuming
-  // the held path while sequence priority/precedence stalls movement.
-  const routeWaypoints = heldClientRoute?.routeWaypoints ?? (
-    deferClientPathUntilServerTick ? actor.routeWaypoints : settlementWaypoints
-  );
-  const routeTraversalModes = heldClientRoute?.routeTraversalModes ?? (
-    deferClientPathUntilServerTick
-      ? actor.routeTraversalModes
-      : settlementWaypoints.map(() => actor.running ? 2 : 1)
-  );
-  const logicalClientPosition = manualActorRouteLogicalClientPosition(actor, startTile);
-  const logicalSettlementWaypoints = nhClientSettlementWaypoints(logicalClientPosition, startTile);
-  const logicalSettlementTraversalModes = logicalSettlementWaypoints.map(() => actor.running ? 2 : 1);
-  const logicalRouteWaypoints = heldLogicalRoute?.logicalRouteWaypoints ?? (
-    deferClientPathUntilServerTick ? actor.logicalRouteWaypoints : logicalSettlementWaypoints
-  );
-  const logicalRouteTraversalModes = heldLogicalRoute?.logicalRouteTraversalModes ?? (
-    deferClientPathUntilServerTick ? actor.logicalRouteTraversalModes : logicalSettlementTraversalModes
-  );
-  // Source: Player.method1100() preserves the local client's path queue even
-  // when a held action sequence keeps the visible model on its old x/y. The
-  // trainer has a split client/server loop, so same-tile return clicks must
-  // carry the preserved path into the next local server tick instead of
-  // collapsing to an empty route from the stale authoritative tile.
-  const preservedServerRoute = preserveClientPath && heldLogicalRoute
-    ? setNhManualServerRouteFromPreservedClientPath(
-        actor,
-        heldLogicalRoute.logicalRouteWaypoints
-      )
-    : null;
-  const nextServerRoute =
-    deferredPreservedServerRoute && deferredPreservedServerRoute.serverRouteWaypoints.length > 0
-      ? deferredPreservedServerRoute
-      : preservedServerRoute && preservedServerRoute.serverRouteWaypoints.length > 0
-      ? preservedServerRoute
-      : serverRoute;
-  if (nextServerRoute.serverRouteWaypoints.length === 0) {
-    return {
-      actor: {
-        ...actor,
-        tile: startTile,
-        renderTile: actor.renderTile,
-        clientPosition,
-        logicalClientPosition,
-        logicalRouteWaypoints,
-        logicalRouteTraversalModes,
-        lastMovementClientCycle,
-        routeWaypoints,
-        routeTraversalModes,
-        serverRouteWaypoints: [],
-        serverRouteTraversalModes: [],
-        serverRouteVisualQueued: false,
-        movementStallTicks: actor.movementStallTicks,
-        sequenceName: routeWaypoints.length > 0 || deferClientPathUntilServerTick ? actor.sequenceName : "idle"
-      },
-      reached
-    };
-  }
-
-  return {
-    actor: {
-      ...actor,
-      tile: startTile,
-      renderTile: actor.renderTile,
-      clientPosition,
-      logicalClientPosition,
-      logicalRouteWaypoints,
-      logicalRouteTraversalModes,
-      lastMovementClientCycle,
-      routeWaypoints,
-      routeTraversalModes,
-      serverRouteWaypoints: nextServerRoute.serverRouteWaypoints,
-      serverRouteTraversalModes: nextServerRoute.serverRouteTraversalModes,
-      serverRouteVisualQueued: preserveClientPath && !deferClientPathUntilServerTick,
-      movementStallTicks: actor.movementStallTicks,
-      sequenceName: actor.sequenceName
-    },
-    reached: true
-  };
-}
-
-function routeManualActorToTarget(
-  actor: ManualActorState,
-  targetTile: RuntimeTile,
-  attackRange: number,
-  collision: NhSceneCollision,
-  now: number,
-  preserveVisualSettlement = true,
-  preserveClientPath = false
-): ManualActorRouteResult {
-  const startTile = collision.snapTile(actor.tile);
-  const routeSegment = findNhTargetRouteWaypoints(startTile, targetTile, attackRange, collision);
-  const routePath = expandNhManualRoutePath(startTile, routeSegment, collision);
-  const serverRoute = setNhManualServerRoutePath(routePath);
-  // Source: TargetRoute.beforeMovement() rewrites the server Movement path; the
-  // client still only receives accepted movement updates through Player.method1111().
-  // While an action sequence is holding class329, keep the already-held client
-  // buffer instead of preloading the whole recomputed route into the visual path.
-  const heldClientRoute =
-    preserveClientPath
-      ? {
-          routeWaypoints: actor.routeWaypoints,
-          routeTraversalModes: actor.routeTraversalModes
-        }
-      : null;
-  const heldLogicalRoute =
-    preserveClientPath
-      ? {
-          logicalRouteWaypoints: actor.logicalRouteWaypoints,
-          logicalRouteTraversalModes: actor.logicalRouteTraversalModes
-        }
-      : null;
-  const reached = nhSceneTargetRouteReached(startTile, targetTile, attackRange, collision);
-  const clientPosition = manualActorRouteClientPosition(actor, startTile);
-  const lastMovementClientCycle = preserveClientPath
-    ? actor.lastMovementClientCycle
-    : Math.floor(now / NH_CLIENT_CYCLE_MS);
-  const settlementWaypoints = nhClientSettlementWaypoints(clientPosition, startTile);
-  // Source: RouteFinder.route() rewrites Movement.readOffset/writeOffset from
-  // the actor's current server tile on each TargetRoute.beforeMovement() pass.
-  // TargetRoute-driven melee/range/mage routes consume their first server step
-  // before PlayerCombat.attack(); when that caller immediately advances the
-  // server route, do not visually settle back to the previous tile first.
-  const routeWaypoints = heldClientRoute?.routeWaypoints ?? (
-    preserveVisualSettlement
-      ? settlementWaypoints
-      : []
-  );
-  const routeTraversalModes = heldClientRoute?.routeTraversalModes ??
-    routeWaypoints.map(() => actor.running ? 2 : 1);
-  const logicalClientPosition = manualActorRouteLogicalClientPosition(actor, startTile);
-  const logicalSettlementWaypoints = nhClientSettlementWaypoints(logicalClientPosition, startTile);
-  const logicalSettlementTraversalModes = logicalSettlementWaypoints.map(() => actor.running ? 2 : 1);
-  const logicalRouteWaypoints = heldLogicalRoute?.logicalRouteWaypoints ?? logicalSettlementWaypoints;
-  const logicalRouteTraversalModes = heldLogicalRoute?.logicalRouteTraversalModes ?? logicalSettlementTraversalModes;
-  const nextServerRoute = serverRoute;
-  if (nextServerRoute.serverRouteWaypoints.length === 0) {
-    return {
-      actor: {
-        ...actor,
-        tile: startTile,
-        renderTile: actor.renderTile,
-        clientPosition,
-        logicalClientPosition,
-        logicalRouteWaypoints,
-        logicalRouteTraversalModes,
-        lastMovementClientCycle,
-        routeWaypoints,
-        routeTraversalModes,
-        serverRouteWaypoints: [],
-        serverRouteTraversalModes: [],
-        serverRouteVisualQueued: false,
-        movementStallTicks: actor.movementStallTicks,
-        sequenceName: routeWaypoints.length > 0 ? actor.sequenceName : "idle"
-      },
-      reached
-    };
-  }
-
-  return {
-    actor: {
-      ...actor,
-      tile: startTile,
-      renderTile: actor.renderTile,
-      clientPosition,
-      logicalClientPosition,
-      logicalRouteWaypoints,
-      logicalRouteTraversalModes,
-      lastMovementClientCycle,
-      routeWaypoints,
-      routeTraversalModes,
-      serverRouteWaypoints: nextServerRoute.serverRouteWaypoints,
-      serverRouteTraversalModes: nextServerRoute.serverRouteTraversalModes,
-      serverRouteVisualQueued: false,
-      movementStallTicks: actor.movementStallTicks,
-      sequenceName: actor.sequenceName
-    },
-    reached: true
-  };
-}
-
-function manualActorRouteClientPosition(actor: ManualActorState, startTile: RuntimeTile): RuntimeClientPosition {
-  return actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile ?? startTile);
-}
-
-function manualActorRouteLogicalClientPosition(actor: ManualActorState, startTile: RuntimeTile): RuntimeClientPosition {
-  return actor.logicalClientPosition ??
-    actor.clientPosition ??
-    nhClientPositionFromRuntimeTile(actor.renderTile ?? startTile);
-}
-
-function nhClientSettlementWaypoints(
-  clientPosition: RuntimeClientPosition,
-  authoritativeTile: RuntimeTile
-): readonly RuntimeTile[] {
-  const targetPosition = nhClientPositionFromRuntimeTile(authoritativeTile);
-  if (clientPosition.x === targetPosition.x && clientPosition.z === targetPosition.z) {
-    return [];
-  }
-
-  const waypoints: RuntimeTile[] = [];
-  let x = clientPosition.x;
-  let z = clientPosition.z;
-  while ((x !== targetPosition.x || z !== targetPosition.z) && waypoints.length < NH_CLIENT_ROUTE_BUFFER_LIMIT) {
-    x = nhMoveClientAxis(x, targetPosition.x, NH_ACTOR_TILE_CLIENT_UNITS);
-    z = nhMoveClientAxis(z, targetPosition.z, NH_ACTOR_TILE_CLIENT_UNITS);
-    waypoints.push(runtimeTileFromNhClientPosition({ x, z }));
-  }
-  return waypoints;
-}
-
-function expandNhManualRoutePath(
-  startTile: RuntimeTile,
-  routeSegment: readonly RuntimeTile[],
-  collision: NhSceneCollision
-): readonly RuntimeTile[] {
-  const path: RuntimeTile[] = [];
-  let currentTile = collision.snapTile(startTile);
-  for (const waypoint of routeSegment) {
-    while (!sameNhTile(currentTile, waypoint)) {
-      const nextTile = nhStepTowardWaypoint(currentTile, waypoint);
-      if (!collision.canStep(currentTile, nextTile)) {
-        return path;
-      }
-      path.push(nextTile);
-      currentTile = nextTile;
-    }
-  }
-  return path;
-}
-
-function setNhManualServerRoutePath(
-  routePath: readonly RuntimeTile[]
-): Pick<ManualActorState, "serverRouteWaypoints" | "serverRouteTraversalModes"> {
-  if (routePath.length === 0) {
-    return {
-      serverRouteWaypoints: [],
-      serverRouteTraversalModes: []
-    };
-  }
-
-  return {
-    serverRouteWaypoints: routePath,
-    serverRouteTraversalModes: routePath.map(() => 1)
-  };
-}
-
-function nhClientPathUpdateFromAcceptedServerSteps(
-  enqueuedWaypoints: readonly RuntimeTile[],
-  traversalMode: number
-): Pick<ManualActorState, "routeWaypoints" | "routeTraversalModes"> {
-  if (enqueuedWaypoints.length === 0) {
-    return {
-      routeWaypoints: [],
-      routeTraversalModes: []
-    };
-  }
-  // Source: Player.method1111() handles a run update by calling class4.method65()
-  // before method1100(). That resolves and queues the intermediate path tile, then
-  // queues the final run tile, with pathTraversed set to 2 for both entries.
-  return {
-    routeWaypoints: enqueuedWaypoints,
-    routeTraversalModes: enqueuedWaypoints.map(() => traversalMode)
-  };
-}
-
-function setNhManualServerRouteFromPreservedClientPath(
-  actor: ManualActorState,
-  preservedWaypoints: readonly RuntimeTile[]
-): Pick<ManualActorState, "serverRouteWaypoints" | "serverRouteTraversalModes"> {
-  const routePath = preservedWaypoints.filter((waypoint, index) =>
-    index > 0 || !sameNhTile(waypoint, actor.tile)
-  );
-  return setNhManualServerRoutePath(routePath);
-}
-
-function advanceManualActorServerRouteTick(
-  actor: ManualActorState,
-  acceptedClientCycle: number | null = null
-): ManualActorState {
-  if (actor.serverRouteWaypoints.length === 0) {
-    return actor.serverRouteVisualQueued ? { ...actor, serverRouteVisualQueued: false } : actor;
-  }
-  const sourceTickStepCount = actor.running && actor.serverRouteWaypoints.length > 1 ? 2 : 1;
-  const enqueueCount = Math.min(sourceTickStepCount, actor.serverRouteWaypoints.length);
-  const enqueuedWaypoints = actor.serverRouteWaypoints.slice(0, enqueueCount);
-  const traversalMode = sourceTickStepCount > 1 ? 2 : 1;
-  const clientUpdate = nhClientPathUpdateFromAcceptedServerSteps(enqueuedWaypoints, traversalMode);
-  const route = actor.serverRouteVisualQueued
-    ? {
-      routeWaypoints: actor.routeWaypoints,
-      routeTraversalModes: actor.routeTraversalModes
-    }
-    : enqueueManualActorClientPathSteps(actor, clientUpdate.routeWaypoints, traversalMode);
-  const logicalRoute = actor.serverRouteVisualQueued
-    ? {
-      logicalRouteWaypoints: actor.logicalRouteWaypoints,
-      logicalRouteTraversalModes: actor.logicalRouteTraversalModes
-    }
-    : enqueueManualActorLogicalClientPathSteps(actor, clientUpdate.routeWaypoints, traversalMode);
-  const remainingServerRouteWaypoints = actor.serverRouteWaypoints.slice(enqueueCount);
-  const acceptedMovementCursor =
-    acceptedClientCycle === null ? null : Math.max(0, acceptedClientCycle - 1);
-  const lastMovementClientCycle =
-    acceptedMovementCursor === null
-      ? actor.lastMovementClientCycle
-      : Math.max(actor.lastMovementClientCycle ?? acceptedMovementCursor, acceptedMovementCursor);
-  return {
-    ...actor,
-    tile: enqueuedWaypoints[enqueuedWaypoints.length - 1] ?? actor.tile,
-    routeWaypoints: route.routeWaypoints,
-    routeTraversalModes: route.routeTraversalModes,
-    logicalRouteWaypoints: logicalRoute.logicalRouteWaypoints,
-    logicalRouteTraversalModes: logicalRoute.logicalRouteTraversalModes,
-    serverRouteWaypoints: remainingServerRouteWaypoints,
-    serverRouteTraversalModes: actor.serverRouteTraversalModes.slice(enqueueCount),
-    serverRouteVisualQueued: actor.serverRouteVisualQueued && remainingServerRouteWaypoints.length > 0,
-    // Source: Player.method1100() writes path steps during the player update,
-    // before class329.method6315() processes actors for that Client.cycle. Stamp
-    // the cursor to the cycle immediately before the update so the accepted
-    // cycle can either stall into field687 or consume normally. Newly accepted
-    // steps must not spend pre-update client-cycle backlog.
-    // this cursor mirrors Client.cycle and must never move backwards.
-    lastMovementClientCycle
-  };
-}
-
-function advanceManualActorTargetRouteTick(
-  actor: ManualActorState,
-  acceptedClientCycle: number | null = null
-): ManualActorState {
-  if (actor.serverRouteWaypoints.length === 0) {
-    return actor;
-  }
-  const sourceTickStepCount = actor.running && actor.serverRouteWaypoints.length > 1 ? 2 : 1;
-  const enqueueCount = Math.min(sourceTickStepCount, actor.serverRouteWaypoints.length);
-  const enqueuedWaypoints = actor.serverRouteWaypoints.slice(0, enqueueCount);
-  const traversalMode = sourceTickStepCount > 1 ? 2 : 1;
-  const clientUpdate = nhClientPathUpdateFromAcceptedServerSteps(enqueuedWaypoints, traversalMode);
-  const clientPosition = actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile ?? actor.tile);
-  const settlementWaypoints = nhClientSettlementWaypoints(clientPosition, actor.tile);
-  const settlementTraversalModes = settlementWaypoints.map(() => actor.running ? 2 : 1);
-  const targetRouteWaypoints = [...settlementWaypoints, ...clientUpdate.routeWaypoints];
-  const targetRouteTraversalModes = [
-    ...settlementTraversalModes,
-    ...clientUpdate.routeTraversalModes
-  ];
-  // Source: TargetRoute.beforeMovement() rewrites Movement steps before each
-  // movement pass. The source client then receives the fresh accepted movement
-  // path; an older click-away/client tail must not sit ahead of the pull-in step.
-  const compressedRoute = compressManualActorTargetRouteClientPath(
-    clientPosition,
-    targetRouteWaypoints,
-    targetRouteTraversalModes,
-    enqueueCount
-  );
-  const logicalClientPosition = manualActorRouteLogicalClientPosition(actor, actor.tile);
-  const logicalSettlementWaypoints = nhClientSettlementWaypoints(logicalClientPosition, actor.tile);
-  const logicalTargetRouteWaypoints = [...logicalSettlementWaypoints, ...clientUpdate.routeWaypoints];
-  const logicalTargetRouteTraversalModes = [
-    ...logicalSettlementWaypoints.map(() => actor.running ? 2 : 1),
-    ...clientUpdate.routeTraversalModes
-  ];
-  const logicalRoute = setManualActorLogicalClientPath(
-    logicalClientPosition,
-    logicalTargetRouteWaypoints,
-    logicalTargetRouteTraversalModes,
-    enqueueCount
-  );
-  const acceptedMovementCursor =
-    acceptedClientCycle === null ? null : Math.max(0, acceptedClientCycle - 1);
-  const lastMovementClientCycle =
-    acceptedMovementCursor === null
-      ? actor.lastMovementClientCycle
-      : Math.max(actor.lastMovementClientCycle ?? acceptedMovementCursor, acceptedMovementCursor);
-  return {
-    ...actor,
-    tile: enqueuedWaypoints[enqueuedWaypoints.length - 1] ?? actor.tile,
-    routeWaypoints: compressedRoute.routeWaypoints,
-    routeTraversalModes: compressedRoute.routeTraversalModes,
-    logicalClientPosition,
-    logicalRouteWaypoints: logicalRoute.logicalRouteWaypoints,
-    logicalRouteTraversalModes: logicalRoute.logicalRouteTraversalModes,
-    serverRouteWaypoints: [],
-    serverRouteTraversalModes: [],
-    serverRouteVisualQueued: false,
-    // Source: TargetRoute.beforeMovement() still reaches the client as a
-    // player-update path write before class329's actor pass on that same client
-    // cycle; avoid pre-update backlog while still allowing the accepted cycle.
-    lastMovementClientCycle
-  };
-}
-
-function compressManualActorTargetRouteClientPath(
-  clientPosition: RuntimeClientPosition,
-  routeWaypoints: readonly RuntimeTile[],
-  routeTraversalModes: readonly number[],
-  preservedTailCount = 0
-): Pick<ManualActorState, "routeWaypoints" | "routeTraversalModes"> {
-  void clientPosition;
-  void preservedTailCount;
-  if (routeWaypoints.length <= NH_CLIENT_ROUTE_BUFFER_LIMIT) {
-    return { routeWaypoints, routeTraversalModes };
-  }
-
-  // Source: Player.method1100() keeps a fixed pathX/pathY buffer by shifting in
-  // the newest step at index 0. It does not geometry-compress loops, so a
-  // forward/back click sequence during a held action must survive exactly.
-  const startIndex = routeWaypoints.length - NH_CLIENT_ROUTE_BUFFER_LIMIT;
-  return {
-    routeWaypoints: routeWaypoints.slice(startIndex),
-    routeTraversalModes: routeTraversalModes.slice(startIndex)
-  };
-}
-
-function enqueueManualActorClientPathSteps(
-  actor: ManualActorState,
-  nextSteps: readonly RuntimeTile[],
-  traversalMode: number
-): Pick<ManualActorState, "routeWaypoints" | "routeTraversalModes"> {
-  const clientPosition = actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile ?? actor.tile);
-  const routeWaypoints = [...actor.routeWaypoints, ...nextSteps];
-  const routeTraversalModes = [
-    ...actor.routeTraversalModes,
-    ...Array.from({ length: nextSteps.length }, () => traversalMode)
-  ];
-  return compressManualActorTargetRouteClientPath(
-    clientPosition,
-    routeWaypoints,
-    routeTraversalModes,
-    nextSteps.length
-  );
-}
-
-function setManualActorLogicalClientPath(
-  logicalClientPosition: RuntimeClientPosition,
-  nextSteps: readonly RuntimeTile[],
-  traversalModes: readonly number[],
-  preservedTailCount = 0
-): Pick<ManualActorState, "logicalRouteWaypoints" | "logicalRouteTraversalModes"> {
-  const route = compressManualActorTargetRouteClientPath(
-    logicalClientPosition,
-    nextSteps,
-    traversalModes,
-    preservedTailCount
-  );
-  return {
-    logicalRouteWaypoints: route.routeWaypoints,
-    logicalRouteTraversalModes: route.routeTraversalModes
-  };
-}
-
-function enqueueManualActorLogicalClientPathSteps(
-  actor: ManualActorState,
-  nextSteps: readonly RuntimeTile[],
-  traversalMode: number
-): Pick<ManualActorState, "logicalRouteWaypoints" | "logicalRouteTraversalModes"> {
-  const logicalClientPosition = manualActorRouteLogicalClientPosition(actor, actor.tile);
-  return setManualActorLogicalClientPath(
-    logicalClientPosition,
-    [...actor.logicalRouteWaypoints, ...nextSteps],
-    [
-      ...actor.logicalRouteTraversalModes,
-      ...Array.from({ length: nextSteps.length }, () => traversalMode)
-    ],
-    nextSteps.length
-  );
-}
-
-function nhStepTowardWaypoint(fromTile: RuntimeTile, waypoint: RuntimeTile): RuntimeTile {
-  const deltaX = Math.sign(Math.round((waypoint.x - fromTile.x) / NH_TILE_WORLD_UNITS));
-  const deltaZ = Math.sign(Math.round((waypoint.z - fromTile.z) / NH_TILE_WORLD_UNITS));
-  return {
-    x: fromTile.x + deltaX * NH_TILE_WORLD_UNITS,
-    z: fromTile.z + deltaZ * NH_TILE_WORLD_UNITS
-  };
-}
-
-function sameNhTile(left: RuntimeTile, right: RuntimeTile): boolean {
-  return left.x === right.x && left.z === right.z;
-}
-
-function runtimeSequenceIsMovement(sequenceName: RuntimeSequenceName): boolean {
-  return sequenceName === "walk" ||
-    sequenceName === "run" ||
-    sequenceName === "turn" ||
-    sequenceName === "walk_back" ||
-    sequenceName === "walk_left" ||
-    sequenceName === "walk_right" ||
-    sequenceName.endsWith("_walk") ||
-    sequenceName.endsWith("_turn") ||
-    sequenceName.endsWith("_walk_back") ||
-    sequenceName.endsWith("_walk_left") ||
-    sequenceName.endsWith("_walk_right") ||
-    sequenceName.endsWith("_run");
-}
-
-function runtimeSequenceIsWeaponReady(sequenceName: RuntimeSequenceName): boolean {
-  return sequenceName.endsWith("_ready");
-}
-
-function manualActorHasPendingMovement(actor: ManualActorState): boolean {
-  return actor.routeWaypoints.length > 0 || actor.serverRouteWaypoints.length > 0;
-}
-
-function manualActorHasHeldActionMovement(actor: ManualActorState): boolean {
-  return actor.activeSequenceKey !== null ||
-    actor.movementBlockedBySequence ||
-    actor.movementStallTicks > 0 ||
-    manualActorHasPendingMovement(actor) ||
-    actor.logicalRouteWaypoints.length > 0 ||
-    actor.serverRouteVisualQueued;
-}
-
-function clearManualActorMovementRoute(actor: ManualActorState): ManualActorState {
-  // Source: Entity.freeze() calls Movement.reset(), which clears queued steps without rewriting Position.
-  // The client still has to settle smoothly to
-  // that last accepted server tile, otherwise the next post-freeze route starts
-  // from a hidden authoritative tile and visibly snaps.
-  const clientPosition = actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile);
-  const settlementWaypoints = nhClientSettlementWaypoints(clientPosition, actor.tile);
-  const logicalClientPosition = manualActorRouteLogicalClientPosition(actor, actor.tile);
-  const logicalSettlementWaypoints = nhClientSettlementWaypoints(logicalClientPosition, actor.tile);
-  return {
-    ...actor,
-    renderTile: runtimeTileFromNhClientPosition(clientPosition),
-    routeWaypoints: settlementWaypoints,
-    routeTraversalModes: settlementWaypoints.map(() => actor.running ? 2 : 1),
-    logicalClientPosition,
-    logicalRouteWaypoints: logicalSettlementWaypoints,
-    logicalRouteTraversalModes: logicalSettlementWaypoints.map(() => actor.running ? 2 : 1),
-    serverRouteWaypoints: [],
-    serverRouteTraversalModes: [],
-    serverRouteVisualQueued: false,
-    clientPosition,
-    movementStallTicks: 0,
-    sequencePathLengthAtStart: 0,
-    movementBlockedBySequence: false,
-    sequenceName: runtimeSequenceIsMovement(actor.sequenceName) ? "idle" : actor.sequenceName
-  };
-}
-
-function stopManualActorMovementIfMovementGated(
-  actor: ManualActorState,
-  combatActor: RuntimePlayerCombatActorState,
-  tick: number
-): ManualActorState {
-  return movementGate(combatActor.locks, tick).blocked ? clearManualActorMovementRoute(actor) : actor;
-}
-
-function syncManualActorServerTileToCombatActor(
-  actor: ManualActorState,
-  combatActor: RuntimePlayerCombatActorState
-): ManualActorState {
-  if (sameNhTile(actor.tile, combatActor.tile)) {
-    return actor;
-  }
-
-  // Source: Entity.freeze() calls Movement.reset() during the earlier PID
-  // player's process. If the visual/manual tick had already staged a later
-  // actor's step, snap the authoritative server tile back and let the client
-  // settle to it instead of leaving an impossible frozen-under position.
-  return clearManualActorMovementRoute({
-    ...actor,
-    tile: combatActor.tile
-  });
-}
-
-function manualActorHasActiveCombatTargetRoute(input: {
-  readonly combatActor: RuntimePlayerCombatActorState;
-  readonly targetActorId: RuntimeActorId;
-  readonly targetCombatActor: RuntimePlayerCombatActorState;
-  readonly tick: number;
-}): boolean {
-  return (
-    input.combatActor.targetId === input.targetActorId &&
-    !isRuntimePlayerCombatActorDead(input.combatActor, input.tick) &&
-    !isRuntimePlayerCombatActorDead(input.targetCombatActor, input.tick)
-  );
-}
-
-function preAttackRouteManualActorToCombatTarget(input: {
-  readonly actorId: RuntimeActorId;
-  readonly actor: ManualActorState;
-  readonly combatActor: RuntimePlayerCombatActorState;
-  readonly targetActorId: RuntimeActorId;
-  readonly targetActor: ManualActorState;
-  readonly targetCombatActor: RuntimePlayerCombatActorState;
-  readonly collision: NhSceneCollision;
-  readonly tick: number;
-  readonly now: number;
-  readonly acceptedClientCycle: number;
-  readonly movedThisTick: boolean;
-}): ManualActorState {
-  if (
-    input.movedThisTick ||
-    !manualActorHasActiveCombatTargetRoute(input)
-  ) {
-    return input.actor;
-  }
-
-  const profile = runtimePlayerCombatTargetRouteProfile(input.actorId, input.combatActor);
-  if (movementGate(input.combatActor.locks, input.tick).blocked) {
-    return clearManualActorMovementRoute(input.actor);
-  }
-
-  if (nhSceneTargetRouteReached(input.actor.tile, input.targetActor.tile, profile.attackRange, input.collision)) {
-    return {
-      ...input.actor,
-      serverRouteWaypoints: [],
-      serverRouteTraversalModes: [],
-      serverRouteVisualQueued: false
-    };
-  }
-
-  // Source: Nh Player.process() runs combat.preAttack(), TargetRoute.beforeMovement(), movement.process(),
-  // TargetRoute.afterMovement(), then combat.attack(); target-route movement is consumed before the attack gate,
-  // even when the first step has not reached attack range yet.
-  const routed = routeManualActorToTarget(input.actor, input.targetActor.tile, profile.attackRange, input.collision, input.now, false);
-  // Source: TargetRoute.beforeMovement() recomputes RouteFinder.routeEntity() each tick before Movement.process().
-  // Only this tick's walk/run step survives; carrying the remaining target-route tail into the next tick makes
-  // melee pathing use stale waypoints instead of the freshly recomputed entity route.
-  return advanceManualActorTargetRouteTick(routed.actor, input.acceptedClientCycle);
-}
-
-function runtimeCombatProjectileLineOfSight(input: {
-  readonly actorId: RuntimeActorId;
-  readonly actor: ManualActorState;
-  readonly combatActor: RuntimePlayerCombatActorState;
-  readonly targetActor: ManualActorState;
-  readonly collision: NhSceneCollision;
-}): boolean {
-  const profile = runtimePlayerCombatTargetRouteProfile(input.actorId, input.combatActor);
-  return profile.melee || nhSceneProjectileRouteClear(input.actor.tile, input.targetActor.tile, input.collision);
-}
-
-function runtimeManualPolicyCanAttackSignal(input: {
-  readonly attacker: RuntimePlayerCombatActorState;
-  readonly target: RuntimePlayerCombatActorState;
-  readonly tick: number;
-  readonly collision: NhSceneCollision | null;
-}): boolean {
-  if (!canAttackThroughLock(input.attacker.locks, input.tick)) {
-    return false;
-  }
-
-  if (!input.collision) {
-    return true;
-  }
-
-  // Source: PlayerCombat.canAttack() delegates player-vs-player legality to
-  // Wilderness.allowAttack(); in the trainer this is the combat-tile listener
-  // check, not an attack-timer/range/line-of-sight gate.
-  return (
-    nhNhBotCombatTileAllowed(input.collision.sceneToWorldTile(input.attacker.tile)) &&
-    nhNhBotCombatTileAllowed(input.collision.sceneToWorldTile(input.target.tile))
-  );
-}
-
-function runtimeLoadoutWeaponTypeId(
-  loadoutId: RuntimeLoadoutId,
-  equipmentDefinitions: NhInventoryEquipmentDefinitionStore,
-  equipment?: VisibleEquipment
-): string | null {
-  const weaponItemId = equipment?.weapon?.itemId ?? nhLoadouts[loadoutId].equipment.weapon?.itemId;
-  return weaponItemId === undefined ? null : equipmentDefinitions.get(weaponItemId)?.weaponType ?? null;
-}
-
-function nhWeaponRenderSequenceName(
-  loadoutId: RuntimeLoadoutId,
-  renderAnimationIndex: 0 | 1 | 2 | 3 | 4 | 5 | 6,
-  equipmentDefinitions: NhInventoryEquipmentDefinitionStore,
-  weaponTypeDefinitions: NhWeaponTypeDefinitionStore,
-  actorSequenceDefinitions: NhActorSequenceDefinitionStore,
-  equipment?: VisibleEquipment
-): RuntimeSequenceName {
-  const weaponTypeId = runtimeLoadoutWeaponTypeId(loadoutId, equipmentDefinitions, equipment);
-  const sequenceId = weaponTypeId ? weaponTypeDefinitions.get(weaponTypeId)?.renderAnimations[renderAnimationIndex] : undefined;
-  return nhRuntimeSequenceNameForId(sequenceId, actorSequenceDefinitions) ?? (
-    renderAnimationIndex === 1 ? "turn" :
-      renderAnimationIndex === 2 ? "walk" :
-        renderAnimationIndex === 3 ? "walk_back" :
-          renderAnimationIndex === 4 ? "walk_left" :
-            renderAnimationIndex === 5 ? "walk_right" :
-              renderAnimationIndex === 6 ? "run" : "idle"
-  );
-}
-
-function manualActorWeaponRenderAnimationIndex(sequenceName: RuntimeSequenceName): 0 | 1 | 2 | 3 | 4 | 5 | 6 | null {
-  if (sequenceName === "idle" || runtimeSequenceIsWeaponReady(sequenceName)) {
-    return 0;
-  }
-  if (sequenceName === "turn" || sequenceName.endsWith("_turn")) {
-    return 1;
-  }
-  if (sequenceName === "walk") {
-    return 2;
-  }
-  if (sequenceName === "walk_back" || sequenceName.endsWith("_walk_back")) {
-    return 3;
-  }
-  if (sequenceName === "walk_left" || sequenceName.endsWith("_walk_left")) {
-    return 4;
-  }
-  if (sequenceName === "walk_right" || sequenceName.endsWith("_walk_right")) {
-    return 5;
-  }
-  if (sequenceName === "run" || sequenceName.endsWith("_run")) {
-    return 6;
-  }
-  if (sequenceName.endsWith("_walk")) {
-    return 2;
-  }
-  return null;
-}
-
-function manualActorBaseSequenceName(
-  sequenceName: RuntimeSequenceName,
-  loadoutId?: RuntimeLoadoutId,
-  equipmentDefinitions: NhInventoryEquipmentDefinitionStore = new Map(),
-  weaponTypeDefinitions: NhWeaponTypeDefinitionStore = new Map(),
-  actorSequenceDefinitions: NhActorSequenceDefinitionStore = createNhActorSequenceDefinitionStore(null),
-  equipment?: VisibleEquipment
-): RuntimeSequenceName {
-  const weaponRenderAnimationIndex = manualActorWeaponRenderAnimationIndex(sequenceName);
-  if (!loadoutId) {
-    if (weaponRenderAnimationIndex !== null && sequenceName !== "idle" && !runtimeSequenceIsMovement(sequenceName)) {
-      return sequenceName;
-    }
-    return runtimeSequenceIsMovement(sequenceName) ? sequenceName : "idle";
-  }
-  if (weaponRenderAnimationIndex !== null) {
-    return nhWeaponRenderSequenceName(
-      loadoutId,
-      weaponRenderAnimationIndex,
-      equipmentDefinitions,
-      weaponTypeDefinitions,
-      actorSequenceDefinitions,
-      equipment
-    );
-  }
-  return nhWeaponRenderSequenceName(loadoutId, 0, equipmentDefinitions, weaponTypeDefinitions, actorSequenceDefinitions, equipment);
-}
-
-function manualActorVisibleSequenceName(actor: ManualActorState): RuntimeSequenceName {
-  if (actor.movementBlockedBySequence || actor.routeWaypoints.length === 0 || !nhSequenceIsReadyMovement(actor.sequenceName)) {
-    return actor.sequenceName;
-  }
-
-  return nhMovementSequenceNameFromOrientation(actor);
-}
-
-function nhAdvanceMovementFrameCursor(
-  actor: ManualActorState,
-  movementSequenceName: RuntimeSequenceName,
-  animationFixtures: NhAnimationFixtures | null
-): ManualActorState {
-  const sequence = animationFixtures?.sequences.get(movementSequenceName);
-  if (!sequence || sequence.frames.length === 0) {
-    return actor;
-  }
-
-  let movementFrame = Math.max(0, Math.trunc(actor.movementFrame));
-  let movementFrameCycle = Math.max(0, Math.trunc(actor.movementFrameCycle)) + 1;
-  const frameLength = movementFrame < sequence.frames.length
-    ? Math.max(1, sequence.frames[movementFrame].lengthClientCycles)
-    : 1;
-
-  if (movementFrame < sequence.frames.length && movementFrameCycle > frameLength) {
-    movementFrameCycle = 1;
-    movementFrame += 1;
-  }
-
-  if (movementFrame >= sequence.frames.length) {
-    movementFrame = 0;
-    movementFrameCycle = 0;
-  }
-
-  return {
-    ...actor,
-    movementFrame,
-    movementFrameCycle
-  };
-}
-
-function nhMovementFrameCursor(actor: ManualActorState): NhSequenceFrameCursorOverride {
-  return {
-    frameIndex: actor.movementFrame,
-    frameCycle: actor.movementFrameCycle
-  };
-}
-
-function runtimePlayerCombatActionActive(
-  combatActor: RuntimePlayerCombatActorState,
-  combatState: RuntimePlayerCombatState
-): boolean {
-  return combatActor.actionSequenceName !== null && combatState.tick < combatActor.actionUntilTick;
-}
-
-function nhClientPositionFromRuntimeTile(tile: RuntimeTile): RuntimeClientPosition {
-  return {
-    x: Math.round((tile.x / NH_TILE_WORLD_UNITS) * NH_ACTOR_TILE_CLIENT_UNITS),
-    z: Math.round((tile.z / NH_TILE_WORLD_UNITS) * NH_ACTOR_TILE_CLIENT_UNITS)
-  };
-}
-
-function runtimeTileFromNhClientPosition(position: RuntimeClientPosition): RuntimeTile {
-  return {
-    x: Number(((position.x / NH_ACTOR_TILE_CLIENT_UNITS) * NH_TILE_WORLD_UNITS).toFixed(6)),
-    z: Number(((position.z / NH_ACTOR_TILE_CLIENT_UNITS) * NH_TILE_WORLD_UNITS).toFixed(6))
-  };
-}
-
-function normalizeNhOrientationUnits(units: number): number {
-  const integerUnits = Number.isFinite(units) ? Math.trunc(units) : 0;
-  return ((integerUnits % NH_ACTOR_ORIENTATION_UNITS) + NH_ACTOR_ORIENTATION_UNITS) % NH_ACTOR_ORIENTATION_UNITS;
-}
-
-function nhFacingDegreesToOrientationUnits(degrees: number): number {
-  return normalizeNhOrientationUnits((degrees * NH_ACTOR_ORIENTATION_UNITS) / 360 + 1024);
-}
-
-function nhActorModelRotationRadiansFromFacingDegrees(degrees: number): number {
-  const orientationUnits = nhFacingDegreesToOrientationUnits(degrees);
-  return (orientationUnits * Math.PI * 2) / NH_ACTOR_ORIENTATION_UNITS;
-}
-
-function nhOrientationUnitsToFacingDegrees(units: number): number {
-  const degrees = ((normalizeNhOrientationUnits(units) - 1024) * 360) / NH_ACTOR_ORIENTATION_UNITS;
-  return ((degrees + 180) % 360 + 360) % 360 - 180;
-}
-
-function nhOrientationUnitsFromClientDelta(
-  deltaX: number,
-  deltaZ: number,
-  fallbackUnits: number
-): number {
-  if (deltaX > 0) {
-    if (deltaZ > 0) {
-      return 1280;
-    }
-    if (deltaZ < 0) {
-      return 1792;
-    }
-    return 1536;
-  }
-  if (deltaX < 0) {
-    if (deltaZ > 0) {
-      return 768;
-    }
-    if (deltaZ < 0) {
-      return 256;
-    }
-    return 512;
-  }
-  if (deltaZ > 0) {
-    return 1024;
-  }
-  if (deltaZ < 0) {
-    return 0;
-  }
-  return fallbackUnits;
-}
-
-function nhTargetOrientationUnits(
-  position: RuntimeClientPosition,
-  target: RuntimeClientPosition,
-  fallbackUnits: number
-): number {
-  const deltaX = position.x - target.x;
-  const deltaZ = position.z - target.z;
-  if (deltaX === 0 && deltaZ === 0) {
-    return fallbackUnits;
-  }
-  return normalizeNhOrientationUnits(Math.atan2(deltaX, deltaZ) * 325.949);
-}
-
-function signedNhOrientationDelta(targetUnits: number, rotationUnits: number): number {
-  let delta = normalizeNhOrientationUnits(targetUnits - rotationUnits);
-  if (delta > 1024) {
-    delta -= NH_ACTOR_ORIENTATION_UNITS;
-  }
-  return delta;
-}
-
-function nhMoveClientAxis(current: number, target: number, speed: number): number {
-  if (current < target) {
-    return Math.min(current + speed, target);
-  }
-  if (current > target) {
-    return Math.max(current - speed, target);
-  }
-  return current;
-}
-
-function nhManualMovementSpeed(
-  actor: ManualActorState,
-  traversalMode: number,
-  hasCombatTarget: boolean
-): { readonly speed: number; readonly movementStallTicks: number } {
-  return nhManualMovementSpeedForPath(
-    actor,
-    actor.routeWaypoints.length,
-    traversalMode,
-    hasCombatTarget,
-    actor.movementStallTicks
-  );
-}
-
-function nhManualMovementSpeedForPath(
-  actor: Pick<ManualActorState, "rotationUnits" | "orientationUnits">,
-  pathLength: number,
-  traversalMode: number,
-  hasCombatTarget: boolean,
-  movementStallTicks: number
-): { readonly speed: number; readonly movementStallTicks: number } {
-  let speed = 4;
-  if (actor.rotationUnits !== actor.orientationUnits && !hasCombatTarget) {
-    speed = 2;
-  }
-  if (pathLength > 2) {
-    speed = 6;
-  }
-  if (pathLength > 3) {
-    speed = 8;
-  }
-  let nextMovementStallTicks = movementStallTicks;
-  if (nextMovementStallTicks > 0 && pathLength > 1) {
-    speed = 8;
-    nextMovementStallTicks -= 1;
-  }
-  if (traversalMode === 2) {
-    speed <<= 1;
-  }
-  return { speed, movementStallTicks: nextMovementStallTicks };
-}
-
-function manualActorHasClientTargetIndex(
-  actor: ManualActorState,
-  combatActor: RuntimePlayerCombatActorState | null,
-  clientCycle: number
-): boolean {
-  // Source: PlayerCombat.reset() clears the server target immediately, but
-  // faceNone(true) removes the client targetIndex through EntityDirectionUpdate's
-  // delayed stage/reset path. Keep this as an explicit client-side hold, not the
-  // trainer's broader last-target combat memory.
-  return Boolean(
-    (combatActor !== null && combatActor.targetId !== null) ||
-      actor.clientTargetIndexUntilClientCycle >= clientCycle
-  );
-}
-
-function manualActorWithClientTargetIndexHold(
-  actor: ManualActorState,
-  untilClientCycle: number
-): ManualActorState {
-  return {
-    ...actor,
-    clientTargetIndexUntilClientCycle: Math.max(
-      actor.clientTargetIndexUntilClientCycle,
-      untilClientCycle
-    )
-  };
-}
-
-function nhMovementSequenceNameFromOrientation(actor: ManualActorState): RuntimeSequenceName {
-  const delta = signedNhOrientationDelta(actor.orientationUnits, actor.rotationUnits);
-  if (delta >= -256 && delta <= 256) {
-    return "walk";
-  }
-  if (delta >= 256 && delta < 768) {
-    return "walk_right";
-  }
-  if (delta >= -768 && delta <= -256) {
-    return "walk_left";
-  }
-  return "walk_back";
-}
-
-function nhMovementSequenceNameForSpeed(
-  speed: number,
-  movementSequenceName: RuntimeSequenceName
-): RuntimeSequenceName {
-  return speed >= 8 && movementSequenceName === "walk" ? "run" : movementSequenceName;
-}
-
-function nhSequenceIsReadyMovement(sequenceName: RuntimeSequenceName): boolean {
-  return sequenceName === "idle" || runtimeSequenceIsWeaponReady(sequenceName);
-}
-
-function nhTurnSequenceForReadyMovement(
-  sequenceName: RuntimeSequenceName,
-  turnTicks: number,
-  stillTurning: boolean
-): RuntimeSequenceName {
-  return nhSequenceIsReadyMovement(sequenceName) &&
-    (turnTicks > NH_ACTOR_TURN_ANIMATION_DELAY_TICKS || stillTurning)
-    ? "turn"
-    : sequenceName;
-}
-
-function rotateManualActorTowardNhOrientation(
-  actor: ManualActorState,
-  targetActor: ManualActorState | null,
-  hasCombatTarget: boolean
-): ManualActorState {
-  const targetPosition = targetActor
-    ? targetActor.clientPosition ?? nhClientPositionFromRuntimeTile(targetActor.renderTile)
-    : null;
-  const orientationUnits =
-    hasCombatTarget && targetPosition
-      ? nhTargetOrientationUnits(actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile), targetPosition, actor.orientationUnits)
-      : actor.orientationUnits;
-  const delta = normalizeNhOrientationUnits(orientationUnits - actor.rotationUnits);
-  if (delta === 0) {
-    return {
-      ...actor,
-      orientationUnits,
-      turnTicks: 0,
-      facingDegrees: nhOrientationUnitsToFacingDegrees(actor.rotationUnits)
-    };
-  }
-
-  let rotationUnits = actor.rotationUnits;
-  let stillTurning = true;
-  if (delta > 1024) {
-    rotationUnits -= NH_ACTOR_TURN_SPEED_UNITS;
-    if (delta < NH_ACTOR_TURN_SPEED_UNITS || delta > NH_ACTOR_ORIENTATION_UNITS - NH_ACTOR_TURN_SPEED_UNITS) {
-      rotationUnits = orientationUnits;
-      stillTurning = false;
-    }
-  } else {
-    rotationUnits += NH_ACTOR_TURN_SPEED_UNITS;
-    if (delta < NH_ACTOR_TURN_SPEED_UNITS || delta > NH_ACTOR_ORIENTATION_UNITS - NH_ACTOR_TURN_SPEED_UNITS) {
-      rotationUnits = orientationUnits;
-      stillTurning = false;
-    }
-  }
-  rotationUnits = normalizeNhOrientationUnits(rotationUnits);
-  const turnTicks = actor.turnTicks + 1;
-  const sequenceName = nhTurnSequenceForReadyMovement(actor.sequenceName, turnTicks, stillTurning);
-
-  return {
-    ...actor,
-    orientationUnits,
-    rotationUnits,
-    turnTicks,
-    sequenceName,
-    facingDegrees: nhOrientationUnitsToFacingDegrees(rotationUnits)
-  };
-}
-
-function manualActorActionSequenceKey(
-  combatActor: RuntimePlayerCombatActorState,
-  combatState: RuntimePlayerCombatState
-): string | null {
-  if (!runtimePlayerCombatActionActive(combatActor, combatState) || !combatActor.actionSequenceName) {
-    return null;
-  }
-  const actionStartTick =
-    combatActor.actionStartedAtTick ?? combatActor.actionUntilTick - combatActor.actionDurationTicks;
-  const actionStartClientCycle =
-    combatActor.actionStartedAtClientCycle ?? actionStartTick * NH_CLIENT_CYCLES_PER_GAME_TICK;
-  return `${combatActor.actionSequenceName}:${actionStartClientCycle}`;
-}
-
-function manualActorSequenceNameFromKey(sequenceKey: string | null): RuntimeSequenceName | null {
-  if (!sequenceKey) {
-    return null;
-  }
-  const separatorIndex = sequenceKey.lastIndexOf(":");
-  if (separatorIndex <= 0) {
-    return null;
-  }
-  return sequenceKey.slice(0, separatorIndex) as RuntimeSequenceName;
-}
-
-function manualActorSequenceStartClientCycle(sequenceKey: string | null): number | null {
-  if (!sequenceKey) {
-    return null;
-  }
-  const separatorIndex = sequenceKey.lastIndexOf(":");
-  if (separatorIndex <= 0 || separatorIndex >= sequenceKey.length - 1) {
-    return null;
-  }
-  const cycle = Number.parseInt(sequenceKey.slice(separatorIndex + 1), 10);
-  return Number.isFinite(cycle) ? cycle : null;
-}
-
-function manualActorActiveSequenceContext(
-  actor: ManualActorState,
-  combatActor: RuntimePlayerCombatActorState | null,
-  combatState: RuntimePlayerCombatState
-): { readonly key: string; readonly sequenceName: RuntimeSequenceName } | null {
-  if (!actor.activeSequenceKey) {
-    return null;
-  }
-  const activeCombatSequenceKey =
-    combatActor ? manualActorActionSequenceKey(combatActor, combatState) : null;
-  if (
-    activeCombatSequenceKey === actor.activeSequenceKey &&
-    combatActor?.actionSequenceName
-  ) {
-    return {
-      key: actor.activeSequenceKey,
-      sequenceName: combatActor.actionSequenceName
-    };
-  }
-  const sequenceName = manualActorSequenceNameFromKey(actor.activeSequenceKey);
-  return sequenceName ? { key: actor.activeSequenceKey, sequenceName } : null;
-}
-
-function manualActorWithCombatActionFacing(
-  actor: ManualActorState,
-  combatActor: RuntimePlayerCombatActorState,
-  targetActor: ManualActorState | null = null
-): ManualActorState {
-  if (combatActor.actionFacingDegrees === null) {
-    return actor;
-  }
-  const orientationUnits = targetActor
-    ? nhTargetOrientationUnits(
-      actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile ?? actor.tile),
-      targetActor.clientPosition ?? nhClientPositionFromRuntimeTile(targetActor.renderTile ?? targetActor.tile),
-      actor.orientationUnits
-    )
-    : nhFacingDegreesToOrientationUnits(combatActor.actionFacingDegrees);
-  const facingDegrees = nhOrientationUnitsToFacingDegrees(orientationUnits);
-  return actor.orientationUnits === orientationUnits &&
-    actor.rotationUnits === orientationUnits &&
-    actor.facingDegrees === facingDegrees
-    ? actor
-    : {
-      ...actor,
-      orientationUnits,
-      rotationUnits: orientationUnits,
-      facingDegrees,
-      turnTicks: 0
-    };
-}
-
-function syncManualActorActionSequence(
-  actor: ManualActorState,
-  combatActor: RuntimePlayerCombatActorState,
-  combatState: RuntimePlayerCombatState,
-  targetActor: ManualActorState | null = null
-): ManualActorState {
-  const activeSequenceKey = manualActorActionSequenceKey(combatActor, combatState);
-  if (activeSequenceKey === null) {
-    // Source: once LoginPacket.method3722 accepts a primary sequence, class329
-    // advances that client sequence until its frame table finishes. Server-side
-    // combat action bookkeeping expiring must not cancel the visible sequence or
-    // unblock movement early.
-    if (actor.activeSequenceKey !== null) {
-      return actor;
-    }
-    return actor.activeSequenceKey === null &&
-      actor.completedSequenceKey === null &&
-      actor.sequencePathLengthAtStart === 0 &&
-      actor.primaryFrame === 0 &&
-      actor.primaryFrameCycle === 0 &&
-      actor.primarySequenceLoops === 0 &&
-      actor.primarySequenceCycle === 0 &&
-      actor.primarySequenceDelayCycles === 0
-      ? actor
-      : {
-        ...actor,
-        activeSequenceKey: null,
-        completedSequenceKey: null,
-        sequencePathLengthAtStart: 0,
-        primaryFrame: 0,
-        primaryFrameCycle: 0,
-        primarySequenceLoops: 0,
-        primarySequenceCycle: 0,
-        primarySequenceDelayCycles: 0
-      };
-  }
-  if (actor.completedSequenceKey === activeSequenceKey) {
-    return actor.activeSequenceKey === null ? actor : { ...actor, activeSequenceKey: null };
-  }
-  if (actor.activeSequenceKey === activeSequenceKey) {
-    return manualActorWithCombatActionFacing(actor, combatActor, targetActor);
-  }
-  return manualActorWithCombatActionFacing({
-    ...actor,
-    activeSequenceKey,
-    completedSequenceKey: null,
-    sequencePathLengthAtStart: actor.routeWaypoints.length,
-    // Source: Nh LoginPacket.method3722 resets sequenceFrame, sequenceFrameCycle, sequenceDelay,
-    // and field703 only when a new primary sequence is accepted by the client.
-    primaryFrame: 0,
-    primaryFrameCycle: 0,
-    primarySequenceLoops: 0,
-    primarySequenceCycle: 0,
-    primarySequenceDelayCycles: 0
-  }, combatActor, targetActor);
-}
-
-function manualActorWithPrimarySequence(
-  actor: ManualActorState,
-  sequenceName: RuntimeSequenceName,
-  startClientCycle: number
-): ManualActorState {
-  return {
-    ...actor,
-    activeSequenceKey: `${sequenceName}:${Math.max(0, Math.trunc(startClientCycle))}`,
-    completedSequenceKey: null,
-    sequencePathLengthAtStart: actor.routeWaypoints.length,
-    primaryFrame: 0,
-    primaryFrameCycle: 0,
-    primarySequenceLoops: 0,
-    primarySequenceCycle: 0,
-    primarySequenceDelayCycles: 0
-  };
-}
-
 function runtimeVengeanceTrinketChatText(activated: boolean, blockedReason: string): string {
   if (activated) {
     return "You cast Vengeance.";
@@ -4701,717 +2891,6 @@ function runtimeVengeanceTrinketChatText(activated: boolean, blockedReason: stri
     return "You can't use that while dead.";
   }
   return "You can't cast Vengeance right now.";
-}
-
-function sameManualActorTilePath(
-  left: readonly RuntimeTile[],
-  right: readonly RuntimeTile[]
-): boolean {
-  return left.length === right.length && left.every((tile, index) => sameNhTile(tile, right[index]));
-}
-
-function sameManualActorTraversalPath(
-  left: readonly number[],
-  right: readonly number[]
-): boolean {
-  return left.length === right.length && left.every((mode, index) => mode === right[index]);
-}
-
-function sameManualActorClientPosition(
-  left: RuntimeClientPosition | null,
-  right: RuntimeClientPosition | null
-): boolean {
-  return left === right || (
-    left !== null &&
-    right !== null &&
-    left.x === right.x &&
-    left.z === right.z
-  );
-}
-
-function manualActorMovementStateDiffers(
-  current: ManualActorState,
-  incoming: ManualActorState
-): boolean {
-  return (
-    !sameNhTile(current.tile, incoming.tile) ||
-    !sameNhTile(current.renderTile, incoming.renderTile) ||
-    !sameManualActorClientPosition(current.clientPosition, incoming.clientPosition) ||
-    !sameManualActorClientPosition(current.logicalClientPosition, incoming.logicalClientPosition) ||
-    !sameManualActorTilePath(current.routeWaypoints, incoming.routeWaypoints) ||
-    !sameManualActorTraversalPath(current.routeTraversalModes, incoming.routeTraversalModes) ||
-    !sameManualActorTilePath(current.logicalRouteWaypoints, incoming.logicalRouteWaypoints) ||
-    !sameManualActorTraversalPath(current.logicalRouteTraversalModes, incoming.logicalRouteTraversalModes) ||
-    !sameManualActorTilePath(current.serverRouteWaypoints, incoming.serverRouteWaypoints) ||
-    !sameManualActorTraversalPath(current.serverRouteTraversalModes, incoming.serverRouteTraversalModes) ||
-    current.serverRouteVisualQueued !== incoming.serverRouteVisualQueued ||
-    current.lastMovementClientCycle !== incoming.lastMovementClientCycle ||
-    current.movementStallTicks !== incoming.movementStallTicks ||
-    current.movementBlockedBySequence !== incoming.movementBlockedBySequence
-  );
-}
-
-function manualActorWithMovementState(
-  incoming: ManualActorState,
-  current: ManualActorState,
-  sequenceState: Pick<
-    ManualActorState,
-    | "activeSequenceKey"
-    | "completedSequenceKey"
-    | "sequencePathLengthAtStart"
-    | "primaryFrame"
-    | "primaryFrameCycle"
-    | "primarySequenceLoops"
-    | "primarySequenceCycle"
-    | "primarySequenceDelayCycles"
-  >
-): ManualActorState {
-  return {
-    ...incoming,
-    tile: current.tile,
-    renderTile: current.renderTile,
-    clientPosition: current.clientPosition,
-    routeWaypoints: current.routeWaypoints,
-    routeTraversalModes: current.routeTraversalModes,
-    logicalClientPosition: current.logicalClientPosition,
-    logicalRouteWaypoints: current.logicalRouteWaypoints,
-    logicalRouteTraversalModes: current.logicalRouteTraversalModes,
-    serverRouteWaypoints: current.serverRouteWaypoints,
-    serverRouteTraversalModes: current.serverRouteTraversalModes,
-    serverRouteVisualQueued: current.serverRouteVisualQueued,
-    clientTargetIndexUntilClientCycle: current.clientTargetIndexUntilClientCycle,
-    movementStallTicks: current.movementStallTicks,
-    movementBlockedBySequence: current.movementBlockedBySequence,
-    movementFrame: current.movementFrame,
-    movementFrameCycle: current.movementFrameCycle,
-    orientationUnits: current.orientationUnits,
-    rotationUnits: current.rotationUnits,
-    turnTicks: current.turnTicks,
-    sequenceName: current.sequenceName,
-    facingDegrees: current.facingDegrees,
-    animationCycle: current.animationCycle,
-    lastMovementClientCycle: current.lastMovementClientCycle,
-    ...sequenceState
-  };
-}
-
-function manualActorSequenceCursorState(actor: ManualActorState): Pick<
-  ManualActorState,
-  | "activeSequenceKey"
-  | "completedSequenceKey"
-  | "sequencePathLengthAtStart"
-  | "primaryFrame"
-  | "primaryFrameCycle"
-  | "primarySequenceLoops"
-  | "primarySequenceCycle"
-  | "primarySequenceDelayCycles"
-> {
-  return {
-    activeSequenceKey: actor.activeSequenceKey,
-    completedSequenceKey: actor.completedSequenceKey,
-    sequencePathLengthAtStart: actor.sequencePathLengthAtStart,
-    primaryFrame: actor.primaryFrame,
-    primaryFrameCycle: actor.primaryFrameCycle,
-    primarySequenceLoops: actor.primarySequenceLoops,
-    primarySequenceCycle: actor.primarySequenceCycle,
-    primarySequenceDelayCycles: actor.primarySequenceDelayCycles
-  };
-}
-
-function manualActorWithAuthoritativeSequenceCursor(
-  incoming: ManualActorState,
-  current: ManualActorState
-): ManualActorState {
-  const incomingMovementCursor = incoming.lastMovementClientCycle ?? -1;
-  const currentMovementCursor = current.lastMovementClientCycle ?? -1;
-  const currentPathCursorAhead =
-    current.primarySequenceCycle > incoming.primarySequenceCycle ||
-    current.movementStallTicks > incoming.movementStallTicks ||
-    current.routeWaypoints.length > incoming.routeWaypoints.length ||
-    current.logicalRouteWaypoints.length > incoming.logicalRouteWaypoints.length ||
-    current.serverRouteWaypoints.length > incoming.serverRouteWaypoints.length ||
-    currentMovementCursor > incomingMovementCursor;
-  const currentMovementStateDiffers = manualActorMovementStateDiffers(current, incoming);
-  const currentHasPendingMovement =
-    current.routeWaypoints.length > 0 ||
-    current.logicalRouteWaypoints.length > 0 ||
-    current.serverRouteWaypoints.length > 0 ||
-    current.serverRouteVisualQueued ||
-    current.movementBlockedBySequence ||
-    current.movementStallTicks > 0;
-  const incomingLooksLikeStaleActorState =
-    currentMovementStateDiffers &&
-    currentHasPendingMovement &&
-    currentMovementCursor >= incomingMovementCursor;
-  if (
-    current.activeSequenceKey &&
-    current.activeSequenceKey === incoming.activeSequenceKey &&
-    (currentPathCursorAhead || currentMovementStateDiffers)
-  ) {
-    // Source: equipment updates only rebuild PlayerAppearance. They do not
-    // reset LoginPacket.method3722's primary sequence cursor or class329's
-    // held path cursor, so same-sequence stale React state must also preserve
-    // the newer client movement cursor.
-    return manualActorWithMovementState(incoming, current, manualActorSequenceCursorState(current));
-  }
-
-  if (
-    current.activeSequenceKey &&
-    incoming.activeSequenceKey === null &&
-    current.completedSequenceKey === null &&
-    (currentPathCursorAhead || currentMovementStateDiffers)
-  ) {
-    // Source: equipment/appearance packets do not cancel an accepted primary
-    // sequence; class329 keeps sequenceFrame/sequenceFrameCycle plus the held
-    // path/field687 cursor advancing until the frame table finishes. Stale
-    // React state must not erase that client cursor.
-    return manualActorWithMovementState(incoming, current, manualActorSequenceCursorState(current));
-  }
-
-  if (
-    current.completedSequenceKey &&
-    (
-      current.completedSequenceKey === incoming.activeSequenceKey ||
-      (incoming.activeSequenceKey === null && currentMovementStateDiffers)
-    )
-  ) {
-    // Source: Equipment.equip() sends an appearance update without resetting
-    // class329's path or field687 catch-up state. If that appearance state lands
-    // after the primary sequence ended, it must still not roll back the slingshot.
-    return manualActorWithMovementState(incoming, current, {
-      activeSequenceKey: null,
-      completedSequenceKey: current.completedSequenceKey,
-      sequencePathLengthAtStart: 0,
-      primaryFrame: 0,
-      primaryFrameCycle: 0,
-      primarySequenceLoops: 0,
-      primarySequenceCycle: current.primarySequenceCycle,
-      primarySequenceDelayCycles: 0
-    });
-  }
-
-  if (
-    incoming.activeSequenceKey === null &&
-    incoming.completedSequenceKey === null &&
-    current.activeSequenceKey === null &&
-    current.completedSequenceKey === null &&
-    incomingLooksLikeStaleActorState
-  ) {
-    // Source: appearance/equipment packets do not clear Player.pathX/pathY or
-    // class329.field687 after the primary sequence has finished either. React
-    // state from that appearance update can land after the local render cursor
-    // has already consumed more held path; keep the source movement cursor and
-    // apply only the non-movement appearance/loadout fields from the incoming state.
-    return manualActorWithMovementState(incoming, current, {
-      activeSequenceKey: null,
-      completedSequenceKey: null,
-      sequencePathLengthAtStart: 0,
-      primaryFrame: 0,
-      primaryFrameCycle: 0,
-      primarySequenceLoops: 0,
-      primarySequenceCycle: current.primarySequenceCycle,
-      primarySequenceDelayCycles: 0
-    });
-  }
-
-  return incoming;
-}
-
-function nhPrimaryFrameCursor(actor: ManualActorState): NhSequenceFrameCursorOverride {
-  return {
-    frameIndex: actor.primaryFrame,
-    frameCycle: actor.primaryFrameCycle
-  };
-}
-
-function nhAdvancePrimarySequenceCursor(
-  actor: ManualActorState,
-  combatActor: RuntimePlayerCombatActorState | null,
-  combatState: RuntimePlayerCombatState | null,
-  animationFixtures: NhAnimationFixtures | null
-): ManualActorState {
-  if (!combatActor || !combatState || actor.activeSequenceKey === null) {
-    return actor;
-  }
-
-  const activeSequence = manualActorActiveSequenceContext(actor, combatActor, combatState);
-  if (!activeSequence) {
-    return actor;
-  }
-
-  const sequence = animationFixtures?.sequences.get(activeSequence.sequenceName);
-  if (!sequence || sequence.frames.length === 0) {
-    return {
-      ...actor,
-      primarySequenceCycle: actor.primarySequenceCycle + 1,
-      primarySequenceDelayCycles: 0
-    };
-  }
-
-  const primarySequenceDelayCycles = Math.max(0, Math.trunc(actor.primarySequenceDelayCycles));
-  if (actor.sequencePathLengthAtStart > 0 && nhSequencePrecedenceAnimating(sequence) === 1) {
-    // Source: class329.method6315 sets sequenceDelay = 1 and returns when a
-    // precedenceAnimating=1 primary sequence was accepted with field726 > 0.
-    // The visible actor keeps consuming movement; the primary frame table waits.
-    return {
-      ...actor,
-      primarySequenceDelayCycles: 1
-    };
-  }
-  if (primarySequenceDelayCycles > 0) {
-    return {
-      ...actor,
-      primarySequenceDelayCycles: primarySequenceDelayCycles - 1
-    };
-  }
-
-  let primaryFrame = Math.max(0, Math.trunc(actor.primaryFrame));
-  let primaryFrameCycle = Math.max(0, Math.trunc(actor.primaryFrameCycle)) + 1;
-  let primarySequenceLoops = Math.max(0, Math.trunc(actor.primarySequenceLoops));
-  const primarySequenceCycle = actor.primarySequenceCycle + 1;
-  const frameLength = primaryFrame < sequence.frames.length
-    ? Math.max(1, sequence.frames[primaryFrame].lengthClientCycles)
-    : 1;
-
-  // Source: Nh class329 increments sequenceFrameCycle once per 20ms client cycle and
-  // advances only when sequenceFrameCycle is greater than frameLengths[sequenceFrame].
-  if (primaryFrame < sequence.frames.length && primaryFrameCycle > frameLength) {
-    primaryFrameCycle = 1;
-    primaryFrame += 1;
-  }
-
-  if (primaryFrame >= sequence.frames.length) {
-    const frameStep = sequence.frameStep ?? -1;
-    if (frameStep < 0) {
-      return {
-        ...actor,
-        activeSequenceKey: null,
-        completedSequenceKey: actor.activeSequenceKey,
-        sequencePathLengthAtStart: 0,
-        primaryFrame: 0,
-        primaryFrameCycle: 0,
-        primarySequenceLoops: 0,
-        primarySequenceCycle,
-        primarySequenceDelayCycles: 0
-      };
-    }
-
-    primaryFrame -= frameStep;
-    primarySequenceLoops += 1;
-    if (
-      primarySequenceLoops >= (sequence.maxLoops ?? 99) ||
-      primaryFrame < 0 ||
-      primaryFrame >= sequence.frames.length
-    ) {
-      return {
-        ...actor,
-        activeSequenceKey: null,
-        completedSequenceKey: actor.activeSequenceKey,
-        sequencePathLengthAtStart: 0,
-        primaryFrame: 0,
-        primaryFrameCycle: 0,
-        primarySequenceLoops: 0,
-        primarySequenceCycle,
-        primarySequenceDelayCycles: 0
-      };
-    }
-  }
-
-  return {
-    ...actor,
-    primaryFrame,
-    primaryFrameCycle,
-    primarySequenceLoops,
-    primarySequenceCycle,
-    primarySequenceDelayCycles: 0
-  };
-}
-
-function manualActorMovementBlockedByNhSequence(
-  actor: ManualActorState,
-  combatActor: RuntimePlayerCombatActorState | null,
-  combatState: RuntimePlayerCombatState,
-  animationFixtures: NhAnimationFixtures | null,
-): boolean {
-  const activeSequence = manualActorActiveSequenceContext(actor, combatActor, combatState);
-  const sequence = activeSequence ? animationFixtures?.sequences.get(activeSequence.sequenceName) : null;
-  if (!activeSequence || !sequence) {
-    return false;
-  }
-  if (
-    actor.primaryFrame < 0 ||
-    actor.primaryFrame >= sequence.frames.length
-  ) {
-    return false;
-  }
-
-  if (actor.routeWaypoints.length === 0) {
-    return false;
-  }
-  return manualActorSequenceBlocksVisibleMovement(
-    actor,
-    activeSequence,
-    combatActor,
-    combatState,
-    sequence
-  );
-}
-
-function manualActorSequenceBlocksVisibleMovement(
-  actor: ManualActorState,
-  activeSequence: { readonly key: string; readonly sequenceName: RuntimeSequenceName },
-  combatActor: RuntimePlayerCombatActorState | null,
-  combatState: RuntimePlayerCombatState,
-  sequence: NhRenderSequenceDefinition
-): boolean {
-  return actor.sequencePathLengthAtStart > 0
-    ? nhSequencePrecedenceAnimating(sequence) === 0
-    : nhSequencePriority(sequence) === 0;
-}
-
-function manualActorClientPathHeldByNhSequence(
-  actor: ManualActorState,
-  combatActor: RuntimePlayerCombatActorState | null,
-  combatState: RuntimePlayerCombatState,
-  animationFixtures: NhAnimationFixtures | null
-): boolean {
-  const activeSequence = manualActorActiveSequenceContext(actor, combatActor, combatState);
-  if (!activeSequence || actor.completedSequenceKey === activeSequence.key) {
-    return false;
-  }
-
-  const sequence = animationFixtures?.sequences.get(activeSequence.sequenceName);
-  if (!sequence) {
-    return false;
-  }
-
-  // Source: client class329 stalls path consumption with field726 > 0 using
-  // precedenceAnimating, otherwise priority. New movement packets should be
-  // appended to the held client path, not replace that path from the latest click.
-  return manualActorSequenceBlocksVisibleMovement(
-    actor,
-    activeSequence,
-    combatActor,
-    combatState,
-    sequence
-  );
-}
-
-function advanceManualActorLogicalClientCycle(
-  actor: ManualActorState,
-  hasCombatTarget: boolean
-): ManualActorState {
-  const logicalClientPosition = manualActorRouteLogicalClientPosition(actor, actor.tile);
-  if (actor.logicalRouteWaypoints.length === 0) {
-    return {
-      ...actor,
-      logicalClientPosition
-    };
-  }
-
-  const targetTile = actor.logicalRouteWaypoints[0];
-  const targetPosition = nhClientPositionFromRuntimeTile(targetTile);
-  const traversalMode = actor.logicalRouteTraversalModes[0] ?? (actor.running ? 2 : 1);
-  const { speed } = nhManualMovementSpeedForPath(
-    actor,
-    actor.logicalRouteWaypoints.length,
-    traversalMode,
-    hasCombatTarget,
-    0
-  );
-  const nextPosition = {
-    x: nhMoveClientAxis(logicalClientPosition.x, targetPosition.x, speed),
-    z: nhMoveClientAxis(logicalClientPosition.z, targetPosition.z, speed)
-  };
-  const reached = nextPosition.x === targetPosition.x && nextPosition.z === targetPosition.z;
-  return {
-    ...actor,
-    logicalClientPosition: nextPosition,
-    logicalRouteWaypoints: reached ? actor.logicalRouteWaypoints.slice(1) : actor.logicalRouteWaypoints,
-    logicalRouteTraversalModes: reached ? actor.logicalRouteTraversalModes.slice(1) : actor.logicalRouteTraversalModes
-  };
-}
-
-function advanceManualActorClientCycle(
-  actor: ManualActorState,
-  _collision: NhSceneCollision,
-  movementBlocked: boolean,
-  targetActor: ManualActorState | null,
-  hasCombatTarget: boolean,
-  animationFixtures: NhAnimationFixtures | null,
-  advanceLogical = true
-): ManualActorState {
-  const clientPosition = actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile);
-  const logicalActor = advanceLogical ? advanceManualActorLogicalClientCycle(actor, hasCombatTarget) : actor;
-  let currentActor: ManualActorState = {
-    ...logicalActor,
-    clientPosition,
-    sequenceName: "idle"
-  };
-  if (actor.routeWaypoints.length === 0) {
-    currentActor = {
-      ...currentActor,
-      tile: actor.tile,
-      renderTile: runtimeTileFromNhClientPosition(clientPosition),
-      clientPosition,
-      routeTraversalModes: [],
-      movementStallTicks: 0
-    };
-    const rotatedActor = rotateManualActorTowardNhOrientation(
-      { ...currentActor, movementBlockedBySequence: false },
-      targetActor,
-      hasCombatTarget
-    );
-    return nhAdvanceMovementFrameCursor(rotatedActor, rotatedActor.sequenceName, animationFixtures);
-  }
-
-  if (movementBlocked) {
-    currentActor = {
-      ...currentActor,
-      clientPosition,
-      movementBlockedBySequence: true,
-      // Source: class329.field687 is not capped; each blocked client cycle is drained by the catch-up speed rule.
-      movementStallTicks: actor.movementStallTicks + 1
-    };
-    const rotatedActor = rotateManualActorTowardNhOrientation(currentActor, targetActor, hasCombatTarget);
-    return nhAdvanceMovementFrameCursor(rotatedActor, rotatedActor.sequenceName, animationFixtures);
-  }
-
-  const targetTile = actor.routeWaypoints[0];
-  const targetPosition = nhClientPositionFromRuntimeTile(targetTile);
-  currentActor = {
-    ...currentActor,
-    orientationUnits: nhOrientationUnitsFromClientDelta(
-      targetPosition.x - clientPosition.x,
-      targetPosition.z - clientPosition.z,
-      actor.orientationUnits
-    )
-  };
-  if (
-    Math.abs(targetPosition.x - clientPosition.x) > 256 ||
-    Math.abs(targetPosition.z - clientPosition.z) > 256
-  ) {
-    const settlementWaypoints = nhClientSettlementWaypoints(clientPosition, targetTile);
-    if (settlementWaypoints.length > 0) {
-      // Source: client class329 only takes this snap branch when its path target is impossible.
-      // Real server route packets keep the next path tile inside that window; if the trainer's
-      // JS queue ever violates it, repair the generated route instead of presenting a teleport.
-      const settlementTraversalMode = actor.routeTraversalModes[0] ?? (actor.running ? 2 : 1);
-      const repairedRoute = compressManualActorTargetRouteClientPath(
-        clientPosition,
-        [...settlementWaypoints, ...actor.routeWaypoints.slice(1)],
-        [
-          ...Array.from({ length: settlementWaypoints.length }, () => settlementTraversalMode),
-          ...actor.routeTraversalModes.slice(1)
-        ]
-      );
-      return advanceManualActorClientCycle(
-        {
-          ...currentActor,
-          clientPosition,
-          routeWaypoints: repairedRoute.routeWaypoints,
-          routeTraversalModes: repairedRoute.routeTraversalModes
-        },
-        _collision,
-        movementBlocked,
-        targetActor,
-        hasCombatTarget,
-        animationFixtures,
-        false
-      );
-    }
-    const routeWaypoints = actor.routeWaypoints.slice(1);
-    const routeTraversalModes = actor.routeTraversalModes.slice(1);
-    const renderTile = runtimeTileFromNhClientPosition(targetPosition);
-    currentActor = {
-      ...currentActor,
-      tile: actor.tile,
-      renderTile,
-      clientPosition: targetPosition,
-      routeWaypoints,
-      routeTraversalModes,
-      sequencePathLengthAtStart: Math.max(0, actor.sequencePathLengthAtStart - 1),
-      movementBlockedBySequence: false,
-      sequenceName: routeWaypoints.length > 0 ? actor.sequenceName : "idle"
-    };
-    // Source: TargetRoute.beforeMovement() only rewrites Movement steps; PlayerCombat.faceTarget()
-    // is not applied continuously during the run-in. Keep movement-facing while consuming route steps.
-    const rotatedActor = rotateManualActorTowardNhOrientation(currentActor, targetActor, false);
-    return nhAdvanceMovementFrameCursor(rotatedActor, rotatedActor.sequenceName, animationFixtures);
-  }
-
-  const traversalMode = actor.routeTraversalModes[0] ?? (actor.running ? 2 : 1);
-  const initialMovementSequenceName = nhMovementSequenceNameFromOrientation(currentActor);
-  const { speed, movementStallTicks } = nhManualMovementSpeed(currentActor, traversalMode, hasCombatTarget);
-  const movementSequenceName = nhMovementSequenceNameForSpeed(speed, initialMovementSequenceName);
-  const nextPosition = {
-    x: nhMoveClientAxis(clientPosition.x, targetPosition.x, speed),
-    z: nhMoveClientAxis(clientPosition.z, targetPosition.z, speed)
-  };
-  const reached = nextPosition.x === targetPosition.x && nextPosition.z === targetPosition.z;
-  const routeWaypoints = reached ? actor.routeWaypoints.slice(1) : actor.routeWaypoints;
-  const routeTraversalModes = reached ? actor.routeTraversalModes.slice(1) : actor.routeTraversalModes;
-  const renderTile = runtimeTileFromNhClientPosition(nextPosition);
-  currentActor = {
-    ...currentActor,
-    tile: actor.tile,
-    renderTile,
-    clientPosition: nextPosition,
-    routeWaypoints,
-    routeTraversalModes,
-    movementStallTicks,
-    sequencePathLengthAtStart: reached ? Math.max(0, actor.sequencePathLengthAtStart - 1) : actor.sequencePathLengthAtStart,
-    movementBlockedBySequence: false,
-    sequenceName: movementSequenceName
-  };
-  // Source: TargetRoute.beforeMovement() queues the route; combat facing is separate from
-  // route-facing until the actor is no longer consuming movement steps.
-  const rotatedActor = rotateManualActorTowardNhOrientation(currentActor, targetActor, false);
-  return nhAdvanceMovementFrameCursor(rotatedActor, rotatedActor.sequenceName, animationFixtures);
-}
-
-function advanceManualActor(
-  actor: ManualActorState,
-  now: number,
-  collision: NhSceneCollision,
-  combatActor: RuntimePlayerCombatActorState | null = null,
-  combatState: RuntimePlayerCombatState | null = null,
-  animationFixtures: NhAnimationFixtures | null = null,
-  targetActor: ManualActorState | null = null,
-  maxClientCyclesToAdvance = Number.POSITIVE_INFINITY
-): ManualActorState {
-  const animationCycle = Math.floor(now / NH_CLIENT_CYCLE_MS);
-  const clientPosition = actor.clientPosition ?? nhClientPositionFromRuntimeTile(actor.renderTile);
-  let currentActor =
-    combatActor && combatState
-      ? syncManualActorActionSequence({ ...actor, clientPosition }, combatActor, combatState, targetActor)
-      : { ...actor, clientPosition };
-  if (actor.lastMovementClientCycle !== null && actor.lastMovementClientCycle > animationCycle) {
-    // Source: scene clicks only send a movement packet; Player.method1100()
-    // cannot expose the accepted path to class329 until the later player update.
-    // Keep the future client-cycle gate even if only this actor has pending movement.
-    return {
-      ...currentActor,
-      animationCycle,
-      lastMovementClientCycle: actor.lastMovementClientCycle
-    };
-  }
-  // Source: Client.vmethod1937() parses player updates before class329.method6315()
-  // in the same Client.cycle. A newly accepted primary sequence can therefore
-  // block or consume movement on that cycle; do not skip the class329 pass just
-  // because LoginPacket.method3722 reset the sequence frame cursor.
-  const previousCycle = actor.lastMovementClientCycle ?? animationCycle;
-  const maxCycleCatchUp = Math.max(0, Math.trunc(maxClientCyclesToAdvance));
-  const targetMovementCycle = Math.min(
-    animationCycle,
-    previousCycle + maxCycleCatchUp
-  );
-
-  for (let cycle = previousCycle + 1; cycle <= targetMovementCycle; cycle += 1) {
-    const activeSequenceStartClientCycle = manualActorSequenceStartClientCycle(currentActor.activeSequenceKey);
-    const sequenceAcceptedForCycle =
-      activeSequenceStartClientCycle === null || cycle >= activeSequenceStartClientCycle;
-    const hasClientTargetIndex = manualActorHasClientTargetIndex(currentActor, combatActor, cycle);
-    const movementBlocked =
-      sequenceAcceptedForCycle && combatActor && combatState
-        ? manualActorMovementBlockedByNhSequence(currentActor, combatActor, combatState, animationFixtures)
-        : false;
-    currentActor = advanceManualActorClientCycle(
-      currentActor,
-      collision,
-      movementBlocked,
-      targetActor,
-      hasClientTargetIndex,
-      animationFixtures
-    );
-    if (sequenceAcceptedForCycle) {
-      currentActor = nhAdvancePrimarySequenceCursor(currentActor, combatActor, combatState, animationFixtures);
-    }
-  }
-
-  return {
-    ...currentActor,
-    animationCycle,
-    lastMovementClientCycle: targetMovementCycle
-  };
-}
-
-function advanceManualActorBeforeAcceptedPlayerUpdate(input: {
-  readonly actor: ManualActorState;
-  readonly acceptedClientCycle: number;
-  readonly collision: NhSceneCollision;
-  readonly combatActor: RuntimePlayerCombatActorState | null;
-  readonly combatState: RuntimePlayerCombatState | null;
-  readonly animationFixtures: NhAnimationFixtures | null;
-  readonly targetActor: ManualActorState | null;
-}): ManualActorState {
-  const updatePreviousCycle = Math.max(0, input.acceptedClientCycle - 1);
-  const actorMovementCycle = input.actor.lastMovementClientCycle ?? updatePreviousCycle;
-  if (actorMovementCycle >= updatePreviousCycle) {
-    return input.actor;
-  }
-
-  let currentActor = input.combatActor && input.combatState
-    ? syncManualActorActionSequence(
-        {
-          ...input.actor,
-          clientPosition: input.actor.clientPosition ?? nhClientPositionFromRuntimeTile(input.actor.renderTile)
-        },
-        input.combatActor,
-        input.combatState,
-        input.targetActor
-      )
-    : input.actor;
-
-  // Source: Client.vmethod1937() receives the player update after earlier
-  // client cycles have already run class329.method6315(). That pass increments
-  // field687 while a sequence blocks movement, but once the sequence no longer
-  // blocks it consumes the same path before the next packet is accepted. Keep
-  // the TypeScript pre-update catch-up as a full class329-style pass; equipment
-  // appearance packets are handled separately and must not rewrite this cursor.
-  for (let cycle = actorMovementCycle + 1; cycle <= updatePreviousCycle; cycle += 1) {
-    const activeSequenceStartClientCycle = manualActorSequenceStartClientCycle(currentActor.activeSequenceKey);
-    const sequenceAcceptedForCycle =
-      activeSequenceStartClientCycle === null || cycle >= activeSequenceStartClientCycle;
-    const hasClientTargetIndex = manualActorHasClientTargetIndex(
-      currentActor,
-      input.combatActor,
-      cycle
-    );
-    const movementBlocked =
-      sequenceAcceptedForCycle &&
-      input.combatActor !== null &&
-      input.combatState !== null
-        ? manualActorMovementBlockedByNhSequence(
-            currentActor,
-            input.combatActor,
-            input.combatState,
-            input.animationFixtures
-          )
-        : false;
-    currentActor = advanceManualActorClientCycle(
-      currentActor,
-      input.collision,
-      movementBlocked,
-      input.targetActor,
-      hasClientTargetIndex,
-      input.animationFixtures
-    );
-    if (sequenceAcceptedForCycle) {
-      currentActor = nhAdvancePrimarySequenceCursor(
-        currentActor,
-        input.combatActor,
-        input.combatState,
-        input.animationFixtures
-      );
-    }
-  }
-
-  return {
-    ...currentActor,
-    animationCycle: updatePreviousCycle,
-    lastMovementClientCycle: updatePreviousCycle
-  };
 }
 
 function manualSourceAppearance(
@@ -5824,41 +3303,9 @@ function localPlayerEquipmentItemIdsBySlot(
 
   return itemIdsBySlot;
 }
-
-const nhEquipmentSlotByServerSlot = new Map<number, EquipmentSlot>([
-  [0, "head"],
-  [1, "cape"],
-  [2, "amulet"],
-  [3, "weapon"],
-  [4, "body"],
-  [5, "shield"],
-  [7, "legs"],
-  [9, "hands"],
-  [10, "feet"],
-  [12, "ring"],
-  [13, "ammo"]
-]);
 const nhServerSlotByEquipmentSlot = new Map<EquipmentSlot, number>(
   [...nhEquipmentSlotByServerSlot.entries()].map(([serverSlot, equipmentSlot]) => [equipmentSlot, serverSlot])
 );
-
-function visibleEquipmentFromRuntimeItemIdsBySlot(
-  equipmentBySlot: RuntimeEquipmentItemIdsBySlot,
-  itemDefinitions: NhInventoryItemDefinitionStore
-): VisibleEquipment {
-  const equipment: Partial<Record<EquipmentSlot, { readonly itemId: number; readonly name: string }>> = {};
-  for (const [serverSlot, itemId] of equipmentBySlot) {
-    const slot = nhEquipmentSlotByServerSlot.get(serverSlot);
-    if (!slot) {
-      continue;
-    }
-    equipment[slot] = {
-      itemId,
-      name: itemDefinitions.get(itemId)?.name ?? `Item ${itemId}`
-    };
-  }
-  return equipment;
-}
 
 function runtimeItemIdsBySlotFromVisibleEquipment(equipment: VisibleEquipment): RuntimeEquipmentItemIdsBySlot {
   const itemIdsBySlot = new Map<number, number>();
@@ -5999,38 +3446,6 @@ function runtimeSwitchableEquipmentModelStates(
   return states;
 }
 
-function visibleEquipmentItemsFromRuntimeInventory(
-  slots: readonly (RuntimeInventorySlot | null)[] | null | undefined,
-  itemDefinitions: NhInventoryItemDefinitionStore
-): readonly VisibleEquipmentItem[] {
-  if (!slots) {
-    return [];
-  }
-  const items: VisibleEquipmentItem[] = [];
-  for (const slot of slots) {
-    if (!slot || slot.itemId <= 0 || slot.quantity <= 0) {
-      continue;
-    }
-    items.push({
-      itemId: slot.itemId,
-      name: itemDefinitions.get(slot.itemId)?.name ?? `Item ${slot.itemId}`
-    });
-  }
-  return items;
-}
-
-interface ManualPolicyActorMovementView {
-  readonly movedThisTick: boolean;
-  readonly lastMoveDx: number;
-  readonly lastMoveDy: number;
-}
-
-const manualPolicyStationaryMovementView: ManualPolicyActorMovementView = {
-  movedThisTick: false,
-  lastMoveDx: 0,
-  lastMoveDy: 0
-};
-
 const RUNTIME_EQUIPMENT_MODEL_PREWARM_SEQUENCE_NAMES: readonly RuntimeSequenceName[] = [
   "idle",
   "whip_attack",
@@ -6047,152 +3462,6 @@ const RUNTIME_EQUIPMENT_MODEL_PREWARM_SEQUENCE_NAMES: readonly RuntimeSequenceNa
   "blitz_cast",
   "barrage_cast"
 ];
-
-function nhClientVisibleOpponentHp(hitpoints: number): number {
-  const hp = Math.max(0, Math.min(99, Math.trunc(Number.isFinite(hitpoints) ? hitpoints : 99)));
-  if (hp <= 0) {
-    return 0;
-  }
-  return Math.max(1, Math.min(99, Math.trunc((hp + 2) / 5) * 5));
-}
-
-function nhClientVisibleFreezeTicks(locks: EntityLockState, tick: number): number {
-  if (locks.freezeUntilTick < tick) {
-    return 0;
-  }
-  const ticks = Math.max(0, locks.freezeUntilTick - tick);
-  if (ticks <= 0) {
-    return 0;
-  }
-  return Math.max(1, Math.trunc((ticks + 2) / 5) * 5);
-}
-
-function runtimePolicyVisibleStatFromLevel(value: number): SimStats["attack"] {
-  const level = Math.max(1, Math.trunc(Number.isFinite(value) ? value : 99));
-  return {
-    current: level,
-    fixed: 99
-  };
-}
-
-function runtimePolicyVisibleStatsFromCombatActor(actor: RuntimePlayerCombatActorState): SimStats {
-  return {
-    attack: runtimePolicyVisibleStatFromLevel(actor.levels.attack),
-    strength: runtimePolicyVisibleStatFromLevel(actor.levels.strength),
-    defence: runtimePolicyVisibleStatFromLevel(actor.levels.defence),
-    ranged: runtimePolicyVisibleStatFromLevel(actor.levels.ranged),
-    magic: runtimePolicyVisibleStatFromLevel(actor.levels.magic),
-    hitpoints: {
-      current: nhClientVisibleOpponentHp(actor.hitpoints),
-      fixed: Math.max(1, Math.min(99, Math.trunc(Number.isFinite(actor.maxHitpoints) ? actor.maxHitpoints : 99)))
-    },
-    prayer: {
-      current: Math.max(0, Math.min(99, Math.trunc(Number.isFinite(actor.prayerPoints) ? actor.prayerPoints : 99))),
-      fixed: Math.max(1, Math.min(99, Math.trunc(Number.isFinite(actor.maxPrayerPoints) ? actor.maxPrayerPoints : 99)))
-    }
-  };
-}
-
-function runtimePolicyVisibleLocksFromCombatActor(
-  actor: RuntimePlayerCombatActorState,
-  tick: number
-): EntityLockState {
-  const visibleFreezeTicks = nhClientVisibleFreezeTicks(actor.locks, tick);
-  if (visibleFreezeTicks <= 0) {
-    const { freezeSourceId: _freezeSourceId, ...locks } = actor.locks;
-    return {
-      ...locks,
-      freezeUntilTick: -1
-    };
-  }
-  return {
-    ...actor.locks,
-    freezeUntilTick: tick + visibleFreezeTicks
-  };
-}
-
-function runtimePolicyLocksFrozenAtTick(locks: EntityLockState, tick: number): boolean {
-  return locks.freezeUntilTick >= tick;
-}
-
-function manualPolicyActorMovementViewFromTiles(
-  sourceTile: RuntimeTile,
-  destinationTile: RuntimeTile,
-  moving: boolean
-): ManualPolicyActorMovementView {
-  if (!moving) {
-    return manualPolicyStationaryMovementView;
-  }
-  // Source: NhStakerBot.captureObservation() stores getPosition() - getLastPosition() in tile units.
-  return {
-    movedThisTick: true,
-    lastMoveDx: Math.round((destinationTile.x - sourceTile.x) / NH_TILE_WORLD_UNITS),
-    lastMoveDy: Math.round((destinationTile.z - sourceTile.z) / NH_TILE_WORLD_UNITS)
-  };
-}
-
-function manualPolicyActorAppearanceView(
-  actor: ManualActorState,
-  combatActor: RuntimePlayerCombatActorState,
-  tick: number,
-  equipmentOverride: RuntimeEquipmentItemIdsBySlot | null,
-  itemDefinitions: NhInventoryItemDefinitionStore,
-  activePrayers: readonly PrayerId[] = [],
-  movement: ManualPolicyActorMovementView = manualPolicyStationaryMovementView,
-  inventorySlots?: readonly (RuntimeInventorySlot | null)[] | null
-): ManualPolicyActorAppearanceView {
-  return {
-    tile: actor.tile,
-    loadoutId: actor.loadoutId,
-    equipment: equipmentOverride ? visibleEquipmentFromRuntimeItemIdsBySlot(equipmentOverride, itemDefinitions) : nhLoadouts[actor.loadoutId].equipment,
-    inventoryItems: visibleEquipmentItemsFromRuntimeInventory(inventorySlots, itemDefinitions),
-    inventorySlots: inventorySlots ?? [],
-    activePrayers: [...activePrayers],
-    stats: runtimePolicyVisibleStatsFromCombatActor(combatActor),
-    locks: runtimePolicyVisibleLocksFromCombatActor(combatActor, tick),
-    attackTimer: combatActor.attackTimer,
-    movedThisTick: movement.movedThisTick,
-    lastMoveDx: movement.lastMoveDx,
-    lastMoveDy: movement.lastMoveDy,
-    lastVengeanceTrinketCastTick: combatActor.lastVengeanceTrinketCastTick,
-    vengeanceTrinketCasts: combatActor.vengeanceTrinketCasts,
-    observedInfoKnown: true
-  };
-}
-
-function manualPolicyUnknownOpponentInfoAppearanceView(
-  previous: ManualPolicyActorAppearanceView
-): ManualPolicyActorAppearanceView {
-  return {
-    ...previous,
-    tile: {
-      x: -NH_TILE_WORLD_UNITS,
-      z: -NH_TILE_WORLD_UNITS
-    },
-    equipment: {},
-    inventoryItems: [],
-    inventorySlots: [],
-    activePrayers: [],
-    stats: {
-      ...previous.stats,
-      hitpoints: {
-        ...previous.stats.hitpoints,
-        current: -1
-      },
-      prayer: {
-        ...previous.stats.prayer,
-        current: 0
-      }
-    },
-    locks: createEntityLockState(),
-    movedThisTick: false,
-    lastMoveDx: 0,
-    lastMoveDy: 0,
-    lastVengeanceTrinketCastTick: -1,
-    vengeanceTrinketCasts: 0,
-    observedInfoKnown: false
-  };
-}
 
 function sortedEquipmentItemIds(equipmentBySlot: RuntimeEquipmentItemIdsBySlot): readonly number[] {
   return [...equipmentBySlot.entries()].sort((left, right) => left[0] - right[0]).map(([, itemId]) => itemId);
@@ -7167,124 +4436,6 @@ function isNhWorldTile(value: unknown): value is NhWorldTile {
   );
 }
 
-function isRuntimeInventorySlot(value: unknown): value is RuntimeInventorySlot | null {
-  if (value === null) {
-    return true;
-  }
-  return (
-    typeof value === "object" &&
-    "itemId" in value &&
-    "quantity" in value &&
-    typeof value.itemId === "number" &&
-    typeof value.quantity === "number" &&
-    Number.isInteger(value.itemId) &&
-    Number.isInteger(value.quantity) &&
-    value.itemId > 0 &&
-    value.quantity >= 0
-  );
-}
-
-function isRuntimeInventory(value: unknown): value is readonly (RuntimeInventorySlot | null)[] {
-  return Array.isArray(value) && value.every(isRuntimeInventorySlot);
-}
-
-function isRuntimeLoadoutId(value: unknown): value is RuntimeLoadoutId {
-  return typeof value === "string" && runtimeLoadouts.some((loadout) => loadout.id === value);
-}
-
-function isTemporarySavedSetupSnapshot(value: unknown): value is TemporarySavedSetupSnapshot {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-  const snapshot = value as Partial<TemporarySavedSetupSnapshot>;
-  return (
-    snapshot.version === 1 &&
-    typeof snapshot.savedAt === "number" &&
-    isRuntimeLoadoutId(snapshot.loadoutId) &&
-    isRuntimeInventory(snapshot.inventory) &&
-    Array.isArray(snapshot.equipment) &&
-    snapshot.equipment.every(
-      (entry) =>
-        Array.isArray(entry) &&
-        entry.length === 2 &&
-        Number.isInteger(entry[0]) &&
-        Number.isInteger(entry[1]) &&
-        entry[0] >= 0 &&
-        entry[1] > 0 &&
-        RUNTIME_NH_STAKE_ALLOWED_SETUP_ITEM_IDS.has(entry[1])
-    ) &&
-    snapshot.inventory.every((slot) => slot === null || RUNTIME_NH_STAKE_ALLOWED_SETUP_ITEM_IDS.has(slot.itemId))
-  );
-}
-
-function readStoredAttackSetIndex(): number | null {
-  try {
-    const raw = window.localStorage.getItem(NH_TRAINER_ATTACK_SET_STORAGE_KEY);
-    const parsed = raw === null ? Number.NaN : Number(raw);
-    return Number.isInteger(parsed) && parsed >= 0 && parsed <= 3 ? parsed : null;
-  } catch {
-    // Source: Config.ATTACK_SET is persistent account state; localStorage is the trainer's local-user backing store.
-  }
-  return null;
-}
-
-function writeStoredAttackSetIndex(attackSetIndex: number): void {
-  try {
-    window.localStorage.setItem(NH_TRAINER_ATTACK_SET_STORAGE_KEY, String(Math.max(0, Math.min(3, Math.trunc(attackSetIndex)))));
-  } catch {
-    // Non-fatal in restricted browser contexts.
-  }
-}
-
-function readStoredAutoRetaliate(): boolean | null {
-  try {
-    const raw = readStoredLocalProfileValue(NH_AUTO_RETALIATE_STORAGE_KEY, LEGACY_AUTO_RETALIATE_STORAGE_KEYS);
-    if (raw === "true") {
-      return true;
-    }
-    if (raw === "false") {
-      return false;
-    }
-  } catch {
-    // RuneLite persists this via varps; localStorage is the trainer's dev-session backing store.
-  }
-  return null;
-}
-
-function writeStoredAutoRetaliate(enabled: boolean): void {
-  try {
-    window.localStorage.setItem(NH_AUTO_RETALIATE_STORAGE_KEY, String(enabled));
-  } catch {
-    // Non-fatal in restricted browser contexts.
-  }
-}
-
-function normalizeStoredOptionsSoundVolume(value: number): number {
-  if (!Number.isFinite(value)) {
-    return 4;
-  }
-  return Math.round(Math.max(0, Math.min(4, value)) * 100) / 100;
-}
-
-function readStoredOptionsSoundVolume(key: string): number | null {
-  try {
-    const raw = window.localStorage.getItem(key);
-    const parsed = raw === null ? Number.NaN : Number(raw);
-    return Number.isFinite(parsed) && parsed >= 0 && parsed <= 4 ? normalizeStoredOptionsSoundVolume(parsed) : null;
-  } catch {
-    // Non-fatal in restricted browser contexts.
-  }
-  return null;
-}
-
-function writeStoredOptionsSoundVolume(key: string, volume: number): void {
-  try {
-    window.localStorage.setItem(key, String(normalizeStoredOptionsSoundVolume(volume)));
-  } catch {
-    // Non-fatal in restricted browser contexts.
-  }
-}
-
 function runtimeOptionsSoundVolumeForChannel(
   channel: RuntimeGameSoundChannel,
   current: RuntimeOptionsSoundVolumes
@@ -7417,106 +4568,6 @@ function updateRuntimeActiveGameAudioVolumes(
   }
 }
 
-function readStoredClientDisplayMode(): NhClientDisplayMode {
-  try {
-    const raw = window.localStorage.getItem(NH_TRAINER_CLIENT_DISPLAY_MODE_STORAGE_KEY);
-    return raw === "resizable" ? "resizable" : "fixed";
-  } catch {
-    return "fixed";
-  }
-}
-
-function writeStoredClientDisplayMode(displayMode: NhClientDisplayMode): void {
-  try {
-    window.localStorage.setItem(NH_TRAINER_CLIENT_DISPLAY_MODE_STORAGE_KEY, displayMode);
-  } catch {
-    // Non-fatal in restricted browser contexts.
-  }
-}
-
-function readStoredLocalProfileValue(primaryKey: string, legacyKeys: readonly string[] = []): string | null {
-  const current = window.localStorage.getItem(primaryKey);
-  if (current !== null) {
-    return current;
-  }
-  for (const legacyKey of legacyKeys) {
-    const legacy = window.localStorage.getItem(legacyKey);
-    if (legacy !== null) {
-      window.localStorage.setItem(primaryKey, legacy);
-      return legacy;
-    }
-  }
-  return null;
-}
-
-function readStoredBoolean(key: string): boolean {
-  try {
-    return window.localStorage.getItem(key) === "true";
-  } catch {
-    return false;
-  }
-}
-
-function writeStoredBoolean(key: string, enabled: boolean): void {
-  try {
-    window.localStorage.setItem(key, String(enabled));
-  } catch {
-    // Non-fatal in restricted browser contexts.
-  }
-}
-
-function readStoredStringArray(key: string): readonly string[] {
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) {
-      return [];
-    }
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeStoredStringArray(key: string, values: readonly string[]): void {
-  try {
-    window.localStorage.setItem(key, JSON.stringify(values));
-  } catch {
-    // Non-fatal in restricted browser contexts.
-  }
-}
-
-function readStoredSpellbookOrders(): Partial<Record<NhSpellbookId, readonly string[]>> {
-  try {
-    const raw = window.localStorage.getItem(NH_TRAINER_SPELLBOOK_REORDER_ORDERS_STORAGE_KEY);
-    if (!raw) {
-      return {};
-    }
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") {
-      return {};
-    }
-    const snapshot = parsed as Partial<Record<NhSpellbookId, unknown>>;
-    const orders: Partial<Record<NhSpellbookId, readonly string[]>> = {};
-    for (const bookId of ["standard", "ancient", "lunar", "arceuus"] as const) {
-      if (Array.isArray(snapshot[bookId])) {
-        orders[bookId] = snapshot[bookId].filter((value): value is string => typeof value === "string");
-      }
-    }
-    return orders;
-  } catch {
-    return {};
-  }
-}
-
-function writeStoredSpellbookOrders(orders: Partial<Record<NhSpellbookId, readonly string[]>>): void {
-  try {
-    window.localStorage.setItem(NH_TRAINER_SPELLBOOK_REORDER_ORDERS_STORAGE_KEY, JSON.stringify(orders));
-  } catch {
-    // Non-fatal in restricted browser contexts.
-  }
-}
-
 function swapNhWidgetOrder(
   currentOrder: readonly string[],
   sourceId: string,
@@ -7546,107 +4597,6 @@ function swapNhWidgetOrder(
   return next;
 }
 
-function initialHudOverrideFromStorage(): Partial<RuntimeHudState> | null {
-  const attackSet = typeof window === "undefined" ? null : readStoredAttackSetIndex();
-  const autoRetaliate = typeof window === "undefined" ? null : readStoredAutoRetaliate();
-  const soundEffectVolume =
-    typeof window === "undefined" ? null : readStoredOptionsSoundVolume(NH_SOUND_EFFECT_VOLUME_STORAGE_KEY);
-  const areaSoundEffectVolume =
-    typeof window === "undefined" ? null : readStoredOptionsSoundVolume(NH_AREA_SOUND_EFFECT_VOLUME_STORAGE_KEY);
-  if (
-    attackSet === null &&
-    autoRetaliate === null &&
-    soundEffectVolume === null &&
-    areaSoundEffectVolume === null
-  ) {
-    return null;
-  }
-  return {
-    ...(attackSet === null ? {} : { attackSet }),
-    ...(autoRetaliate === null ? {} : { autoRetaliate }),
-    ...(soundEffectVolume === null ? {} : { soundEffectVolume }),
-    ...(areaSoundEffectVolume === null ? {} : { areaSoundEffectVolume })
-  };
-}
-
-function readTemporarySavedSetupSnapshot(): TemporarySavedSetupSnapshot | null {
-  try {
-    const raw = window.localStorage.getItem(NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY);
-    if (!raw) {
-      return null;
-    }
-    const parsed = JSON.parse(raw);
-    if (isTemporarySavedSetupSnapshot(parsed)) {
-      return parsed;
-    }
-    window.localStorage.removeItem(NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY);
-  } catch {
-    return null;
-  }
-  return null;
-}
-
-function writeTemporarySavedSetupSnapshot(snapshot: TemporarySavedSetupSnapshot): boolean {
-  try {
-    window.localStorage.setItem(NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY, JSON.stringify(snapshot));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function clearTemporarySavedSetupSnapshot(): boolean {
-  try {
-    window.localStorage.removeItem(NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function readStoredRunelitePvpFightHistory(): readonly RunelitePvpFightHistoryEntrySnapshot[] {
-  try {
-    const raw = window.localStorage.getItem(NH_TRAINER_PVP_FIGHT_HISTORY_STORAGE_KEY);
-    if (!raw) {
-      return [];
-    }
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed)
-      ? parsed.filter(isRunelitePvpFightHistoryEntrySnapshot).slice(0, NH_TRAINER_PVP_FIGHT_HISTORY_LIMIT)
-      : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeStoredRunelitePvpFightHistory(entries: readonly RunelitePvpFightHistoryEntrySnapshot[]): void {
-  try {
-    window.localStorage.setItem(
-      NH_TRAINER_PVP_FIGHT_HISTORY_STORAGE_KEY,
-      JSON.stringify(entries.slice(0, NH_TRAINER_PVP_FIGHT_HISTORY_LIMIT))
-    );
-  } catch {
-    // Browser storage can be disabled; the live tracker still works for the current session.
-  }
-}
-
-function isRunelitePvpFightHistoryEntrySnapshot(value: unknown): value is RunelitePvpFightHistoryEntrySnapshot {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-  const entry = value as Partial<RunelitePvpFightHistoryEntrySnapshot>;
-  return (
-    typeof entry.id === "string" &&
-    typeof entry.playerName === "string" &&
-    typeof entry.opponentName === "string" &&
-    typeof entry.worldLabel === "string" &&
-    typeof entry.endedAtTick === "number" &&
-    typeof entry.playerDead === "boolean" &&
-    typeof entry.opponentDead === "boolean" &&
-    Array.isArray(entry.lines)
-  );
-}
-
 function mergeRunelitePvpFightHistory(
   storedEntries: readonly RunelitePvpFightHistoryEntrySnapshot[],
   newEntries: readonly RunelitePvpFightHistoryEntrySnapshot[]
@@ -7664,122 +4614,6 @@ function mergeRunelitePvpFightHistory(
     }
   }
   return merged;
-}
-
-interface BrowserClientWindowBounds {
-  readonly x: number;
-  readonly y: number;
-  readonly width: number;
-  readonly height: number;
-}
-
-function readBrowserClientWindowBounds(): BrowserClientWindowBounds {
-  try {
-    const raw = window.localStorage.getItem(NH_TRAINER_BROWSER_CLIENT_WINDOW_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (isBrowserClientWindowBounds(parsed)) {
-        return clampBrowserClientWindowBounds(parsed);
-      }
-    }
-  } catch {
-    // Non-fatal in restricted browser contexts.
-  }
-  return defaultBrowserClientWindowBounds();
-}
-
-function writeBrowserClientWindowBounds(bounds: BrowserClientWindowBounds): void {
-  try {
-    window.localStorage.setItem(NH_TRAINER_BROWSER_CLIENT_WINDOW_STORAGE_KEY, JSON.stringify(bounds));
-  } catch {
-    // Non-fatal in restricted browser contexts.
-  }
-}
-
-function isBrowserClientWindowBounds(value: unknown): value is BrowserClientWindowBounds {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-  const bounds = value as Partial<BrowserClientWindowBounds>;
-  return (
-    typeof bounds.x === "number" &&
-    typeof bounds.y === "number" &&
-    typeof bounds.width === "number" &&
-    typeof bounds.height === "number" &&
-    Number.isFinite(bounds.x) &&
-    Number.isFinite(bounds.y) &&
-    Number.isFinite(bounds.width) &&
-    Number.isFinite(bounds.height)
-  );
-}
-
-function defaultBrowserClientWindowBounds(): BrowserClientWindowBounds {
-  const viewportWidth = typeof window === "undefined" ? 1200 : window.innerWidth;
-  const viewportHeight = typeof window === "undefined" ? 720 : window.innerHeight;
-  const width = Math.max(
-    BROWSER_CLIENT_WINDOW_MIN_WIDTH,
-    Math.min(viewportWidth - 32, 1043)
-  );
-  const height = Math.max(
-    BROWSER_CLIENT_WINDOW_MIN_HEIGHT,
-    Math.min(viewportHeight - 32, 503 + BROWSER_CLIENT_WINDOW_TITLEBAR_HEIGHT)
-  );
-  return clampBrowserClientWindowBounds({
-    x: Math.max(8, Math.round((viewportWidth - width) / 2)),
-    y: Math.max(8, Math.round((viewportHeight - height) / 2)),
-    width,
-    height
-  });
-}
-
-function clampBrowserClientWindowBounds(bounds: BrowserClientWindowBounds): BrowserClientWindowBounds {
-  const viewportWidth = typeof window === "undefined" ? bounds.width : window.innerWidth;
-  const viewportHeight = typeof window === "undefined" ? bounds.height : window.innerHeight;
-  const width = Math.max(
-    BROWSER_CLIENT_WINDOW_MIN_WIDTH,
-    Math.min(Math.max(BROWSER_CLIENT_WINDOW_MIN_WIDTH, viewportWidth), Math.round(bounds.width))
-  );
-  const height = Math.max(
-    BROWSER_CLIENT_WINDOW_MIN_HEIGHT,
-    Math.min(Math.max(BROWSER_CLIENT_WINDOW_MIN_HEIGHT, viewportHeight), Math.round(bounds.height))
-  );
-  return {
-    width,
-    height,
-    x: Math.max(0, Math.min(Math.max(0, viewportWidth - width), Math.round(bounds.x))),
-    y: Math.max(0, Math.min(Math.max(0, viewportHeight - height), Math.round(bounds.y)))
-  };
-}
-
-/**
- * Fixed-mode snap: when RuneLite Stretched Mode is off, the client stays at exactly 765x503 (1:1).
- * Resizing the window snaps it to the client size plus exactly the sidebar width on the right, so
- * there is no black padding around the fixed client.
- */
-function browserClientWindowFixedSnapSize(
-  element: HTMLElement | null
-): { readonly width: number; readonly height: number } | null {
-  const shell = element?.querySelector<HTMLElement>(".runeliteClientShell");
-  if (!shell || shell.dataset.runeliteStretchedEnabled !== "false") {
-    return null;
-  }
-  const sidebarOpen = shell.dataset.sidebarOpen === "true";
-  const panelOpen = shell.dataset.pluginPanelOpen === "true";
-  const sidebarWidth = sidebarOpen
-    ? RUNELITE_PLUGIN_TOOLBAR_WIDTH + (panelOpen ? RUNELITE_PLUGIN_WRAPPED_WIDTH : 0)
-    : 0;
-  return {
-    width: RUNELITE_FIXED_CLIENT_WIDTH + sidebarWidth,
-    height: RUNELITE_FIXED_CLIENT_HEIGHT + BROWSER_CLIENT_WINDOW_TITLEBAR_HEIGHT
-  };
-}
-
-function clampBrowserClientWindowBoundsWithFixedSnap(
-  bounds: BrowserClientWindowBounds,
-  element: HTMLElement | null
-): BrowserClientWindowBounds {
-  const snap = browserClientWindowFixedSnapSize(element);
-  return clampBrowserClientWindowBounds(snap ? { ...bounds, width: snap.width, height: snap.height } : bounds);
 }
 
 function BrowserClientWindow({ children }: { readonly children: JSX.Element }): JSX.Element {
@@ -7968,45 +4802,6 @@ function BrowserClientWindow({ children }: { readonly children: JSX.Element }): 
       <div className="browserClientWindowContent">{children}</div>
     </div>
   );
-}
-
-function runtimePlayerCombatStateWithLocalSpecialEnergy(
-  state: RuntimePlayerCombatState,
-  specialEnergy: number
-): RuntimePlayerCombatState {
-  const actor = state.actors["local-player"];
-  const clampedSpecialEnergy = Math.max(0, Math.min(100, Math.trunc(specialEnergy)));
-  return {
-    ...state,
-    actors: {
-      ...state.actors,
-      "local-player": {
-        ...actor,
-        specialRestoreTicks: 0,
-        gmaul: {
-          ...actor.gmaul,
-          specialEnergy: clampedSpecialEnergy
-        }
-      }
-    }
-  };
-}
-
-function runtimePlayerCombatStateWithLocalFreezeBypass(state: RuntimePlayerCombatState): RuntimePlayerCombatState {
-  const actor = state.actors["local-player"];
-  if (actor.locks.freezeUntilTick < 0) {
-    return state;
-  }
-  return {
-    ...state,
-    actors: {
-      ...state.actors,
-      "local-player": {
-        ...actor,
-        locks: resetFreeze(actor.locks)
-      }
-    }
-  };
 }
 
 function pointerEventToViewportPosition(
@@ -8316,55 +5111,11 @@ function isNhPlayerContextMenuEntry(entry: NhContextMenuEntry): entry is NhPlaye
   );
 }
 
-function runtimeWeaponLoadoutForItemId(itemId: number): RuntimeLoadoutId | null {
-  if (itemId === 6914 || itemId === 11791 || itemId === 21006 || itemId === 22296 || itemId === 22647) {
-    return "kodai-robes";
-  }
-  if (itemId === 11785 || itemId === 21902 || itemId === 26374) {
-    return "acb-hides";
-  }
-  if (itemId === 22613 || itemId === 27690) {
-    return "tentacle-bandos";
-  }
-  if (itemId === 29796) {
-    return "noxious-halberd";
-  }
-  if (itemId === 11802) {
-    return "ags-bandos";
-  }
-  for (const loadoutId of Object.keys(nhLoadouts) as RuntimeLoadoutId[]) {
-    const weapon = nhLoadouts[loadoutId].equipment.weapon;
-    if (weapon?.itemId === itemId) {
-      return loadoutId;
-    }
-  }
-  return null;
-}
-
-function runtimeCombatSpellIdFromSelectedSpell(spell: NhSelectedSpell | null | undefined): RuntimePlayerCombatSpellId | null {
-  return spell?.spellId === "blood-blitz" ||
-    spell?.spellId === "ice-blitz" ||
-    spell?.spellId === "blood-barrage" ||
-    spell?.spellId === "ice-barrage"
-    ? spell.spellId
-    : null;
-}
-
 function runtimePrayerIdsFromNhStates(states: NhPrayerStates | undefined): readonly PrayerId[] {
   return nhActivePrayerIds(states).flatMap((id): PrayerId[] => {
     const runtimeId = id.split("-").join("_");
     return isRuntimePrayerId(runtimeId) ? [runtimeId] : [];
   });
-}
-
-function runtimeCombatLevelsFromHud(hud: RuntimeHudState): CombatLevels {
-  return {
-    attack: hud.skills?.attack?.current ?? runtimePlayerCombatDefaultLevels.attack,
-    strength: hud.skills?.strength?.current ?? runtimePlayerCombatDefaultLevels.strength,
-    defence: hud.skills?.defence?.current ?? runtimePlayerCombatDefaultLevels.defence,
-    ranged: hud.skills?.ranged?.current ?? runtimePlayerCombatDefaultLevels.ranged,
-    magic: hud.skills?.magic?.current ?? runtimePlayerCombatDefaultLevels.magic
-  };
 }
 
 const runtimeStatKeys: readonly StatKey[] = ["attack", "strength", "defence", "ranged", "magic", "hitpoints", "prayer"];
@@ -8413,16 +5164,6 @@ function runtimeSimStatsFromActorAndHud(
   };
 }
 
-function runtimeCombatLevelsFromSimStats(stats: SimStats): CombatLevels {
-  return {
-    attack: stats.attack.current,
-    strength: stats.strength.current,
-    defence: stats.defence.current,
-    ranged: stats.ranged.current,
-    magic: stats.magic.current
-  };
-}
-
 function runtimeHudOverrideFromSimStats(stats: SimStats, current: RuntimeHudState): Partial<RuntimeHudState> {
   const skills = { ...(current.skills ?? {}) };
   for (const key of runtimeStatKeys) {
@@ -8435,39 +5176,6 @@ function runtimeHudOverrideFromSimStats(stats: SimStats, current: RuntimeHudStat
     prayerMax: stats.prayer.fixed,
     skills
   };
-}
-
-function runtimeManualCombatAuthoritativeHud(mergedHud: RuntimeHudState, combatHud: RuntimeHudState): RuntimeHudState {
-  const skills = {
-    ...(mergedHud.skills ?? {}),
-    hitpoints: combatHud.skills?.hitpoints ?? {
-      current: combatHud.hitpoints,
-      fixed: combatHud.hitpointsMax
-    }
-  };
-
-  return {
-    ...mergedHud,
-    hitpoints: combatHud.hitpoints,
-    hitpointsMax: combatHud.hitpointsMax,
-    specialEnergy: combatHud.specialEnergy,
-    specialActive: combatHud.specialActive,
-    attackSet: combatHud.attackSet,
-    autocast: combatHud.autocast,
-    defensiveCast: combatHud.defensiveCast,
-    skills
-  };
-}
-
-function runtimeCombatActorRespawnedForFreshFightReset(
-  before: RuntimePlayerCombatActorState,
-  after: RuntimePlayerCombatActorState,
-  tick: number
-): boolean {
-  return before.deadUntilTick !== null &&
-    before.deadUntilTick <= tick &&
-    after.deadUntilTick === null &&
-    after.hitpoints > 0;
 }
 
 function isRuntimePrayerId(value: string): value is PrayerId {
@@ -9058,20 +5766,6 @@ function NhContextMenuText({ text, font, atlas, left, baseline, color }: NhConte
     </span>
   );
 }
-
-const RUNTIME_EQUIPMENT_SLOT_ORDER: readonly EquipmentSlot[] = [
-  "head",
-  "cape",
-  "amulet",
-  "weapon",
-  "body",
-  "shield",
-  "legs",
-  "hands",
-  "feet",
-  "ring",
-  "ammo"
-];
 
 interface RuntimeOpponentInventoryInspectSlot {
   readonly slotIndex: number;
@@ -13668,24 +10362,6 @@ interface ManualOpponentCombatResponse {
   readonly consumedSupplies: readonly ConsumableId[];
 }
 
-interface ManualPolicyActorAppearanceView {
-  readonly tile: RuntimeTile;
-  readonly loadoutId: RuntimeLoadoutId;
-  readonly equipment: VisibleEquipment;
-  readonly inventoryItems: readonly VisibleEquipmentItem[];
-  readonly inventorySlots: readonly (RuntimeInventorySlot | null)[];
-  readonly activePrayers: readonly PrayerId[];
-  readonly stats: SimStats;
-  readonly locks: EntityLockState;
-  readonly attackTimer: RuntimePlayerCombatActorState["attackTimer"];
-  readonly movedThisTick: boolean;
-  readonly lastMoveDx: number;
-  readonly lastMoveDy: number;
-  readonly lastVengeanceTrinketCastTick: number;
-  readonly vengeanceTrinketCasts: number;
-  readonly observedInfoKnown?: boolean;
-}
-
 function formatManualOpponentVisibleStyleEvs(context: NhDuelControllerContext | null): string {
   if (!context) {
     return "";
@@ -17884,7 +14560,8 @@ export function RuntimeSceneViewer({
       const actorDead = isRuntimePlayerCombatActorDead(opponent, combatState.tick);
       const targetDead = isRuntimePlayerCombatActorDead(local, combatState.tick);
       const resetMovementStatus = movementGate(opponent.locks, combatState.tick);
-      const freshFightReset = shouldRuntimePolicyResetForFreshFight({
+      // DMM restoration is handled by its full fight reset; keep the legacy NH template scoped to NH.
+      const freshFightReset = runtimeSetupPresetIdRef.current === "nh-stake" && shouldRuntimePolicyResetForFreshFight({
         resetReposition: tracking.resetReposition,
         actorDead,
         targetDead
@@ -19853,6 +16530,7 @@ export function RuntimeSceneViewer({
     setPlaying(false);
     setFollowLive(false);
     const setup = runtimeSetupPreset(setupId);
+    setActiveSpellbookId(setup.spellbookId);
     const loadoutId = setup.loadoutId;
     const inventorySlots = runtimeSetupInventorySlots(setupId, dmmOptions);
     const equipmentItems = runtimeSetupEquipmentItems(setupId);

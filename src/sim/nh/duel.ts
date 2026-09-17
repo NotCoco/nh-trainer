@@ -1,4 +1,5 @@
 import equipmentRowsJson from "../../generated/equipment-bonuses.json";
+import type { NhPolicyDecoder } from "./policy-contract";
 import type {
   ClientHitsplatEvent,
   ClientHudState,
@@ -176,6 +177,8 @@ export interface NhDuelControllerContext {
 
 export interface NhDuelController {
   readonly id: string;
+  /** Present on policy controllers; scripted controllers do not decode model action IDs. */
+  readonly policyDecoder?: NhPolicyDecoder;
   /**
    * True for current-direct neural controllers whose defence prayer must be
    * applied exactly as the model chose it (Source: NhStakerBot.resolveDefencePrayer()

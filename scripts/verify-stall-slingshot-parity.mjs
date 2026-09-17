@@ -1,3 +1,4 @@
+import { readRuntimeViewerSource } from "./lib/runtime-viewer-source.mjs";
 import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
@@ -23,7 +24,7 @@ const serverRoot = path.resolve(
   "ruin"
 );
 
-const viewerSource = await readFile(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
+const viewerSource = await readRuntimeViewerSource();
 for (const snippet of [
   "manualActorWithAuthoritativeSequenceCursor",
   "equipment updates only rebuild PlayerAppearance",

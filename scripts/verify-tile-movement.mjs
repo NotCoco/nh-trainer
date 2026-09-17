@@ -1,3 +1,4 @@
+import { readRuntimeViewerSource } from "./lib/runtime-viewer-source.mjs";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -117,7 +118,7 @@ const clientLoginPacketSource = readFileSync(
   path.join(clientStandaloneRoot, "LoginPacket.java"),
   "utf8"
 );
-const runtimeSceneViewerSource = readFileSync(path.resolve(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
+const runtimeSceneViewerSource = readRuntimeViewerSource();
 
 const WEST = 3200;
 const SOUTH = 3400;

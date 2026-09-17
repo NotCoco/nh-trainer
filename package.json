@@ -39,6 +39,7 @@
     "verify:runtime-hud": "node scripts/verify-runtime-hud.mjs",
     "verify:magic-level-gating": "node scripts/verify-magic-level-gating.mjs",
     "verify:runtime-player-combat": "node scripts/verify-runtime-player-combat.mjs",
+    "verify:runtime-mode-boundaries": "node scripts/verify-runtime-mode-boundaries.mjs",
     "verify:vengeance-trinket-attack-cycle": "node scripts/verify-vengeance-trinket-attack-cycle.mjs",
     "verify:dmm-deployed-composite-java": "node scripts/verify-dmm-deployed-composite-java.mjs",
     "verify:dmm-deployed-composite-java:runtime": "node scripts/verify-dmm-deployed-composite-java.mjs --runtime-log",

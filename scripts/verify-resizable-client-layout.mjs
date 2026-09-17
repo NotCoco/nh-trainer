@@ -1,3 +1,4 @@
+import { readRuntimeViewerSource } from "./lib/runtime-viewer-source.mjs";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -67,7 +68,7 @@ const clientUiAtlas = JSON.parse(
   readFileSync(path.join(projectRoot, "fixtures", "render", "sprites", "client_ui.json"), "utf8")
 );
 const hudSource = readFileSync(path.join(projectRoot, "src", "ui", "NhClientHud.tsx"), "utf8");
-const runtimeViewerSource = readFileSync(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
+const runtimeViewerSource = readRuntimeViewerSource();
 
 const group161 = definitions.groups.find((group) => group.groupId === 161);
 assert(group161, "client widget export should include resizable old-school-box root group 161");

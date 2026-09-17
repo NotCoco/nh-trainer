@@ -3903,13 +3903,14 @@ function runtimePlayerCombatPidAdjustedHitsplatDelayTicks(
   style?: CombatStyle
 ): number {
   const normalDelayTicks = runtimePlayerCombatNormalHitsplatDelayTicks(hitDelayTicks, style, hasProjectile);
-  // The PID-adjusted impact tick must drive damage, hitsplats, and health bars
-  // together. Ranged projectiles keep their normal delay so point-blank bolts do
-  // not collapse into melee timing.
+  // Projectile delays are elapsed game ticks. Java Hit.defend compensates for
+  // a target that has already processed; Hit.finish then decrements before the
+  // following impact. Our absolute dueTick must not subtract that tick again.
+  // This includes Ice Blitz's invisible, timing-only Projectile(56, 10).
   if (defenderAlreadyProcessedThisTick) {
     return normalDelayTicks;
   }
-  if (hasProjectile && style === "ranged") {
+  if (hasProjectile) {
     return normalDelayTicks;
   }
   return Math.max(0, normalDelayTicks - 1);

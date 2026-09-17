@@ -1,4 +1,5 @@
 import equipmentRowsJson from "../generated/equipment-bonuses.json";
+import type { NhNeuralPolicyDecoder, NhPolicyDecoder } from "../sim/nh/policy-contract";
 import {
   createNhPolicyFeatureState,
   commitNhPolicyDecisionState,
@@ -93,6 +94,8 @@ export interface NhNeuralDenseLayer {
 
 export interface ParsedNhNeuralPolicy {
   readonly kind: "neural";
+  /** Resolved once from the validated schema, never from a model's filename or UI label. */
+  readonly decoder: NhNeuralPolicyDecoder;
   readonly version: number;
   readonly sourceLabel: string;
   readonly step: number;
@@ -180,6 +183,7 @@ export interface NhPolicySummary {
 }
 
 export interface NhPolicyRuntimeController extends NhDuelController {
+  readonly policyDecoder: NhPolicyDecoder;
   readonly getLastRankings: () => readonly NhPolicyScoredAction[];
   readonly setDecisionTraceEnabled: (enabled: boolean) => void;
   readonly getLastDecisionTrace: () => NhPolicyDecisionTrace | null;
@@ -319,15 +323,12 @@ export function createNhPolicyController(policy: NhRuntimePolicy): NhPolicyRunti
   let activeEpisodeId: number | null = null;
   let lastContextTick: number | null = null;
   const neuralPolicy = isParsedNhNeuralPolicy(policy);
-  const dmmDeployedCompositePolicy = neuralPolicy && isDmmDeployedCompositePolicy(policy);
+  const dmmDeployedCompositePolicy = neuralPolicy && policy.decoder === "dmm-deployed-composite";
   let currentDmmActionSurfaceVerified = false;
-  const decodeMode = neuralPolicy
-    ? dmmDeployedCompositePolicy
-      ? "dmm-deployed-composite"
-      : "current-action-vector"
-    : "tabular";
+  const decodeMode = neuralPolicy ? policy.decoder : "tabular";
   return {
     id: `${neuralPolicy ? "neural-policy" : "parsed-policy"}:${policy.sourceLabel}:${decodeMode}`,
+    policyDecoder: decodeMode,
     // Source: NhStakerBot.resolveDefencePrayer() applies the reachability and
     // visible-threat guards only for deployed-composite and legacy controllers;
     // current-direct neural decisions keep the model's defence prayer untouched.
@@ -940,6 +941,7 @@ export function parseNhNeuralPolicyJson(text: string, sourceLabel = "neural-poli
 
   return {
     kind: "neural",
+    decoder: neuralPolicyDecoderForSchema({ inputSize, actionCount, actionIds }),
     version,
     sourceLabel,
     step: parseOptionalInteger(source.step, 0),
@@ -1453,6 +1455,9 @@ export function rankNhNeuralPolicyActionsFromFeatures(
     typeof contextOrEqualScoreTieBreaker === "function" ? undefined : contextOrEqualScoreTieBreaker;
   const tieBreaker =
     typeof contextOrEqualScoreTieBreaker === "function" ? contextOrEqualScoreTieBreaker : equalScoreTieBreaker;
+  if (policy.decoder === "nh-deployed-legacy") {
+    return rankNhDeployedLegacyNeuralPolicyActionsFromFeatures(policy, features, limit, tieBreaker);
+  }
   const normalizedInput = normalizeNhNeuralInput(policy, features);
   const encoded = runNhNeuralEncoder(policy, normalizedInput);
   const rankings: NhPolicyScoredAction[] = [];
@@ -1609,7 +1614,8 @@ function rankNhDeployedLegacyNeuralPolicyActionsFromFeatures(
   policy: ParsedNhNeuralPolicy,
   features: readonly number[],
   limit = 6,
-  equalScoreTieBreaker?: NhPolicyEqualScoreTieBreaker
+  equalScoreTieBreaker?: NhPolicyEqualScoreTieBreaker,
+  candidateActions?: ReadonlySet<number>
 ): readonly NhPolicyScoredAction[] {
   if (features.length !== nhPolicyFeatureSize) {
     throw new Error(`NH policy feature vector must have ${nhPolicyFeatureSize} entries, got ${features.length}.`);
@@ -1619,6 +1625,9 @@ function rankNhDeployedLegacyNeuralPolicyActionsFromFeatures(
   const actionCount = policy.actionIds === undefined ? policy.actionCount : policy.actionIds.length;
   for (let modelAction = 0; modelAction < actionCount; modelAction += 1) {
     const action = policy.actionIds?.[modelAction] ?? modelAction;
+    if (candidateActions && !candidateActions.has(action)) {
+      continue;
+    }
     const decoded = decodeNhDeployedLegacyPolicyAction(action);
     if (!isNhDeployedLegacyPolicyActionAllowed(features, decoded)) {
       continue;
@@ -1632,7 +1641,7 @@ function rankNhDeployedLegacyNeuralPolicyActionsFromFeatures(
   }
 
   if (rankings.length === 0) {
-    throw new Error("DMM deployed-composite policy produced no legal deployed-legacy rankings; refusing action fallback.");
+    throw new Error("Deployed legacy policy produced no legal rankings; refusing action fallback.");
   }
 
   if (equalScoreTieBreaker) {
@@ -1680,6 +1689,11 @@ export function rankNhNeuralPolicyCandidateActionsFromFeatures(
     typeof contextOrEqualScoreTieBreaker === "function" ? undefined : contextOrEqualScoreTieBreaker;
   const tieBreaker =
     typeof contextOrEqualScoreTieBreaker === "function" ? contextOrEqualScoreTieBreaker : equalScoreTieBreaker;
+  if (policy.decoder === "nh-deployed-legacy") {
+    return rankNhDeployedLegacyNeuralPolicyActionsFromFeatures(
+      policy, features, limit, tieBreaker, new Set(candidateActions)
+    );
+  }
   const encoded = runNhNeuralEncoder(policy, normalizeNhNeuralInput(policy, features));
   const rankings: NhPolicyScoredAction[] = [];
   const seen = new Set<number>();
@@ -1770,14 +1784,22 @@ function neuralPolicyHasDirectGearActions(policy: ParsedNhNeuralPolicy): boolean
   return policy.actionIds.some((action) => isNhDirectGearActionId(action));
 }
 
-function isDmmDeployedCompositePolicy(policy: ParsedNhNeuralPolicy): boolean {
-  if (policy.inputSize !== nhPolicyPreviousInputSize || policy.actionIds === undefined) {
-    return false;
+function neuralPolicyDecoderForSchema(
+  schema: Pick<ParsedNhNeuralPolicy, "inputSize" | "actionCount" | "actionIds">
+): NhNeuralPolicyDecoder {
+  const explicitLegacyActions = schema.actionIds !== undefined && schema.actionIds.length > 0 &&
+    schema.actionIds.every((action) => action >= 0 && action < nhDeployedLegacyPolicyActionCount);
+  // The 90-input NH stake model predates the 26-movement action layout. Its
+  // action IDs use the original 11-movement decoder, including generic specs.
+  if (schema.inputSize === v13NhPolicyInputSize && (
+    schema.actionIds === undefined ? schema.actionCount === v13NhPolicyActionCount : explicitLegacyActions
+  )) {
+    return "nh-deployed-legacy";
   }
-  if (policy.actionIds.length === 0) {
-    return false;
+  if (schema.inputSize === nhPolicyPreviousInputSize && explicitLegacyActions) {
+    return "dmm-deployed-composite";
   }
-  return policy.actionIds.every((action) => action >= 0 && action < nhDeployedLegacyPolicyActionCount);
+  return "current-action-vector";
 }
 
 function actionVisitMap(policy: ParsedNhPolicy): ReadonlyMap<number, number> {
@@ -2351,15 +2373,21 @@ function normalizeNhNeuralInput(
   options: { readonly dmmDeployedComposite?: boolean } = {}
 ): Float32Array {
   const input = new Float32Array(policy.inputSize);
+  const nhDeployedLegacyPolicy = policy.decoder === "nh-deployed-legacy";
   for (let index = 0; index < policy.inputSize; index += 1) {
     const std = policy.inputStd[index];
-    const raw =
+    let raw =
       options.dmmDeployedComposite &&
       policy.inputSize === nhPolicyPreviousInputSize &&
       Number.isFinite(std) &&
       Math.abs(std) <= dmmDeployedConstantInputStdMax
         ? policy.inputMean[index]
         : features[nhPolicyInputFeatureStart + index];
+    // Source: NhStakerSelfPlayManager.inputForNeuralModel() restores the reward
+    // scales used by the deployed-era model before its mean/std normalization.
+    if (nhDeployedLegacyPolicy && index >= 20 && index <= 22) {
+      raw = clampSigned(raw / (index === 20 ? 12 : index === 21 ? 30 : 120));
+    }
     input[index] = (raw - policy.inputMean[index]) /
       (Number.isFinite(std) && Math.abs(std) > 1.0e-8 ? std : 1);
   }
@@ -2715,7 +2743,9 @@ function isNhDeployedLegacyPolicyActionAllowed(features: readonly number[], acti
     return false;
   }
 
-  if (action.movementIntent === "stand_under" && (!opponentFrozen || selfFrozen)) {
+  // Source: NhStandUnderMechanicalSupport.actionAllowed(). Already sharing
+  // the target's tile leaves no stand-under movement to execute.
+  if (action.movementIntent === "stand_under" && (!opponentFrozen || selfFrozen || distance === 0)) {
     return false;
   }
   if (

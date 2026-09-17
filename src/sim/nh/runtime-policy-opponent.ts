@@ -120,7 +120,7 @@ export const runtimePolicyOpponentActionCoverage = {
   movementIntents: {
     none: "do not issue a movement step this tick",
     stand_under: "step toward or onto the delayed frozen opponent tile when movement is allowed",
-    pressure: "deployed legacy movement: route toward melee/spec pressure when movement is allowed",
+    pressure: "deployed legacy movement: route toward the opponent when movement is allowed",
     step_out: "deployed legacy movement: step away from the target when source gates allow it",
     step_north: "deployed legacy movement: step one tile north when movement is allowed",
     step_south: "deployed legacy movement: step one tile south when movement is allowed",
@@ -294,7 +294,7 @@ export function applyRuntimeOpponentPolicyAction(input: {
   readonly allowSourceLoadoutSync?: boolean;
 }): RuntimePolicyOpponentResult {
   const dmmDeployedCompositeMode = runtimePolicyControllerUsesDmmDeployedComposite(input.controller);
-  const deployedLegacyMode = dmmDeployedCompositeMode;
+  const deployedLegacyMode = dmmDeployedCompositeMode || input.controller.policyDecoder === "nh-deployed-legacy";
   const stateWithPendingOutcome = runtimePolicyApplyPendingGmaulSpecOutcome(
     input.state,
     "opponent",
@@ -583,10 +583,7 @@ export function applyRuntimeOpponentPolicyAction(input: {
   const targetLoadoutId = directGearMode
     ? state.actors.opponent.loadoutId
     : runtimeLoadoutForPolicyAction(effectiveAction, syncedOpponentGearProfile, selectedSpecialKind);
-  let opponentLoadoutId = targetLoadoutId;
-  if (directGearMode) {
-    opponentLoadoutId = state.actors.opponent.loadoutId;
-  } else if (!suppressStyleReequipThisTick) {
+  if (!directGearMode && !suppressStyleReequipThisTick) {
     if (javaWouldSwitchToStyle) {
       // Source: NhStakerBot.switchToStyle() always enters applyLoadout(), and
       // applyLoadout() begins with clearAutocast() before equipping the style.
@@ -601,8 +598,6 @@ export function applyRuntimeOpponentPolicyAction(input: {
         opponent: targetEquipment
       }
     });
-  } else {
-    opponentLoadoutId = state.actors.opponent.loadoutId;
   }
   if (effectiveAction.offenceStyle === "magic") {
     // Source: MAGIC robe body is protected from flexible-gear swaps; keep the
@@ -734,7 +729,8 @@ export function applyRuntimeOpponentPolicyAction(input: {
     effectiveAction,
     controllerId: input.controller.id,
     context,
-    opponentLoadoutId,
+    // Special attacks can switch weapons after the style actions; sync the final loadout.
+    opponentLoadoutId: state.actors.opponent.loadoutId,
     opponentTile: magicLineOfSightResult.opponentTile,
     opponentMovedThisTick: magicLineOfSightResult.moved,
     opponentLastMoveDx: magicLineOfSightResult.lastMoveDx,
@@ -819,7 +815,7 @@ function runtimePolicyLeftPvpNoopAction(lastOffenceStyle: NhOffenceStyle | undef
 }
 
 function runtimePolicyControllerUsesDmmDeployedComposite(controller: NhDuelController): boolean {
-  return controller.id.includes(":dmm-deployed-composite");
+  return controller.policyDecoder === "dmm-deployed-composite";
 }
 
 function assertCovered<T extends string>(
@@ -6530,32 +6526,22 @@ function runtimePolicyTryStepAwayTile(
 }
 
 function runtimePolicyPressureApproachTile(input: {
-  readonly action: NhPolicyAction;
-  readonly context: NhDuelControllerContext;
   readonly opponentTile: RuntimeTile;
   readonly localTile: RuntimeTile;
   readonly scale: number;
   readonly targetRouteStep?: RuntimePolicyTargetRouteStepPredicate;
 }): RuntimeTile | null {
-  const meleeRouteDistance = runtimePolicyMeleeTargetRouteRange(input.context.self);
-  const shouldRouteToOpponent = input.action.offenceStyle === "melee" && !input.context.meleeReachable;
-  const shouldRouteForSpec =
-    chebyshevPolicyDistance(input.context.self.tile, input.context.opponent.tile) === 2 &&
-    runtimePolicySpecApproachWindowFromContext(input.context, false) >= runtimePolicySpecApproachWindowFloor;
-
-  if (shouldRouteToOpponent || shouldRouteForSpec) {
-    const routeDistance = shouldRouteToOpponent ? meleeRouteDistance : 1;
-    if (input.targetRouteStep) {
-      return input.targetRouteStep(input.opponentTile, input.localTile, routeDistance, {
-        movementIntent: "pressure",
-        targetTile: input.localTile,
-        allowTargetTile: false
-      });
-    }
-    return stepTowardRuntimePolicyTile(input.opponentTile, input.localTile, input.scale, false);
+  // Source: NhStakerBot.applyMovementIntent(PRESSURE) calls routeEntity(opponent)
+  // for every combat style, including HOLD ticks. Gating this on melee strands
+  // ranged/magic policies that are waiting to close the distance before attacking.
+  if (input.targetRouteStep) {
+    return input.targetRouteStep(input.opponentTile, input.localTile, 1, {
+      movementIntent: "pressure",
+      targetTile: input.localTile,
+      allowTargetTile: false
+    });
   }
-
-  return null;
+  return stepTowardRuntimePolicyTile(input.opponentTile, input.localTile, input.scale, false);
 }
 
 function runtimePolicyMeleeTargetRouteRange(actor: NhDuelActorState): number {

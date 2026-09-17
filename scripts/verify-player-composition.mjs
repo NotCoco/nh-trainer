@@ -1,3 +1,4 @@
+import { readRuntimeViewerSource } from "./lib/runtime-viewer-source.mjs";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -367,7 +368,7 @@ const clientTextureSource = readNhClientSource("runelite-client/src/main/java/ne
 const clientTextureProviderSource = readNhClientSource("runelite-client/src/main/java/net/runelite/standalone/TextureProvider.java");
 const clientCycleSource = readNhClientSource("runelite-client/src/main/java/net/runelite/standalone/Friend.java");
 const captureClientReferenceSource = readFileSync(path.join(projectRoot, "scripts", "capture-client-reference.mjs"), "utf8");
-const runtimeViewerSource = readFileSync(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
+const runtimeViewerSource = readRuntimeViewerSource();
 const renderParitySource = readFileSync(path.join(projectRoot, "scripts", "render-parity-electron.cjs"), "utf8");
 const electronMainSource = readFileSync(path.join(projectRoot, "src", "client", "main.ts"), "utf8");
 const playerModelSource = readFileSync(path.join(projectRoot, "src", "render", "nhPlayerModel.ts"), "utf8");

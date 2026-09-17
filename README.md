@@ -91,6 +91,39 @@ The `fastsim/` folder is the GPU fight engine used to generate training rollouts
 
 The browser stores local profile settings such as client size, F-key mappings, inventory setup, equipment setup, attack styles, auto-retaliate, XP-drop settings, and setup selection. Different visitors keep their own settings in their own browser storage.
 
+## Runtime Maintenance
+
+The runtime helpers are separated by responsibility:
+
+| File | Responsibility |
+| --- | --- |
+| `src/ui/RuntimeSceneViewer.tsx` | Rendering, input, React state, and fight coordination |
+| `src/ui/runtimeSetupPresets.ts` | NH/DMM gear, spellbooks, inventories, and supplies |
+| `src/ui/runtimePreferences.ts` | Existing browser storage keys, saved setups, and migrations |
+| `src/ui/runtimeMovement.ts` | Java-backed routing, interpolation, turning, and animation timing |
+| `src/ui/runtimeCombatState.ts` | Combat-state and opponent-observation helpers |
+| `src/sim/nh/runtime-policy-opponent.ts` | Applying model actions to the simulation |
+| `src/bot/policy.ts` and `src/sim/nh/policy-contract.ts` | Schema validation, explicit decoder identity, and inference |
+
+Each setup owns its spellbook; NH and DMM use Ancient. Selecting a setup applies
+that spellbook. Keep the existing preference format and storage keys stable, and
+use the same browser origin when checking saved preferences.
+
+The parser resolves the decoder from validated input dimensions and action IDs.
+Controllers pass it explicitly. Filenames, labels, and controller IDs must not
+select combat behavior. Keep legacy NH, deployed-composite DMM, and current
+direct-action DMM contracts separate.
+
+Run `npm run typecheck` and `npm run verify:runtime-mode-boundaries` for changes to
+these boundaries. The focused checks cover spellbooks, saved preferences, NH
+movement, model contracts, DMM equipment, and spell impact timing. They run only
+in Node. Existing source checks use `scripts/lib/runtime-viewer-source.mjs` to read
+the extracted helpers; new behavior checks should call the helpers directly.
+
+`src/ui/App.tsx` owns browser policy asset selection. Verify the release branch and
+deployed artifact separately from local experiments. Use an isolated checkout of
+the release branch for selective fixes when the development checkout is mixed.
+
 ## Running Locally
 
 ```powershell

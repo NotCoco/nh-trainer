@@ -1,3 +1,4 @@
+import { readRuntimeViewerSource } from "./lib/runtime-viewer-source.mjs";
 import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -165,7 +166,7 @@ const specbarRedrawSource = readNhClientScriptSource("SpecbarRedraw.rs2asm");
 const combatInterfaceSpecialSource = readNhClientScriptSource("CombatInterfaceSP.rs2asm");
 const weaponTypes = JSON.parse(readFileSync(path.join(projectRoot, "fixtures", "assets", "defs", "weapon-types.json"), "utf8"));
 const appSource = readFileSync(path.join(projectRoot, "src", "ui", "App.tsx"), "utf8");
-const viewerSource = readFileSync(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
+const viewerSource = readRuntimeViewerSource();
 const hudSource = readFileSync(path.join(projectRoot, "src", "ui", "NhClientHud.tsx"), "utf8");
 const botPolicySource = readFileSync(path.join(projectRoot, "src", "bot", "policy.ts"), "utf8");
 const runtimeCombatSource = readFileSync(path.join(projectRoot, "src", "sim", "runtimePlayerCombat.ts"), "utf8");
@@ -1177,8 +1178,8 @@ assert(
     localOffPidMagicHit &&
     opponentPidMagicHit.dueTick === opponentPidMagicHit.hitsplatTick &&
     localOffPidMagicHit.dueTick === localOffPidMagicHit.hitsplatTick &&
-    opponentPidMagicHit.dueTick === localOffPidMagicHit.dueTick - 1,
-  `PID flip should make the overlay-visible process order and same-tick combat order agree, with only the on-PID side getting the earlier magic impact: ${JSON.stringify({
+    opponentPidMagicHit.dueTick === localOffPidMagicHit.dueTick,
+  `PID flip should preserve the displayed attack order without shortening either magic projectile's impact delay: ${JSON.stringify({
     displayedPidFlipOrder,
     stateProcessOrder: sameTickMagicAfterPidFlipResult.state.processOrder,
     attacks: flippedAttackEvents,
@@ -1219,7 +1220,7 @@ function assertPidAdjustedOutgoingHitsplat(label, attackerId, defenderId, proces
   const hasProjectile = attack.projectile !== undefined;
   const expectedPidAdjustedHitsplatDelay = defenderAlreadyProcessed
     ? expectedNormalHitsplatDelay
-    : hasProjectile && attack.style === "ranged"
+    : hasProjectile
       ? expectedNormalHitsplatDelay
       : Math.max(0, expectedNormalHitsplatDelay - 1);
   const expectedDueTick = attack.tick + expectedPidAdjustedHitsplatDelay;
@@ -1422,10 +1423,10 @@ assert(
     localOffPidMagic.attack.style === "magic" &&
     localOnPidMagic.hit.dueTick === localOnPidMagic.hit.hitsplatTick &&
     localOffPidMagic.hit.dueTick === localOffPidMagic.hit.hitsplatTick &&
-    localOnPidMagic.hit.dueTick === localOffPidMagic.hit.dueTick - 1 &&
+    localOnPidMagic.hit.dueTick === localOffPidMagic.hit.dueTick &&
     localOnPidMagic.hitsplat.tick === localOnPidMagic.hit.dueTick &&
     localOffPidMagic.hitsplat.tick === localOffPidMagic.hit.dueTick,
-  `on-PID magic should land one tick earlier than off-PID magic, with hit event and HP timing aligned: ${JSON.stringify({
+  `magic should preserve its projectile delay in both processing orders, with hit event and HP timing aligned: ${JSON.stringify({
     onPid: { dueTick: localOnPidMagic.hit.dueTick, hitsplatTick: localOnPidMagic.hitsplat.tick },
     offPid: { dueTick: localOffPidMagic.hit.dueTick, hitsplatTick: localOffPidMagic.hitsplat.tick }
   })}`

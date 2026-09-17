@@ -1,3 +1,4 @@
+import { readRuntimeViewerSource } from "./lib/runtime-viewer-source.mjs";
 import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
@@ -27,7 +28,7 @@ const clientSourceRoot = process.env.NH_CLIENT_SOURCE_ROOT
   : path.join(workspaceRoot, `${legacySourceName}184-Client`, "runelite-client", "src", "main");
 const clientStandaloneRoot = path.join(clientSourceRoot, "java", "net", "runelite", "standalone");
 
-const runtimeSource = await readFile(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
+const runtimeSource = await readRuntimeViewerSource();
 for (const snippet of [
   'readonly kind: "attack" | "spell"',
   "queuePlayerSpellAfterPendingItemPackets",
