@@ -160,6 +160,7 @@ export interface RuntimePlayerQueuedHit {
   readonly defenderProtectionPrayer?: ProtectionPrayerId;
   readonly freezeDurationTicks?: number;
   readonly bloodHealFraction?: number;
+  readonly bloodHealMultiplier?: number;
   readonly boltEffect?: RuntimePlayerCombatBoltEffect;
 }
 
@@ -1019,6 +1020,7 @@ export function requestRuntimePlayerCombatAttack(
       [attackerId]: {
         ...state.actors[attackerId],
         targetId: defenderId,
+        queuedSpellId: null,
         lastTargetId: defenderId,
         lastTargetTimeoutTicks: 5
       }
@@ -2788,6 +2790,9 @@ function tryRuntimePlayerAttack(
           ? { freezeDurationTicks: spell.freezeDurationTicks }
           : {}),
         bloodHealFraction: spell?.bloodHealFraction,
+        bloodHealMultiplier: spell?.bloodHealFraction
+          ? runtimePlayerCombatActorHasEquipmentItem(attacker, 22647) ? 1.5 : 1
+          : undefined,
         ...(activeBoltEffect ? { boltEffect: activeBoltEffect } : {})
       }
     ],
@@ -3101,7 +3106,9 @@ function applyRuntimePlayerQueuedHit(
     lastHitsplatTick: tick
   };
   const attacker = actors[hit.attackerId];
-  const bloodHeal = hit.bloodHealFraction && damage > 0 ? runtimePlayerCombatBloodSpellHeal(attacker, damage) : 0;
+  const bloodHeal = hit.bloodHealFraction && damage > 0
+    ? runtimePlayerCombatBloodSpellHeal(damage, hit.bloodHealMultiplier ?? 1)
+    : 0;
   const boltHeal =
     hit.boltEffect?.healFraction && damage > 0
       ? Math.trunc(damage * hit.boltEffect.healFraction)
@@ -3239,13 +3246,9 @@ function applyRuntimePlayerQueuedHit(
   };
 }
 
-function runtimePlayerCombatBloodSpellHeal(attacker: RuntimePlayerCombatActorState, damage: number): number {
-  // Source: BloodSpell.afterHit uses integer hit.damage / 4, with Zuriel's staff (item 22647) multiplying the heal.
-  let healAmount = Math.trunc(damage / 4);
-  if (runtimePlayerCombatActorHasEquipmentItem(attacker, 22647)) {
-    healAmount = Math.trunc(healAmount * 1.5);
-  }
-  return healAmount;
+function runtimePlayerCombatBloodSpellHeal(damage: number, castingEquipmentMultiplier: number): number {
+  // BloodSpell.afterHit truncates damage / 4 before applying the casting weapon's bonus.
+  return Math.trunc(Math.trunc(damage / 4) * castingEquipmentMultiplier);
 }
 
 function runtimePlayerCombatActorHasEquipmentItem(actor: RuntimePlayerCombatActorState, itemId: number): boolean {

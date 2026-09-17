@@ -3430,6 +3430,26 @@ assert(
   `magic hitsplat should be the applied engine value and should not display impossible barrage damage: ${JSON.stringify(magicHitsplatEvent)}`
 );
 
+const replacedManualSpell = requestLocalAttack(requestLocalSpell(createState(129)));
+assert(replacedManualSpell.actors["local-player"].queuedSpellId === null, "Attack should replace a pending one-shot spell");
+assert(
+  advance(replacedManualSpell).state.events.some((event) => event.kind === "attack" && event.style === "ranged" && !event.spellId),
+  "Spell then Attack before processing should fire the equipped crossbow"
+);
+const retainedAutocast = requestLocalAttack(requestLocalSpell(
+  runtimeCombat.setRuntimePlayerCombatAutocast(createState(129, { localLoadoutId: "kodai-robes" }), "local-player", "ice-barrage", false),
+  "blood-blitz"
+));
+assert(
+  advance(retainedAutocast).state.events.some((event) => event.kind === "attack" && event.spellId === "ice-barrage" && event.autocast),
+  "Attack should cancel the one-shot spell while preserving configured autocast"
+);
+assert(
+  advance(requestLocalSpell(requestLocalAttack(createState(129, { localLoadoutId: "kodai-robes" })), "blood-blitz"))
+    .state.events.some((event) => event.kind === "attack" && event.spellId === "blood-blitz" && !event.autocast),
+  "Attack then Spell should still honor the later manual spell"
+);
+
 let bloodAttack = null;
 let bloodAttackResult = null;
 for (let seed = 130; seed < 170; seed += 1) {
@@ -3566,6 +3586,31 @@ assert(
     hitpoints: bloodBlitzHitState.actors["local-player"].hitpoints
   })}`
 );
+
+for (const spellId of ["blood-barrage", "blood-blitz"]) {
+  for (const castWithZuriel of [false, true]) {
+    let castingState = createState(130, { localLoadoutId: "kodai-robes" });
+    const normalEquipment = castingState.actors["local-player"].equipment;
+    const zurielEquipment = { ...normalEquipment, weapon: { itemId: 22647, name: "Zuriel's staff" } };
+    castingState = stateWithLocalEquipment(castingState, castWithZuriel ? zurielEquipment : normalEquipment);
+    castingState = {
+      ...castingState,
+      actors: { ...castingState.actors, "local-player": { ...castingState.actors["local-player"], hitpoints: 50 } }
+    };
+    const launchedState = advance(requestLocalSpell(castingState, spellId)).state;
+    const launchedHit = launchedState.queuedHits.find((hit) => hit.spellId === spellId);
+    assert(launchedHit, `${spellId} should launch before testing an equipment switch during travel`);
+    let switchedState = stateWithLocalEquipment(launchedState, castWithZuriel ? normalEquipment : zurielEquipment);
+    switchedState = { ...switchedState, queuedHits: [{ ...launchedHit, damage: 20, rawDamage: 20 }] };
+    while (switchedState.tick <= launchedHit.dueTick) {
+      switchedState = advance(switchedState).state;
+    }
+    assert(
+      switchedState.actors["local-player"].hitpoints === (castWithZuriel ? 57 : 55),
+      `${spellId} healing must use casting equipment after switching ${castWithZuriel ? "off" : "onto"} Zuriel's staff`
+    );
+  }
+}
 
 let iceBlitzAttackResult = null;
 for (let seed = 220; seed < 270; seed += 1) {

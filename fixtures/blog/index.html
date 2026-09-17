@@ -160,6 +160,25 @@
 
       <article>
         <section>
+          <h2>September 17, 2026 - input ordering and blood-spell healing</h2>
+          <p>
+            This update fixes a few cases where the client could lose or repeat an input around
+            a game tick:
+          </p>
+          <ul>
+            <li>Clicking Attack now replaces a queued manual spell while keeping configured autocast.</li>
+            <li>Eating and then equipping a two-handed weapon in the same tick works when the food frees the space needed for the switch.</li>
+            <li>Removing two pieces of equipment in one tick keeps both changes and puts each item in its own inventory slot.</li>
+            <li>Using an item on another inventory slot no longer also eats or equips the target when the mouse button is released.</li>
+          </ul>
+          <p>
+            Blood-spell healing now uses the equipment worn when the spell was cast. Switching away
+            from Zuriel's staff before the hit lands keeps its healing bonus; switching onto it
+            after casting does not add one.
+          </p>
+        </section>
+
+        <section>
           <h2>August 2026 - the Elo league, and why teacher165 earned the spot</h2>
           <p>
             The big thing that happened since the last post is that I finally built a proper
@@ -191,9 +210,9 @@
             else, and if you can bet on "he's probably casting", you can pray against it far more
             often. And it cuts the other way too, though less obviously: Zuriel's staff is a 4-tick
             weapon, just like the DMM version of the staff, and it's naturally strong - a cast
-            often carries enough expected damage that attacking straight through their magic prayer
-            is genuinely the right call sometimes, accuracy penalty or not. That's an EV tradeoff,
-            not a habit.
+            often carries enough expected damage that casting through Protect from Magic can still
+            be the right call despite the damage reduction. Protect from Magic reduces damage in
+            PvP; it does not make the spell more likely to splash.
           </p>
           <p>
             The interesting part is that the league winner is not the one I shipped. First place is

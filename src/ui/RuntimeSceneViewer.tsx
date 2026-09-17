@@ -976,8 +976,7 @@ interface RuntimeEquipmentRemoveMutationResolution {
 }
 
 interface QueuedEquipmentRemoveContext {
-  readonly resolution: RuntimeEquipmentRemoveMutationResolution;
-  readonly slotId: string;
+  readonly entry: NhEquipmentItemContextMenuEntry;
 }
 
 interface RuntimeActorModelAsset {
@@ -12282,8 +12281,8 @@ export function RuntimeSceneViewer({
     for (const action of itemActionQueueRef.current.snapshot()) {
       if (action.kind === "unequip") {
         const context = action.contextEntry as QueuedEquipmentRemoveContext | undefined;
-        if (context?.slotId) {
-          pendingRemoveSlotIds.add(context.slotId);
+        if (context?.entry.slotId) {
+          pendingRemoveSlotIds.add(context.entry.slotId);
         }
       }
     }
@@ -17333,11 +17332,14 @@ export function RuntimeSceneViewer({
 });
 
   const resolveEquipmentRemoveMutation = (
-    entry: NhEquipmentItemContextMenuEntry
+    entry: NhEquipmentItemContextMenuEntry,
+    sourceInventorySlots: readonly (RuntimeInventorySlot | null)[] = normalizeNhInventorySlots(inventoryOverrideRef.current ?? visibleSnapshotRef.current.inventory),
+    currentEquipment: RuntimeEquipmentItemIdsBySlot = equipmentOverrideRef.current ??
+      equipmentOverride ??
+      localPlayerEquipmentItemIdsBySlot(visibleSnapshotRef.current, inventoryEquipmentDefinitionsRef.current)
   ): RuntimeEquipmentRemoveMutationResolution => {
-    const sourceInventorySlots = normalizeNhInventorySlots(inventoryOverrideRef.current ?? visibleSnapshotRef.current.inventory);
     const freeInventorySlot = sourceInventorySlots.findIndex((slot) => slot === null);
-    if (entry.action !== "equipment-remove") {
+    if (entry.action !== "equipment-remove" || currentEquipment.get(entry.serverSlot) !== entry.itemId) {
       return emptyEquipmentRemoveMutationResolution("", freeInventorySlot);
     }
     if (freeInventorySlot === -1) {
@@ -17346,10 +17348,6 @@ export function RuntimeSceneViewer({
 
     const nextInventorySlots = [...sourceInventorySlots];
     nextInventorySlots[freeInventorySlot] = { itemId: entry.itemId, quantity: 1 };
-    const currentEquipment =
-      equipmentOverrideRef.current ??
-      equipmentOverride ??
-      localPlayerEquipmentItemIdsBySlot(visibleSnapshotRef.current, inventoryEquipmentDefinitionsRef.current);
     const nextEquipment = new Map(currentEquipment);
     nextEquipment.delete(entry.serverSlot);
     return {
@@ -17394,7 +17392,7 @@ export function RuntimeSceneViewer({
       itemId: entry.itemId,
       queuedAtMs,
       readyAtMs,
-      contextEntry: { resolution, slotId: entry.slotId } satisfies QueuedEquipmentRemoveContext
+      contextEntry: { entry } satisfies QueuedEquipmentRemoveContext
     });
     setPendingEquipmentRemoveSlotIds(new Set([...pendingEquipmentRemoveSlotIds, entry.slotId]));
     scheduleReadyItemActionProcessing();
@@ -18030,8 +18028,11 @@ export function RuntimeSceneViewer({
       }
       if (action.kind === "unequip") {
         const context = action.contextEntry as QueuedEquipmentRemoveContext | undefined;
-        const resolution = context?.resolution;
-        if (!resolution || resolution.mutation !== "equipment-unequip") {
+        if (!context?.entry) {
+          continue;
+        }
+        const resolution = resolveEquipmentRemoveMutation(context.entry, nextInventorySlots, nextEquipmentItems);
+        if (resolution.mutation !== "equipment-unequip") {
           continue;
         }
         if (resolution.inventorySlots) {
@@ -18048,13 +18049,13 @@ export function RuntimeSceneViewer({
             ...resolution.hud
           };
           weaponSlotEquipmentChanged = true;
-        } else if (context.slotId === "weapon") {
+        } else if (context.entry.slotId === "weapon") {
           weaponSlotEquipmentChanged = true;
         }
         if (viewport) {
           viewport.dataset.lastProcessedUnequipItemId = String(action.itemId);
           viewport.dataset.lastProcessedUnequipSlot = String(action.slotIndex);
-          viewport.dataset.lastProcessedUnequipSlotId = context.slotId;
+          viewport.dataset.lastProcessedUnequipSlotId = context.entry.slotId;
           viewport.dataset.lastProcessedUnequipMutation = resolution.mutation;
           viewport.dataset.lastProcessedUnequipTick = String(manualCombatStateRef.current.tick);
         }
@@ -18210,7 +18211,8 @@ export function RuntimeSceneViewer({
     entry: NhInventoryContextMenuEntry,
     resolution: RuntimeInventoryMutationResolution
   ): boolean => {
-    if (!resolution.equipmentMutation) {
+    // Earlier packets in this tick can free space; resolve capacity again when processing.
+    if (!resolution.equipmentMutation && resolution.blockedReason !== "not-enough-free-inventory-space") {
       return false;
     }
     if (
@@ -18234,14 +18236,14 @@ export function RuntimeSceneViewer({
       itemId: entry.itemId,
       queuedAtMs,
       readyAtMs,
-      equipData: {
+      equipData: resolution.equipmentMutation ? {
         equipSlot: resolution.equipmentMutation.equipSlot,
         equippedItemId: resolution.equipmentMutation.equippedItemId,
         wornItemId: resolution.equipmentMutation.previousItemId,
         weaponType: resolution.equipmentMutation.weaponType,
         weaponTypeConfig: resolution.equipmentMutation.weaponTypeConfig,
         loadoutId: resolution.actorLoadoutId
-      },
+      } : undefined,
       contextEntry: { entry } satisfies QueuedInventoryEquipContext
     });
     if (

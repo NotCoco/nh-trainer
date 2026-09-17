@@ -7669,6 +7669,7 @@ function NhInventorySlotView({
   const dragDelayMsRef = useRef(inventoryDragDelayMsFromClientTicks(inventoryDragDelayClientTicks));
   const selectedItemRef = useRef(selectedItem);
   const suppressClickRef = useRef(false);
+  const selectedItemPressRef = useRef(false);
   const [dragState, setDragState] = useState<NhInventorySlotDragState | null>(null);
   const [pressed, setPressed] = useState(false);
   const suppressNextBrowserClick = (): void => {
@@ -7890,6 +7891,7 @@ function NhInventorySlotView({
         event.preventDefault();
         event.stopPropagation();
         setPressed(true);
+        selectedItemPressRef.current = Boolean(selectedItem);
         if (selectedItem) {
           dispatchDefaultAction(event);
           window.setTimeout(() => setPressed(false), dragDelayMs);
@@ -7923,6 +7925,11 @@ function NhInventorySlotView({
       onPointerUp={(event) => {
         event.preventDefault();
         event.stopPropagation();
+        if (selectedItemPressRef.current) {
+          selectedItemPressRef.current = false;
+          // The use-on action already ran on press, even if it cleared the selection.
+          suppressNextBrowserClick();
+        }
         if (slotElementRef.current?.hasPointerCapture(event.pointerId)) {
           slotElementRef.current.releasePointerCapture(event.pointerId);
         }
@@ -7930,6 +7937,7 @@ function NhInventorySlotView({
         finishDrag(event);
       }}
       onPointerCancel={(event) => {
+        selectedItemPressRef.current = false;
         if (slotElementRef.current?.hasPointerCapture(event.pointerId)) {
           slotElementRef.current.releasePointerCapture(event.pointerId);
         }

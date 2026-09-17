@@ -267,9 +267,19 @@ export function App(): JSX.Element {
             <details className="nhSiteUpdatesDropdown" open>
               <summary>
                 <span>Latest update</span>
-                <strong>August 5, 2026</strong>
+                <strong>September 17, 2026</strong>
               </summary>
               <div className="nhSiteUpdateHistory">
+                <section className="nhSiteUpdateCard" aria-label="Updates - September 17, 2026">
+                  <span>Updates - September 17, 2026</span>
+                  <ul>
+                    <li>Attack now replaces a queued manual spell while preserving configured autocast.</li>
+                    <li>Eating can free inventory space for a two-handed weapon switch in the same tick.</li>
+                    <li>Removing two equipment items in one tick preserves both changes.</li>
+                    <li>Using an inventory item no longer also eats or equips the target on mouse release.</li>
+                    <li>Blood-spell healing uses the equipment worn when casting, including Zuriel's staff's healing bonus.</li>
+                  </ul>
+                </section>
                 <section className="nhSiteUpdateCard" aria-label="Updates - August 5, 2026">
                   <span>Updates - August 5, 2026</span>
                   <ul>
