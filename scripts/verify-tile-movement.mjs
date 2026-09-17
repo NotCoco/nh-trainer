@@ -829,6 +829,45 @@ function sameTile(left, right) {
   return left.x === right.x && left.z === right.z;
 }
 
+// Removing trees must open their whole footprint for movement and projectiles,
+// without changing the underlying terrain or any other object's clipping.
+const treeArena = JSON.parse(readFileSync(path.join(projectRoot, "fixtures/render/maps/inferno_arena.json"), "utf8"));
+const treeObjects = JSON.parse(readFileSync(path.join(projectRoot, "fixtures/render/maps/inferno_arena_objects.json"), "utf8"));
+const arenaTrees = treeObjects.filter((object) => object.name === "Tree");
+const treeOffset = { x: 0, y: 0, z: 0 };
+const woodedCollision = buildNhSceneCollision(treeArena, treeObjects, treeOffset);
+const clearedCollision = buildNhSceneCollision(treeArena, treeObjects.filter((object) => object.name !== "Tree"), treeOffset);
+const treeTiles = new Set();
+for (const tree of arenaTrees) {
+  const sizeX = tree.orientation % 2 ? tree.sizeY : tree.sizeX;
+  const sizeY = tree.orientation % 2 ? tree.sizeX : tree.sizeY;
+  for (let dx = 0; dx < sizeX; dx += 1) {
+    for (let dy = 0; dy < sizeY; dy += 1) {
+      const world = { x: tree.x + dx, y: tree.y + dy, plane: tree.plane };
+      treeTiles.add(`${world.x},${world.y}`);
+      const tile = clearedCollision.worldToSceneTile(world);
+      assert(!woodedCollision.canStand(tile), "Tree footprint must block movement before removal");
+      assert(clearedCollision.canStand(tile), "Every cleared tree tile must be walkable");
+      assert(clearedCollision.getProjectileFlagWorld(world.x, world.y) === 0, "Removed tree must not leave projectile clipping");
+      assert(clearedCollision.sampleHeight(tile) === woodedCollision.sampleHeight(tile), "Tree removal must preserve ground height");
+    }
+  }
+  const start = clearedCollision.worldToSceneTile({ x: tree.x - 1, y: tree.y, plane: tree.plane });
+  const end = clearedCollision.worldToSceneTile({ x: tree.x + sizeX, y: tree.y, plane: tree.plane });
+  assert(!nhSceneProjectileRouteClear(start, end, woodedCollision), "Tree must block line of sight before removal");
+  assert(nhSceneProjectileRouteClear(start, end, clearedCollision), "Line of sight must cross a removed tree");
+  const route = findNhTileRouteWaypoints(start, end, clearedCollision);
+  const steps = expandWaypointPath("removed tree", clearedCollision, start, route);
+  assert(steps.length === sizeX + 1 && sameTile(steps.at(-1), end), "Route must cross cleared tree tiles directly");
+}
+assert(arenaTrees.length === 6 && treeTiles.size === 24, "Expected all six source tree footprints to be covered");
+for (const world of treeArena.tiles) {
+  if (!treeTiles.has(`${world.x},${world.y}`)) {
+    assert(clearedCollision.getFlagWorld(world.x, world.y) === woodedCollision.getFlagWorld(world.x, world.y), "Non-tree movement collision must remain intact");
+    assert(clearedCollision.getProjectileFlagWorld(world.x, world.y) === woodedCollision.getProjectileFlagWorld(world.x, world.y), "Non-tree projectile collision must remain intact");
+  }
+}
+
 console.log(
   JSON.stringify(
     {
@@ -838,6 +877,7 @@ console.log(
       openStepCount: openSteps.length,
       pickedTile,
       logicalTileSplit: true,
+      clearedTreeFootprintTiles: treeTiles.size,
       runMovement: "PlayerMovement two-step run contract",
       fallbackWaypointCount: fallbackWaypoints.length,
       fallbackStepCount: fallbackSteps.length,

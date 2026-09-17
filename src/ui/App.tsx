@@ -278,6 +278,7 @@ export function App(): JSX.Element {
                     <li>Removing two equipment items in one tick preserves both changes.</li>
                     <li>Using an inventory item no longer also eats or equips the target on mouse release.</li>
                     <li>Blood-spell healing uses the equipment worn when casting, including Zuriel's staff's healing bonus.</li>
+                    <li>Added Remove trees / Restore trees, with cleared tiles available for movement and an updated minimap.</li>
                   </ul>
                 </section>
                 <section className="nhSiteUpdateCard" aria-label="Updates - August 5, 2026">

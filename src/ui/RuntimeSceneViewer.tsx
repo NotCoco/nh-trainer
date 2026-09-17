@@ -785,6 +785,12 @@ import {
   type RuneliteOverlayPreferredLocations
 } from "./runeliteOverlayPosition";
 
+interface RuntimeArenaObjectVariant {
+  readonly collision: NhSceneCollision;
+  readonly placements: readonly NhArenaObjectPlacement[];
+  readonly minimap: NhMinimapSceneSprite;
+}
+
 interface RuntimeSceneBoundary {
   readonly scene: Scene;
   readonly camera: PerspectiveCamera;
@@ -11168,6 +11174,13 @@ export function RuntimeSceneViewer({
   const [chatboxHidden, setChatboxHidden] = useState(false);
   const [minimapSceneSprite, setMinimapSceneSprite] = useState<NhMinimapSceneSprite | null>(null);
   const [sceneObjectPlacements, setSceneObjectPlacements] = useState<readonly NhArenaObjectPlacement[]>([]);
+  const [treesRemoved, setTreesRemoved] = useState(false);
+  const treesRemovedRef = useRef(false);
+  const arenaTreeMeshesRef = useRef<readonly Mesh[]>([]);
+  const arenaObjectVariantsRef = useRef<{
+    readonly withTrees: RuntimeArenaObjectVariant;
+    readonly withoutTrees: RuntimeArenaObjectVariant;
+  } | null>(null);
   const [inventoryItemDefinitions, setInventoryItemDefinitions] = useState<NhInventoryItemDefinitionStore>(
     new Map()
   );
@@ -12774,6 +12787,8 @@ export function RuntimeSceneViewer({
       setMinimapFrameSnapshot(null);
       minimapFrameSnapshotSignatureRef.current = "";
       setSceneObjectPlacements([]);
+      arenaTreeMeshesRef.current = [];
+      arenaObjectVariantsRef.current = null;
       setRuntimeDomOverlays([]);
       runtimeDomOverlaySignatureRef.current = "";
       runtimeDomOverlayElementsRef.current.clear();
@@ -12981,9 +12996,33 @@ export function RuntimeSceneViewer({
             const centeredArena = buildCenteredSceneModels([terrainPart.scene, objectPart.scene]);
             boundary.arenaRoot.add(centeredArena.group);
             boundary.sceneTilePicker = { arena: arenaMetadata, sceneOffset: centeredArena.offset };
-            setCollisionMap(buildNhSceneCollision(arenaMetadata, objectPlacements, centeredArena.offset));
-            setSceneObjectPlacements(objectPlacements);
-            setMinimapSceneSprite(buildNhMinimapSceneSprite(arenaMetadata, objectPlacements, floors, terrainTextures));
+            const treeMeshes: Mesh[] = [];
+            centeredArena.group.traverse((node) => {
+              const mesh = node as Mesh;
+              if (mesh.isMesh) {
+                const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+                if (materials.every((material) => material.userData.nhSceneTree === true)) {
+                  treeMeshes.push(mesh);
+                  mesh.visible = !treesRemovedRef.current;
+                }
+              }
+            });
+            arenaTreeMeshesRef.current = treeMeshes;
+            const buildObjectVariant = (placements: readonly NhArenaObjectPlacement[]): RuntimeArenaObjectVariant => ({
+              collision: buildNhSceneCollision(arenaMetadata, placements, centeredArena.offset),
+              placements,
+              minimap: buildNhMinimapSceneSprite(arenaMetadata, placements, floors, terrainTextures)
+            });
+            const variants = {
+              withTrees: buildObjectVariant(objectPlacements),
+              withoutTrees: buildObjectVariant(objectPlacements.filter((placement) => placement.name !== "Tree"))
+            };
+            arenaObjectVariantsRef.current = variants;
+            const variant = treesRemovedRef.current ? variants.withoutTrees : variants.withTrees;
+            collisionMapRef.current = variant.collision;
+            setCollisionMap(variant.collision);
+            setSceneObjectPlacements(variant.placements);
+            setMinimapSceneSprite(variant.minimap);
           }
 
           setPlayerModelSources(playerSources);
@@ -16893,6 +16932,53 @@ export function RuntimeSceneViewer({
       viewport.dataset.lastTemporarySpecRestore = "100";
       viewport.dataset.lastTemporarySpecRestoreSource = "temporary-dev-control";
     }
+  };
+
+  const toggleArenaTrees = (): void => {
+    const variants = arenaObjectVariantsRef.current;
+    if (!variants) {
+      return;
+    }
+    const nextRemoved = !treesRemovedRef.current;
+    const variant = nextRemoved ? variants.withoutTrees : variants.withTrees;
+    if (!nextRemoved) {
+      // Do not respawn a solid object on either fighter, including their
+      // interpolated client position between accepted server tiles.
+      const actors = [manualActorRef.current, manualOpponentRef.current];
+      if (actors.some((actor) =>
+        !variant.collision.canStand(actor.tile) || !variant.collision.canStand(actor.renderTile)
+      )) {
+        setTemporarySetupStatus("Tree tile occupied");
+        pushRuntimeChatMessage("Move both fighters off tree tiles before restoring trees.");
+        return;
+      }
+      if (groundItems.some((item) => !variant.collision.canStand(item.tile))) {
+        setTemporarySetupStatus("Items on tree tiles");
+        pushRuntimeChatMessage("Pick up items on tree tiles before restoring trees.");
+        return;
+      }
+      // Routes accepted on the open map must not carry either fighter through
+      // a restored tree. New clicks and attack chasing use the new collision.
+      const localActor = clearManualActorMovementRoute(manualActorRef.current);
+      const opponentActor = clearManualActorMovementRoute(manualOpponentRef.current);
+      manualActorRef.current = localActor;
+      manualOpponentRef.current = opponentActor;
+      setManualActor(localActor);
+      setManualOpponent(opponentActor);
+      setMinimapDestinationTile(null);
+    }
+    for (const mesh of arenaTreeMeshesRef.current) {
+      mesh.visible = !nextRemoved;
+    }
+    treesRemovedRef.current = nextRemoved;
+    collisionMapRef.current = variant.collision;
+    setTreesRemoved(nextRemoved);
+    setCollisionMap(variant.collision);
+    setSceneObjectPlacements(variant.placements);
+    setMinimapSceneSprite(variant.minimap);
+    closeContextMenu();
+    updateRuneliteMouseHighlightTooltip(null);
+    setTemporarySetupStatus("");
   };
 
   const toggleLocalFreezeBypassForTesting = (): void => {
@@ -20980,6 +21066,14 @@ export function RuntimeSceneViewer({
             </button>
             <button type="button" onClick={resetTemporarySetupToDefault}>
               Reset default
+            </button>
+            <button
+              type="button"
+              aria-pressed={treesRemoved}
+              disabled={loadState.kind !== "ready"}
+              onClick={toggleArenaTrees}
+            >
+              {treesRemoved ? "Restore trees" : "Remove trees"}
             </button>
             {temporarySetupStatus ? (
               <span className="runtimeTemporaryDevStatus">{temporarySetupStatus}</span>
