@@ -95,6 +95,16 @@ const helpers = `
       }));
       window.__nhPressOpen.drifted = moved;
     },
+    chordedTerrainLeftMouseDown: () => {
+      const rect = window.__nhPressOpen.canvas().getBoundingClientRect();
+      const point = {
+        clientX: Math.round(rect.left + rect.width * 0.25),
+        clientY: Math.round(rect.top + rect.height * 0.72)
+      };
+      window.__nhPressOpen.canvas().dispatchEvent(new MouseEvent("mousedown", {
+        bubbles: true, cancelable: true, view: window, button: 0, buttons: 3, ...point
+      }));
+    },
     releaseAtDrift: () => window.__nhPressOpen.release(window.__nhPressOpen.drifted),
     closeMenu: () => {
       const point = window.__nhPressOpen.point();
@@ -181,9 +191,28 @@ app.whenReady().then(async () => {
     const driftRelease = await run(`window.__nhPressOpen.state()`);
     check("release after drift opens nothing", !driftRelease.open, { driftClosed, driftRelease });
 
-    // Run the exact Chromium input sequence: right down, move, then left down
-    // before right up. This catches pointerdown cancellation suppressing the
-    // compatibility mousedown for the second physical button.
+    // Pointer Events does not emit a second pointerdown when another mouse
+    // button is already held. The left press still arrives as mousedown and must
+    // dispatch its terrain action before the right button is released.
+    await run(`window.__nhPressOpen.pointerdown(2); "ok"`);
+    await delay(80);
+    await run(`window.__nhPressOpen.driftAbove(60); "ok"`);
+    await delay(120);
+    await run(`window.__nhPressOpen.chordedTerrainLeftMouseDown(); "ok"`);
+    await delay(120);
+    const chordedLeft = await run(`window.__nhPressOpen.state()`);
+    check(
+      "left mousedown dispatches terrain while right remains held",
+      !chordedLeft.open && chordedLeft.tileCommandSource === "scene-tile" &&
+        chordedLeft.tileCommandX !== "" && chordedLeft.tileCommandZ !== "",
+      chordedLeft
+    );
+    await run(`window.__nhPressOpen.release(); "ok"`);
+    await delay(120);
+
+    // Exercise Chromium's real input pipeline as well as the synthetic DOM
+    // sequence above. Canceling the initial right pointerdown suppresses the
+    // later compatibility mousedown, which is the real-browser failure mode.
     const nativeChordPoints = await run(`(() => {
       const canvas = window.__nhPressOpen.canvas();
       const rect = canvas.getBoundingClientRect();

@@ -101,6 +101,7 @@ const { createDefaultNhDuelClientViewTrace } = loadTsModule("src/sim/nh/duel.ts"
 const { clientViewTraceToRuntimeReplay } = loadTsModule("src/render/clientViewReplay.ts");
 const {
   nhRenderCycleToProjectileClientCycle,
+  sampleNhProjectileLifecycle,
   sampleNhProjectileMotion
 } = loadTsModule("src/render/nhProjectileMotion.ts");
 const fixtureTrace = JSON.parse(readFileSync(path.join(projectRoot, "fixtures", "sim", "client-view-two-actor-duel.json"), "utf8"));
@@ -139,6 +140,20 @@ const spotanimDefinitions = new Map(
   ])
 );
 const definitionByGfx = new Map([...projectileDefinitions.values()].map((projectile) => [projectile.projectileGfxId, projectile]));
+const webweaverDef = definitionByGfx.get(1574);
+assert(webweaverDef, "exported projectile definitions should include RangedWeapon.WEBWEAVER_BOW / Projectile.arrow(1574)");
+assert(webweaverDef.id === "webweaver_arrow", "normal Webweaver attacks should resolve the normal arrow definition");
+assert(
+  webweaverDef.artifactUrl === "render/spotanims/webweaver_arrow.glb",
+  "normal Webweaver arrows should resolve the exported gfx 1574 model"
+);
+assert(
+  webweaverDef.startHeight === 40 && webweaverDef.endHeight === 36 &&
+    webweaverDef.delayCycles === 41 && webweaverDef.durationStartCycles === 51 &&
+    webweaverDef.durationIncrementCycles === 5 && webweaverDef.curve === 15 &&
+    webweaverDef.offset === 11 && !webweaverDef.skipTravel,
+  "normal Webweaver arrow motion must retain Java Projectile.arrow regular parameters"
+);
 const dragonBoltDef = definitionByGfx.get(1468);
 assert(dragonBoltDef, "exported projectile definitions should include Nh Projectile.DRAGON_BOLT gfx 1468");
 assert(dragonBoltDef.id === "dragon_bolt", "dragon bolt projectile definition should use the dragon_bolt runtime id");
@@ -217,6 +232,72 @@ assert(boltStart.x < boltPreEnd.x, "bolt projectile should move toward its targe
 assert(boltEnd === null, "bolt projectile should disappear at the render end instead of lingering on the target tile");
 assertAlmost("bolt start height", boltStart.z, (38 * 4) / 256);
 
+const webweaverEvent = {
+  ...boltEvent,
+  projectileId: webweaverDef.id,
+  artifactUrl: webweaverDef.artifactUrl,
+  projectile: undefined
+};
+const webweaverStart = sampleNhProjectileMotion(webweaverEvent, webweaverEvent.startCycle, webweaverDef);
+const webweaverPreEnd = sampleNhProjectileMotion(webweaverEvent, webweaverEvent.endCycle - 1, webweaverDef);
+assert(webweaverStart.x < webweaverPreEnd.x, "normal Webweaver arrow should travel toward the target");
+assertAlmost("normal Webweaver arrow start height", webweaverStart.z, (40 * 4) / 256);
+assert(sampleNhProjectileMotion(webweaverEvent, webweaverEvent.endCycle, webweaverDef) === null, "normal Webweaver arrow should expire at the render end");
+
+// Exercise the actual manual-event conversion and frame updater, including a hidden
+// model waiting for release between game ticks. Replay-normalized motion is separate.
+const viewerPath = path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx");
+const viewerSource = ts.createSourceFile(viewerPath, readFileSync(viewerPath, "utf8"), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+const rendererFunctions = new Set(["runtimePlayerCombatRenderEvents", "applyRuntimeEffectPlacement", "applyRuntimeEvents", "updateRuntimeEffectObjects", "eventModelKey"]);
+const rendererFunctionSource = viewerSource.statements.filter(statement => ts.isFunctionDeclaration(statement) && rendererFunctions.has(statement.name?.text)).map(statement => statement.getText(viewerSource)).join("\n");
+const { Group } = require("three");
+const runtimeCombat = loadTsModule("src/sim/runtimePlayerCombat.ts");
+const rendererContext = {
+  window: {},
+  NH_CLIENT_CYCLES_PER_GAME_TICK: 30,
+  NH_TILE_WORLD_UNITS: 0.5,
+  sampleNhProjectileLifecycle,
+  sampleNhProjectileMotion,
+  runtimePlayerCombatDistance: runtimeCombat.runtimePlayerCombatDistance,
+  runtimePlayerCombatProjectileDurationCycles: runtimeCombat.runtimePlayerCombatProjectileDurationCycles,
+  applyRuntimeEffectAnimation() {},
+  disposeObject() {},
+  buildEffectModel: () => new Group(),
+  nhOverlaySortValue: () => 0
+};
+vm.runInNewContext(ts.transpileModule(rendererFunctionSource, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText, rendererContext);
+const webweaverRenderWindows = [];
+for (const distance of [1, 2, 4, 8, 10]) {
+  const attack = {
+    kind: "attack", id: `webweaver-distance-${distance}`, tick: 10,
+    attackerId: "local-player", defenderId: "opponent",
+    attackerTile: { x: 0, z: 0 }, defenderTile: { x: distance * 0.5, z: 0 },
+    hitDelayTicks: distance < 6 ? 2 : 3,
+    projectile: { ...webweaverDef, gfxId: 1574 }
+  };
+  const [event] = rendererContext.runtimePlayerCombatRenderEvents({ tick: 11, actors: {}, events: [attack] });
+  const endClientCycle = 51 + 5 * (distance - 1);
+  assert(event.startCycle === 11, "normal arrow starts from the completed server tick's received player-update boundary");
+  assert(event.projectile.packetCycle === 330 && event.projectile.cycleStart === 371 && event.projectile.cycleEnd === 330 + endClientCycle, "normal arrow packet lifecycle should use real client-cycle units");
+  assertAlmost("normal arrow render end", event.endCycle, 11 + (endClientCycle + 1) / 30);
+  const boundary = { eventRoot: new Group() };
+  rendererContext.applyRuntimeEvents(boundary, { cycle: 11, actors: [] }, [event], new Map([[event.artifactUrl, { scene: new Group() }]]), null, new Map(), projectileDefinitions, new Map());
+  assert(boundary.eventRoot.children.length === 1 && !boundary.eventRoot.children[0].visible, "normal arrow should remain mounted but hidden before release");
+  const arrow = boundary.eventRoot.children[0];
+  const visibleCycles = [];
+  for (let clientCycle = 0; clientCycle <= endClientCycle + 1; clientCycle++) {
+    rendererContext.updateRuntimeEffectObjects(boundary, { cycle: 11 + clientCycle / 30, actors: [] }, [event], null, new Map(), projectileDefinitions);
+    assert(arrow.visible === (clientCycle >= 41 && clientCycle <= endClientCycle), `distance ${distance}: normal arrow visibility at client cycle ${clientCycle}`);
+    if (arrow.visible) visibleCycles.push(clientCycle);
+    if (clientCycle === endClientCycle) assertAlmost("normal arrow reaches target on final visible frame", arrow.position.x, attack.defenderTile.x);
+  }
+  webweaverRenderWindows.push({ distance, releaseMs: visibleCycles[0] * 20, visibleFlightMs: visibleCycles.length * 20 });
+}
+const legacyBoltObject = new Group();
+assert(rendererContext.applyRuntimeEffectPlacement(legacyBoltObject, boltEvent, { cycle: boltEvent.startCycle }, projectileDefinitions), "existing bolt remains visible on its existing start frame");
+assertAlmost("existing bolt motion remains unchanged", legacyBoltObject.position.x, boltStart.x);
+assert(!rendererContext.applyRuntimeEffectPlacement(legacyBoltObject, boltEvent, { cycle: boltEvent.endCycle }, projectileDefinitions), "existing bolt expiry remains unchanged");
+
 const spotanimTrace = {
   ...fixtureTrace,
   fixtureId: "spotanim-artifact-source-v1",
@@ -261,9 +342,11 @@ console.log(
       },
       barrageLifecycle: barrageEvent.projectile,
       boltDeltaX: boltPreEnd.x - boltStart.x,
+      webweaverRenderWindows,
       artifacts: {
         barrage: barrageEvent.artifactUrl,
         bolt: boltEvent.artifactUrl,
+        webweaver: webweaverDef.artifactUrl,
         gmaul: gmaulSpotanim.artifactUrl
       }
     },

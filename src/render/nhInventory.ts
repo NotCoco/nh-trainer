@@ -56,10 +56,20 @@ const drinkDoseTransitions = new Map<number, number>([
   [12697, 12699],
   [12699, 12701],
   [12701, emptyVialItemId],
+  [11722, 11723],
+  [11723, 11724],
+  [11724, 11725],
+  [11725, emptyVialItemId],
   [22461, 22464],
   [22464, 22467],
   [22467, 22470],
   [22470, emptyVialItemId]
+]);
+// Source: Summer pie (7218) -> Half summer pie (7220) -> Pie dish (2313) -> gone.
+const runtimeFoodBiteTransitions = new Map<number, number | null>([
+  [7218, 7220],
+  [7220, 2313],
+  [2313, null]
 ]);
 
 export const NH_INVENTORY_USE_OPCODE = 38;
@@ -153,7 +163,7 @@ export type NhInventoryContextMenuEntry = NhMenuEntry & {
 };
 
 export interface NhInventoryActionMutation {
-  readonly kind: "eat-remove" | "drink-dose" | "empty-vial" | "drop-remove" | "destroy-remove" | "equipment-swap";
+  readonly kind: "eat-remove" | "eat-bite" | "drink-dose" | "empty-vial" | "drop-remove" | "destroy-remove" | "equipment-swap";
   readonly slotIndex: number;
   readonly previousItemId: number;
   readonly nextItemId: number | null;
@@ -415,6 +425,18 @@ export function mutateNhInventorySlotsForAction(
 
   const action = entry.actionText.toLowerCase();
   if (action === "eat") {
+    // Source: Summer pie has two bites (full -> half -> pie dish). Each bite is
+    // one 1-tick fast-food eat; the pie dish is then dropped when eaten again.
+    const nextBiteItemId = runtimeFoodBiteTransitions.get(current.itemId);
+    if (nextBiteItemId !== undefined) {
+      return replaceNhInventorySlot(
+        slots,
+        entry.slotIndex,
+        nextBiteItemId === null ? null : { itemId: nextBiteItemId, quantity: 1 },
+        nextBiteItemId === null ? "eat-remove" : "eat-bite",
+        current.itemId
+      );
+    }
     return replaceNhInventorySlot(slots, entry.slotIndex, null, "eat-remove", current.itemId);
   }
   if (action === "drop") {

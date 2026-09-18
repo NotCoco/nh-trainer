@@ -47,13 +47,15 @@ export const nhWeaponProfiles: Readonly<
     | "rune_crossbow"
     | "magic_shortbow"
     | "dragon_crossbow"
+    | "webweaver_bow"
     | "tentacle_whip"
     | "abyssal_whip"
     | "noxious_halberd"
     | "voidwaker"
     | "vesta_longsword"
     | "armadyl_godsword"
-    | "granite_maul",
+    | "granite_maul"
+    | "elder_maul",
     WeaponTimingProfile
   >
 > = {
@@ -120,6 +122,14 @@ export const nhWeaponProfiles: Readonly<
     attackRange: 8,
     hasVisibleSpecBar: true
   },
+  // Source: WEBWEAVER_BOW.attackTicks is 4; rapid subtracts one tick at runtime.
+  webweaver_bow: {
+    id: "webweaver_bow",
+    style: "ranged",
+    cooldownTicks: 4,
+    attackRange: 9,
+    hasVisibleSpecBar: true
+  },
   tentacle_whip: {
     id: "tentacle_whip",
     style: "slash",
@@ -169,6 +179,13 @@ export const nhWeaponProfiles: Readonly<
     attackRange: 1,
     hasVisibleSpecBar: true,
     graniteMaul: true
+  },
+  elder_maul: {
+    id: "elder_maul",
+    style: "crush",
+    cooldownTicks: 6,
+    attackRange: 1,
+    hasVisibleSpecBar: true
   }
 };
 

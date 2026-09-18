@@ -15,6 +15,7 @@ for (const snippet of [
   "endRuntimeSceneRightButtonPress",
   "rightButtonDownRef",
   "leftButtonPressHandledRef",
+  "dispatchRuntimeSceneLeftButtonPress",
   'target.dispatchEvent(new PointerEvent("pointerdown"',
   "canvasContextMenuSeenForPressRef",
   "disarmSuppressedCanvasContextMenu"

@@ -1,151 +1,30 @@
 import {
-  type RuntimeEquipmentItemIdsBySlot,
-  type RuntimeTrainerSetupId,
-  type RuntimeDmmSetupOptions,
-  RUNTIME_NH_STAKE_LOADOUT_ID,
-  RUNTIME_DMM_GRANITE_MAUL_ITEM_ID,
-  RUNTIME_VENGEANCE_TRINKET_ITEM_ID,
-  RUNTIME_NH_STAKE_EQUIPMENT_ENTRIES,
-  RUNTIME_NH_STAKE_INVENTORY_SLOTS,
-  RUNTIME_DMM_DEFAULT_SETUP_OPTIONS,
-  runtimeSetupPreset,
-  runtimeDmmInventorySlotsWithOptions,
-  runtimeDmmInventorySlotsAfterOptionToggle,
-  runtimeSetupInventorySlots,
-  runtimeSetupEquipmentItems,
-  RUNTIME_CONSUMABLE_IDS,
-  runtimeConsumableIdForItemId,
-  runtimeSuppliesFromInventorySlots,
-  runtimeVengeanceTrinketChargesFromInventorySlots,
-  runtimeNhStakeSupplies,
-  runtimeNhStakeVengeanceTrinketCharges,
-  runtimeSetupInventorySlotsForSupplies,
-  runtimePersistentOpponentInventorySlotsAfterPolicyResult,
-  RUNTIME_EQUIPMENT_SLOT_ORDER
-} from "./runtimeSetupPresets";
-import {
-  type TemporarySavedSetupSnapshot,
-  NH_TRAINER_ATTACK_SET_STORAGE_KEY,
-  NH_AUTO_RETALIATE_STORAGE_KEY,
-  NH_SOUND_EFFECT_VOLUME_STORAGE_KEY,
-  NH_AREA_SOUND_EFFECT_VOLUME_STORAGE_KEY,
-  NH_TEST_MUTED_STORAGE_KEY,
-  NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY,
-  NH_TRAINER_BROWSER_CLIENT_WINDOW_STORAGE_KEY,
-  NH_TRAINER_PRAYER_REORDER_ENABLED_STORAGE_KEY,
-  NH_TRAINER_PRAYER_REORDER_ORDER_STORAGE_KEY,
-  NH_TRAINER_SPELLBOOK_REORDER_ENABLED_STORAGE_KEY,
-  NH_TRAINER_PVP_FIGHT_HISTORY_LIMIT,
-  isRuntimeInventory,
-  readStoredAttackSetIndex,
-  writeStoredAttackSetIndex,
-  writeStoredAutoRetaliate,
-  normalizeStoredOptionsSoundVolume,
-  writeStoredOptionsSoundVolume,
-  readStoredClientDisplayMode,
-  writeStoredClientDisplayMode,
-  readStoredBoolean,
-  writeStoredBoolean,
-  readStoredStringArray,
-  writeStoredStringArray,
-  readStoredSpellbookOrders,
-  writeStoredSpellbookOrders,
-  initialHudOverrideFromStorage,
-  readTemporarySavedSetupSnapshot,
-  writeTemporarySavedSetupSnapshot,
-  clearTemporarySavedSetupSnapshot,
-  readStoredRunelitePvpFightHistory,
-  writeStoredRunelitePvpFightHistory,
-  type BrowserClientWindowBounds,
-  readBrowserClientWindowBounds,
-  writeBrowserClientWindowBounds,
-  browserClientWindowFixedSnapSize,
-  clampBrowserClientWindowBoundsWithFixedSnap
-} from "./runtimePreferences";
-import {
-  type RuntimeClientPosition,
-  type ManualActorState,
-  NH_CLIENT_CYCLE_MS,
-  NH_CLIENT_CYCLES_PER_GAME_TICK,
-  manualActorFromSnapshot,
-  snapManualActorToCollision,
-  teleportManualActorToTile,
-  routeManualActor,
-  routeManualActorToTarget,
-  manualActorRouteLogicalClientPosition,
-  expandNhManualRoutePath,
-  advanceManualActorServerRouteTick,
-  enqueueManualActorClientPathSteps,
-  enqueueManualActorLogicalClientPathSteps,
-  sameNhTile,
-  runtimeSequenceIsMovement,
-  manualActorHasPendingMovement,
-  manualActorHasHeldActionMovement,
-  clearManualActorMovementRoute,
-  stopManualActorMovementIfMovementGated,
-  syncManualActorServerTileToCombatActor,
-  manualActorHasActiveCombatTargetRoute,
-  preAttackRouteManualActorToCombatTarget,
-  runtimeCombatProjectileLineOfSight,
-  runtimeManualPolicyCanAttackSignal,
-  manualActorBaseSequenceName,
-  manualActorVisibleSequenceName,
-  nhMovementFrameCursor,
-  nhClientPositionFromRuntimeTile,
-  runtimeTileFromNhClientPosition,
-  nhFacingDegreesToOrientationUnits,
-  nhActorModelRotationRadiansFromFacingDegrees,
-  nhTargetOrientationUnits,
-  manualActorWithClientTargetIndexHold,
-  manualActorActiveSequenceContext,
-  syncManualActorActionSequence,
-  manualActorWithPrimarySequence,
-  manualActorWithMovementState,
-  manualActorSequenceCursorState,
-  manualActorWithAuthoritativeSequenceCursor,
-  nhPrimaryFrameCursor,
-  manualActorClientPathHeldByNhSequence,
-  advanceManualActor,
-  advanceManualActorBeforeAcceptedPlayerUpdate
-} from "./runtimeMovement";
-import {
-  runtimePolicyRecentManualCombatSignal,
-  runtimePolicyRecentManualIncomingPressureSignal,
-  runtimePolicyRecentManualDirectCombatSignal,
-  nhEquipmentSlotByServerSlot,
-  visibleEquipmentFromRuntimeItemIdsBySlot,
-  visibleEquipmentItemsFromRuntimeInventory,
+  type ManualPolicyActorAppearanceView,
   type ManualPolicyActorMovementView,
-  manualPolicyStationaryMovementView,
-  runtimePolicyVisibleStatsFromCombatActor,
-  runtimePolicyVisibleLocksFromCombatActor,
-  runtimePolicyLocksFrozenAtTick,
-  manualPolicyActorMovementViewFromTiles,
   manualPolicyActorAppearanceView,
+  manualPolicyActorMovementViewFromTiles,
+  manualPolicyStationaryMovementView,
   manualPolicyUnknownOpponentInfoAppearanceView,
-  runtimePlayerCombatStateWithLocalSpecialEnergy,
-  runtimePlayerCombatStateWithLocalFreezeBypass,
-  runtimeWeaponLoadoutForItemId,
-  runtimeCombatSpellIdFromSelectedSpell,
+  nhEquipmentSlotByServerSlot,
+  runtimeCombatActorRespawnedForFreshFightReset,
   runtimeCombatLevelsFromHud,
   runtimeCombatLevelsFromSimStats,
+  runtimeCombatSpellIdFromSelectedSpell,
   runtimeManualCombatAuthoritativeHud,
-  runtimeCombatActorRespawnedForFreshFightReset,
-  type ManualPolicyActorAppearanceView
+  runtimePlayerCombatStateWithLocalFreezeBypass,
+  runtimePlayerCombatStateWithLocalSpecialEnergy,
+  runtimePolicyLocksFrozenAtTick,
+  runtimePolicyRecentManualCombatSignal,
+  runtimePolicyRecentManualDirectCombatSignal,
+  runtimePolicyRecentManualIncomingPressureSignal,
+  runtimePolicyVisibleLocksFromCombatActor,
+  runtimePolicyVisibleStatsFromCombatActor,
+  runtimeWeaponLoadoutForItemId,
+  visibleEquipmentFromRuntimeItemIdsBySlot,
+  visibleEquipmentItemsFromRuntimeInventory
 } from "./runtimeCombatState";
-import {
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-  type PointerEvent as ReactPointerEvent
-} from "react";
-import {
-  flushSync,
-  unstable_batchedUpdates
-} from "react-dom";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { flushSync, unstable_batchedUpdates } from "react-dom";
 import equipmentRowsJson from "../generated/equipment-bonuses.json";
 import kitsJson from "../generated/kits.json";
 import serverItemsJson from "../generated/server-items.json";
@@ -167,16 +46,11 @@ import {
   Sprite,
   SpriteMaterial,
   Texture,
-  TextureLoader,
   Vector3,
   WebGLRenderer
 } from "three";
-import {
-  GLTFLoader
-} from "three/examples/jsm/loaders/GLTFLoader.js";
-import {
-  type GLTF
-} from "three/examples/jsm/loaders/GLTFLoader.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import {
   clientViewTraceToRuntimeReplay,
   sampleRuntimeReplayEvents,
@@ -272,7 +146,8 @@ import {
   type NhRect,
   type NhSize,
   type NhSpellbookDefinitions,
-  type NhSpellbookId
+  type NhSpellbookId,
+  type NhViewport
 } from "../render/nhFixedLayout";
 import {
   NH_PLAYER_DEFAULT_HEIGHT_CLIENT_UNITS,
@@ -319,6 +194,7 @@ import {
 } from "../render/nhOverheadIcons";
 import {
   nhRenderCycleToProjectileClientCycle,
+  sampleNhProjectileLifecycle,
   sampleNhProjectileMotion,
   type NhProjectileDefinition,
   type NhProjectileDefinitionMap,
@@ -343,9 +219,7 @@ import {
   type NhSceneCollision,
   type NhWorldTile
 } from "../render/nhSceneCollision";
-import {
-  nhNhBotCombatTileAllowed
-} from "../render/nhWilderness";
+import { nhNhBotCombatTileAllowed } from "../render/nhWilderness";
 import {
   buildNhSceneObjectContextEntries,
   findNhSceneObjectForWorldTile,
@@ -354,9 +228,7 @@ import {
   type NhSceneObjectContextMenuEntry,
   type NhSelectedSpell
 } from "../render/nhSceneObjects";
-import {
-  nhPickSceneTileFromViewportPoint
-} from "../render/nhSceneTilePicking";
+import { nhPickSceneTileFromViewportPoint } from "../render/nhSceneTilePicking";
 import {
   buildNhMinimapSceneSprite,
   type NhFloorDefinitionStore,
@@ -387,6 +259,7 @@ import {
   sampleRuntimeRenderEvents,
   sampleRuntimeScene,
   type RuntimeActorId,
+  type RuntimeKeyframe,
   type RuntimeActorPose,
   type RuntimeInventorySlot,
   type RuntimeHudState,
@@ -424,11 +297,7 @@ import {
   createNhWeaponTypeDefinitionStore,
   type NhWeaponTypeDefinitionStore
 } from "../render/nhCombat";
-import {
-  nhActivePrayerIds,
-  nhTogglePrayerState,
-  type NhPrayerStates
-} from "../render/nhPrayer";
+import { nhActivePrayerIds, nhTogglePrayerState, type NhPrayerStates } from "../render/nhPrayer";
 import {
   advanceRuntimePlayerCombat,
   assertValidClientViewTrace,
@@ -436,6 +305,7 @@ import {
   consumeRuntimePlayerCombatSupply,
   applyRuntimePlayerCombatPreMovementHits,
   activateRuntimePlayerCombatVengeanceTrinket,
+  castRuntimePlayerCombatVengeanceSpell,
   clearRuntimePlayerCombatActorPolicyNoTargetGrace,
   consumableDefinitions,
   createItemActionQueue,
@@ -454,6 +324,7 @@ import {
   resetRuntimePlayerCombatActorPolicyFreshFight,
   resetRuntimePlayerCombatActorPolicyDisengage,
   resetRuntimePlayerCombatActorTarget,
+  runtimePlayerCombatActionDurationTicks,
   runtimePlayerCombatActiveOverheadPrayer,
   runtimePlayerCombatActiveProtectionPrayer,
   runtimePlayerCombatConsumableSoundIds,
@@ -496,26 +367,26 @@ import {
   type NhPolicyAction,
   type ClientViewTrace
 } from "../sim";
-import {
-  movementGate
-} from "../sim/entity/locks";
-import {
-  getAttackDelayStatus
-} from "../sim/combat/timers";
-import {
-  type EquipmentSlot,
-  type VisibleEquipment,
-  type VisibleEquipmentItem
-} from "../sim/clientView";
+import { movementGate } from "../sim/entity/locks";
+import { getAttackDelayStatus } from "../sim/combat/timers";
+import type { EquipmentSlot, VisibleEquipment, VisibleEquipmentItem } from "../sim/clientView";
 import {
   createNhPolicyController,
+  createRiskFightPolicyController,
+  isRiskFightPolicyController,
+  riskFightCandidateCheckpointSha256,
+  riskFightCandidateControllerId,
+  riskFightCandidateLabel,
+  riskFightCandidateParameterSha256,
+  riskFightCandidateSchemaSha256,
+  riskFightRuntimeProfile,
   type NhPolicyDecisionTrace,
   type NhPolicyRuntimeController,
-  type ParsedNhNeuralPolicy
+  type ParsedNhNeuralPolicy,
+  type RiskFightPolicyController,
+  type RiskFightPolicyDecision
 } from "../bot";
-import {
-  type NhDuelControllerContext
-} from "../sim/nh/duel";
+import type { NhDuelControllerContext } from "../sim/nh/duel";
 import {
   emptyRuntimePolicyTargetTrackingState,
   resolveRuntimePolicyTargetTracking,
@@ -523,12 +394,8 @@ import {
   shouldRuntimePolicyRouteResetToSpawn,
   type RuntimePolicyTargetTrackingState
 } from "../sim/nh/runtimePolicyTargeting";
-import {
-  inferNhSelectedGearProfile
-} from "../sim/nh/gearProfile";
-import {
-  nhLoadouts
-} from "../sim/nh/loadouts";
+import { inferNhSelectedGearProfile } from "../sim/nh/gearProfile";
+import { nhLoadouts } from "../sim/nh/loadouts";
 import {
   NhClientHud,
   nhChatboxTabRowTop,
@@ -618,9 +485,15 @@ import {
   type NhGameKeybindSnapshot
 } from "./nhGameKeybinds";
 import {
+  RUNELITE_FREEZE_TIMERS_BARRAGE_DURATION_MS,
+  RUNELITE_FREEZE_TIMERS_BARRAGE_SPOTANIM_ID,
+  RUNELITE_FREEZE_TIMERS_FREEZE_IMAGE_PATH,
+  RUNELITE_FREEZE_TIMERS_FREEZE_IMMUNE_IMAGE_PATH,
+  RUNELITE_FREEZE_TIMERS_FREEZE_IMMUNITY_MS,
   RUNELITE_FREEZE_TIMERS_IMAGE_HEIGHT_PX,
   RUNELITE_FREEZE_TIMERS_IMAGE_TEXT_GAP_PX,
   RUNELITE_FREEZE_TIMERS_IMAGE_WIDTH_PX,
+  RUNELITE_FREEZE_TIMERS_OVERLAY_Y_OFFSET_PX,
   RUNELITE_FREEZE_TIMERS_TIMER_FONT_PX,
   RUNELITE_TIMERS_ICE_BARRAGE_SPRITE_ID,
   runeliteFreezeTimerOverlaySnapshotsFromCombatState,
@@ -700,6 +573,7 @@ import {
   type RuneliteBoostsOverlaySnapshot
 } from "./runeliteBoosts";
 import {
+  RUNELITE_ATTACK_STYLES_OVERLAY_HEIGHT,
   RUNELITE_ATTACK_STYLES_OVERLAY_POSITION,
   RUNELITE_ATTACK_STYLES_PANEL_PADDING_X,
   RUNELITE_ATTACK_STYLES_TEXT_NORMAL_RGBA,
@@ -784,6 +658,122 @@ import {
   runeliteOverlayPreferredLocationStyle,
   type RuneliteOverlayPreferredLocations
 } from "./runeliteOverlayPosition";
+import {
+  RUNTIME_CONSUMABLE_IDS,
+  RUNTIME_DMM_DEFAULT_SETUP_OPTIONS,
+  RUNTIME_EQUIPMENT_SLOT_ORDER,
+  RUNTIME_DMM_GRANITE_MAUL_ITEM_ID,
+  RUNTIME_NH_STAKE_EQUIPMENT_ENTRIES,
+  RUNTIME_NH_STAKE_INVENTORY_SLOTS,
+  RUNTIME_NH_STAKE_LOADOUT_ID,
+  RUNTIME_VENGEANCE_TRINKET_ITEM_ID,
+  RUNTIME_WEBWEAVER_POUCH_RUNES,
+  RUNTIME_WEBWEAVER_VENGEANCE_RUNE_CASTS,
+  RUNTIME_WEBWEAVER_VENGEANCE_RUNE_COST,
+  type RuntimeDmmSetupOptions,
+  type RuntimeEquipmentItemIdsBySlot,
+  type RuntimeTrainerSetupId,
+  type RuntimeTrainerSetupPreset,
+  runtimeConsumableIdForItemId,
+  runtimeDmmInventorySlotsAfterOptionToggle,
+  runtimeDmmInventorySlotsWithOptions,
+  runtimeNhStakeSupplies,
+  runtimeNhStakeVengeanceTrinketCharges,
+  runtimePersistentOpponentInventorySlotsAfterPolicyResult,
+  runtimeRecoilRingsRemaining,
+  runtimeSetupEquipmentItems,
+  runtimeSetupInventorySlots,
+  runtimeSetupInventorySlotsForSupplies,
+  runtimeSetupPreset,
+  runtimeSuppliesFromInventorySlots,
+  runtimeVengeanceTrinketChargesFromInventorySlots
+} from "./runtimeSetupPresets";
+import {
+  type ManualActorRouteResult,
+  type ManualActorState,
+  NH_CLIENT_CYCLES_PER_GAME_TICK,
+  NH_CLIENT_CYCLE_MS,
+  type RuntimeClientPosition,
+  advanceManualActor,
+  advanceManualActorBeforeAcceptedPlayerUpdate,
+  advanceManualActorServerRouteTick,
+  clearManualActorMovementRoute,
+  enqueueManualActorClientPathSteps,
+  enqueueManualActorLogicalClientPathSteps,
+  expandNhManualRoutePath,
+  manualActorActiveSequenceContext,
+  manualActorBaseSequenceName,
+  manualActorClientPathHeldByNhSequence,
+  manualActorFromSnapshot,
+  manualActorHasActiveCombatTargetRoute,
+  manualActorHasHeldActionMovement,
+  manualActorHasPendingMovement,
+  manualActorRouteLogicalClientPosition,
+  manualActorSequenceCursorState,
+  manualActorVisibleSequenceName,
+  manualActorWithAuthoritativeSequenceCursor,
+  manualActorWithClientTargetIndexHold,
+  manualActorWithMovementState,
+  manualActorWithPrimarySequence,
+  nhActorModelRotationRadiansFromFacingDegrees,
+  nhClientPositionFromRuntimeTile,
+  nhFacingDegreesToOrientationUnits,
+  nhMovementFrameCursor,
+  nhPrimaryFrameCursor,
+  nhTargetOrientationUnits,
+  preAttackRouteManualActorToCombatTarget,
+  routeManualActor,
+  routeManualActorToTarget,
+  runtimeCombatProjectileLineOfSight,
+  runtimeManualPolicyCanAttackSignal,
+  runtimeSequenceIsMovement,
+  runtimeTileFromNhClientPosition,
+  sameNhTile,
+  snapManualActorToCollision,
+  stopManualActorMovementIfMovementGated,
+  syncManualActorActionSequence,
+  syncManualActorServerTileToCombatActor,
+  teleportManualActorToTile
+} from "./runtimeMovement";
+import {
+  type BrowserClientWindowBounds,
+  NH_AREA_SOUND_EFFECT_VOLUME_STORAGE_KEY,
+  NH_AUTO_RETALIATE_STORAGE_KEY,
+  NH_SOUND_EFFECT_VOLUME_STORAGE_KEY,
+  NH_TEST_MUTED_STORAGE_KEY,
+  NH_TRAINER_ATTACK_SET_STORAGE_KEY,
+  NH_TRAINER_BROWSER_CLIENT_WINDOW_STORAGE_KEY,
+  NH_TRAINER_PRAYER_REORDER_ENABLED_STORAGE_KEY,
+  NH_TRAINER_PRAYER_REORDER_ORDER_STORAGE_KEY,
+  NH_TRAINER_PVP_FIGHT_HISTORY_LIMIT,
+  NH_TRAINER_SPELLBOOK_REORDER_ENABLED_STORAGE_KEY,
+  type TemporarySavedSetupSnapshot,
+  browserClientWindowFixedSnapSize,
+  clampBrowserClientWindowBoundsWithFixedSnap,
+  clearTemporarySavedSetupSnapshot,
+  initialHudOverrideFromStorage,
+  isRuntimeInventory,
+  normalizeStoredOptionsSoundVolume,
+  readBrowserClientWindowBounds,
+  readStoredAttackSetIndex,
+  readStoredBoolean,
+  readStoredClientDisplayMode,
+  readStoredRunelitePvpFightHistory,
+  readStoredSpellbookOrders,
+  readStoredStringArray,
+  readTemporarySavedSetupSnapshot,
+  temporarySavedSetupStorageKey,
+  writeBrowserClientWindowBounds,
+  writeStoredAttackSetIndex,
+  writeStoredAutoRetaliate,
+  writeStoredBoolean,
+  writeStoredClientDisplayMode,
+  writeStoredOptionsSoundVolume,
+  writeStoredRunelitePvpFightHistory,
+  writeStoredSpellbookOrders,
+  writeStoredStringArray,
+  writeTemporarySavedSetupSnapshot
+} from "./runtimePreferences";
 
 interface RuntimeArenaObjectVariant {
   readonly collision: NhSceneCollision;
@@ -808,6 +798,7 @@ interface RuntimeSceneBoundary {
   clientWidgetDefinitions: NhClientWidgetDefinitions | null;
   clientSpellbookDefinitions: NhSpellbookDefinitions | null;
   clientDisplayMode: NhClientDisplayMode;
+  chatboxHidden: boolean;
   fixedClientLayout: NhFixedClientLayout | null;
   fixedClientCssLayout: NhFixedClientCssLayout | null;
 }
@@ -2167,6 +2158,7 @@ function createRuntimeBoundary(canvas: HTMLCanvasElement): RuntimeSceneBoundary 
     clientWidgetDefinitions: null,
     clientSpellbookDefinitions: null,
     clientDisplayMode: "fixed",
+    chatboxHidden: false,
     fixedClientLayout: null,
     fixedClientCssLayout: null
   };
@@ -2196,7 +2188,8 @@ function runtimeCameraVisualFocusHeightSceneUnits(zoom: NhCameraZoom, viewportHe
 
 function updateRuntimeCamera(boundary: RuntimeSceneBoundary): void {
   const { target, clientAngles, distanceZoom } = boundary.cameraRig;
-  const viewportHeight = boundary.fixedClientLayout?.viewport.rect.height ?? NH_CAMERA_DEFAULT_VIEWPORT_HEIGHT;
+  const viewportHeight = boundary.fixedClientLayout?.viewport.projectionHeight ??
+    boundary.fixedClientLayout?.viewport.rect.height ?? NH_CAMERA_DEFAULT_VIEWPORT_HEIGHT;
   const offset = nhClientSceneCameraOffset(clientAngles, viewportHeight, distanceZoom);
   boundary.camera.position.set(
     target.x - offset.x,
@@ -2206,9 +2199,13 @@ function updateRuntimeCamera(boundary: RuntimeSceneBoundary): void {
   boundary.camera.lookAt(target.x, target.y, target.z);
 }
 
-function applyNhCameraProjection(camera: PerspectiveCamera): void {
+function applyNhCameraProjection(camera: PerspectiveCamera, viewport?: NhViewport): void {
   camera.updateProjectionMatrix();
   camera.projectionMatrix.elements[0] *= -1;
+  if (viewport?.projectionHeight !== undefined) {
+    // Extend the frustum downwards without shifting the existing world's screen position.
+    camera.projectionMatrix.elements[9] = viewport.projectionHeight / viewport.rect.height - 1;
+  }
   camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
 }
 
@@ -2252,7 +2249,7 @@ function applyRuneliteGpuPluginConfig(boundary: RuntimeSceneBoundary, gpuConfig:
   canvas.dataset.sourceGpuAnisotropicFiltering = "GpuPlugin.draw AnisotropicFilteringMode.getSamples";
 
   boundary.camera.far = gpuConfig.enabled ? Math.max(10, drawDistanceWorldUnits + 10) : 1000;
-  applyNhCameraProjection(boundary.camera);
+  applyNhCameraProjection(boundary.camera, boundary.fixedClientLayout?.viewport);
 
   if (gpuConfig.enabled && uniforms.useFog) {
     const backgroundColor = boundary.scene.background instanceof Color ? boundary.scene.background : new Color(0x0e1216);
@@ -2807,7 +2804,8 @@ function updateRuntimeCameraFollowTarget(boundary: RuntimeSceneBoundary): void {
     return;
   }
 
-  const viewportHeight = boundary.fixedClientLayout?.viewport.rect.height ?? NH_CAMERA_DEFAULT_VIEWPORT_HEIGHT;
+  const viewportHeight = boundary.fixedClientLayout?.viewport.projectionHeight ??
+    boundary.fixedClientLayout?.viewport.rect.height ?? NH_CAMERA_DEFAULT_VIEWPORT_HEIGHT;
   // Source: class4.method66()/Client normal camera follow read localPlayer.x/y
   // after class329's visible actor movement pass. The logical/minimap stall
   // track can move ahead, but camera follow stays on the visible actor track.
@@ -2837,7 +2835,7 @@ function resizeRuntimeBoundary(boundary: RuntimeSceneBoundary, canvas: HTMLCanva
   const cameraRect = boundary.fixedClientCssLayout.viewportRect;
   boundary.camera.aspect = cameraRect.width / cameraRect.height;
   boundary.camera.fov = nhViewportZoomToFovDegrees(fixedLayout.viewport.rect.height, fixedLayout.viewport.zoom);
-  applyNhCameraProjection(boundary.camera);
+  applyNhCameraProjection(boundary.camera, fixedLayout.viewport);
   return boundary.fixedClientCssLayout;
 }
 
@@ -2853,6 +2851,7 @@ function resolveRuntimeClientLayoutForBoundary(
   const nextLayout = resolveNhFixedClientLayout(boundary.clientWidgetDefinitions, boundary.clientSpellbookDefinitions, {
     displayMode,
     rootSize: displayMode === "resizable" ? rootSize : undefined,
+    chatboxHidden: boundary.chatboxHidden,
     viewportFovZoom: boundary.cameraRig.fovZoom
   });
   boundary.fixedClientLayout = nextLayout;
@@ -3464,6 +3463,8 @@ const RUNTIME_EQUIPMENT_MODEL_PREWARM_SEQUENCE_NAMES: readonly RuntimeSequenceNa
   "vesta_longsword_special",
   "voidwaker_special",
   "crossbow_attack",
+  "bow_attack",
+  "elder_maul_attack",
   "blitz_cast",
   "barrage_cast"
 ];
@@ -5468,6 +5469,11 @@ async function loadAnimationFixtures(): Promise<NhAnimationFixtures> {
     ["godsword_walk_right", "7047"],
     ["godsword_run", "7043"],
     ["godsword_attack", "7045"],
+    ["elder_maul_ready", "7518"],
+    ["elder_maul_walk", "7520"],
+    ["elder_maul_run", "7519"],
+    ["elder_maul_attack", "7516"],
+    ["bow_attack", "426"],
     ["ags_special", "7644"],
     ["vengeance_cast", "8316"],
     ["crossbow_ready", "4591"],
@@ -5657,11 +5663,16 @@ async function loadPlayerModelSources(): Promise<NhPlayerModelSources> {
   return { cacheItems, kits, cacheModels, serverItems, bodyColors, textures };
 }
 
-function loadTexture(url: string): Promise<Texture> {
-  const loader = new TextureLoader();
-  return new Promise((resolve, reject) => {
-    loader.load(url, resolve, undefined, reject);
-  });
+async function loadTexture(url: string): Promise<Texture> {
+  // These same-origin atlases also back CSS sprites. Match CSS's image request
+  // mode and decode up front so opening a tab reuses the ready image instead
+  // of starting another load after TextureLoader's CORS preload.
+  const image = new Image();
+  image.src = url;
+  await image.decode();
+  const texture = new Texture(image);
+  texture.needsUpdate = true;
+  return texture;
 }
 
 async function loadSpriteAtlases(): Promise<ReadonlyMap<RuntimeSpriteSheetId, RuntimeSpriteAtlas>> {
@@ -6553,7 +6564,20 @@ function applyRuntimeEffectPlacement(
 ): boolean {
   if (event.kind === "projectile" && event.fromTile && event.toTile) {
     const definition = event.projectileId ? projectileDefinitions.get(event.projectileId) : undefined;
-    const sample = definition ? sampleNhProjectileMotion(event, snapshot.cycle, definition) : null;
+    let sample: ReturnType<typeof sampleNhProjectileMotion> = null;
+    if (event.projectileId === "webweaver_arrow" && event.projectile) {
+      // Java draws only from cycleStart through cycleEnd, advancing before each draw.
+      // Use the real 20ms client clock rather than stretching flight over the hit delay.
+      const clientCycle = event.projectile.packetCycle + Math.round(
+        (snapshot.cycle - event.startCycle) * NH_CLIENT_CYCLES_PER_GAME_TICK
+      );
+      if (clientCycle < event.projectile.cycleStart || clientCycle > event.projectile.cycleEnd) {
+        return false;
+      }
+      sample = sampleNhProjectileLifecycle(event.projectile, clientCycle + 1);
+    } else if (definition) {
+      sample = sampleNhProjectileMotion(event, snapshot.cycle, definition);
+    }
     if (sample) {
       object.position.set(sample.x, 0.35 + sample.z, sample.y);
       object.rotation.y = (sample.yaw * Math.PI * 2) / 2048;
@@ -8231,7 +8255,8 @@ function runeliteFreezeTimerTextStyle(overlay: RuneliteFreezeTimerDomOverlay): C
 function runeliteFreezeTimerInfoBoxOverlayStyle(
   overlay: RuneliteFreezeTimerInfoBoxDomOverlay,
   layout: NhFixedClientCssLayout | null,
-  overlayLocations: RuneliteOverlayPreferredLocations
+  overlayLocations: RuneliteOverlayPreferredLocations,
+  opponentInfoStackHeight = 0
 ): CSSProperties {
   const scale = layout?.scale ?? 1;
   const preferredLocation = runeliteOverlayPreferredLocationStyle("InfoBoxOverlay", overlayLocations, scale);
@@ -8239,7 +8264,7 @@ function runeliteFreezeTimerInfoBoxOverlayStyle(
   const defaultTopLeftLocation = viewportRect
     ? {
         left: viewportRect.x + 2 * scale,
-        top: viewportRect.y + 2 * scale
+        top: viewportRect.y + (2 + opponentInfoStackHeight) * scale
       }
     : {};
   return {
@@ -8584,14 +8609,15 @@ function runeliteAttackStylesOverlayStyle(
 function runeliteBoostsOverlayStyle(
   overlay: RuneliteBoostsOverlaySnapshot,
   layout: NhFixedClientCssLayout | null,
-  overlayLocations: RuneliteOverlayPreferredLocations
+  overlayLocations: RuneliteOverlayPreferredLocations,
+  opponentInfoStackHeight = 0
 ): CSSProperties {
   const scale = layout?.scale ?? 1;
   const overlayName = overlay.mode === "combat-icons" ? "CombatIconsOverlay" : "BoostsOverlay";
   const preferredLocation = runeliteOverlayPreferredLocationStyle(overlayName, overlayLocations, scale);
   return {
     left: 0,
-    top: 0,
+    top: opponentInfoStackHeight * scale,
     width: overlay.width,
     minHeight: overlay.height,
     transform: `scale(${scale})`,
@@ -8604,14 +8630,15 @@ function runeliteBoostsOverlayStyle(
 function runeliteBoostsInfoBoxOverlayStyle(
   overlay: RuneliteBoostsInfoBoxSnapshot,
   layout: NhFixedClientCssLayout | null,
-  overlayLocations: RuneliteOverlayPreferredLocations
+  overlayLocations: RuneliteOverlayPreferredLocations,
+  opponentInfoStackHeight = 0
 ): CSSProperties {
   const scale = layout?.scale ?? 1;
   const primaryCount = Math.min(overlay.boxes.length, overlay.wrap);
   const preferredLocation = runeliteOverlayPreferredLocationStyle("InfoBoxOverlay", overlayLocations, scale);
   return {
     left: 0,
-    top: 0,
+    top: opponentInfoStackHeight * scale,
     width: overlay.width,
     minHeight: overlay.height,
     gridTemplateColumns:
@@ -9465,11 +9492,15 @@ function applyRuntimeEvents(
 
     const object = buildEffectModel(model.scene, model.metadata);
     applyRuntimeEffectAnimation(object, event, snapshot, animationFixtures, spotanimDefinitions);
-    if (!applyRuntimeEffectPlacement(object, event, snapshot, projectileDefinitions)) {
+    const placed = applyRuntimeEffectPlacement(object, event, snapshot, projectileDefinitions);
+    const waitingForWebweaverRelease = event.projectileId === "webweaver_arrow" && event.projectile &&
+      snapshot.cycle < event.startCycle + event.projectile.delayCycles / NH_CLIENT_CYCLES_PER_GAME_TICK;
+    if (!placed && !waitingForWebweaverRelease) {
       disposeObject(object);
       continue;
     }
 
+    object.visible = placed;
     object.userData.nhRuntimeEventId = event.id;
     boundary.eventRoot.add(object);
   }
@@ -9510,47 +9541,56 @@ function runtimePlayerCombatRenderEvents(
 
   for (const event of combatState.events) {
     if (event.kind === "attack" && event.projectile) {
-      if (event.projectile.gfxId < 0 || event.projectile.artifactUrl.length === 0) {
-        continue;
-      }
       const distance = runtimePlayerCombatDistance(event.attackerTile, event.defenderTile, NH_TILE_WORLD_UNITS);
-      const durationCycles =
-        event.projectileDurationCycles ?? runtimePlayerCombatProjectileDurationCycles(event.projectile, distance);
-      // Nh Ice Barrage uses Projectile.skipTravel(), which starts the packet on the target tile.
-      // The trainer intentionally renders the visible ice effect from caster to defender for NH readability per user request.
-      const sourceTile = event.projectile.id === "ice_barrage_projectile"
-        ? event.attackerTile
-        : event.projectile.skipTravel
-          ? event.defenderTile
-          : event.attackerTile;
-      events.push({
-        id: event.id,
-        kind: "projectile",
-        label: event.projectile.id,
-        startCycle: event.tick,
-        endCycle: event.tick + event.hitDelayTicks,
-        projectileId: event.projectile.id,
-        projectile: {
-          gfxId: event.projectile.gfxId,
-          plane: 0,
-          targetIndex: event.defenderId === "local-player" ? -1 : -2,
-          sourceTile,
-          destinationTile: event.defenderTile,
-          sourceHeight: event.projectile.startHeight,
-          destinationHeight: event.projectile.endHeight,
-          delayCycles: event.projectile.delayCycles,
-          durationCycles,
-          cycleStart: event.tick + event.projectile.delayCycles,
-          cycleEnd: event.tick + durationCycles,
-          slope: event.projectile.curve,
-          startDistanceOffset: event.projectile.offset,
-          packetCycle: event.tick,
-          skipTravel: event.projectile.skipTravel
-        },
-        fromTile: sourceTile,
-        toTile: event.defenderTile,
-        artifactUrl: event.projectile.artifactUrl
-      });
+      for (const projectile of event.projectileProfiles ?? [event.projectile]) {
+        if (projectile.gfxId < 0 || projectile.artifactUrl.length === 0) {
+          continue;
+        }
+        const durationCycles = event.projectileProfiles
+          ? runtimePlayerCombatProjectileDurationCycles(projectile, distance)
+          : event.projectileDurationCycles ?? runtimePlayerCombatProjectileDurationCycles(projectile, distance);
+        // Nh Ice Barrage uses Projectile.skipTravel(), which starts the packet on the target tile.
+        // The trainer intentionally renders the visible ice effect from caster to defender for NH readability per user request.
+        const sourceTile = projectile.id === "ice_barrage_projectile"
+          ? event.attackerTile
+          : projectile.skipTravel
+            ? event.defenderTile
+            : event.attackerTile;
+        const normalWebweaverArrow = projectile.id === "webweaver_arrow";
+        // As in nhAcceptedPlayerUpdateClientCycle, tick T is received at boundary T + 1.
+        const startCycle = normalWebweaverArrow ? event.tick + 1 : event.tick;
+        const packetCycle = normalWebweaverArrow ? startCycle * NH_CLIENT_CYCLES_PER_GAME_TICK : event.tick;
+        events.push({
+          id: event.projectileProfiles ? `${event.id}-${projectile.id}` : event.id,
+          kind: "projectile",
+          label: projectile.id,
+          startCycle,
+          endCycle: normalWebweaverArrow
+            ? startCycle + (durationCycles + 1) / NH_CLIENT_CYCLES_PER_GAME_TICK
+            : event.tick + event.hitDelayTicks,
+          projectileId: projectile.id,
+          projectile: {
+            gfxId: projectile.gfxId,
+            plane: 0,
+            targetIndex: event.defenderId === "local-player" ? -1 : -2,
+            sourceTile,
+            destinationTile: event.defenderTile,
+            sourceHeight: projectile.startHeight,
+            destinationHeight: projectile.endHeight,
+            delayCycles: projectile.delayCycles,
+            durationCycles,
+            cycleStart: packetCycle + projectile.delayCycles,
+            cycleEnd: packetCycle + durationCycles,
+            slope: projectile.curve,
+            startDistanceOffset: projectile.offset,
+            packetCycle,
+            skipTravel: projectile.skipTravel
+          },
+          fromTile: sourceTile,
+          toTile: event.defenderTile,
+          artifactUrl: projectile.artifactUrl
+        });
+      }
     } else if (event.kind === "spotanim") {
       events.push({
         id: event.id,
@@ -10343,6 +10383,13 @@ function clampRuneliteRatio(value: number): number {
 }
 
 function formatManualOpponentPolicyAction(action: NhPolicyAction): string {
+  if (action.riskFightMainAction || action.riskFightPrayerAction || action.riskFightMovementAction) {
+    return [
+      action.riskFightMainAction ?? "WAIT",
+      action.riskFightPrayerAction ?? "NONE",
+      action.riskFightMovementAction ?? "HOLD"
+    ].join(",");
+  }
   const spec = action.specIntent === "none" ? "" : `,${action.specIntent}`;
   const attack = (action.attackIntent ?? "attack") === "attack" ? "" : `,${action.attackIntent}`;
   const equipment =
@@ -10351,6 +10398,7 @@ function formatManualOpponentPolicyAction(action: NhPolicyAction): string {
 }
 
 interface ManualOpponentCombatResponse {
+  readonly pendingRiskFightMovementTile?: RuntimeTile | null;
   readonly combatState: RuntimePlayerCombatState;
   readonly opponentActor: ManualActorState;
   readonly policyAction: NhPolicyAction | null;
@@ -10362,6 +10410,7 @@ interface ManualOpponentCombatResponse {
     readonly score: number;
   }[];
   readonly policyDecisionTrace: NhPolicyDecisionTrace | null;
+  readonly riskFightDecision: RiskFightPolicyDecision | null;
   readonly policyObservedLocalInfoDelayTicks: 0 | 1;
   readonly policyObservedLocalTile: RuntimeTile;
   readonly policyActualLocalTile: RuntimeTile;
@@ -10413,7 +10462,7 @@ function formatRuntimeTileForDataset(tile: RuntimeTile): string {
 
 function applyManualOpponentPolicyActorResult(
   actor: ManualActorState,
-  result: RuntimePolicyOpponentResult,
+  result: Pick<RuntimePolicyOpponentResult, "state" | "opponentLoadoutId" | "opponentTile" | "opponentMovedThisTick">,
   acceptedClientCycle: number
 ): ManualActorState {
   const appearance = runtimeAppearanceFromEquipmentItems(
@@ -10540,6 +10589,7 @@ function writeManualOpponentPolicyDataset(
 ): void {
   const selectedEv = manualOpponentSelectedVisibleStyleEv(response.policyContext, response.policyAction);
   const bestEv = manualOpponentBestVisibleStyleEv(response.policyContext);
+  const riskDecision = response.riskFightDecision;
   viewport.dataset.lastManualOpponentControllerId = response.policyControllerId ?? "";
   viewport.dataset.lastManualOpponentPolicyAction = response.policyAction
     ? formatManualOpponentPolicyAction(response.policyAction)
@@ -10582,6 +10632,34 @@ function writeManualOpponentPolicyDataset(
   viewport.dataset.lastManualOpponentSelectedStyleEv = selectedEv === null ? "" : selectedEv.toFixed(3);
   viewport.dataset.lastManualOpponentSelectedStyleEvEdge =
     selectedEv === null || bestEv === null ? "" : (selectedEv - bestEv).toFixed(3);
+  viewport.dataset.lastManualOpponentRiskFightControllerId = riskDecision?.controllerId ?? "";
+  viewport.dataset.lastManualOpponentRiskFightCheckpointSha256 = riskDecision?.checkpointSha256 ?? "";
+  viewport.dataset.lastManualOpponentRiskFightParameterSha256 = riskDecision?.parameterSha256 ?? "";
+  viewport.dataset.lastManualOpponentRiskFightSchemaSha256 = riskDecision?.schemaSha256 ?? "";
+  viewport.dataset.lastManualOpponentRiskFightDecisionTick = riskDecision ? String(riskDecision.tick) : "";
+  viewport.dataset.lastManualOpponentRiskFightEpisodeTick = riskDecision ? String(riskDecision.episodeTick) : "";
+  viewport.dataset.lastManualOpponentRiskFightThreeHeadAction = riskDecision
+    ? `${riskDecision.mainAction},${riskDecision.prayerAction},${riskDecision.movementAction}`
+    : "";
+  viewport.dataset.lastManualOpponentRiskFightMainAction = riskDecision?.mainAction ?? "";
+  viewport.dataset.lastManualOpponentRiskFightPrayerAction = riskDecision?.prayerAction ?? "";
+  viewport.dataset.lastManualOpponentRiskFightMovementAction = riskDecision?.movementAction ?? "";
+  viewport.dataset.lastManualOpponentRiskFightObservation = riskDecision
+    ? JSON.stringify(Array.from(riskDecision.observation))
+    : "";
+  viewport.dataset.lastManualOpponentRiskFightLegalMainActions = riskDecision
+    ? JSON.stringify(riskDecision.legalMainActions)
+    : "";
+  viewport.dataset.lastManualOpponentRiskFightMainLogits = riskDecision
+    ? JSON.stringify(Array.from(riskDecision.mainLogits))
+    : "";
+  viewport.dataset.lastManualOpponentRiskFightPrayerLogits = riskDecision
+    ? JSON.stringify(Array.from(riskDecision.prayerLogits))
+    : "";
+  viewport.dataset.lastManualOpponentRiskFightMovementLogits = riskDecision
+    ? JSON.stringify(Array.from(riskDecision.movementLogits))
+    : "";
+  viewport.dataset.lastManualOpponentRiskFightValue = riskDecision ? String(riskDecision.value) : "";
   writeManualOpponentPolicyDebugSnapshot(response);
 }
 
@@ -11107,9 +11185,16 @@ export function RuntimeSceneViewer({
     () => (dmmHardPolicy ? createNhPolicyController(dmmHardPolicy) : null),
     [dmmHardPolicy]
   );
+  const manualOpponentRiskFightPolicyController = useMemo<RiskFightPolicyController>(
+    () => createRiskFightPolicyController(),
+    []
+  );
   const manualOpponentPolicyControllerRef = useRef<NhPolicyRuntimeController | null>(manualOpponentPolicyController);
   const manualOpponentDmmHardPolicyControllerRef = useRef<NhPolicyRuntimeController | null>(
     manualOpponentDmmHardPolicyController
+  );
+  const manualOpponentRiskFightPolicyControllerRef = useRef<RiskFightPolicyController>(
+    manualOpponentRiskFightPolicyController
   );
   const botDifficultyRef = useRef<RuntimeBotDifficulty>(botDifficulty);
   const [runtimeSetupPresetId, setRuntimeSetupPresetId] = useState<RuntimeTrainerSetupId>("nh-stake");
@@ -11245,6 +11330,9 @@ export function RuntimeSceneViewer({
     useState<RuneliteMouseHighlightTooltipSnapshot | null>(null);
   const [runtimeChatMessages, setRuntimeChatMessages] = useState<readonly NhChatboxGameMessage[]>([]);
   const runtimeChatMessageSequenceRef = useRef(1);
+  const runtimePouchRunesRef = useRef<{ readonly astral: number; readonly death: number; readonly earth: number }>({
+    ...RUNTIME_WEBWEAVER_POUCH_RUNES
+  });
   const [inventoryOverride, setInventoryOverride] = useState<readonly (RuntimeInventorySlot | null)[] | null>(
     () => [...RUNTIME_NH_STAKE_INVENTORY_SLOTS]
   );
@@ -11605,6 +11693,12 @@ export function RuntimeSceneViewer({
     () => runeliteOpponentInfoSnapshot(manualCombatState, runeliteClientConfig.opponentInfo),
     [manualCombatState, runeliteClientConfig.opponentInfo]
   );
+  // HIGH-priority opponent panel precedes MED boosts/infoboxes, with the Java
+  // OverlayRenderer's 2px stack padding. Preserve explicitly dragged positions.
+  // Panel height: 6px border/padding + 15px title + 18px HP row (+ optional title).
+  const runeliteOpponentInfoStackHeight = runeliteOpponentInfo && !runeliteOverlayLocations.OpponentInfoOverlay
+    ? 41 + (runeliteOpponentInfo.opponentsOpponentName ? 15 : 0)
+    : 0;
   const runeliteOpponentComparison = useMemo(
     () => runeliteOpponentComparisonSnapshot(manualCombatState, runeliteClientConfig.opponentInfo),
     [manualCombatState, runeliteClientConfig.opponentInfo]
@@ -12124,10 +12218,11 @@ export function RuntimeSceneViewer({
       return;
     }
     boundary.clientDisplayMode = clientDisplayMode;
+    boundary.chatboxHidden = chatboxHidden;
     const cssLayout = resizeRuntimeBoundary(boundary, canvas);
     setFixedClientLayout(boundary.fixedClientLayout);
     setFixedClientCssLayout(cssLayout);
-  }, [clientDisplayMode]);
+  }, [clientDisplayMode, chatboxHidden]);
 
   useEffect(() => {
     if (activeSideTabId !== "equipment") {
@@ -12982,7 +13077,9 @@ export function RuntimeSceneViewer({
             ...new Set(
               [
                 ...runtimeRenderEvents,
-                ...replays.flatMap((replay) => replay.events)
+                ...replays.flatMap((replay) => replay.events),
+                // Live attacks may use projectiles absent from the demo/replay event lists.
+                ...projectiles.values()
               ]
                 .map((event) => event.artifactUrl)
                 .filter((url): url is string => Boolean(url))
@@ -13232,10 +13329,28 @@ export function RuntimeSceneViewer({
       do {
         processReadyItemActions();
         applyBotWatchLocalCohortAction();
-        const localEquipmentBySlot =
+        const riskFightTick = runtimeSetupPresetIdRef.current === "webweaver";
+        let policyResponse: ManualOpponentCombatResponse | null = null;
+        if (riskFightTick) {
+          // Inventory packets (including food) precede Player.processHits for
+          // both fighters. Choose from the completed prior opponent snapshot.
+          const gate = resolveManualOpponentPolicyTick(manualCombatStateRef.current);
+          manualCombatStateRef.current = gate.combatState;
+          if (gate.shouldRun) {
+            policyResponse = queueManualOpponentCombatResponse(
+              gate.combatState, manualActorRef.current, manualOpponentRef.current,
+              manualOpponentObservedSelfMovementRef.current,
+              nhAcceptedPlayerUpdateClientCycle(runtimeTickOriginMsRef.current, gate.combatState.tick),
+              true
+            );
+            manualCombatStateRef.current = policyResponse.combatState;
+            manualOpponentRef.current = policyResponse.opponentActor;
+          }
+        }
+        let localEquipmentBySlot =
           equipmentOverrideRef.current ??
           localPlayerEquipmentItemIdsBySlot(visibleSnapshotRef.current, inventoryEquipmentDefinitionsRef.current);
-        const localVisibleEquipment = visibleEquipmentFromRuntimeItemIdsBySlot(
+        let localVisibleEquipment = visibleEquipmentFromRuntimeItemIdsBySlot(
           localEquipmentBySlot,
           inventoryItemDefinitionsRef.current
         );
@@ -13267,6 +13382,9 @@ export function RuntimeSceneViewer({
           clientCycle: Math.floor(performance.now() / NH_CLIENT_CYCLE_MS)
         });
         const preMovementHitApplied = preMovementHitResult.applied;
+        syncRuntimeRecoilBreakEquipment(manualCombatStateRef.current, preMovementHitResult.state);
+        localEquipmentBySlot = equipmentOverrideRef.current ?? localEquipmentBySlot;
+        localVisibleEquipment = visibleEquipmentFromRuntimeItemIdsBySlot(localEquipmentBySlot, inventoryItemDefinitionsRef.current);
         const combatStateBeforeMovement = localFreezeBypassRef.current
           ? runtimePlayerCombatStateWithLocalFreezeBypass(preMovementHitResult.state)
           : preMovementHitResult.state;
@@ -13291,9 +13409,10 @@ export function RuntimeSceneViewer({
         let opponentPreAttackRouteMovedThisTick = false;
         manualActorRef.current = local;
         manualOpponentRef.current = opponent;
-        let policyResponse: ManualOpponentCombatResponse | null = null;
         let combatStateForTick = manualCombatStateRef.current;
-        const policyTickGate = resolveManualOpponentPolicyTick(combatStateForTick);
+        const policyTickGate = riskFightTick
+          ? { shouldRun: false, combatState: combatStateForTick }
+          : resolveManualOpponentPolicyTick(combatStateForTick);
         combatStateForTick = policyTickGate.combatState;
         const acceptedClientCycle = nhAcceptedPlayerUpdateClientCycle(
           runtimeTickOriginMsRef.current,
@@ -13308,18 +13427,15 @@ export function RuntimeSceneViewer({
             acceptedClientCycle
           );
           combatStateForTick = policyResponse.combatState;
+          opponent = policyResponse.opponentActor;
+        }
+        if (policyResponse) {
           if (runtimeBotWatchEnabled() && botWatchModeRef.current !== "off" && policyResponse.policyEffectiveAction) {
             botWatchLastVisibleOpponentStyleRef.current = policyResponse.policyEffectiveAction.offenceStyle;
           }
-          opponent = manualActorFacingTarget(policyResponse.opponentActor, local);
+          opponent = manualActorFacingTarget(opponent, local);
           opponentMovedThisTick = opponentMovedThisTick || policyResponse.policyMovedThisTick;
           manualOpponentRef.current = opponent;
-          const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
-          if (viewport) {
-            viewport.dataset.lastManualOpponentPolicyTick = String(combatStateForTick.tick);
-            viewport.dataset.lastManualOpponentPolicyTickSource = "manual-combat-game-tick";
-            writeManualOpponentPolicyDataset(viewport, policyResponse);
-          }
         }
         const processOrderForTick = runtimePlayerCombatProcessOrderForTick(combatStateForTick, combatStateForTick.tick);
         const localProcessIndex = processOrderForTick.indexOf("local-player");
@@ -13389,6 +13505,24 @@ export function RuntimeSceneViewer({
               processPendingGroundItemPickup(local.tile);
             } else {
               const opponentBeforePidMovement = opponent;
+              const riskStep = policyResponse?.pendingRiskFightMovementTile;
+              if (policyResponse && riskStep && !isRuntimePlayerCombatActorDead(combatStateForTick.actors.opponent, combatStateForTick.tick) &&
+                !movementGate(combatStateForTick.actors.opponent.locks, combatStateForTick.tick).blocked &&
+                !sameNhTile(riskStep, local.tile) && collisionMap.canStep(opponent.tile, riskStep)) {
+                opponent = applyManualOpponentPolicyActorResult(opponent, {
+                  state: combatStateForTick, opponentLoadoutId: opponent.loadoutId,
+                  opponentTile: riskStep, opponentMovedThisTick: true
+                }, acceptedClientCycle);
+                opponentMovedThisTick = true;
+                policyResponse = {
+                  ...policyResponse,
+                  opponentActor: opponent,
+                  policyMovementApplied: true,
+                  policyMovedThisTick: true,
+                  policyLastMoveDx: Math.sign(riskStep.x - opponentBeforePidMovement.tile.x),
+                  policyLastMoveDy: Math.sign(riskStep.z - opponentBeforePidMovement.tile.z)
+                };
+              }
               const localHasProcessed = localProcessIndex < opponentProcessIndex;
               const opponentHasTargetRoute = manualActorHasActiveCombatTargetRoute({
                 combatActor: combatStateForTick.actors.opponent,
@@ -13521,6 +13655,18 @@ export function RuntimeSceneViewer({
         let nextTickCombatState = localFreezeBypassRef.current
           ? runtimePlayerCombatStateWithLocalFreezeBypass(result.state)
           : result.state;
+        syncRuntimeRecoilBreakEquipment(combatStateForTick, nextTickCombatState);
+        localEquipmentBySlot = equipmentOverrideRef.current ?? localEquipmentBySlot;
+        if (combatStateForTick.actors["local-player"].equipment.ring?.itemId !== nextTickCombatState.actors["local-player"].equipment.ring?.itemId) {
+          local = { ...local, appearance: runtimeAppearanceFromEquipmentItems(
+            runtimeItemIdsBySlotFromVisibleEquipment(nextTickCombatState.actors["local-player"].equipment), runtimeLoadoutAppearance(local.loadoutId)
+          ) };
+        }
+        if (combatStateForTick.actors.opponent.equipment.ring?.itemId !== nextTickCombatState.actors.opponent.equipment.ring?.itemId) {
+          opponent = { ...opponent, appearance: runtimeAppearanceFromEquipmentItems(
+            runtimeItemIdsBySlotFromVisibleEquipment(nextTickCombatState.actors.opponent.equipment), runtimeLoadoutAppearance(opponent.loadoutId)
+          ) };
+        }
         const freshFightReset = applyRuntimeFullFightResetAfterRespawn(combatStateForTick, nextTickCombatState);
         if (freshFightReset) {
           nextTickCombatState = freshFightReset.combatState;
@@ -13529,6 +13675,11 @@ export function RuntimeSceneViewer({
         }
         const currentTickEvents = nextTickCombatState.events.filter((event) => event.tick === combatStateForTick.tick);
         const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
+        if (viewport && policyResponse) {
+          viewport.dataset.lastManualOpponentPolicyTick = String(combatStateForTick.tick);
+          viewport.dataset.lastManualOpponentPolicyTickSource = "manual-combat-game-tick";
+          writeManualOpponentPolicyDataset(viewport, policyResponse);
+        }
         if (runtimeBotWatchEnabled() && botWatchModeRef.current !== "off") {
           const nextStats = runtimeBotWatchStatsWithEvents(
             botWatchStatsRef.current,
@@ -14196,6 +14347,10 @@ export function RuntimeSceneViewer({
       runtimeDmmSetupOptionsRef.current
     );
     const combatState = createRuntimePlayerCombatState({
+      riskFight: runtimeSetupPresetIdRef.current === "webweaver",
+      localRecoilRingsRemaining: runtimeRecoilRingsRemaining(localInventorySlots,
+        equipmentOverrideRef.current ?? localPlayerEquipmentItemIdsBySlot(visibleSnapshot, inventoryEquipmentDefinitionsRef.current)),
+      opponentRecoilRingsRemaining: runtimeRecoilRingsRemaining(opponentInventorySlots, runtimeSetupEquipmentItems(runtimeSetupPresetIdRef.current)),
       zurielsStaffCastCooldownTicks: runtimeSetupPresetIdRef.current === "dmm" && zurielsStaffFiveTickRef.current ? 5 : 4,
       crossbowRapidCooldownTicks: runtimeSetupPresetIdRef.current === "dmm" && crossbowFourTickRef.current ? 4 : 5,
       localTile: localActor.tile,
@@ -14210,6 +14365,10 @@ export function RuntimeSceneViewer({
       opponentSupplies: runtimeSuppliesFromInventorySlots(opponentInventorySlots),
       localVengeanceTrinketCharges: runtimeVengeanceTrinketChargesFromInventorySlots(localInventorySlots),
       opponentVengeanceTrinketCharges: runtimeVengeanceTrinketChargesFromInventorySlots(opponentInventorySlots),
+      localVengeanceRuneCasts:
+        runtimeSetupPresetIdRef.current === "webweaver" ? RUNTIME_WEBWEAVER_VENGEANCE_RUNE_CASTS : 0,
+      opponentVengeanceRuneCasts:
+        runtimeSetupPresetIdRef.current === "webweaver" ? RUNTIME_WEBWEAVER_VENGEANCE_RUNE_CASTS : 0,
       combatStartTick: runtimePlayerCombatFightCountdownTicks
     });
     manualActorRef.current = localActor;
@@ -14343,8 +14502,8 @@ export function RuntimeSceneViewer({
     // prayer, special, freeze/locks, combat targets, and supplies. The trainer's visible
     // inventory/equipment containers are client-side mirrors, so the rematch reset restores
     // them on the same respawn transition instead of leaving eaten/worn items depleted.
-    const savedSetup = readTemporarySavedSetupSnapshot();
     const setupId = runtimeSetupPresetIdRef.current;
+    const savedSetup = readTemporarySavedSetupSnapshot(setupId);
     const setup = runtimeSetupPreset(setupId);
     const localLoadoutId = savedSetup?.loadoutId ?? setup.loadoutId;
     const localInventorySlots = savedSetup
@@ -14390,6 +14549,9 @@ export function RuntimeSceneViewer({
       (typeof window === "undefined" ? null : readStoredAttackSetIndex()) ??
       afterRespawnState.actors["local-player"].attackSetIndex;
     const freshBaseState = createRuntimePlayerCombatState({
+      riskFight: setupId === "webweaver",
+      localRecoilRingsRemaining: runtimeRecoilRingsRemaining(localInventorySlots, localEquipmentItems),
+      opponentRecoilRingsRemaining: runtimeRecoilRingsRemaining(opponentInventorySlots, opponentEquipmentItems),
       zurielsStaffCastCooldownTicks: setupId === "dmm" && zurielsStaffFiveTickRef.current ? 5 : 4,
       crossbowRapidCooldownTicks: setupId === "dmm" && crossbowFourTickRef.current ? 4 : 5,
       localTile: localSpawn.tile,
@@ -14408,6 +14570,8 @@ export function RuntimeSceneViewer({
       opponentSupplies,
       localVengeanceTrinketCharges,
       opponentVengeanceTrinketCharges,
+      localVengeanceRuneCasts: setupId === "webweaver" ? RUNTIME_WEBWEAVER_VENGEANCE_RUNE_CASTS : 0,
+      opponentVengeanceRuneCasts: setupId === "webweaver" ? RUNTIME_WEBWEAVER_VENGEANCE_RUNE_CASTS : 0,
       localSpecialEnergy: 100,
       opponentSpecialEnergy: 100,
       combatStartTick: NH_TRAINER_MANUAL_START_PENDING_TICK,
@@ -14497,6 +14661,10 @@ export function RuntimeSceneViewer({
     manualOpponentPolicyEpisodeStartTickRef.current = nextCombatState.tick;
     manualOpponentNextPolicyRepositionTickRef.current = 0;
     manualOpponentObservedSelfMovementRef.current = manualPolicyStationaryMovementView;
+    if (setupId === "webweaver") {
+      runtimePouchRunesRef.current = { ...RUNTIME_WEBWEAVER_POUCH_RUNES };
+      manualOpponentRiskFightPolicyControllerRef.current.resetEpisode();
+    }
     resetManualOpponentLocalAppearanceObservation(manualPolicyActorAppearanceView(
       nextLocalActor,
       nextCombatState.actors["local-player"],
@@ -14631,7 +14799,8 @@ export function RuntimeSceneViewer({
       const actorDead = isRuntimePlayerCombatActorDead(opponent, combatState.tick);
       const targetDead = isRuntimePlayerCombatActorDead(local, combatState.tick);
       const resetMovementStatus = movementGate(opponent.locks, combatState.tick);
-      // DMM restoration is handled by its full fight reset; keep the legacy NH template scoped to NH.
+      // DMM and Webweaver rematches are restored by applyRuntimeFullFightResetAfterRespawn.
+      // The legacy NH reset rebuilds armour/ammo from the kodai-robes template.
       const freshFightReset = runtimeSetupPresetIdRef.current === "nh-stake" && shouldRuntimePolicyResetForFreshFight({
         resetReposition: tracking.resetReposition,
         actorDead,
@@ -14666,11 +14835,16 @@ export function RuntimeSceneViewer({
                 runtimeSetupPresetIdRef.current,
                 runtimeDmmSetupOptionsRef.current
               )
-            )
+            ),
+            vengeanceRuneCastsRemaining:
+              runtimeSetupPresetIdRef.current === "webweaver" ? RUNTIME_WEBWEAVER_VENGEANCE_RUNE_CASTS : 0
           })
         : resetRuntimePlayerCombatActorPolicyDisengage(nextCombatState, "opponent");
       manualCombatStateRef.current = nextCombatState;
       if (freshFightReset) {
+        if (runtimeSetupPresetIdRef.current === "webweaver") {
+          manualOpponentRiskFightPolicyControllerRef.current.resetEpisode();
+        }
         const freshOpponent = nextCombatState.actors.opponent;
         const teleportedOpponent = teleportManualActorToTile(
           {
@@ -14704,12 +14878,31 @@ export function RuntimeSceneViewer({
     };
   };
 
+  const syncRuntimeRecoilBreakEquipment = (before: RuntimePlayerCombatState, after: RuntimePlayerCombatState): void => {
+    for (const actorId of ["local-player", "opponent"] as const) {
+      if (after.actors[actorId].recoilRingsRemaining >= before.actors[actorId].recoilRingsRemaining) continue;
+      const actor = after.actors[actorId];
+      const equipmentItems = runtimeItemIdsBySlotFromVisibleEquipment(actor.equipment);
+      const appearance = runtimeAppearanceFromEquipmentItems(equipmentItems, runtimeLoadoutAppearance(actor.loadoutId));
+      if (actorId === "local-player") {
+        equipmentOverrideRef.current = equipmentItems;
+        setEquipmentOverride(() => equipmentItems);
+        commitVisibleInventoryEquipmentSnapshotRef(null, equipmentItems, null);
+        manualActorRef.current = { ...manualActorRef.current, appearance };
+        pushRuntimeChatMessage("Your ring of recoil has shattered.");
+      } else {
+        manualOpponentRef.current = { ...manualOpponentRef.current, appearance };
+      }
+    }
+  };
+
   const queueManualOpponentCombatResponse = (
     combatState: RuntimePlayerCombatState,
     localActor: ManualActorState,
     opponentActor: ManualActorState,
     opponentSelfMovement: ManualPolicyActorMovementView = manualOpponentObservedSelfMovementRef.current,
-    acceptedClientCycle: number = nhAcceptedPlayerUpdateClientCycle(runtimeTickOriginMsRef.current, combatState.tick)
+    acceptedClientCycle: number = nhAcceptedPlayerUpdateClientCycle(runtimeTickOriginMsRef.current, combatState.tick),
+    deferRiskFightMovement = false
   ): ManualOpponentCombatResponse => {
     const delayedLocalAppearance = manualOpponentObservedLocalAppearanceRef.current;
     const currentLocalCombatActor = combatState.actors["local-player"];
@@ -14741,6 +14934,7 @@ export function RuntimeSceneViewer({
     const policyMovementCollision = collisionMapRef.current;
     const selectedBotDifficulty = botDifficultyRef.current;
     const dmmSetupSelected = runtimeSetupPresetIdRef.current === "dmm";
+    const riskFightSetupSelected = runtimeSetupPresetIdRef.current === "webweaver";
     const opponentPolicyInventorySlots = manualOpponentInventorySlotsRef.current;
     const opponentPolicyInventoryItems = visibleEquipmentItemsFromRuntimeInventory(
       opponentPolicyInventorySlots,
@@ -14750,16 +14944,23 @@ export function RuntimeSceneViewer({
     // current-vs-last server tile delta; only the opponent/local-player view is delayed.
     const observedOpponentSelfMovement = opponentSelfMovement;
     const selectedBotDifficultyLabel = selectedBotDifficulty === "test" ? "Test" : "Hard";
-    const selectedPolicyController =
-      dmmSetupSelected
+    const selectedPolicyController: NhPolicyRuntimeController | RiskFightPolicyController | null =
+      riskFightSetupSelected
+        ? manualOpponentRiskFightPolicyControllerRef.current
+        : dmmSetupSelected
         ? manualOpponentDmmHardPolicyControllerRef.current
         : manualOpponentPolicyControllerRef.current;
     if (!selectedPolicyController) {
       const missingPolicyMessage =
-        dmmSetupSelected
+        riskFightSetupSelected
+          ? "Riskfight CUDA candidate is unavailable. Stable fallback is disabled."
+          : dmmSetupSelected
           ? "DMM neural opponent is not loaded. Scripted fallback is disabled."
           : `${selectedBotDifficultyLabel} neural opponent is not loaded. Scripted fallback is disabled.`;
-      if (dmmSetupSelected) {
+      if (riskFightSetupSelected) {
+        // The candidate is embedded and validated synchronously. A missing
+        // controller is terminal for this opt-in setup; never substitute stable.
+      } else if (dmmSetupSelected) {
         onDmmHardPolicyNeeded?.();
       } else {
         onBotPolicyNeeded?.(selectedBotDifficulty);
@@ -14777,6 +14978,7 @@ export function RuntimeSceneViewer({
         policyContext: null,
         policyDirectGearActionScores: [],
         policyDecisionTrace: null,
+        riskFightDecision: null,
         policyObservedLocalInfoDelayTicks,
         policyObservedLocalTile: observedLocalAppearance.tile,
         policyActualLocalTile: localActor.tile,
@@ -14809,7 +15011,10 @@ export function RuntimeSceneViewer({
     }
     manualOpponentMissingPolicyWarningRef.current = null;
     const policyDecisionTraceEnabled = window.__NH_TRAINER_ENABLE_MANUAL_OPPONENT_POLICY_TRACE === true;
-    selectedPolicyController.setDecisionTraceEnabled(policyDecisionTraceEnabled);
+    const riskFightControllerSelected = isRiskFightPolicyController(selectedPolicyController);
+    if (!riskFightControllerSelected) {
+      selectedPolicyController.setDecisionTraceEnabled(policyDecisionTraceEnabled);
+    }
     const result = applyRuntimeOpponentPolicyAction({
       state: combatState,
       controller: selectedPolicyController,
@@ -14890,6 +15095,7 @@ export function RuntimeSceneViewer({
       rewardEpisodeId: manualOpponentPolicyEpisodeIdRef.current,
       rewardEpisodeActive: manualOpponentFightEngagedRef.current,
       rewardEpisodeStartTick: manualOpponentPolicyEpisodeStartTickRef.current,
+      deferRiskFightMovement,
       tileScale: NH_TILE_WORLD_UNITS
     });
     manualOpponentInventorySlotsRef.current = runtimePersistentOpponentInventorySlotsAfterPolicyResult(
@@ -14897,12 +15103,17 @@ export function RuntimeSceneViewer({
       combatState.actors.opponent,
       result
     );
-    const policyDirectGearActionScores = selectedPolicyController.getLastRankings().flatMap((ranking) => {
-      const action = ranking.decoded.directGearActions?.[0];
-      return action ? [{ action, score: ranking.score }] : [];
-    });
-    const policyDecisionTrace = policyDecisionTraceEnabled
+    const policyDirectGearActionScores = riskFightControllerSelected
+      ? []
+      : selectedPolicyController.getLastRankings().flatMap((ranking) => {
+          const action = ranking.decoded.directGearActions?.[0];
+          return action ? [{ action, score: ranking.score }] : [];
+        });
+    const policyDecisionTrace = !riskFightControllerSelected && policyDecisionTraceEnabled
       ? selectedPolicyController.getLastDecisionTrace()
+      : null;
+    const riskFightDecision = riskFightControllerSelected
+      ? selectedPolicyController.getLastDecision()
       : null;
     manualOpponentNextPolicyRepositionTickRef.current =
       result.nextRepositionTick ?? manualOpponentNextPolicyRepositionTickRef.current;
@@ -14936,6 +15147,7 @@ export function RuntimeSceneViewer({
 
     return {
       combatState: result.state,
+      pendingRiskFightMovementTile: result.pendingRiskFightMovementTile,
       opponentActor: nextOpponentActor,
       policyAction: result.action,
       policyEffectiveAction: result.effectiveAction,
@@ -14943,6 +15155,7 @@ export function RuntimeSceneViewer({
       policyContext: result.context,
       policyDirectGearActionScores,
       policyDecisionTrace,
+      riskFightDecision,
       policyObservedLocalInfoDelayTicks,
       policyObservedLocalTile: observedLocalAppearance.tile,
       policyActualLocalTile: localActor.tile,
@@ -16011,6 +16224,49 @@ export function RuntimeSceneViewer({
   const dispatchSpellDefaultAction = (command: NhSpellbookSpellCommand): void => {
     closeContextMenu();
     clearSelectedInventoryItem("spell-selection");
+    // Source: Lunar Vengeance is a self-cast spell - clicking it casts immediately
+    // from the rune pouch instead of arming a target selection like the ancients.
+    if (command.spell.id === "vengeance") {
+      const runes = runtimePouchRunesRef.current;
+      const runesAvailable =
+        runes.astral >= RUNTIME_WEBWEAVER_VENGEANCE_RUNE_COST.astral &&
+        runes.death >= RUNTIME_WEBWEAVER_VENGEANCE_RUNE_COST.death &&
+        runes.earth >= RUNTIME_WEBWEAVER_VENGEANCE_RUNE_COST.earth;
+      const scene = ensureManualRuntimeScene();
+      const cast = castRuntimePlayerCombatVengeanceSpell(scene.combatState, "local-player", {
+        runesAvailable,
+        consumeRuneCast: true,
+        clientCycle: Math.floor(performance.now() / NH_CLIENT_CYCLE_MS)
+      });
+      if (cast.reason === "magic-level") pushRuntimeChatMessage("You need Magic level of 94 or higher to cast this spell.");
+      if (cast.reason === "defence-level") pushRuntimeChatMessage("You need at least 40 Defence to cast Vengeance.");
+      if (cast.cast) {
+        runtimePouchRunesRef.current = {
+          astral: runes.astral - RUNTIME_WEBWEAVER_VENGEANCE_RUNE_COST.astral,
+          death: runes.death - RUNTIME_WEBWEAVER_VENGEANCE_RUNE_COST.death,
+          earth: runes.earth - RUNTIME_WEBWEAVER_VENGEANCE_RUNE_COST.earth
+        };
+      }
+      manualCombatStateRef.current = cast.state;
+      setManualCombatState(cast.state);
+      const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
+      if (viewport) {
+        viewport.dataset.lastVengeanceCastSource = "lunar-spellbook";
+        viewport.dataset.lastVengeanceCastOutcome = cast.cast ? "cast" : cast.reason ?? "blocked";
+        viewport.dataset.lastVengeanceCastTick = String(cast.state.tick);
+        viewport.dataset.lastPouchRunes = `${runtimePouchRunesRef.current.astral}/${runtimePouchRunesRef.current.death}/${runtimePouchRunesRef.current.earth}`;
+      }
+      window.dispatchEvent(
+        new CustomEvent("nh-runtime-vengeance-cast", {
+          detail: {
+            cast: cast.cast,
+            reason: cast.reason ?? null,
+            pouchRunes: { ...runtimePouchRunesRef.current }
+          }
+        })
+      );
+      return;
+    }
     const selected: NhSelectedSpell = {
       actionName: command.actionName,
       spellName: command.selectedSpellName,
@@ -16499,7 +16755,7 @@ export function RuntimeSceneViewer({
 
   const applyTemporarySavedSetupSnapshot = (
     snapshot: TemporarySavedSetupSnapshot,
-    source: "startup" | "button"
+    source: "startup" | "preset"
   ): void => {
     const equipmentItems = new Map(snapshot.equipment);
     const inventorySlots = normalizeNhInventorySlots(snapshot.inventory);
@@ -16509,7 +16765,7 @@ export function RuntimeSceneViewer({
       equipmentItems,
       inventoryItemDefinitionsRef.current
     );
-    const nextCombatState = syncRuntimePlayerCombatStateToInput(manualCombatStateRef.current, {
+    const syncedCombatState = syncRuntimePlayerCombatStateToInput(manualCombatStateRef.current, {
       tiles: {
         "local-player": localActor.tile,
         opponent: opponentActor.tile
@@ -16520,20 +16776,26 @@ export function RuntimeSceneViewer({
       equipment: {
         "local-player": visibleEquipment
       },
-      levels: {
-        "local-player": hudCombatLevelsRef.current
-      },
-      prayerPoints: {
-        "local-player": {
-          current: visibleSnapshotRef.current.hud.prayer,
-          fixed: visibleSnapshotRef.current.hud.prayerMax
-        }
-      },
-      prayers: {
-        "local-player": runtimePrayerIdsFromNhStates(hudPrayersRef.current)
+      gearProfiles: {
+        "local-player": inferNhSelectedGearProfile({
+          equipment: visibleEquipment,
+          inventoryItems: visibleEquipmentItemsFromRuntimeInventory(inventorySlots, inventoryItemDefinitionsRef.current)
+        })
       },
       clientCycle: Math.floor(performance.now() / NH_CLIENT_CYCLE_MS)
     });
+    const nextCombatState: RuntimePlayerCombatState = {
+      ...syncedCombatState,
+      actors: {
+        ...syncedCombatState.actors,
+        "local-player": {
+          ...syncedCombatState.actors["local-player"],
+          supplies: runtimeSuppliesFromInventorySlots(inventorySlots),
+          recoilRingsRemaining: runtimeRecoilRingsRemaining(inventorySlots, equipmentItems),
+          vengeanceTrinketCharges: runtimeVengeanceTrinketChargesFromInventorySlots(inventorySlots)
+        }
+      }
+    };
     const nextAppearance = runtimeAppearanceFromEquipmentItems(
       equipmentItems,
       runtimeLoadoutAppearance(snapshot.loadoutId)
@@ -16567,7 +16829,7 @@ export function RuntimeSceneViewer({
       setManualControl(true);
       setFollowTarget("local-player");
       setManualActor(nextActor);
-      setTemporarySetupStatus(source === "startup" ? "Loaded saved setup" : "Setup loaded");
+      setTemporarySetupStatus("Saved setup loaded");
     });
 
     const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
@@ -16576,15 +16838,23 @@ export function RuntimeSceneViewer({
       viewport.dataset.lastTemporarySetupLoadoutId = snapshot.loadoutId;
       viewport.dataset.lastTemporarySetupInventoryCount = String(inventorySlots.filter(Boolean).length);
       viewport.dataset.lastTemporarySetupEquipmentCount = String(equipmentItems.size);
+      viewport.dataset.lastRuntimeSetupInventoryItemIds = inventorySlots.flatMap((slot) => slot ? [slot.itemId] : []).join(",");
     }
   };
 
   const applyRuntimeSetupPreset = (
     setupId: RuntimeTrainerSetupId,
-    dmmOptions: RuntimeDmmSetupOptions = runtimeDmmSetupOptionsRef.current
+    dmmOptions: RuntimeDmmSetupOptions = runtimeDmmSetupOptionsRef.current,
+    restoreSavedSetup = true
   ): void => {
+    // An explicit selection wins over a late startup effect while assets are loading.
+    temporarySavedSetupLoadedRef.current = true;
+    const savedSetup = restoreSavedSetup ? readTemporarySavedSetupSnapshot(setupId) : null;
     const setupNeedsDmmHardPolicy = setupId === "dmm";
-    const setupPolicyAlreadyLoaded = setupNeedsDmmHardPolicy
+    const setupUsesRiskFightCandidate = setupId === "webweaver";
+    const setupPolicyAlreadyLoaded = setupUsesRiskFightCandidate
+      ? true
+      : setupNeedsDmmHardPolicy
       ? dmmHardPolicyLoadState === "loaded" && dmmHardPolicy !== null
       : botPolicyLoadState === "loaded" && policy !== null;
     if (setupNeedsDmmHardPolicy) {
@@ -16593,7 +16863,7 @@ export function RuntimeSceneViewer({
         onBotDifficultyChange?.("hard");
       }
       onDmmHardPolicyNeeded?.();
-    } else {
+    } else if (!setupUsesRiskFightCandidate) {
       onBotPolicyNeeded?.(botDifficulty);
     }
     closeContextMenu();
@@ -16601,7 +16871,6 @@ export function RuntimeSceneViewer({
     setPlaying(false);
     setFollowLive(false);
     const setup = runtimeSetupPreset(setupId);
-    setActiveSpellbookId(setup.spellbookId);
     const loadoutId = setup.loadoutId;
     const inventorySlots = runtimeSetupInventorySlots(setupId, dmmOptions);
     const equipmentItems = runtimeSetupEquipmentItems(setupId);
@@ -16616,16 +16885,23 @@ export function RuntimeSceneViewer({
     });
     const resetSupplies = runtimeSuppliesFromInventorySlots(inventorySlots);
     const resetVengeanceTrinketCharges = runtimeVengeanceTrinketChargesFromInventorySlots(inventorySlots);
+    const resetVengeanceRuneCasts = setupUsesRiskFightCandidate
+      ? RUNTIME_WEBWEAVER_VENGEANCE_RUNE_CASTS
+      : 0;
     const localActor = manualActorRef.current;
     const opponentActor = manualOpponentRef.current;
     const freshCombatState = createRuntimePlayerCombatState({
+      riskFight: setupUsesRiskFightCandidate,
+      localRecoilRingsRemaining: runtimeRecoilRingsRemaining(inventorySlots, equipmentItems),
+      opponentRecoilRingsRemaining: runtimeRecoilRingsRemaining(inventorySlots, equipmentItems),
       zurielsStaffCastCooldownTicks: setupId === "dmm" && zurielsStaffFiveTickRef.current ? 5 : 4,
       crossbowRapidCooldownTicks: setupId === "dmm" && crossbowFourTickRef.current ? 4 : 5,
       localTile: localActor.tile,
       opponentTile: opponentActor.tile,
       localLoadoutId: loadoutId,
       opponentLoadoutId: loadoutId,
-      localAttackSetIndex: visibleSnapshotRef.current.hud.attackSet ?? 0,
+      localAttackSetIndex: setupUsesRiskFightCandidate ? 1 : visibleSnapshotRef.current.hud.attackSet ?? 0,
+      opponentAttackSetIndex: setupUsesRiskFightCandidate ? 1 : 0,
       localLevels: runtimePlayerCombatDefaultLevels,
       opponentLevels: runtimePlayerCombatDefaultLevels,
       localFixedLevels: runtimePlayerCombatDefaultLevels,
@@ -16636,6 +16912,8 @@ export function RuntimeSceneViewer({
       opponentSupplies: resetSupplies,
       localVengeanceTrinketCharges: resetVengeanceTrinketCharges,
       opponentVengeanceTrinketCharges: resetVengeanceTrinketCharges,
+      localVengeanceRuneCasts: resetVengeanceRuneCasts,
+      opponentVengeanceRuneCasts: resetVengeanceRuneCasts,
       localSpecialEnergy: 100,
       opponentSpecialEnergy: 100,
       combatStartTick: NH_TRAINER_MANUAL_START_PENDING_TICK
@@ -16710,6 +16988,13 @@ export function RuntimeSceneViewer({
     manualOpponentInventorySlotsRef.current = inventorySlots;
     runtimeSetupPresetIdRef.current = setupId;
     setRuntimeSetupPresetId(setupId);
+    setActiveSpellbookId(setup.spellbookId);
+    if (setupId === "webweaver") {
+      // Source: the risk-fight build fights on the Lunar spellbook for Vengeance
+      // and carries its own runes in the pouch; replenish them when the setup applies.
+      runtimePouchRunesRef.current = { ...RUNTIME_WEBWEAVER_POUCH_RUNES };
+      manualOpponentRiskFightPolicyControllerRef.current.resetEpisode();
+    }
     groundItemsRef.current = [];
     pendingGroundItemPickupRef.current = null;
     equipmentOverrideRef.current = equipmentItems;
@@ -16739,7 +17024,7 @@ export function RuntimeSceneViewer({
       setGroundItems([]);
       setEquipmentOverride(() => equipmentItems);
       setHudOverride((current) => ({
-        ...(current?.attackSet === undefined ? {} : { attackSet: current.attackSet }),
+        ...(setupUsesRiskFightCandidate ? { attackSet: 1 } : current?.attackSet === undefined ? {} : { attackSet: current.attackSet }),
         ...(current?.autoRetaliate === undefined ? {} : { autoRetaliate: current.autoRetaliate }),
         ...(current?.soundEffectVolume === undefined ? {} : { soundEffectVolume: current.soundEffectVolume }),
         ...(current?.areaSoundEffectVolume === undefined ? {} : { areaSoundEffectVolume: current.areaSoundEffectVolume }),
@@ -16762,9 +17047,22 @@ export function RuntimeSceneViewer({
       viewport.dataset.lastTemporarySetupSource = setupId;
       viewport.dataset.lastTemporarySetupRequiresStart = "true";
       viewport.dataset.lastRuntimeSetupPreset = setupId;
+      viewport.dataset.activeSpellbookId = setup.spellbookId;
       viewport.dataset.lastTemporarySetupLoadoutId = loadoutId;
       viewport.dataset.lastTemporarySetupInventoryCount = String(inventorySlots.filter(Boolean).length);
       viewport.dataset.lastTemporarySetupEquipmentCount = String(equipmentItems.size);
+      viewport.dataset.riskFightCandidateSelected = String(setupUsesRiskFightCandidate);
+      viewport.dataset.riskFightRuntimeProfile = setupUsesRiskFightCandidate ? riskFightRuntimeProfile : "";
+      viewport.dataset.riskFightControllerId = setupUsesRiskFightCandidate ? riskFightCandidateControllerId : "";
+      viewport.dataset.riskFightCheckpointSha256 = setupUsesRiskFightCandidate
+        ? riskFightCandidateCheckpointSha256
+        : "";
+      viewport.dataset.riskFightParameterSha256 = setupUsesRiskFightCandidate
+        ? riskFightCandidateParameterSha256
+        : "";
+      viewport.dataset.riskFightSchemaSha256 = setupUsesRiskFightCandidate
+        ? riskFightCandidateSchemaSha256
+        : "";
       viewport.dataset.lastTemporarySetupDmmGraniteMaul = setupId === "dmm" ? String(dmmOptions.graniteMaul) : "";
       viewport.dataset.lastTemporarySetupDmmArmadylGodsword = setupId === "dmm" ? String(dmmOptions.armadylGodsword) : "";
       viewport.dataset.lastRuntimeSetupInventoryItemIds = inventorySlots
@@ -16785,6 +17083,11 @@ export function RuntimeSceneViewer({
       viewport.dataset.lastNhStakeOpponentEquipmentWeapon = String(
         nextCombatState.actors.opponent.equipment.weapon?.itemId ?? ""
       );
+    }
+    // The preset above owns the opponent and policy selection. Apply the saved
+    // inventory/equipment only to the local actor after that setup is ready.
+    if (savedSetup) {
+      applyTemporarySavedSetupSnapshot(savedSetup, "preset");
     }
   };
 
@@ -16888,6 +17191,7 @@ export function RuntimeSceneViewer({
       localPlayerEquipmentItemIdsBySlot(visibleSnapshotRef.current, inventoryEquipmentDefinitionsRef.current);
     const snapshot: TemporarySavedSetupSnapshot = {
       version: 1,
+      setupId: runtimeSetupPresetIdRef.current,
       savedAt: Date.now(),
       loadoutId: manualCombatStateRef.current.actors["local-player"].loadoutId,
       inventory: inventorySlots,
@@ -16908,24 +17212,39 @@ export function RuntimeSceneViewer({
       viewport.dataset.lastTemporarySetupLoadoutId = snapshot.loadoutId;
       viewport.dataset.lastTemporarySetupInventoryCount = String(inventorySlots.filter(Boolean).length);
       viewport.dataset.lastTemporarySetupEquipmentCount = String(equipmentItems.size);
-      viewport.dataset.temporarySetupStorageKey = NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY;
+      viewport.dataset.temporarySetupStorageKey = temporarySavedSetupStorageKey(runtimeSetupPresetIdRef.current);
     }
   };
 
+  const loadTemporarySavedKit = (): void => {
+    const setupId = runtimeSetupPresetIdRef.current;
+    if (!readTemporarySavedSetupSnapshot(setupId)) {
+      setTemporarySetupStatus("No saved setup for this fight type");
+      return;
+    }
+    applyRuntimeSetupPreset(setupId);
+  };
+
   const resetTemporarySetupToDefault = (): void => {
-    const cleared = clearTemporarySavedSetupSnapshot();
-    applyRuntimeSetupPreset("nh-stake");
+    const setupId = runtimeSetupPresetIdRef.current;
+    const cleared = clearTemporarySavedSetupSnapshot(setupId);
+    if (setupId === "dmm") {
+      runtimeDmmSetupOptionsRef.current = RUNTIME_DMM_DEFAULT_SETUP_OPTIONS;
+      setRuntimeDmmSetupOptions(RUNTIME_DMM_DEFAULT_SETUP_OPTIONS);
+    }
+    applyRuntimeSetupPreset(setupId, runtimeDmmSetupOptionsRef.current, false);
     setTemporarySetupStatus(cleared ? "Default setup restored" : "Default setup restored; storage unchanged");
     const viewport = (canvasRef.current?.closest(".runtimeViewport") ?? document.querySelector(".runtimeViewport")) as HTMLElement | null;
     if (viewport) {
       viewport.dataset.lastTemporarySetupResetDefault = "true";
       viewport.dataset.lastTemporarySetupResetClearedStorage = String(cleared);
-      viewport.dataset.lastTemporarySetupResetStorageKey = NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY;
+      viewport.dataset.lastTemporarySetupResetStorageKey = temporarySavedSetupStorageKey(setupId);
     }
   };
 
   const startManualFightCountdown = (): void => {
     const dmmHardPolicyRequired = runtimeSetupPresetIdRef.current === "dmm";
+    const riskFightCandidateRequired = runtimeSetupPresetIdRef.current === "webweaver";
     if (dmmHardPolicyRequired) {
       if (dmmHardPolicyLoadState !== "loaded" || dmmHardPolicy === null) {
         onDmmHardPolicyNeeded?.();
@@ -16937,7 +17256,7 @@ export function RuntimeSceneViewer({
         pushRuntimeChatMessage(message);
         return;
       }
-    } else if (botPolicyLoadState !== "loaded" || policy === null) {
+    } else if (!riskFightCandidateRequired && (botPolicyLoadState !== "loaded" || policy === null)) {
       onBotPolicyNeeded?.(botDifficulty);
       const message =
         botPolicyLoadState === "error"
@@ -17187,6 +17506,14 @@ export function RuntimeSceneViewer({
 
   const dispatchPrayerAction = (command: NhPrayerSlotCommand): void => {
     closeContextMenu();
+    if (runtimeSetupPresetIdRef.current === "webweaver" && (
+      command.definition.id === "protect-from-magic" ||
+      command.definition.id === "protect-from-missiles" ||
+      command.definition.id === "protect-from-melee"
+    )) {
+      pushRuntimeChatMessage("Protection prayers are disabled in Webweaver risk fights.");
+      return;
+    }
     clearSelectedInventoryItem("prayer-action");
     clearSelectedSpell("prayer-action");
     setPlaying(false);
@@ -18123,10 +18450,8 @@ export function RuntimeSceneViewer({
           };
         const actionDurationTicks = 3;
         const nextLocalActor: RuntimePlayerCombatActorState = {
-          ...localActor,
+          ...resetRuntimePlayerCombatActorTarget(state, "local-player").actors["local-player"],
           tile: localActor.tile,
-          targetId: null,
-          queuedSpellId: null,
           hitpoints: result.stats.hitpoints.current,
           maxHitpoints: result.stats.hitpoints.fixed,
           prayerPoints: result.stats.prayer.current,
@@ -19233,6 +19558,90 @@ export function RuntimeSceneViewer({
     }
   };
 
+  const dispatchRuntimeSceneLeftButtonPress = (event: PointerEvent | MouseEvent): void => {
+    closeContextMenu();
+    updateRuneliteMouseHighlightTooltip(null);
+
+    const boundary = boundaryRef.current;
+    if (!boundary) {
+      return;
+    }
+
+    const interactionSnapshot = runtimeInteractionSnapshotRef.current;
+    const actorHits = pointerEventToRuntimeActorHits(boundary, interactionSnapshot, event);
+    const hitActor = actorHits[0]?.actor ?? null;
+    const sourcePoint = pointerEventToSourceViewportPoint(boundary, event);
+    const viewport = canvasRef.current?.closest(".runtimeViewport") as HTMLElement | null;
+    if (viewport) {
+      viewport.dataset.lastPointerSourceX = sourcePoint ? String(sourcePoint.x) : "";
+      viewport.dataset.lastPointerSourceY = sourcePoint ? String(sourcePoint.y) : "";
+      viewport.dataset.lastPointerActorHits = actorHits.map((hit) => hit.actor.actorId).join(",");
+    }
+    const clickedTile = pointerEventToRuntimeTile(boundary, event);
+    const targetGroundItem = hitActor?.actorId === "opponent"
+      ? null
+      : pointerEventToRuntimeGroundItem(boundary, event, groundItemsRef.current);
+    const targetActor = targetGroundItem ? null : hitActor?.actorId === "local-player" ? null : hitActor;
+    const targetObject = targetActor || targetGroundItem
+      ? null
+      : pointerEventToRuntimeSceneObject(
+        boundary,
+        event,
+        sceneObjectPlacements,
+        collisionMap,
+        playerModelSources?.cacheModels ?? null
+      );
+    const targetTile = targetGroundItem?.item.tile ?? targetObject?.walkTile ?? clickedTile ?? targetActor?.tile;
+    if (!targetTile) {
+      clearSelectedTargetMode("scene-empty-left-click");
+      return;
+    }
+
+    const clickCrossPosition =
+      pointerEventToSourceFixedClientPosition(boundary, event) ??
+      pointerEventToViewportPosition(boundary, event);
+    const defaultEntry = selectNhDefaultMenuEntry(
+      targetActor
+        ? actorContextEntries(targetActor, targetTile)
+        : targetGroundItem
+          ? groundItemContextEntries(targetGroundItem.item.tile)
+        : targetObject
+          ? sceneObjectContextEntries(targetObject)
+          : sceneContextEntries(targetTile)
+    );
+    if (!defaultEntry) {
+      clearSelectedTargetMode("scene-selected-target-cancel");
+      return;
+    }
+    if (isNhSceneObjectContextMenuEntry(defaultEntry)) {
+      recordSceneObjectCommand(defaultEntry);
+    }
+    if (isNhPlayerContextMenuEntry(defaultEntry)) {
+      dispatchPlayerContextEntry(defaultEntry, clickCrossPosition);
+      return;
+    }
+    if (isNhGroundItemContextMenuEntry(defaultEntry)) {
+      dispatchGroundItemContextEntry(defaultEntry, clickCrossPosition, "default");
+      return;
+    }
+    if (isNhOpponentInventoryInspectContextMenuEntry(defaultEntry)) {
+      setOpponentInventoryInspectOpen(true);
+      return;
+    }
+    if (!("targetTile" in defaultEntry)) {
+      clearSelectedTargetMode("scene-selected-target-cancel");
+      return;
+    }
+
+    issueTileCommand(
+      defaultEntry.targetTile,
+      clickCrossPosition,
+      defaultEntry.action === "walk" ? "yellow" : "red",
+      isNhSceneObjectContextMenuEntry(defaultEntry) ? "scene-object" : "scene-tile",
+      isNhSceneObjectContextMenuEntry(defaultEntry) ? defaultEntry.objectPlacement : undefined
+    );
+  };
+
   const beginClientMouseCameraDrag = (event: ReactPointerEvent<HTMLElement>): void => {
     if (event.button !== 1) {
       return;
@@ -19406,7 +19815,7 @@ export function RuntimeSceneViewer({
       return;
     }
     temporarySavedSetupLoadedRef.current = true;
-    const snapshot = readTemporarySavedSetupSnapshot();
+    const snapshot = readTemporarySavedSetupSnapshot(runtimeSetupPresetIdRef.current);
     if (snapshot) {
       applyTemporarySavedSetupSnapshot(snapshot, "startup");
     }
@@ -19414,14 +19823,21 @@ export function RuntimeSceneViewer({
 
   const fightCountdownLabel = manualFightStartPending ? null : runtimePlayerCombatFightCountdownLabel(manualCombatState);
   const selectedSetupUsesDmmHardPolicy = runtimeSetupPresetId === "dmm";
-  const selectedBotPolicyLoadState = selectedSetupUsesDmmHardPolicy
+  const selectedSetupUsesRiskFightCandidate = runtimeSetupPresetId === "webweaver";
+  const selectedBotPolicyLoadState = selectedSetupUsesRiskFightCandidate
+    ? "loaded"
+    : selectedSetupUsesDmmHardPolicy
     ? dmmHardPolicyLoadState
     : botPolicyLoadState;
-  const selectedBotPolicyReady = selectedSetupUsesDmmHardPolicy
+  const selectedBotPolicyReady = selectedSetupUsesRiskFightCandidate
+    ? true
+    : selectedSetupUsesDmmHardPolicy
     ? dmmHardPolicyLoadState === "loaded" && dmmHardPolicy !== null
     : botPolicyLoadState === "loaded" && policy !== null;
   const selectedBotPolicyStatusLabel =
-    selectedSetupUsesDmmHardPolicy
+    selectedSetupUsesRiskFightCandidate
+      ? riskFightCandidateLabel
+      : selectedSetupUsesDmmHardPolicy
       ? dmmHardPolicyLoadState === "loaded" && dmmHardPolicy !== null
         ? "DMM"
         : dmmHardPolicyLoadState === "error"
@@ -19438,6 +19854,10 @@ export function RuntimeSceneViewer({
         : botDifficulty === "hard"
           ? "Hard"
           : "Test";
+  const latestRiskFightDecision = manualOpponentRiskFightPolicyController.getLastDecision();
+  const latestRiskFightThreeHeadAction = latestRiskFightDecision
+    ? `${latestRiskFightDecision.mainAction},${latestRiskFightDecision.prayerAction},${latestRiskFightDecision.movementAction}`
+    : "awaiting first decision";
   const botWatchDevPanelEnabled = runtimeBotWatchEnabled();
   const botWatchStatsLabel = runtimeBotWatchStatsSummary(botWatchStats);
   const runtimePidProcessOrder = runtimePlayerCombatProcessOrderForTick(manualCombatState, manualCombatState.tick);
@@ -19473,6 +19893,15 @@ export function RuntimeSceneViewer({
           >
           <div
             className="runtimeViewport"
+            data-risk-fight-candidate-selected={String(selectedSetupUsesRiskFightCandidate)}
+            data-risk-fight-runtime-profile={selectedSetupUsesRiskFightCandidate ? riskFightRuntimeProfile : ""}
+            data-risk-fight-controller-id={selectedSetupUsesRiskFightCandidate ? riskFightCandidateControllerId : ""}
+            data-risk-fight-checkpoint-sha256={selectedSetupUsesRiskFightCandidate ? riskFightCandidateCheckpointSha256 : ""}
+            data-risk-fight-parameter-sha256={selectedSetupUsesRiskFightCandidate ? riskFightCandidateParameterSha256 : ""}
+            data-risk-fight-schema-sha256={selectedSetupUsesRiskFightCandidate ? riskFightCandidateSchemaSha256 : ""}
+            data-risk-fight-latest-three-head-action={
+              selectedSetupUsesRiskFightCandidate ? latestRiskFightThreeHeadAction : ""
+            }
             onAuxClickCapture={(event) => {
               if (event.button === 1) {
                 event.preventDefault();
@@ -19495,10 +19924,11 @@ export function RuntimeSceneViewer({
                 return;
               }
 
-              // Pointer Events emits pointerdown only for the first pressed
-              // button. Re-emit a left pointerdown at the real client target so
-              // terrain, inventory, prayers, tabs, and menu options still work
-              // while the right button remains held.
+              // A second physical mouse button does not receive pointerdown in
+              // the Pointer Events model. Re-emit that left press at the real
+              // client target so every existing pointerdown action (terrain,
+              // inventory, prayers, tabs, or a menu option) remains usable while
+              // the right button is still held.
               leftButtonPressHandledRef.current = true;
               event.preventDefault();
               event.stopPropagation();
@@ -19523,9 +19953,6 @@ export function RuntimeSceneViewer({
             }}
             onPointerCancelCapture={endClientMouseCameraDrag}
             onPointerDownCapture={(event) => {
-              if (event.button === 0) {
-                leftButtonPressHandledRef.current = true;
-              }
               if (event.button === 2) {
                 // Covers HUD widget presses as well as the scene canvas, so the
                 // fallback contextmenu stays suppressed for the whole press.
@@ -19625,103 +20052,39 @@ export function RuntimeSceneViewer({
               }
 
               if (event.button === 2) {
-                // Canceling the initial pointerdown suppresses compatibility
-                // mouse events for the entire held-button sequence, including a
-                // later left mousedown. The contextmenu event is canceled below.
+                // Do not cancel the initial pointerdown. Browsers suppress the
+                // compatibility mouse events for the rest of that held-button
+                // sequence when pointerdown is canceled, which would remove the
+                // mousedown for a left press made while right is still held.
+                // The later contextmenu event is canceled separately below.
                 event.stopPropagation();
                 handleRuntimeSceneRightButtonPress(event.nativeEvent);
                 return;
               }
 
-              closeContextMenu();
-              updateRuneliteMouseHighlightTooltip(null);
               if (event.button !== 0) {
                 return;
               }
-
-              const boundary = boundaryRef.current;
-              if (!boundary) {
-                return;
-              }
-
-              const interactionSnapshot = runtimeInteractionSnapshotRef.current;
-              const actorHits = pointerEventToRuntimeActorHits(boundary, interactionSnapshot, event.nativeEvent);
-              const hitActor = actorHits[0]?.actor ?? null;
-              const sourcePoint = pointerEventToSourceViewportPoint(boundary, event.nativeEvent);
-              const viewport = event.currentTarget.closest(".runtimeViewport") as HTMLElement | null;
-              if (viewport) {
-                viewport.dataset.lastPointerSourceX = sourcePoint ? String(sourcePoint.x) : "";
-                viewport.dataset.lastPointerSourceY = sourcePoint ? String(sourcePoint.y) : "";
-                viewport.dataset.lastPointerActorHits = actorHits.map((hit) => hit.actor.actorId).join(",");
-              }
-              const clickedTile = pointerEventToRuntimeTile(boundary, event.nativeEvent);
-              const targetGroundItem = hitActor?.actorId === "opponent"
-                ? null
-                : pointerEventToRuntimeGroundItem(boundary, event.nativeEvent, groundItemsRef.current);
-              const targetActor = targetGroundItem ? null : hitActor?.actorId === "local-player" ? null : hitActor;
-              const targetObject = targetActor || targetGroundItem
-                ? null
-                : pointerEventToRuntimeSceneObject(
-                  boundary,
-                  event.nativeEvent,
-                  sceneObjectPlacements,
-                  collisionMap,
-                  playerModelSources?.cacheModels ?? null
-                );
-              const targetTile = targetGroundItem?.item.tile ?? targetObject?.walkTile ?? clickedTile ?? targetActor?.tile;
-              if (!targetTile) {
-                clearSelectedTargetMode("scene-empty-left-click");
-                return;
-              }
-
-              const clickCrossPosition =
-                pointerEventToSourceFixedClientPosition(boundary, event.nativeEvent) ??
-                pointerEventToViewportPosition(boundary, event.nativeEvent);
-              const defaultEntry = selectNhDefaultMenuEntry(
-                targetActor
-                  ? actorContextEntries(targetActor, targetTile)
-                  : targetGroundItem
-                    ? groundItemContextEntries(targetGroundItem.item.tile)
-                  : targetObject
-                    ? sceneObjectContextEntries(targetObject)
-                    : sceneContextEntries(targetTile)
-              );
-              if (!defaultEntry) {
-                clearSelectedTargetMode("scene-selected-target-cancel");
-                return;
-              }
-              if (isNhSceneObjectContextMenuEntry(defaultEntry)) {
-                recordSceneObjectCommand(defaultEntry);
-              }
-              if (isNhPlayerContextMenuEntry(defaultEntry)) {
-                dispatchPlayerContextEntry(defaultEntry, clickCrossPosition);
-                return;
-              }
-              if (isNhGroundItemContextMenuEntry(defaultEntry)) {
-                dispatchGroundItemContextEntry(defaultEntry, clickCrossPosition, "default");
-                return;
-              }
-              if (isNhOpponentInventoryInspectContextMenuEntry(defaultEntry)) {
-                setOpponentInventoryInspectOpen(true);
-                return;
-              }
-              if (!("targetTile" in defaultEntry)) {
-                clearSelectedTargetMode("scene-selected-target-cancel");
-                return;
-              }
-
-              issueTileCommand(
-                defaultEntry.targetTile,
-                clickCrossPosition,
-                defaultEntry.action === "walk" ? "yellow" : "red",
-                isNhSceneObjectContextMenuEntry(defaultEntry) ? "scene-object" : "scene-tile",
-                isNhSceneObjectContextMenuEntry(defaultEntry) ? defaultEntry.objectPlacement : undefined
-              );
+              leftButtonPressHandledRef.current = true;
+              dispatchRuntimeSceneLeftButtonPress(event.nativeEvent);
             }}
             onMouseDown={(event) => {
+              if (event.button === 0 && (event.buttons & 2) !== 0) {
+                // Pointer Events emits pointerdown only when the pointer changes
+                // from no buttons to at least one button. If right is already
+                // held, the later left press can arrive as mousedown only.
+                if (leftButtonPressHandledRef.current) {
+                  return;
+                }
+                leftButtonPressHandledRef.current = true;
+                event.preventDefault();
+                event.stopPropagation();
+                dispatchRuntimeSceneLeftButtonPress(event.nativeEvent);
+                return;
+              }
               // Compatibility path for input devices that report the secondary
-              // button through mouse events only. A handled pointerdown cancels
-              // its own mousedown, so this never double-opens a normal press.
+              // button through mouse events only. The shared press guard keeps a
+              // normal pointerdown + mousedown delivery from opening twice.
               if (event.button !== 2) {
                 return;
               }
@@ -20134,6 +20497,13 @@ export function RuntimeSceneViewer({
                       onClick={() => applyRuntimeSetupPreset("dmm")}
                     >
                       DMM
+                    </button>
+                    <button
+                      type="button"
+                      data-runtime-setup-option="webweaver"
+                      onClick={() => applyRuntimeSetupPreset("webweaver")}
+                    >
+                      {riskFightCandidateLabel}
                     </button>
                   </div>
                   <div className="runtimeSetupSelectorHint" role="tooltip">
@@ -20679,7 +21049,7 @@ export function RuntimeSceneViewer({
               data-source-background={RUNELITE_BOOSTS_BACKGROUND_RGBA}
               data-boosts-mode={runeliteBoostsOverlay.mode}
               data-boosts-row-count={runeliteBoostsOverlay.rows.length}
-              style={runeliteBoostsOverlayStyle(runeliteBoostsOverlay, fixedClientCssLayout, runeliteOverlayLocations)}
+              style={runeliteBoostsOverlayStyle(runeliteBoostsOverlay, fixedClientCssLayout, runeliteOverlayLocations, runeliteOpponentInfoStackHeight)}
             >
               {runeliteBoostsOverlay.rows.map((row) => (
                 <div
@@ -20731,7 +21101,8 @@ export function RuntimeSceneViewer({
               style={runeliteFreezeTimerInfoBoxOverlayStyle(
                 runeliteFreezeTimerInfoBoxOverlay,
                 fixedClientCssLayout,
-                runeliteOverlayLocations
+                runeliteOverlayLocations,
+                runeliteOpponentInfoStackHeight
               )}
             >
               <div
@@ -20774,7 +21145,7 @@ export function RuntimeSceneViewer({
               data-infobox-wrap={runeliteBoostsInfoBoxOverlay.wrap}
               data-infobox-size={runeliteBoostsInfoBoxOverlay.size}
               data-infobox-count={runeliteBoostsInfoBoxOverlay.boxes.length}
-              style={runeliteBoostsInfoBoxOverlayStyle(runeliteBoostsInfoBoxOverlay, fixedClientCssLayout, runeliteOverlayLocations)}
+              style={runeliteBoostsInfoBoxOverlayStyle(runeliteBoostsInfoBoxOverlay, fixedClientCssLayout, runeliteOverlayLocations, runeliteOpponentInfoStackHeight)}
             >
               {runeliteBoostsInfoBoxOverlay.boxes.map((box) => (
                 <div
@@ -21158,6 +21529,9 @@ export function RuntimeSceneViewer({
               <button type="button" onClick={saveTemporaryCurrentSetup}>
                 Save setup
               </button>
+              <button type="button" onClick={loadTemporarySavedKit}>
+                Load kit
+              </button>
               <button type="button" onClick={resetTemporarySetupToDefault}>
                 Reset default
               </button>
@@ -21200,7 +21574,7 @@ export function RuntimeSceneViewer({
                 </details>
               ) : null}
               {temporarySetupStatus ? (
-              <span className="runtimeTemporaryDevStatus">{temporarySetupStatus}</span>
+                <span className="runtimeTemporaryDevStatus" title={temporarySetupStatus}>{temporarySetupStatus}</span>
               ) : null}
             </div>
           </div>

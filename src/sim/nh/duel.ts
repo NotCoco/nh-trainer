@@ -292,10 +292,14 @@ const supplyItemIds = {
   shark: 385,
   anglerfish: 13441,
   karambwan: 3144,
+  summer_pie: 7218,
+  halibut: 32336,
+  marlin: 32352,
   saradomin_brew: 6685,
   super_restore: 3024,
   sanfew_serum: 10925,
   super_combat: 12695,
+  super_ranging: 11722,
   ranging_potion: 2444,
   bastion: 22461
 } as const satisfies Readonly<Record<ConsumableId, number>>;
@@ -642,10 +646,14 @@ function createSuppliesFromInventory(inventorySlots: NhInventory): Readonly<Reco
     shark: 0,
     anglerfish: 0,
     karambwan: 0,
+    summer_pie: 0,
+    halibut: 0,
+    marlin: 0,
     saradomin_brew: 0,
     super_restore: 0,
     sanfew_serum: 0,
     super_combat: 0,
+    super_ranging: 0,
     ranging_potion: 0,
     bastion: 0
   };

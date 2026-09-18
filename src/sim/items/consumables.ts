@@ -1,5 +1,6 @@
 import {
   applyFoodAttackDelay,
+  applyHalibutAttackDelay,
   applyKarambwanAttackDelay,
   type AttackTimerState
 } from "../combat/timers";
@@ -24,20 +25,24 @@ export type ConsumableId =
   | "shark"
   | "anglerfish"
   | "karambwan"
+  | "summer_pie"
+  | "halibut"
+  | "marlin"
   | "saradomin_brew"
   | "super_restore"
   | "sanfew_serum"
   | "super_combat"
+  | "super_ranging"
   | "ranging_potion"
   | "bastion";
 
 export interface ConsumableDefinition {
   readonly id: ConsumableId;
   readonly label: string;
-  readonly kind: "food" | "karambwan" | "potion" | "brew" | "restore" | "reboost";
+  readonly kind: "food" | "karambwan" | "fast_food" | "combo_food" | "potion" | "brew" | "restore" | "reboost";
   readonly itemIds: readonly number[];
   readonly delayTicks: number;
-  readonly attackDelay: "food" | "karambwan" | "none";
+  readonly attackDelay: "food" | "karambwan" | "halibut" | "none";
 }
 
 export interface ConsumeInput {
@@ -92,6 +97,35 @@ export const consumableDefinitions: Readonly<Record<ConsumableId, ConsumableDefi
     delayTicks: 3,
     attackDelay: "karambwan"
   },
+  // Source: Summer pie is 1-tick fast food (both halves eatable in successive
+  // ticks) but each half adds the standard 3-tick attack delay. 11 HP per bite.
+  summer_pie: {
+    id: "summer_pie",
+    label: "Summer pie",
+    kind: "fast_food",
+    itemIds: [7218, 7220],
+    delayTicks: 1,
+    attackDelay: "food"
+  },
+  // Source: Halibut is a combo fast food: eaten after other food on the same
+  // tick (never first, never two halibut in a row), 2-tick attack delay, 3-tick
+  // eat delay, heals 20. Marlins heal 24 with standard food delays.
+  halibut: {
+    id: "halibut",
+    label: "Halibut",
+    kind: "combo_food",
+    itemIds: [32336],
+    delayTicks: 3,
+    attackDelay: "halibut"
+  },
+  marlin: {
+    id: "marlin",
+    label: "Marlin",
+    kind: "food",
+    itemIds: [32352],
+    delayTicks: 3,
+    attackDelay: "food"
+  },
   saradomin_brew: {
     id: "saradomin_brew",
     label: "Saradomin brew",
@@ -124,6 +158,15 @@ export const consumableDefinitions: Readonly<Record<ConsumableId, ConsumableDefi
     delayTicks: 3,
     attackDelay: "none"
   },
+  // Source: Super ranging boosts Ranged by +15% + 5 of the base level, 4-dose chain.
+  super_ranging: {
+    id: "super_ranging",
+    label: "Super ranging",
+    kind: "reboost",
+    itemIds: [11722, 11723, 11724, 11725],
+    delayTicks: 3,
+    attackDelay: "none"
+  },
   ranging_potion: {
     id: "ranging_potion",
     label: "Ranging potion",
@@ -148,6 +191,9 @@ export function consumableDoseCountForItemId(itemId: number): number {
     if (index < 0) {
       continue;
     }
+    if (definition.id === "summer_pie") {
+      return itemId === 7218 ? 2 : 1;
+    }
     if (!isDoseBasedConsumable(definition)) {
       return 1;
     }
@@ -163,6 +209,9 @@ export function consumableUseCountForItemId(itemId: number, quantity = 1): numbe
 
 export function consumableItemIdForDoseCount(item: ConsumableId, doseCount: number, preferredItemId?: number): number {
   const definition = consumableDefinitions[item];
+  if (item === "summer_pie") {
+    return doseCount <= 1 ? 7220 : 7218;
+  }
   if (!isDoseBasedConsumable(definition)) {
     return definition.itemIds[0] ?? preferredItemId ?? 0;
   }
@@ -193,7 +242,12 @@ export function canConsume(input: Pick<ConsumeInput, "currentTick" | "delays" | 
   | { readonly ok: true }
   | { readonly ok: false; readonly reason: ConsumeResult["reason"] } {
   const definition = consumableDefinitions[input.item];
-  const foodLike = definition.kind === "food" || definition.kind === "karambwan" || definition.kind === "brew";
+  const foodLike =
+    definition.kind === "food" ||
+    definition.kind === "karambwan" ||
+    definition.kind === "fast_food" ||
+    definition.kind === "combo_food" ||
+    definition.kind === "brew";
   const drinkLike = definition.kind === "potion" || definition.kind === "brew" || definition.kind === "restore" || definition.kind === "reboost";
 
   if (foodLike && input.noFoodRule) {
@@ -203,13 +257,13 @@ export function canConsume(input: Pick<ConsumeInput, "currentTick" | "delays" | 
     return { ok: false, reason: "no-drinks" };
   }
 
-  if (definition.kind === "karambwan") {
+  if (definition.kind === "karambwan" || definition.kind === "combo_food") {
     return isNhTickDelayActive(input.delays.karambwanDelayUntilTick, input.currentTick)
       ? { ok: false, reason: "karambwan-delay" }
       : { ok: true };
   }
 
-  if (definition.kind === "food") {
+  if (definition.kind === "food" || definition.kind === "fast_food") {
     if (isNhTickDelayActive(input.delays.eatDelayUntilTick, input.currentTick)) {
       return { ok: false, reason: "eat-delay" };
     }
@@ -259,6 +313,28 @@ export function applyConsumable(input: ConsumeInput): ConsumeResult {
       eatDelayUntilTick: input.currentTick + definition.delayTicks
     };
     attackTimer = applyFoodAttackDelay(attackTimer);
+  } else if (definition.kind === "fast_food") {
+    // Source: Summer pie halves are 1-tick fast food; each half still adds the
+    // standard 3-tick attack delay to an in-progress weapon delay.
+    const result = heal(stats, 11, "hitpoints");
+    stats = result.stats;
+    healed = result.healed;
+    delays = {
+      ...delays,
+      eatDelayUntilTick: input.currentTick + definition.delayTicks
+    };
+    attackTimer = applyFoodAttackDelay(attackTimer);
+  } else if (definition.kind === "combo_food") {
+    // Source: Halibut can be consumed on the same tick after other food/brew and
+    // costs 2 ticks of attack delay with the standard 3-tick eat delay.
+    const result = heal(stats, 20, "hitpoints");
+    stats = result.stats;
+    healed = result.healed;
+    delays = {
+      ...delays,
+      karambwanDelayUntilTick: input.currentTick + definition.delayTicks
+    };
+    attackTimer = applyHalibutAttackDelay(attackTimer);
   } else if (definition.kind === "karambwan") {
     const result = heal(stats, 18, "hitpoints");
     stats = result.stats;
@@ -297,6 +373,9 @@ export function applyFood(item: ConsumableId, stats: SimStats): { readonly stats
   if (item === "shark") {
     return heal(stats, 20, "hitpoints");
   }
+  if (item === "marlin") {
+    return heal(stats, 24, "hitpoints");
+  }
   if (item === "anglerfish") {
     const hitpoints = stats.hitpoints;
     const c = hitpoints.fixed <= 24 ? 2 : hitpoints.fixed <= 49 ? 4 : hitpoints.fixed <= 74 ? 6 : hitpoints.fixed <= 92 ? 8 : 13;
@@ -329,6 +408,13 @@ export function applyPotionEffect(item: ConsumableId, stats: SimStats): { readon
   if (item === "super_combat") {
     return {
       stats: boostStat(boostStat(boostStat(stats, "attack", 5, 0.15), "strength", 5, 0.15), "defence", 5, 0.15),
+      healed: 0
+    };
+  }
+
+  if (item === "super_ranging") {
+    return {
+      stats: boostStat(stats, "ranged", 5, 0.15),
       healed: 0
     };
   }

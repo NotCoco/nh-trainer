@@ -2,6 +2,11 @@
 
 Generate NH training data without starting the server.
 
+Risk fighting has a separate, local-only browser-engine training route:
+[`train_riskfight_browser_cuda.py`](train_riskfight_browser_cuda.py). It uses
+the shared TypeScript game rules and its own 53-feature schema; see the
+[current risk-fight audit and results](docs/RISKFIGHT-BROWSER-AUDIT-20260917.md).
+
 > This folder is the GPU fight engine for the NH Trainer project. It lives inside
 > the `nh-trainer` repo under `fastsim/`. It was developed against the Kronos
 > server/trainer layout (`fastsim/paths.py` points at the original working tree),
@@ -86,6 +91,21 @@ They are not representative of the current generator.
 ---
 
 ## Using it
+
+### Isolated Webweaver risk-fight candidate
+
+The Webweaver CUDA experiment is intentionally separate from the retained DMM
+schema and is not loadable by the live browser.  Its mechanics, reward proof,
+held-out results, CUDA evidence and remaining profile blockers are documented
+in [`docs/RISKFIGHT-CANDIDATE.md`](docs/RISKFIGHT-CANDIDATE.md).
+
+```bash
+python tests/test_riskfight.py -v
+python train_riskfight_cuda.py --device cuda:0
+```
+
+The trainer writes only a non-promoted candidate under ignored `out/` and
+fails instead of falling back to CPU.
 
 The seeded strict replay gate now passes for the retained 80-tick Teacher79
 trace. Generate a self-play dataset with a checkpoint, written straight into

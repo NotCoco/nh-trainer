@@ -2,7 +2,8 @@ export const nhMagicSpellLevelRequirementById = {
   "blood-blitz": 80,
   "ice-blitz": 82,
   "blood-barrage": 92,
-  "ice-barrage": 94
+  "ice-barrage": 94,
+  "vengeance": 94
 } as const satisfies Readonly<Record<string, number>>;
 
 export type NhLevelGatedMagicSpellId = keyof typeof nhMagicSpellLevelRequirementById;

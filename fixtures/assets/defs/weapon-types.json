@@ -441,5 +441,77 @@
       824
     ],
     "source": "kronos-server:data/items/weapon_types.json:VESTA_LONGSWORD"
+  },
+  "WEBWEAVER_BOW": {
+    "config": 3,
+    "maxDistance": 9,
+    "attackTicks": 4,
+    "attackAnimation": 426,
+    "defendAnimation": 424,
+    "equipSound": 2244,
+    "attackSound": 2693,
+    "attackSets": [
+      {
+        "child": 3,
+        "type": "ACCURATE",
+        "style": "RANGED"
+      },
+      {
+        "child": 7,
+        "type": "RAPID_RANGED",
+        "style": "RANGED"
+      },
+      {
+        "child": 15,
+        "type": "LONG_RANGED",
+        "style": "RANGED"
+      }
+    ],
+    "renderAnimations": [
+      808,
+      823,
+      819,
+      820,
+      821,
+      822,
+      824
+    ],
+    "source": "kronos-server:data/items/weapon_types.json:WEBWEAVER_BOW (4 ticks, 3 on rapid)"
+  },
+  "ELDER_MAUL": {
+    "config": 2,
+    "maxDistance": 1,
+    "attackTicks": 6,
+    "attackAnimation": 7516,
+    "defendAnimation": 7517,
+    "equipSound": 2244,
+    "attackSound": 3846,
+    "attackSets": [
+      {
+        "child": 3,
+        "type": "ACCURATE",
+        "style": "CRUSH"
+      },
+      {
+        "child": 7,
+        "type": "AGGRESSIVE",
+        "style": "CRUSH"
+      },
+      {
+        "child": 15,
+        "type": "DEFENSIVE",
+        "style": "CRUSH"
+      }
+    ],
+    "renderAnimations": [
+      7518,
+      7520,
+      7520,
+      7520,
+      7520,
+      7520,
+      7519
+    ],
+    "source": "kronos-server:data/items/weapon_types.json:ELDER_MAUL (elder maul 6-tick override)"
   }
 }

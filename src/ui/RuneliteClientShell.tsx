@@ -777,7 +777,7 @@ export const RUNELITE_DEFAULT_CLIENT_CONFIG_SNAPSHOT: RuneliteClientConfigSnapsh
     removeWarnedStyles: false
   },
   opponentInfo: {
-    enabled: false,
+    enabled: true,
     lookupOnInteraction: false,
     hitpointsDisplayStyle: "Hitpoints",
     showOpponentsOpponent: true,
@@ -1533,11 +1533,11 @@ const runeliteConfigPluginListItems: readonly RuneliteConfigPluginListItemModel[
   {
     id: "opponent-info",
     name: "Opponent Information",
-    description: "Show name and hitpoints information about the NPC you are fighting",
+    description: "Show the name and actual hitpoints of your opponent",
     pluginType: "utility",
     tags: ["combat", "health", "hitpoints", "npcs", "overlay"],
     pinnedByDefault: false,
-    enabledByDefault: false,
+    enabledByDefault: true,
     pluginBacked: true,
     configurable: true,
     sourcePath: "Kronos184-Client/runelite-client/src/main/java/net/runelite/client/plugins/opponentinfo/OpponentInfoPlugin.java"
@@ -4714,12 +4714,13 @@ export function RuneliteClientShell({
   }, []);
 
   useEffect(() => {
+    document.title = clientFrameConfig.title;
+
     const bridge = window.nhTrainer;
     if (!bridge?.applyClientShellFrameConfig) {
       return;
     }
 
-    document.title = clientFrameConfig.title;
     bridge.applyClientShellFrameConfig(clientFrameConfig).catch((error: unknown) => {
       console.warn("Failed to apply RuneLite client shell frame config", error);
     });

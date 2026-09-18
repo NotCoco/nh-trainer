@@ -63,6 +63,7 @@ const spotanimExports = [
   { output: "acb_special_projectile.glb", label: "Armadyl crossbow special projectile spotanim", spotanimId: 301 },
   { output: "bolt_projectile.glb", label: "Bolt projectile spotanim", spotanimId: 27 },
   { output: "dragon_bolt_projectile.glb", label: "Dragon bolt projectile spotanim", spotanimId: 1468 },
+  { output: "webweaver_arrow.glb", label: "Webweaver bow arrow", spotanimId: 1574 },
   { output: "onyx_bolt_proc.glb", label: "Onyx bolt proc spotanim", spotanimId: 753 },
   { output: "dragonstone_bolt_proc.glb", label: "Dragonstone bolt proc spotanim", spotanimId: 756 },
   { output: "diamond_bolt_proc.glb", label: "Diamond bolt proc spotanim", spotanimId: 758 }

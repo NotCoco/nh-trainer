@@ -31,26 +31,6 @@ async function waitForReady(window) {
   throw new Error("Timed out waiting for the trainer runtime shell.");
 }
 
-async function clickManualLoadout(window, label) {
-  const result = await window.webContents.executeJavaScript(`
-    (async () => {
-      const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
-      const button = Array.from(document.querySelectorAll('.runtimeButtonRow[aria-label="Manual local actor style"] button'))
-        .find((candidate) => (candidate.textContent ?? "").trim() === ${JSON.stringify(label)});
-      if (!button) {
-        return { ok: false, error: "missing manual loadout button", label: ${JSON.stringify(label)} };
-      }
-      button.click();
-      await nextFrame();
-      await nextFrame();
-      return { ok: true };
-    })()
-  `);
-  if (!result.ok) {
-    throw new Error(JSON.stringify(result));
-  }
-}
-
 async function clickSideTab(window, tabId) {
   const result = await window.webContents.executeJavaScript(`
     (async () => {
@@ -160,8 +140,17 @@ async function setRuntimeInventory(window, inventory) {
   await delay(150);
 }
 
+async function setRuntimeWeapon(window, itemId) {
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(new CustomEvent("nh-runtime-inventory", {
+      detail: { equipment: { 3: ${itemId} } }
+    }))
+  `);
+  await delay(150);
+}
+
 async function equipStaffOfLight(window) {
-  await clickManualLoadout(window, "Mage");
+  await setRuntimeWeapon(window, 21006);
   await setRuntimeInventory(window, [{ itemId: 22296, quantity: 1 }, { itemId: 3144, quantity: 1 }]);
   await clickSideTab(window, "inventory");
   const dispatch = await leftClickInventorySlot(window, 0);
@@ -270,6 +259,15 @@ async function readCombatState(window) {
           hitboxCount: specOrb.querySelectorAll(".nhFixedOrbHitbox").length
         } : null,
         autoRetaliateRect: styleRect(document.querySelector(".nhCombatAutoRetaliateSource")),
+        autoRetaliateText: (() => {
+          const text = document.querySelector(".nhCombatAutoRetaliateText");
+          return text ? {
+            text: text.textContent,
+            glyphCount: Number(text.getAttribute("data-glyph-count")),
+            fontId: Number(text.getAttribute("data-font-id")),
+            rect: styleRect(text)
+          } : null;
+        })(),
         staleCombatWidgetCount: document.querySelectorAll(
           '.nhMountedWidgetLayer[data-group-id="593"] .nhWidgetRectangle[data-child-id], ' +
           '.nhMountedWidgetLayer[data-group-id="593"] .nhWidgetSprite[data-child-id], ' +
@@ -290,6 +288,7 @@ async function readCombatState(window) {
 }
 
 function assertCombatState(label, state, expected, spriteByAlias) {
+  assertAutoRetaliateText(label, state);
   const compactStyles = state.styles.map(({ slotIndex, childId, label, attackType, attackStyle, iconAlias, sourceGraphic }) => ({
     slotIndex,
     childId,
@@ -391,6 +390,65 @@ function assertCombatState(label, state, expected, spriteByAlias) {
       throw new Error(`${label} special bar metadata mismatch: ${JSON.stringify({ bar, expected }, null, 2)}`);
     }
   }
+}
+
+function assertAutoRetaliateText(label, state) {
+  const text = state.autoRetaliateText;
+  const button = state.autoRetaliateRect;
+  if (!text || !button || !/^Auto Retaliate<br>\((On|Off)\)$/.test(text.text) || text.glyphCount < 16 || text.fontId !== 495 ||
+      text.rect.left <= button.left || text.rect.top < button.top ||
+      text.rect.left + text.rect.width > button.left + button.width ||
+      text.rect.top + text.rect.height > button.top + button.height) {
+    throw new Error(`${label} is missing the visible source Auto Retaliate text: ${JSON.stringify({ text, button })}`);
+  }
+}
+
+async function verifyAvailableWeaponGraphics(window, spriteByAlias) {
+  const items = JSON.parse(await fs.readFile(path.join(projectRoot, "src", "generated", "server-items.json"), "utf8"));
+  const cacheItems = JSON.parse(await fs.readFile(path.join(projectRoot, "fixtures", "assets", "defs", "cache-items.json"), "utf8"));
+  const types = JSON.parse(await fs.readFile(path.join(projectRoot, "src", "generated", "weapon-types.json"), "utf8"));
+  const source = await fs.readFile(path.join(projectRoot, "..", "kronos-osrs-184-master", "kronos-osrs-184-master", "Kronos-master", "scripts", "[clientscript,combat_interface_setup].cs2"), "utf8");
+  const sourceByConfig = new Map();
+  for (const match of source.matchAll(/(?:if|else if) \(%varbit357 = (\d+)\) \{([\s\S]*?)\n\}/g)) {
+    const entries = new Map();
+    for (const row of match[2].matchAll(/\$string(\d), \$string\d, \$graphic\d+ = "([^"]+)", "[^"]+", "([^"]+)";/g)) {
+      entries.set(Number(row[1]), { label: row[2], graphic: row[3] });
+    }
+    if (entries.size) sourceByConfig.set(Number(match[1]), entries);
+  }
+  const checked = [];
+  for (const item of items.filter((entry) => entry.weaponType && cacheItems[entry.id])) {
+    await window.webContents.executeJavaScript(`window.dispatchEvent(new CustomEvent("nh-runtime-inventory", { detail: { equipment: { 3: ${item.id} } } }))`);
+    await delay(150);
+    await waitForReady(window);
+    await clickSideTab(window, "combat");
+    const state = await readCombatState(window);
+    const type = types[item.weaponType];
+    if (!type || state.panel?.weaponItemId !== String(item.id) || state.styles.length !== type.attackSets.length) {
+      throw new Error(`Weapon presentation fixture did not apply: ${JSON.stringify({ item, panel: state.panel, styles: state.styles })}`);
+    }
+    assertAutoRetaliateText(item.name, state);
+    for (const action of type.attackSets) {
+      const index = Math.floor(action.child / 4);
+      const expected = sourceByConfig.get(type.config)?.get(index);
+      const style = state.styles.find((entry) => entry.slotIndex === index);
+      const sprite = spriteByAlias.get(style?.iconAlias);
+      if (!expected || !style || style.label !== expected.label || style.sourceGraphic !== expected.graphic ||
+          style.iconSource !== "client-script-graphic" || sprite?.name !== expected.graphic ||
+          style.iconSpriteId !== sprite.spriteId || !style.iconBackground.includes("client_ui.png")) {
+        throw new Error(`Wrong cache graphic for ${item.name}: ${JSON.stringify({ expected, style, sprite })}`);
+      }
+    }
+    checked.push({ itemId: item.id, name: item.name, config: type.config, styles: state.styles.map(({ label, sourceGraphic, iconSpriteId }) => ({ label, sourceGraphic, iconSpriteId })) });
+  }
+  await window.webContents.executeJavaScript('window.dispatchEvent(new CustomEvent("nh-runtime-inventory", { detail: { equipment: {} } }))');
+  await clickSideTab(window, "equipment");
+  const emptySlots = await window.webContents.executeJavaScript(`Array.from(document.querySelectorAll(".nhEquipmentEmptySlotSprite")).map((slot) => ({ id: slot.dataset.slotId, spriteId: Number(slot.dataset.spriteId), background: getComputedStyle(slot).backgroundImage }))`);
+  const emptySpriteIds = { head: 156, cape: 157, amulet: 158, weapon: 159, body: 161, shield: 162, legs: 163, hands: 164, feet: 165, ring: 160, ammo: 166 };
+  if (emptySlots.length !== 11 || emptySlots.some((slot) => emptySpriteIds[slot.id] !== slot.spriteId || !slot.background.includes("client_ui.png"))) {
+    throw new Error(`Empty equipment slots must use the wear_initslot enum_904 graphics: ${JSON.stringify(emptySlots)}`);
+  }
+  return { checked, emptySlots };
 }
 
 function assertRect(label, actual, expected) {
@@ -533,7 +591,7 @@ const expectedCases = {
     specOrbSourceDrawState: "orbs_spec_draw_button:toggle",
     specOrbHitboxCount: 1,
     specialDrainPercent: 50,
-    specialDrainSource: "current-osrs:armadyl-crossbow",
+    specialDrainSource: "osrs-wiki:armadyl-crossbow",
     styles: [
       {
         slotIndex: 0,
@@ -681,22 +739,22 @@ app.whenReady().then(async () => {
     await window.loadFile(path.join(projectRoot, "dist", "index.html"));
     await waitForReady(window);
 
-    await clickManualLoadout(window, "Melee");
+    await setRuntimeWeapon(window, 12006);
     await clickSideTab(window, "combat");
     const tentacleState = await readCombatState(window);
     assertCombatState("Abyssal tentacle", tentacleState, expectedCases.tentacle, spriteByAlias);
 
-    await clickManualLoadout(window, "Gmaul");
+    await setRuntimeWeapon(window, 4153);
     await clickSideTab(window, "combat");
     const gmaulState = await readCombatState(window);
     assertCombatState("Granite maul", gmaulState, expectedCases.gmaul, spriteByAlias);
 
-    await clickManualLoadout(window, "Range");
+    await setRuntimeWeapon(window, 11785);
     await clickSideTab(window, "combat");
     const acbState = await readCombatState(window);
     assertCombatState("Armadyl crossbow", acbState, expectedCases.acb, spriteByAlias);
 
-    await clickManualLoadout(window, "Mage");
+    await setRuntimeWeapon(window, 21006);
     await clickSideTab(window, "combat");
     const kodaiState = await readCombatState(window);
     assertCombatState("Kodai wand", kodaiState, expectedCases.kodai, spriteByAlias);
@@ -712,7 +770,8 @@ app.whenReady().then(async () => {
       staffState.screenshotPath = screenshotPath;
     }
 
-    console.log(JSON.stringify({ tentacleState, gmaulState, acbState, kodaiState, staffState }, null, 2));
+    const availableWeaponGraphics = await verifyAvailableWeaponGraphics(window, spriteByAlias);
+    console.log(JSON.stringify({ tentacleState, gmaulState, acbState, kodaiState, staffState, availableWeaponGraphics }, null, 2));
     app.quit();
   } catch (error) {
     console.error(error);

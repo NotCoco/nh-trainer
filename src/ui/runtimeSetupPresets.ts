@@ -1,37 +1,35 @@
-import type { NhSpellbookId } from "../render/nhFixedLayout";
-// Extracted from the production runtime; shared helpers keep their existing behavior.
+// Mode-owned starting gear, spellbooks, inventories, and supply accounting.
 import {
-  type RuntimeLoadoutId,
-  type RuntimeInventorySlot
+  type NhSpellbookId
+} from "../render/nhFixedLayout";
+import {
+  type RuntimeInventorySlot,
+  type RuntimeLoadoutId
 } from "../render/runtimeScene";
 import {
   normalizeNhInventorySlots
 } from "../render/nhInventory";
 import {
-  consumableDefinitions,
-  type ConsumableId,
-  type RuntimePlayerCombatSupplies,
-  consumableUseCountForItemId,
   consumableItemIdForDoseCount,
+  consumableDefinitions,
+  consumableUseCountForItemId,
+  nhDirectGearActionSlot,
+  type ConsumableId,
   type RuntimePlayerCombatActorState,
-  type RuntimePolicyOpponentResult,
-  nhDirectGearActionSlot
+  type RuntimePlayerCombatSupplies,
+  type RuntimePolicyOpponentResult
 } from "../sim";
+import type { EquipmentSlot, VisibleEquipment } from "../sim/clientView";
 import {
-  type VisibleEquipment,
-  type EquipmentSlot
-} from "../sim/clientView";
-
+  riskFightCandidateLabel
+} from "../bot";
 
 export type RuntimeEquipmentItemIdsBySlot = ReadonlyMap<number, number>;
-
-export type RuntimeTrainerSetupId = "nh-stake" | "dmm";
-
+export type RuntimeTrainerSetupId = "nh-stake" | "dmm" | "webweaver";
 export interface RuntimeDmmSetupOptions {
   readonly graniteMaul: boolean;
   readonly armadylGodsword: boolean;
 }
-
 export interface RuntimeTrainerSetupPreset {
   readonly id: RuntimeTrainerSetupId;
   readonly label: string;
@@ -41,18 +39,12 @@ export interface RuntimeTrainerSetupPreset {
   readonly equipmentEntries: readonly (readonly [number, number])[];
 }
 
-
 export const RUNTIME_NH_STAKE_LOADOUT_ID: RuntimeLoadoutId = "kodai-robes";
-
 export const RUNTIME_MANTA_RAY_ITEM_ID = 391;
-
 export const RUNTIME_GRANITE_MAUL_ITEM_ID = 4153;
 export const RUNTIME_DMM_GRANITE_MAUL_ITEM_ID = 24225;
-
 export const RUNTIME_ARMADYL_GODSWORD_ITEM_ID = 11802;
-
 export const RUNTIME_VENGEANCE_TRINKET_ITEM_ID = 28561;
-
 export const RUNTIME_NH_STAKE_INVENTORY_ITEM_IDS = [
   12695,
   22461,
@@ -83,7 +75,6 @@ export const RUNTIME_NH_STAKE_INVENTORY_ITEM_IDS = [
   391,
   12791
 ] as const;
-
 export const RUNTIME_NH_STAKE_EQUIPMENT_ENTRIES = [
   [0, 10828],
   [1, 21791],
@@ -97,11 +88,9 @@ export const RUNTIME_NH_STAKE_EQUIPMENT_ENTRIES = [
   [12, 11770],
   [13, 21932]
 ] as const satisfies readonly (readonly [number, number])[];
-
 export const RUNTIME_NH_STAKE_INVENTORY_SLOTS = normalizeNhInventorySlots(
   RUNTIME_NH_STAKE_INVENTORY_ITEM_IDS.map((itemId) => ({ itemId, quantity: 1 }))
 );
-
 export const RUNTIME_DMM_CAPTURED_INVENTORY_SLOTS = normalizeNhInventorySlots([
   { itemId: 12695, quantity: 1 },
   { itemId: 22461, quantity: 1 },
@@ -132,16 +121,12 @@ export const RUNTIME_DMM_CAPTURED_INVENTORY_SLOTS = normalizeNhInventorySlots([
   { itemId: 391, quantity: 1 },
   { itemId: 12791, quantity: 1 }
 ]);
-
 export const RUNTIME_DMM_GRANITE_MAUL_SLOT_INDEX = 23;
-
 export const RUNTIME_DMM_ARMADYL_GODSWORD_SLOT_INDEX = 25;
-
 export const RUNTIME_DMM_DEFAULT_SETUP_OPTIONS: RuntimeDmmSetupOptions = {
   graniteMaul: true,
   armadylGodsword: false
 };
-
 export const RUNTIME_DMM_EQUIPMENT_ENTRIES = [
   [0, 26382],
   [1, 21791],
@@ -155,7 +140,65 @@ export const RUNTIME_DMM_EQUIPMENT_ENTRIES = [
   [12, 19710],
   [13, 21950]
 ] as const satisfies readonly (readonly [number, number])[];
-
+// Source: Webweaver (risk fighting) loadout - webweaver bow (u) main, recoil worn,
+// ultor ring + pies + potions + pouch + brews + sanfews + ornate gmaul + elder maul
+// in inventory, 4 halibut and the remaining slots filled with marlins. No head slot.
+export const RUNTIME_WEBWEAVER_INVENTORY_ITEM_IDS = [
+  28307, // Ultor ring
+  7218, // Summer pie
+  7218,
+  2550, // Spare ring of recoil
+  11722, // Super ranging (4)
+  12695, // Super combat potion (4)
+  12791, // Rune pouch (astral/death/earth for vengeance)
+  6685, // Saradomin brew (4)
+  6685,
+  10925, // Sanfew serum (4)
+  10925,
+  24225, // Granite maul (ornate handle)
+  21003, // Elder maul
+  32336, // Halibut
+  32336,
+  32336,
+  32336,
+  32352, // Marlin
+  32352,
+  32352,
+  32352,
+  32352,
+  32352,
+  32352,
+  32352,
+  32352,
+  32352,
+  32352
+] as const;
+export const RUNTIME_WEBWEAVER_EQUIPMENT_ENTRIES = [
+  [1, 21295], // Infernal cape
+  [2, 29801], // Amulet of rancour
+  [3, 27652], // Webweaver bow (u)
+  [7, 23246], // Fremennik kilt
+  [9, 7462], // Barrows gloves
+  [10, 31097], // Avernic treads (max)
+  [12, 2550] // Ring of recoil
+] as const satisfies readonly (readonly [number, number])[];
+export const RUNTIME_WEBWEAVER_INVENTORY_SLOTS = normalizeNhInventorySlots(
+  RUNTIME_WEBWEAVER_INVENTORY_ITEM_IDS.map((itemId) => ({ itemId, quantity: 1 }))
+);
+// Source: Lunar Vengeance costs 4 astral, 2 death, 10 earth runes per cast. The
+// pouch starts with enough for several casts so rune management matters.
+export const RUNTIME_WEBWEAVER_POUCH_RUNES = {
+  astral: 40,
+  death: 20,
+  earth: 100
+} as const;
+export const RUNTIME_WEBWEAVER_VENGEANCE_RUNE_COST = {
+  astral: 4,
+  death: 2,
+  earth: 10
+} as const;
+export const RUNTIME_WEBWEAVER_VENGEANCE_RUNE_CASTS = 10;
+export const RUNTIME_WEBWEAVER_LOADOUT_ID: RuntimeLoadoutId = "acb-hides";
 export const RUNTIME_TRAINER_SETUP_PRESETS = {
   "nh-stake": {
     id: "nh-stake",
@@ -172,13 +215,19 @@ export const RUNTIME_TRAINER_SETUP_PRESETS = {
     spellbookId: "ancient",
     inventorySlots: RUNTIME_DMM_CAPTURED_INVENTORY_SLOTS,
     equipmentEntries: RUNTIME_DMM_EQUIPMENT_ENTRIES
+  },
+  webweaver: {
+    id: "webweaver",
+    label: riskFightCandidateLabel,
+    loadoutId: RUNTIME_WEBWEAVER_LOADOUT_ID,
+    spellbookId: "lunar",
+    inventorySlots: RUNTIME_WEBWEAVER_INVENTORY_SLOTS,
+    equipmentEntries: RUNTIME_WEBWEAVER_EQUIPMENT_ENTRIES
   }
 } as const satisfies Readonly<Record<RuntimeTrainerSetupId, RuntimeTrainerSetupPreset>>;
-
 export function runtimeSetupPreset(setupId: RuntimeTrainerSetupId): RuntimeTrainerSetupPreset {
   return RUNTIME_TRAINER_SETUP_PRESETS[setupId];
 }
-
 
 export function runtimeDmmInventorySlotsWithOptions(
   options: RuntimeDmmSetupOptions = RUNTIME_DMM_DEFAULT_SETUP_OPTIONS
@@ -193,16 +242,13 @@ export function runtimeDmmInventorySlotsWithOptions(
   return slots;
 }
 
-
 export function runtimeDmmSetupOptionItemId(key: keyof RuntimeDmmSetupOptions): number {
   return key === "graniteMaul" ? RUNTIME_DMM_GRANITE_MAUL_ITEM_ID : RUNTIME_ARMADYL_GODSWORD_ITEM_ID;
 }
 
-
 export function runtimeDmmSetupOptionPreferredSlotIndex(key: keyof RuntimeDmmSetupOptions): number {
   return key === "graniteMaul" ? RUNTIME_DMM_GRANITE_MAUL_SLOT_INDEX : RUNTIME_DMM_ARMADYL_GODSWORD_SLOT_INDEX;
 }
-
 
 export function runtimeDmmReplacePreferredMantaSlot(
   slots: (RuntimeInventorySlot | null)[],
@@ -219,7 +265,6 @@ export function runtimeDmmReplacePreferredMantaSlot(
   slots[slotIndex] = { itemId, quantity: 1 };
   return true;
 }
-
 
 export function runtimeDmmInventorySlotsAfterOptionToggle(
   currentSlots: readonly (RuntimeInventorySlot | null)[],
@@ -250,7 +295,6 @@ export function runtimeDmmInventorySlotsAfterOptionToggle(
   return normalizeNhInventorySlots(slots);
 }
 
-
 export function runtimeSetupInventorySlots(
   setupId: RuntimeTrainerSetupId,
   dmmOptions: RuntimeDmmSetupOptions = RUNTIME_DMM_DEFAULT_SETUP_OPTIONS
@@ -261,37 +305,35 @@ export function runtimeSetupInventorySlots(
   return normalizeNhInventorySlots(runtimeSetupPreset(setupId).inventorySlots);
 }
 
-
 export function runtimeSetupEquipmentItems(setupId: RuntimeTrainerSetupId): RuntimeEquipmentItemIdsBySlot {
   return new Map(runtimeSetupPreset(setupId).equipmentEntries);
 }
-
 
 export function runtimeNhStakeInventorySlots(): readonly (RuntimeInventorySlot | null)[] {
   return runtimeSetupInventorySlots("nh-stake");
 }
 
-
 export function runtimeNhStakeEquipmentItems(): RuntimeEquipmentItemIdsBySlot {
   return runtimeSetupEquipmentItems("nh-stake");
 }
 
-
 export const RUNTIME_CONSUMABLE_IDS = Object.keys(consumableDefinitions) as ConsumableId[];
-
 export const EMPTY_RUNTIME_SUPPLIES: RuntimePlayerCombatSupplies = {
   manta_ray: 0,
   shark: 0,
   anglerfish: 0,
   karambwan: 0,
+  summer_pie: 0,
+  halibut: 0,
+  marlin: 0,
   saradomin_brew: 0,
   super_restore: 0,
   sanfew_serum: 0,
   super_combat: 0,
+  super_ranging: 0,
   ranging_potion: 0,
   bastion: 0
 };
-
 export const RUNTIME_NH_STAKE_ALLOWED_SETUP_ITEM_IDS = new Set<number>([
   RUNTIME_GRANITE_MAUL_ITEM_ID,
   RUNTIME_DMM_GRANITE_MAUL_ITEM_ID,
@@ -310,7 +352,6 @@ export const RUNTIME_NH_STAKE_ALLOWED_SETUP_ITEM_IDS = new Set<number>([
   })
 ]);
 
-
 export function runtimeConsumableIdForItemId(itemId: number): ConsumableId | null {
   for (const id of RUNTIME_CONSUMABLE_IDS) {
     if (consumableDefinitions[id].itemIds.includes(itemId)) {
@@ -319,7 +360,6 @@ export function runtimeConsumableIdForItemId(itemId: number): ConsumableId | nul
   }
   return null;
 }
-
 
 export function runtimeSuppliesFromInventorySlots(
   slots: readonly (RuntimeInventorySlot | null)[]
@@ -339,7 +379,6 @@ export function runtimeSuppliesFromInventorySlots(
   return supplies;
 }
 
-
 export function runtimeVengeanceTrinketChargesFromInventorySlots(
   slots: readonly (RuntimeInventorySlot | null)[]
 ): number {
@@ -352,16 +391,22 @@ export function runtimeVengeanceTrinketChargesFromInventorySlots(
   );
 }
 
+export function runtimeRecoilRingsRemaining(
+  inventorySlots: readonly (RuntimeInventorySlot | null)[],
+  equipment: RuntimeEquipmentItemIdsBySlot
+): number {
+  return Number(equipment.get(12) === 2550) + inventorySlots.reduce(
+    (count, slot) => count + (slot?.itemId === 2550 ? Math.max(0, slot.quantity) : 0), 0
+  );
+}
 
 export function runtimeNhStakeSupplies(): RuntimePlayerCombatSupplies {
   return runtimeSuppliesFromInventorySlots(RUNTIME_NH_STAKE_INVENTORY_SLOTS);
 }
 
-
 export function runtimeNhStakeVengeanceTrinketCharges(): number {
   return runtimeVengeanceTrinketChargesFromInventorySlots(RUNTIME_NH_STAKE_INVENTORY_SLOTS);
 }
-
 
 export function runtimeSetupInventorySlotsForSupplies(
   setupId: RuntimeTrainerSetupId,
@@ -393,7 +438,6 @@ export function runtimeSetupInventorySlotsForSupplies(
   });
 }
 
-
 export function runtimeInventorySlotsAfterConsumedSupplies(
   inventorySlots: readonly (RuntimeInventorySlot | null)[],
   consumedSupplies: readonly ConsumableId[]
@@ -407,7 +451,7 @@ export function runtimeInventorySlotsAfterConsumedSupplies(
     const slot = slots[slotIndex]!;
     const remainingUses = consumableUseCountForItemId(slot.itemId, slot.quantity) - 1;
     slots[slotIndex] = remainingUses <= 0
-      ? null
+      ? consumed === "summer_pie" ? { itemId: 2313, quantity: 1 } : null
       : {
           ...slot,
           itemId: consumableItemIdForDoseCount(consumed, remainingUses, slot.itemId),
@@ -416,7 +460,6 @@ export function runtimeInventorySlotsAfterConsumedSupplies(
   }
   return slots;
 }
-
 
 export function runtimeInventorySlotsAfterVengeanceTrinketUse(
   inventorySlots: readonly (RuntimeInventorySlot | null)[],
@@ -437,7 +480,6 @@ export function runtimeInventorySlotsAfterVengeanceTrinketUse(
   }
   return slots;
 }
-
 
 export function runtimeInventorySlotsAfterEquipmentChange(
   inventorySlots: readonly (RuntimeInventorySlot | null)[],
@@ -476,7 +518,6 @@ export function runtimeInventorySlotsAfterEquipmentChange(
   return slots;
 }
 
-
 export function runtimePersistentOpponentInventorySlotsAfterPolicyResult(
   inventorySlots: readonly (RuntimeInventorySlot | null)[],
   previousActor: RuntimePlayerCombatActorState,
@@ -496,7 +537,6 @@ export function runtimePersistentOpponentInventorySlotsAfterPolicyResult(
     directGearSlotOrder
   );
 }
-
 
 export const RUNTIME_EQUIPMENT_SLOT_ORDER: readonly EquipmentSlot[] = [
   "head",

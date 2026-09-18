@@ -16,4 +16,4 @@ assert(viewer.includes("setActiveSpellbookId(setup.spellbookId)"), "Setup select
 assert(viewer.includes('runtimeSetupPresetIdRef.current === "nh-stake" && shouldRuntimePolicyResetForFreshFight'),
   "Legacy NH restoration must remain scoped to NH");
 await import("./verify-nh-stake-policy.mjs");
-console.log("Runtime mode checks passed: all four spellbook transitions, saved preferences, decoder contracts, DMM gear, and NH movement.");
+console.log("Runtime mode checks passed: all nine spellbook transitions, saved preferences, decoder contracts, DMM gear, and NH movement.");

@@ -91,39 +91,6 @@ The `fastsim/` folder is the GPU fight engine used to generate training rollouts
 
 The browser stores local profile settings such as client size, F-key mappings, inventory setup, equipment setup, attack styles, auto-retaliate, XP-drop settings, and setup selection. Different visitors keep their own settings in their own browser storage.
 
-## Runtime Maintenance
-
-The runtime helpers are separated by responsibility:
-
-| File | Responsibility |
-| --- | --- |
-| `src/ui/RuntimeSceneViewer.tsx` | Rendering, input, React state, and fight coordination |
-| `src/ui/runtimeSetupPresets.ts` | NH/DMM gear, spellbooks, inventories, and supplies |
-| `src/ui/runtimePreferences.ts` | Existing browser storage keys, saved setups, and migrations |
-| `src/ui/runtimeMovement.ts` | Java-backed routing, interpolation, turning, and animation timing |
-| `src/ui/runtimeCombatState.ts` | Combat-state and opponent-observation helpers |
-| `src/sim/nh/runtime-policy-opponent.ts` | Applying model actions to the simulation |
-| `src/bot/policy.ts` and `src/sim/nh/policy-contract.ts` | Schema validation, explicit decoder identity, and inference |
-
-Each setup owns its spellbook; NH and DMM use Ancient. Selecting a setup applies
-that spellbook. Keep the existing preference format and storage keys stable, and
-use the same browser origin when checking saved preferences.
-
-The parser resolves the decoder from validated input dimensions and action IDs.
-Controllers pass it explicitly. Filenames, labels, and controller IDs must not
-select combat behavior. Keep legacy NH, deployed-composite DMM, and current
-direct-action DMM contracts separate.
-
-Run `npm run typecheck` and `npm run verify:runtime-mode-boundaries` for changes to
-these boundaries. The focused checks cover spellbooks, saved preferences, NH
-movement, model contracts, DMM equipment, and spell impact timing. They run only
-in Node. Existing source checks use `scripts/lib/runtime-viewer-source.mjs` to read
-the extracted helpers; new behavior checks should call the helpers directly.
-
-`src/ui/App.tsx` owns browser policy asset selection. Verify the release branch and
-deployed artifact separately from local experiments. Use an isolated checkout of
-the release branch for selective fixes when the development checkout is mixed.
-
 ## Running Locally
 
 ```powershell
@@ -137,6 +104,52 @@ For a production web build:
 npm run build:web
 npm run preview
 ```
+
+## Runtime Maintenance
+
+The runtime is split by responsibility:
+
+| File | Responsibility |
+| --- | --- |
+| `src/ui/RuntimeSceneViewer.tsx` | React state, rendering, input, and fight-loop coordination |
+| `src/ui/runtimeSetupPresets.ts` | NH/DMM/Risk Fight starting gear, spellbooks, inventory, and supplies |
+| `src/ui/runtimePreferences.ts` | Browser storage keys, saved setups, and existing preference migrations |
+| `src/ui/runtimeMovement.ts` | Java-backed routing, client interpolation, turning, and animation timing |
+| `src/ui/runtimeCombatState.ts` | Pure combat-state and opponent-observation helpers |
+| `src/sim/nh/runtime-policy-opponent.ts` | Applying model actions to the combat simulation |
+| `src/bot/policy.ts` and `src/sim/nh/policy-contract.ts` | Schema validation, explicit decoder identity, and inference |
+
+Each setup owns its spellbook: NH stake and DMM use Ancient; Risk Fight uses Lunar.
+Selecting a mode applies that spellbook even when restoring saved equipment. Saved
+setups are scoped by mode; storage keys and legacy migrations must remain stable.
+Use the same browser origin (`localhost` and `127.0.0.1` have separate storage)
+when checking a user's existing preferences.
+
+The parser resolves the neural decoder once from validated input dimensions and
+action IDs. Controllers pass that identity explicitly; filenames, UI labels, and
+controller IDs must not select combat behavior. Legacy NH, deployed-composite DMM,
+and current direct-action DMM are separate contracts. Changing the decoder metadata
+does not authorize changing a model's decisions, action masks, or weights.
+
+For mode, preference, or decoder changes, run:
+
+```powershell
+npm run typecheck
+npm run verify:runtime-mode-boundaries
+```
+
+The focused checks cover spellbooks, saved preferences, NH movement, model contracts,
+and DMM equipment preservation. They run only in Node and are never imported by the
+game. Existing Java source-parity checks use `scripts/lib/runtime-viewer-source.mjs`
+to read the extracted helpers; new behavior tests should call the helpers directly.
+
+`src/ui/App.tsx` owns browser policy asset selection. Risk Fight's embedded candidate
+is separate (`src/bot/riskfight-policy.ts`, `src/generated/webweaver-riskfight-candidate.json`);
+its experiment notes are in `fastsim/docs/RISKFIGHT-CANDIDATE.md`. Model rollback
+fixtures, generated training outputs, and local experimental branches are not proof
+of what the public site currently serves. Check `git worktree list`, the target
+branch, and the deployed artifact before releasing. Build a selective live fix from
+the release branch when the development checkout also contains unreleased work.
 
 ## Deployment
 

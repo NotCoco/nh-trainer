@@ -990,10 +990,38 @@ const combatInterfaceSetupPresentationByConfig: Readonly<
     1: { label: "Pummel", graphic: "combaticons2,3", spriteAlias: "combat_icon_gmaul_pummel" },
     3: { label: "Block", graphic: "combaticons2,0", spriteAlias: "combat_icon_gmaul_block" }
   },
+  3: {
+    0: { label: "Accurate", graphic: "combaticons2,15", spriteAlias: "combat_icon_bow_accurate" },
+    1: { label: "Rapid", graphic: "combaticons2,16", spriteAlias: "combat_icon_bow_rapid" },
+    3: { label: "Longrange", graphic: "combaticons2,17", spriteAlias: "combat_icon_bow_longrange" }
+  },
   5: {
     0: { label: "Accurate", graphic: "combaticons2,5", spriteAlias: "combat_icon_crossbow_accurate" },
     1: { label: "Rapid", graphic: "combaticons2,6", spriteAlias: "combat_icon_crossbow_rapid" },
     3: { label: "Longrange", graphic: "combaticons2,7", spriteAlias: "combat_icon_crossbow_longrange" }
+  },
+  9: {
+    0: { label: "Chop", graphic: "combaticons,6", spriteAlias: "combat_icon_sword_chop" },
+    1: { label: "Slash", graphic: "combaticons,5", spriteAlias: "combat_icon_sword_slash" },
+    2: { label: "Lunge", graphic: "combaticons,7", spriteAlias: "combat_icon_sword_stab" },
+    3: { label: "Block", graphic: "combaticons,4", spriteAlias: "combat_icon_sword_block" }
+  },
+  10: {
+    0: { label: "Chop", graphic: "combaticons,6", spriteAlias: "combat_icon_sword_chop" },
+    1: { label: "Slash", graphic: "combaticons,5", spriteAlias: "combat_icon_sword_slash" },
+    2: { label: "Smash", graphic: "combaticons,5", spriteAlias: "combat_icon_sword_slash" },
+    3: { label: "Block", graphic: "combaticons,4", spriteAlias: "combat_icon_sword_block" }
+  },
+  12: {
+    0: { label: "Jab", graphic: "combaticons3,11", spriteAlias: "combat_icon_halberd_jab" },
+    1: { label: "Swipe", graphic: "combaticons3,12", spriteAlias: "combat_icon_halberd_swipe" },
+    3: { label: "Fend", graphic: "combaticons3,10", spriteAlias: "combat_icon_halberd_fend" }
+  },
+  17: {
+    0: { label: "Stab", graphic: "combaticons,7", spriteAlias: "combat_icon_sword_stab" },
+    1: { label: "Lunge", graphic: "combaticons,6", spriteAlias: "combat_icon_sword_chop" },
+    2: { label: "Slash", graphic: "combaticons,5", spriteAlias: "combat_icon_sword_slash" },
+    3: { label: "Block", graphic: "combaticons,4", spriteAlias: "combat_icon_sword_block" }
   },
   18: {
     0: { label: "Bash", graphic: "combaticons2,13", spriteAlias: "combat_icon_wand_bash" },
@@ -1302,7 +1330,7 @@ export function NhClientHud({
           layout={resolvedActiveSideTabId === "options" ? activeSidePanelInterface : null}
           onChange={onCameraZoomChange}
           onReset={onCameraZoomReset}
-          viewportHeight={sourceLayout.viewport.rect.height}
+          viewportHeight={sourceLayout.viewport.projectionHeight ?? sourceLayout.viewport.rect.height}
         />
         <NhOptionsWindowModeLayer
           atlas={atlas}
@@ -4781,6 +4809,7 @@ function NhEquipmentItemLayer({
       {panel.slots.map((slot) => {
         const itemId = itemIdsBySlot.get(slot.serverSlot);
         const item = itemId === undefined || !itemAtlas ? undefined : findItemSprite(itemAtlas, itemId, "normal", 1);
+        const emptySprite = itemId === undefined ? findSpriteById(clientAtlas, slot.emptySpriteId) : undefined;
         const itemName = itemId === undefined ? null : equipmentDefinitions.get(itemId)?.name ?? item?.name ?? `item ${itemId}`;
         const pendingRemove = pendingRemoveSlotIds?.has(slot.id) === true;
         const command = (event: ReactMouseEvent<HTMLElement> | ReactPointerEvent<HTMLElement>): NhEquipmentItemCommand | null =>
@@ -4815,6 +4844,17 @@ function NhEquipmentItemLayer({
                 data-slot-id={slot.id}
                 data-widget-id={slot.widgetId}
                 style={equipmentSlotTileSpriteStyle(clientAtlas, slotTile, slot)}
+              />
+            ) : null}
+            {emptySprite ? (
+              <span
+                aria-hidden="true"
+                className="nhEquipmentEmptySlotSprite"
+                data-slot-id={slot.id}
+                data-source-client-script="wear_initslot"
+                data-source-enum="904"
+                data-sprite-id={slot.emptySpriteId}
+                style={equipmentEmptySlotSpriteStyle(clientAtlas, emptySprite, slot)}
               />
             ) : null}
             {itemId !== undefined ? (
@@ -5616,6 +5656,19 @@ function NhCombatPanelLayer({
               className="nhCombatButtonSprite nhCombatAutoRetaliateButtonSprite"
               rect={autoRetaliate.rect}
               spriteId={hud.autoRetaliate === true ? combatAutoRetaliateButtonSelectedSpriteId : combatAutoRetaliateButtonSpriteId}
+            />
+          ) : null}
+          {autoRetaliate.text ? (
+            <NhCombatText
+              className="nhCombatText nhCombatAutoRetaliateText"
+              clientFonts={clientFonts}
+              dataAttributes={{
+                "data-combat-text-kind": "auto-retaliate",
+                "data-source-client-script": "combat_interface_retaliate"
+              }}
+              spriteAtlases={spriteAtlases}
+              text={`Auto Retaliate<br>(${hud.autoRetaliate === true ? "On" : "Off"})`}
+              textLayout={autoRetaliate.text}
             />
           ) : null}
           <button
@@ -6781,6 +6834,8 @@ interface NhSpellReorderDragState {
   readonly sourceSpellId: string;
   readonly startX: number;
   readonly startY: number;
+  readonly currentX: number;
+  readonly currentY: number;
   readonly moved: boolean;
 }
 
@@ -7100,17 +7155,16 @@ function NhSpellbookIconLayer({
   readonly reorderOrder: readonly string[] | undefined;
   readonly selectedSpell: NhSelectedSpell | null;
 }): JSX.Element | null {
+  const layerRef = useRef<HTMLDivElement | null>(null);
   const [dragState, setDragState] = useState<NhSpellReorderDragState | null>(null);
   const dragStateRef = useRef<NhSpellReorderDragState | null>(null);
   useEffect(() => {
     dragStateRef.current = dragState;
   }, [dragState]);
   useEffect(() => {
-    if (!reorderingEnabled) {
-      dragStateRef.current = null;
-      setDragState(null);
-    }
-  }, [reorderingEnabled]);
+    dragStateRef.current = null;
+    setDragState(null);
+  }, [panel?.id, reorderingEnabled]);
 
   if (!atlas || !panel) {
     return null;
@@ -7122,13 +7176,17 @@ function NhSpellbookIconLayer({
   const spellById = new Map(visualSpells.map((spell) => [spell.id, spell]));
   const icons = visualSpells.flatMap((spell) => {
     const magicLevelCanCast = nhMagicSpellCurrentLevelCanCast(spell.id, currentMagicLevel);
-    const renderedSpriteId = magicLevelCanCast ? spell.enabledSpriteId : spell.disabledSpriteId;
+    // Lunar practice supplies Vengeance; its paired Vengeance Other icon is cosmetic.
+    // Use the cache's actual off graphics for the rest, as spell_graphic does without runes.
+    const availableInSpellbook = panel.id !== "lunar" || spell.id === "vengeance" || spell.id === "vengeance-other";
+    const renderedSpriteId = magicLevelCanCast && availableInSpellbook ? spell.enabledSpriteId : spell.disabledSpriteId;
     const sprite = findSpriteById(atlas, renderedSpriteId) ?? findSpriteById(atlas, spell.spriteId);
     const requiredMagicLevel = nhMagicSpellLevelRequirement(spell.id);
     const levelFilterAllows = nhMagicSpellLevelFilterAllows(spell.id, currentMagicLevel, fixedMagicLevel);
     return sprite
       ? [
           {
+            availableInSpellbook,
             levelFilterAllows,
             magicLevelCanCast,
             renderedSpriteId: sprite.spriteId,
@@ -7144,9 +7202,13 @@ function NhSpellbookIconLayer({
     return null;
   }
 
+  const draggedIcon = dragState ? icons.find(({ spell }) => spell.id === dragState.sourceSpellId) : undefined;
+  const dragOffset = dragState ? inventoryDragDelta(dragState, layerRef.current) : { x: 0, y: 0 };
   return (
     <div
       className="nhSpellbookIconLayer"
+      ref={layerRef}
+      style={draggedIcon ? { zIndex: 11 } : undefined}
       data-book-id={panel.id}
       data-bounds-child-id={panel.boundsChildId}
       data-bounds-widget-id={panel.boundsWidgetId}
@@ -7163,14 +7225,17 @@ function NhSpellbookIconLayer({
       data-spellbook-varbit-id={panel.spellbookVarbitId}
       data-spellbook-varbit-value={panel.spellbookVarbitValue}
     >
-      {icons.map(({ levelFilterAllows, magicLevelCanCast, renderedSpriteId, requiredMagicLevel, spell, sprite }) => {
+      {reorderingEnabled ? (
+        <span aria-hidden="true" className="nhSpellbookReorderHighlight" style={rectStyle(panel.spellAreaRect)} />
+      ) : null}
+      {icons.map(({ availableInSpellbook, levelFilterAllows, magicLevelCanCast, renderedSpriteId, requiredMagicLevel, spell, sprite }) => {
         const actionName = spell.spellActionName.trim();
-        const selectable = Boolean(onDefaultAction && actionName && spell.targetFlags !== 0);
+        const selectable = Boolean(onDefaultAction && actionName && availableInSpellbook);
         const selected = selectedSpell?.widgetId === spell.widgetId && selectedSpell.childId === spell.childId;
         const dragging = dragState?.sourceSpellId === spell.id;
         return (
           <button
-            aria-disabled={!selectable}
+            aria-disabled={!selectable && !reorderingEnabled}
             aria-label={`Spell ${spell.label}`}
             aria-pressed={selected}
             className={`nhSpellbookIconSprite${selected ? " nhSpellbookIconSprite-selected" : ""}${dragging ? " nhSpellbookIconSprite-reorderDragging" : ""}`}
@@ -7201,6 +7266,7 @@ function NhSpellbookIconLayer({
             data-source-order={spell.sourceOrder}
             data-spell-action-name={spell.spellActionName}
             data-spell-id={spell.id}
+            data-spellbook-available={String(availableInSpellbook)}
             data-spell-label={spell.label}
             data-spell-name={spell.spellName}
             data-sprite-offset-x={sprite.offsetX}
@@ -7221,6 +7287,8 @@ function NhSpellbookIconLayer({
                   sourceSpellId: spell.id,
                   startX: event.clientX,
                   startY: event.clientY,
+                  currentX: event.clientX,
+                  currentY: event.clientY,
                   moved: false
                 };
                 dragStateRef.current = nextDragState;
@@ -7228,7 +7296,7 @@ function NhSpellbookIconLayer({
                 event.currentTarget.setPointerCapture(event.pointerId);
                 return;
               }
-              if (!onDefaultAction || !actionName || spell.targetFlags === 0) {
+              if (!onDefaultAction || !selectable || (spell.targetFlags === 0 && spell.id !== "vengeance")) {
                 return;
               }
               onDefaultAction({
@@ -7248,11 +7316,9 @@ function NhSpellbookIconLayer({
                 current.moved ||
                 Math.abs(event.clientX - current.startX) >= 4 ||
                 Math.abs(event.clientY - current.startY) >= 4;
-              if (moved !== current.moved) {
-                const nextDragState = { ...current, moved };
-                dragStateRef.current = nextDragState;
-                setDragState(nextDragState);
-              }
+              const nextDragState = { ...current, currentX: event.clientX, currentY: event.clientY, moved };
+              dragStateRef.current = nextDragState;
+              setDragState(nextDragState);
               event.preventDefault();
               event.stopPropagation();
             }}
@@ -7282,18 +7348,8 @@ function NhSpellbookIconLayer({
                   destinationSpell,
                   position: runtimeViewportPointerPosition(event)
                 });
-                return;
               }
-              if (!onDefaultAction || !actionName || spell.targetFlags === 0) {
-                return;
-              }
-              onDefaultAction({
-                spell,
-                actionName,
-                selectedSpellName: spell.selectedSpellName,
-                targetFlags: spell.targetFlags,
-                position: runtimeViewportPointerPosition(event)
-              });
+              // SpellbookMouseListener consumes edit-mode releases, including cancelled drops.
             }}
             onPointerCancel={(event) => {
               const current = dragStateRef.current;
@@ -7302,6 +7358,10 @@ function NhSpellbookIconLayer({
               }
               event.preventDefault();
               event.stopPropagation();
+              dragStateRef.current = null;
+              setDragState(null);
+            }}
+            onLostPointerCapture={() => {
               dragStateRef.current = null;
               setDragState(null);
             }}
@@ -7316,6 +7376,18 @@ function NhSpellbookIconLayer({
           </button>
         );
       })}
+      {draggedIcon ? (
+        <span
+          aria-hidden="true"
+          className="nhSpellbookDragGhost"
+          data-dragged-spell-id={draggedIcon.spell.id}
+          style={{
+            ...spellbookIconGraphicStyle(atlas, draggedIcon.sprite),
+            left: draggedIcon.spell.rect.x + dragOffset.x,
+            top: draggedIcon.spell.rect.y + dragOffset.y
+          }}
+        />
+      ) : null}
     </div>
   );
 }
@@ -8544,7 +8616,11 @@ function localPlayerEquipmentItemIdsBySlot(
     }
   }
 
-  const loadoutItemIds = runtimeLoadouts.find((candidate) => candidate.id === actor.loadoutId)?.itemIds ?? [];
+  // A loadout appearance carries the complete current inventory, including non-model ring/ammo slots.
+  // Falling back to the preset here would redraw those items after they were removed.
+  const loadoutItemIds = actor.appearance?.source === "loadout"
+    ? []
+    : runtimeLoadouts.find((candidate) => candidate.id === actor.loadoutId)?.itemIds ?? [];
   const appearanceItemIds = actor.appearance?.itemIds ?? [];
   for (const itemId of appearanceItemIds) {
     const equipSlot = equipmentDefinitions.get(itemId)?.equipSlot;
@@ -8760,6 +8836,20 @@ function equipmentSlotTileSpriteStyle(
     left: slot.rect.x,
     top: slot.rect.y,
     zIndex: 1
+  };
+}
+
+function equipmentEmptySlotSpriteStyle(
+  atlas: NhHudAtlas,
+  sprite: NhHudSprite,
+  slot: NhEquipmentSlotLayout
+): CSSProperties {
+  // wear_initslot centres the 32x32 canvas; spriteStyle already applies the cache trim offsets.
+  return {
+    ...spriteStyle(atlas, sprite),
+    left: slot.rect.x + Math.trunc((slot.rect.width - 32) / 2),
+    top: slot.rect.y + Math.trunc((slot.rect.height - 32) / 2),
+    zIndex: 2
   };
 }
 

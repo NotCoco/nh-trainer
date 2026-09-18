@@ -98,6 +98,8 @@ export interface NhResolvedWidget {
 export interface NhViewport {
   readonly rect: NhRect;
   readonly zoom: number;
+  /** Keep the camera framing when drawing extra world below a hidden chatbox. */
+  readonly projectionHeight?: number;
 }
 
 export interface NhViewportFovZoom {
@@ -199,6 +201,7 @@ export type NhEquipmentSlotId =
 export interface NhEquipmentSlotLayout {
   readonly id: NhEquipmentSlotId;
   readonly serverSlot: number;
+  readonly emptySpriteId: number;
   readonly groupId: number;
   readonly widgetId: number;
   readonly childId: number;
@@ -282,6 +285,7 @@ export interface NhCombatAutoRetaliateLayout {
   readonly rect: NhRect;
   readonly actionText: string;
   readonly actions: readonly string[];
+  readonly text: NhCombatTextLayout | null;
 }
 
 export interface NhCombatAutocastControlLayout {
@@ -704,18 +708,20 @@ const fixedEquipmentSlotSpecs: readonly {
   readonly id: NhEquipmentSlotId;
   readonly serverSlot: number;
   readonly childId: number;
+  readonly emptySpriteId: number;
 }[] = [
-  { id: "head", serverSlot: 0, childId: 6 },
-  { id: "cape", serverSlot: 1, childId: 7 },
-  { id: "amulet", serverSlot: 2, childId: 8 },
-  { id: "weapon", serverSlot: 3, childId: 9 },
-  { id: "body", serverSlot: 4, childId: 10 },
-  { id: "shield", serverSlot: 5, childId: 11 },
-  { id: "legs", serverSlot: 7, childId: 12 },
-  { id: "hands", serverSlot: 9, childId: 13 },
-  { id: "feet", serverSlot: 10, childId: 14 },
-  { id: "ring", serverSlot: 12, childId: 15 },
-  { id: "ammo", serverSlot: 13, childId: 16 }
+  // [proc,wear_initslot] resolves these graphics from cache enum_904 by worn slot.
+  { id: "head", serverSlot: 0, childId: 6, emptySpriteId: 156 },
+  { id: "cape", serverSlot: 1, childId: 7, emptySpriteId: 157 },
+  { id: "amulet", serverSlot: 2, childId: 8, emptySpriteId: 158 },
+  { id: "weapon", serverSlot: 3, childId: 9, emptySpriteId: 159 },
+  { id: "body", serverSlot: 4, childId: 10, emptySpriteId: 161 },
+  { id: "shield", serverSlot: 5, childId: 11, emptySpriteId: 162 },
+  { id: "legs", serverSlot: 7, childId: 12, emptySpriteId: 163 },
+  { id: "hands", serverSlot: 9, childId: 13, emptySpriteId: 164 },
+  { id: "feet", serverSlot: 10, childId: 14, emptySpriteId: 165 },
+  { id: "ring", serverSlot: 12, childId: 15, emptySpriteId: 160 },
+  { id: "ammo", serverSlot: 13, childId: 16, emptySpriteId: 166 }
 ];
 const fixedEquipmentUtilityButtonSpecs: readonly {
   readonly id: NhEquipmentUtilityButtonId;
@@ -854,6 +860,7 @@ export function resolveNhFixedClientLayout(
     readonly rootSize?: NhSize;
     readonly viewportFovZoom?: NhViewportFovZoom;
     readonly cameraZoom?: NhViewportFovZoom;
+    readonly chatboxHidden?: boolean;
   } = {}
 ): NhFixedClientLayout {
   const displayMode = options.displayMode ?? "fixed";
@@ -879,6 +886,18 @@ export function resolveNhFixedClientLayout(
   const sidePanel = resolveNhFixedSidePanel(resolvedWidgets, displayMode);
   const sidePanelInterfaces = resolveNhSidePanelInterfaces(definitions, sidePanel);
   const spellbookPanels = resolveNhSpellbookPanels(sidePanelInterfaces.magic ?? null, spellbooks);
+  const chatbox = resolveNhChatbox(definitions, resolvedWidgets, displayMode, rootGroupId);
+  const chatboxTabRow = chatbox?.widgets.find((entry) => entry.widget.childId === 4);
+  const viewport = resolveNhViewport(viewportWidget.rect, options.viewportFovZoom ?? options.cameraZoom);
+  // Resizable clients already render behind chat. The trainer's collapsible fixed surface
+  // extends only its drawing bounds; retain the original focal scale and camera centre.
+  const expandedViewport = options.chatboxHidden && displayMode === "fixed" && chatboxTabRow
+    ? {
+        ...viewport,
+        rect: { ...viewport.rect, height: Math.max(viewport.rect.height, chatboxTabRow.rect.y - viewport.rect.y) },
+        projectionHeight: viewport.rect.height
+      }
+    : viewport;
 
   return {
     displayMode,
@@ -892,10 +911,10 @@ export function resolveNhFixedClientLayout(
         rootGroupId,
         displayMode === "resizable" ? NH_RESIZABLE_VIEWPORT_INTERFACE_CONTAINER_CHILD_ID : NH_FIXED_VIEWPORT_INTERFACE_CONTAINER_CHILD_ID
       ) ?? null,
-    viewport: resolveNhViewport(viewportWidget.rect, options.viewportFovZoom ?? options.cameraZoom),
+    viewport: expandedViewport,
     minimapWidget: findWidgetByContentType(resolvedWidgets, NH_MINIMAP_CONTENT_TYPE),
     compassWidget: findWidgetByContentType(resolvedWidgets, NH_COMPASS_CONTENT_TYPE),
-    chatbox: resolveNhChatbox(definitions, resolvedWidgets, displayMode, rootGroupId),
+    chatbox,
     sidePanel,
     sidePanelInterfaces,
     combatPanel: resolveNhCombatPanel(sidePanelInterfaces.combat ?? null),
@@ -1347,7 +1366,8 @@ function resolveNhCombatPanel(combatLayout: NhMountedInterfaceLayout | null): Nh
           childId: autoRetaliate.widget.childId,
           rect: autoRetaliate.rect,
           actionText: autoRetaliate.widget.actions?.[0] ?? "",
-          actions: autoRetaliate.widget.actions ?? []
+          actions: autoRetaliate.widget.actions ?? [],
+          text: combatTextLayout(findCombatWidget(34))
         }
       : null,
     specialBar:
@@ -1426,6 +1446,7 @@ function resolveNhEquipmentPanel(
       {
         id: spec.id,
         serverSlot: spec.serverSlot,
+        emptySpriteId: spec.emptySpriteId,
         groupId: NH_EQUIPMENT_GROUP_ID,
         widgetId: widget.widget.id,
         childId: widget.widget.childId,
@@ -1676,7 +1697,7 @@ function resolveNhSpellbookPanel(
       menuType: widget.widget.menuType ?? 0,
       clickMask,
       targetFlags: nhSpellTargetFlagsFromClickMask(clickMask),
-      spellActionName: widget.widget.spellActionName ?? "",
+      spellActionName: widget.widget.spellActionName || (widget.widget.actions?.[0] ?? ""),
       selectedSpellName: "",
       spellName,
       dataText,

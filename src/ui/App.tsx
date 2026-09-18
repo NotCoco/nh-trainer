@@ -240,7 +240,7 @@ export function App(): JSX.Element {
           </h1>
           <p className="nhSiteIntroStatement">
             Free OSRS-style NH PvP practice against a trained AI opponent, in your browser.
-            Practise tribrid gear switches, prayers, movement and supplies with NH stake and DMM setups.
+            Practise gear switches, prayers, movement and combos with NH stake, DMM, and Risk Fight setups.
           </p>
           <p className="nhSiteSourceLine">
             <a href="https://github.com/NotCoco/nh-trainer" target="_blank" rel="noreferrer">
@@ -267,9 +267,23 @@ export function App(): JSX.Element {
             <details className="nhSiteUpdatesDropdown" open>
               <summary>
                 <span>Latest update</span>
-                <strong>September 17, 2026</strong>
+                <strong>September 18, 2026</strong>
               </summary>
               <div className="nhSiteUpdateHistory">
+                <section className="nhSiteUpdateCard" aria-label="Updates - September 18, 2026">
+                  <span>Updates - September 18, 2026</span>
+                  <ul>
+                    <li>Released Risk Fight: practise Webweaver bow, granite maul, Elder maul, and Vengeance combos against its own trained opponent.</li>
+                    <li>Risk Fight arrows now have visible projectiles and distance-based hit timing, with off-PID hits landing one tick later.</li>
+                    <li>Added exact opponent hitpoints, including zero HP, to the default opponent panel.</li>
+                    <li>Clicking All hides the chatbox and reveals the world underneath without zooming or recentering the camera.</li>
+                    <li>Walking, eating, drinking, or equipping gear cancels granite-maul auto-targeting. Preloaded specs still release when you click the opponent.</li>
+                    <li>Fixed Risk Fight Vengeance level checks, food and incoming-hit ordering, and lethal melee PID ordering.</li>
+                    <li>Recoil rings now deplete correctly; the default Risk Fight kit includes a spare ring in place of one summer pie.</li>
+                    <li>Corrected equipment-slot placeholders, weapon-style icons, and the auto-retaliate label across all three modes.</li>
+                    <li>Improved initial prayer-tab loading, spell-reordering feedback, and Risk Fight's Lunar spellbook icons.</li>
+                  </ul>
+                </section>
                 <section className="nhSiteUpdateCard" aria-label="Updates - September 17, 2026">
                   <span>Updates - September 17, 2026</span>
                   <ul>

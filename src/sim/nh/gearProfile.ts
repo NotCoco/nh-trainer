@@ -89,13 +89,15 @@ const weaponItemById = {
   rune_crossbow: canonicalNhGear.runeCrossbow,
   magic_shortbow: canonicalNhGear.magicShortbow,
   dragon_crossbow: canonicalNhGear.dragonCrossbow,
+  webweaver_bow: canonicalNhGear.webweaverBow,
   tentacle_whip: canonicalNhLoadoutEquipment["tentacle-bandos"].weapon,
   abyssal_whip: canonicalNhGear.abyssalWhip,
   noxious_halberd: canonicalNhGear.noxiousHalberd,
   voidwaker: canonicalNhGear.voidwaker,
   vesta_longsword: canonicalNhGear.vestaLongsword,
   armadyl_godsword: canonicalNhLoadoutEquipment["ags-bandos"].weapon,
-  granite_maul: canonicalNhLoadoutEquipment["gmaul-bandos"].weapon
+  granite_maul: canonicalNhLoadoutEquipment["gmaul-bandos"].weapon,
+  elder_maul: canonicalNhGear.elderMaul
 } as const satisfies Readonly<Record<NhWeaponId, VisibleEquipmentItem>>;
 
 const vestaLongswordItemId = 22613;

@@ -24,7 +24,7 @@ const serverRoot = path.resolve(
   "ruin"
 );
 
-const viewerSource = await readRuntimeViewerSource();
+const viewerSource = readRuntimeViewerSource();
 for (const snippet of [
   "manualActorWithAuthoritativeSequenceCursor",
   "equipment updates only rebuild PlayerAppearance",

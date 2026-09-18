@@ -1,70 +1,53 @@
-// Extracted from the production runtime; shared helpers keep their existing behavior.
-import {
-  type RuntimeLoadoutId,
-  type RuntimeInventorySlot,
-  runtimeLoadouts,
-  type RuntimeHudState
-} from "../render/runtimeScene";
-import {
-  RUNTIME_NH_STAKE_ALLOWED_SETUP_ITEM_IDS
-} from "./runtimeSetupPresets";
+// Saved client preferences. Keep storage keys and legacy migrations stable.
 import {
   type NhClientDisplayMode,
   type NhSpellbookId
 } from "../render/nhFixedLayout";
 import {
-  type RunelitePvpFightHistoryEntrySnapshot,
+  runtimeLoadouts,
+  type RuntimeInventorySlot,
+  type RuntimeHudState,
+  type RuntimeLoadoutId
+} from "../render/runtimeScene";
+import {
+  RUNELITE_FIXED_CLIENT_HEIGHT,
+  RUNELITE_FIXED_CLIENT_WIDTH,
   RUNELITE_PLUGIN_TOOLBAR_WIDTH,
   RUNELITE_PLUGIN_WRAPPED_WIDTH,
-  RUNELITE_FIXED_CLIENT_WIDTH,
-  RUNELITE_FIXED_CLIENT_HEIGHT
+  type RunelitePvpFightHistoryEntrySnapshot
 } from "./RuneliteClientShell";
-
-
+import {
+  RUNTIME_NH_STAKE_ALLOWED_SETUP_ITEM_IDS,
+  RUNTIME_TRAINER_SETUP_PRESETS,
+  type RuntimeTrainerSetupId,
+  type RuntimeTrainerSetupPreset
+} from "./runtimeSetupPresets";
 export interface TemporarySavedSetupSnapshot {
   readonly version: 1;
+  readonly setupId?: RuntimeTrainerSetupId;
   readonly savedAt: number;
   readonly loadoutId: RuntimeLoadoutId;
   readonly inventory: readonly (RuntimeInventorySlot | null)[];
   readonly equipment: readonly (readonly [number, number])[];
 }
-
 export const NH_TRAINER_ATTACK_SET_STORAGE_KEY = "nhTrainer.attackSet.v1";
-
 export const NH_AUTO_RETALIATE_STORAGE_KEY = "nhTrainer.autoRetaliate.v1";
-
 export const LEGACY_AUTO_RETALIATE_STORAGE_KEYS = ["source.autoRetaliate.v1"] as const;
-
 export const NH_SOUND_EFFECT_VOLUME_STORAGE_KEY = "nhTrainer.soundEffectVolume.var169.v1";
-
 export const NH_AREA_SOUND_EFFECT_VOLUME_STORAGE_KEY = "nhTrainer.areaSoundEffectVolume.var872.v1";
-
 export const NH_TEST_MUTED_STORAGE_KEY = "nhTrainer.testMuted.v1";
-
 export const NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY = "nhTrainer.temporaryNhStakeSetup.v1";
-
 export const NH_TRAINER_PVP_FIGHT_HISTORY_STORAGE_KEY = "nhTrainer.pvpFightHistory.v1";
-
 export const NH_TRAINER_BROWSER_CLIENT_WINDOW_STORAGE_KEY = "nhTrainer.browserClientWindow.v2";
-
 export const NH_TRAINER_CLIENT_DISPLAY_MODE_STORAGE_KEY = "nhTrainer.clientDisplayMode.v1";
-
 export const NH_TRAINER_PRAYER_REORDER_ENABLED_STORAGE_KEY = "nhTrainer.prayerReorder.enabled.v1";
-
 export const NH_TRAINER_PRAYER_REORDER_ORDER_STORAGE_KEY = "nhTrainer.prayerReorder.order.v1";
-
 export const NH_TRAINER_SPELLBOOK_REORDER_ENABLED_STORAGE_KEY = "nhTrainer.spellbookReorder.enabled.v1";
-
 export const NH_TRAINER_SPELLBOOK_REORDER_ORDERS_STORAGE_KEY = "nhTrainer.spellbookReorder.orders.v1";
-
 export const NH_TRAINER_PVP_FIGHT_HISTORY_LIMIT = 50;
-
 export const BROWSER_CLIENT_WINDOW_TITLEBAR_HEIGHT = 24;
-
 export const BROWSER_CLIENT_WINDOW_MIN_WIDTH = 420;
-
 export const BROWSER_CLIENT_WINDOW_MIN_HEIGHT = 300;
-
 
 export function isRuntimeInventorySlot(value: unknown): value is RuntimeInventorySlot | null {
   if (value === null) {
@@ -83,16 +66,13 @@ export function isRuntimeInventorySlot(value: unknown): value is RuntimeInventor
   );
 }
 
-
 export function isRuntimeInventory(value: unknown): value is readonly (RuntimeInventorySlot | null)[] {
   return Array.isArray(value) && value.every(isRuntimeInventorySlot);
 }
 
-
 export function isRuntimeLoadoutId(value: unknown): value is RuntimeLoadoutId {
   return typeof value === "string" && runtimeLoadouts.some((loadout) => loadout.id === value);
 }
-
 
 export function isTemporarySavedSetupSnapshot(value: unknown): value is TemporarySavedSetupSnapshot {
   if (!value || typeof value !== "object") {
@@ -101,6 +81,7 @@ export function isTemporarySavedSetupSnapshot(value: unknown): value is Temporar
   const snapshot = value as Partial<TemporarySavedSetupSnapshot>;
   return (
     snapshot.version === 1 &&
+    (snapshot.setupId === undefined || Object.prototype.hasOwnProperty.call(RUNTIME_TRAINER_SETUP_PRESETS, snapshot.setupId)) &&
     typeof snapshot.savedAt === "number" &&
     isRuntimeLoadoutId(snapshot.loadoutId) &&
     isRuntimeInventory(snapshot.inventory) &&
@@ -119,7 +100,6 @@ export function isTemporarySavedSetupSnapshot(value: unknown): value is Temporar
   );
 }
 
-
 export function readStoredAttackSetIndex(): number | null {
   try {
     const raw = window.localStorage.getItem(NH_TRAINER_ATTACK_SET_STORAGE_KEY);
@@ -131,7 +111,6 @@ export function readStoredAttackSetIndex(): number | null {
   return null;
 }
 
-
 export function writeStoredAttackSetIndex(attackSetIndex: number): void {
   try {
     window.localStorage.setItem(NH_TRAINER_ATTACK_SET_STORAGE_KEY, String(Math.max(0, Math.min(3, Math.trunc(attackSetIndex)))));
@@ -139,7 +118,6 @@ export function writeStoredAttackSetIndex(attackSetIndex: number): void {
     // Non-fatal in restricted browser contexts.
   }
 }
-
 
 export function readStoredAutoRetaliate(): boolean | null {
   try {
@@ -156,7 +134,6 @@ export function readStoredAutoRetaliate(): boolean | null {
   return null;
 }
 
-
 export function writeStoredAutoRetaliate(enabled: boolean): void {
   try {
     window.localStorage.setItem(NH_AUTO_RETALIATE_STORAGE_KEY, String(enabled));
@@ -165,14 +142,12 @@ export function writeStoredAutoRetaliate(enabled: boolean): void {
   }
 }
 
-
 export function normalizeStoredOptionsSoundVolume(value: number): number {
   if (!Number.isFinite(value)) {
     return 4;
   }
   return Math.round(Math.max(0, Math.min(4, value)) * 100) / 100;
 }
-
 
 export function readStoredOptionsSoundVolume(key: string): number | null {
   try {
@@ -185,7 +160,6 @@ export function readStoredOptionsSoundVolume(key: string): number | null {
   return null;
 }
 
-
 export function writeStoredOptionsSoundVolume(key: string, volume: number): void {
   try {
     window.localStorage.setItem(key, String(normalizeStoredOptionsSoundVolume(volume)));
@@ -193,7 +167,6 @@ export function writeStoredOptionsSoundVolume(key: string, volume: number): void
     // Non-fatal in restricted browser contexts.
   }
 }
-
 
 export function readStoredClientDisplayMode(): NhClientDisplayMode {
   try {
@@ -204,7 +177,6 @@ export function readStoredClientDisplayMode(): NhClientDisplayMode {
   }
 }
 
-
 export function writeStoredClientDisplayMode(displayMode: NhClientDisplayMode): void {
   try {
     window.localStorage.setItem(NH_TRAINER_CLIENT_DISPLAY_MODE_STORAGE_KEY, displayMode);
@@ -212,7 +184,6 @@ export function writeStoredClientDisplayMode(displayMode: NhClientDisplayMode): 
     // Non-fatal in restricted browser contexts.
   }
 }
-
 
 export function readStoredLocalProfileValue(primaryKey: string, legacyKeys: readonly string[] = []): string | null {
   const current = window.localStorage.getItem(primaryKey);
@@ -229,7 +200,6 @@ export function readStoredLocalProfileValue(primaryKey: string, legacyKeys: read
   return null;
 }
 
-
 export function readStoredBoolean(key: string): boolean {
   try {
     return window.localStorage.getItem(key) === "true";
@@ -238,7 +208,6 @@ export function readStoredBoolean(key: string): boolean {
   }
 }
 
-
 export function writeStoredBoolean(key: string, enabled: boolean): void {
   try {
     window.localStorage.setItem(key, String(enabled));
@@ -246,7 +215,6 @@ export function writeStoredBoolean(key: string, enabled: boolean): void {
     // Non-fatal in restricted browser contexts.
   }
 }
-
 
 export function readStoredStringArray(key: string): readonly string[] {
   try {
@@ -261,7 +229,6 @@ export function readStoredStringArray(key: string): readonly string[] {
   }
 }
 
-
 export function writeStoredStringArray(key: string, values: readonly string[]): void {
   try {
     window.localStorage.setItem(key, JSON.stringify(values));
@@ -269,7 +236,6 @@ export function writeStoredStringArray(key: string, values: readonly string[]): 
     // Non-fatal in restricted browser contexts.
   }
 }
-
 
 export function readStoredSpellbookOrders(): Partial<Record<NhSpellbookId, readonly string[]>> {
   try {
@@ -294,7 +260,6 @@ export function readStoredSpellbookOrders(): Partial<Record<NhSpellbookId, reado
   }
 }
 
-
 export function writeStoredSpellbookOrders(orders: Partial<Record<NhSpellbookId, readonly string[]>>): void {
   try {
     window.localStorage.setItem(NH_TRAINER_SPELLBOOK_REORDER_ORDERS_STORAGE_KEY, JSON.stringify(orders));
@@ -302,7 +267,6 @@ export function writeStoredSpellbookOrders(orders: Partial<Record<NhSpellbookId,
     // Non-fatal in restricted browser contexts.
   }
 }
-
 
 export function initialHudOverrideFromStorage(): Partial<RuntimeHudState> | null {
   const attackSet = typeof window === "undefined" ? null : readStoredAttackSetIndex();
@@ -327,44 +291,78 @@ export function initialHudOverrideFromStorage(): Partial<RuntimeHudState> | null
   };
 }
 
+export function temporarySavedSetupStorageKey(setupId: RuntimeTrainerSetupId): string {
+  return `${NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY}.${setupId}`;
+}
 
-export function readTemporarySavedSetupSnapshot(): TemporarySavedSetupSnapshot | null {
+export function temporarySavedSetupId(snapshot: TemporarySavedSetupSnapshot): RuntimeTrainerSetupId | null {
+  if (snapshot.setupId) {
+    return snapshot.setupId;
+  }
+  // Older saves shared one key without a fight type. Only reuse them when their
+  // items identify a single preset, so a saved risk kit cannot become an NH/DMM kit.
+  const savedItems = new Set([
+    ...snapshot.inventory.flatMap((slot) => slot ? [slot.itemId] : []),
+    ...snapshot.equipment.map(([, itemId]) => itemId)
+  ]);
+  const presets = Object.values(RUNTIME_TRAINER_SETUP_PRESETS);
+  const presetItems = (setup: RuntimeTrainerSetupPreset): number[] => [
+    ...setup.inventorySlots.flatMap((slot) => slot ? [slot.itemId] : []),
+    ...setup.equipmentEntries.map(([, itemId]) => itemId)
+  ];
+  const matches = presets.filter((setup) => {
+    const otherItems = new Set(presets.filter((other) => other.id !== setup.id).flatMap(presetItems));
+    return presetItems(setup).some((itemId) => savedItems.has(itemId) && !otherItems.has(itemId));
+  });
+  return matches.length === 1 ? matches[0].id : null;
+}
+
+export function readTemporarySavedSetupSnapshot(setupId: RuntimeTrainerSetupId): TemporarySavedSetupSnapshot | null {
   try {
-    const raw = window.localStorage.getItem(NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY);
-    if (!raw) {
-      return null;
+    for (const key of [temporarySavedSetupStorageKey(setupId), NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY]) {
+      const raw = window.localStorage.getItem(key);
+      if (!raw) {
+        continue;
+      }
+      const parsed = JSON.parse(raw);
+      if (isTemporarySavedSetupSnapshot(parsed) && temporarySavedSetupId(parsed) === setupId) {
+        return { ...parsed, setupId };
+      }
     }
-    const parsed = JSON.parse(raw);
-    if (isTemporarySavedSetupSnapshot(parsed)) {
-      return parsed;
-    }
-    window.localStorage.removeItem(NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY);
   } catch {
     return null;
   }
   return null;
 }
 
-
 export function writeTemporarySavedSetupSnapshot(snapshot: TemporarySavedSetupSnapshot): boolean {
+  const setupId = temporarySavedSetupId(snapshot);
+  if (!setupId || !isTemporarySavedSetupSnapshot(snapshot)) {
+    return false;
+  }
   try {
-    window.localStorage.setItem(NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY, JSON.stringify(snapshot));
+    window.localStorage.setItem(temporarySavedSetupStorageKey(setupId), JSON.stringify({ ...snapshot, setupId }));
     return true;
   } catch {
     return false;
   }
 }
 
-
-export function clearTemporarySavedSetupSnapshot(): boolean {
+export function clearTemporarySavedSetupSnapshot(setupId: RuntimeTrainerSetupId): boolean {
   try {
-    window.localStorage.removeItem(NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY);
+    window.localStorage.removeItem(temporarySavedSetupStorageKey(setupId));
+    const legacyRaw = window.localStorage.getItem(NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY);
+    if (legacyRaw) {
+      const legacy = JSON.parse(legacyRaw);
+      if (isTemporarySavedSetupSnapshot(legacy) && temporarySavedSetupId(legacy) === setupId) {
+        window.localStorage.removeItem(NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY);
+      }
+    }
     return true;
   } catch {
     return false;
   }
 }
-
 
 export function readStoredRunelitePvpFightHistory(): readonly RunelitePvpFightHistoryEntrySnapshot[] {
   try {
@@ -381,7 +379,6 @@ export function readStoredRunelitePvpFightHistory(): readonly RunelitePvpFightHi
   }
 }
 
-
 export function writeStoredRunelitePvpFightHistory(entries: readonly RunelitePvpFightHistoryEntrySnapshot[]): void {
   try {
     window.localStorage.setItem(
@@ -392,7 +389,6 @@ export function writeStoredRunelitePvpFightHistory(entries: readonly RunelitePvp
     // Browser storage can be disabled; the live tracker still works for the current session.
   }
 }
-
 
 export function isRunelitePvpFightHistoryEntrySnapshot(value: unknown): value is RunelitePvpFightHistoryEntrySnapshot {
   if (!value || typeof value !== "object") {
@@ -411,14 +407,12 @@ export function isRunelitePvpFightHistoryEntrySnapshot(value: unknown): value is
   );
 }
 
-
 export interface BrowserClientWindowBounds {
   readonly x: number;
   readonly y: number;
   readonly width: number;
   readonly height: number;
 }
-
 
 export function readBrowserClientWindowBounds(): BrowserClientWindowBounds {
   try {
@@ -435,7 +429,6 @@ export function readBrowserClientWindowBounds(): BrowserClientWindowBounds {
   return defaultBrowserClientWindowBounds();
 }
 
-
 export function writeBrowserClientWindowBounds(bounds: BrowserClientWindowBounds): void {
   try {
     window.localStorage.setItem(NH_TRAINER_BROWSER_CLIENT_WINDOW_STORAGE_KEY, JSON.stringify(bounds));
@@ -443,7 +436,6 @@ export function writeBrowserClientWindowBounds(bounds: BrowserClientWindowBounds
     // Non-fatal in restricted browser contexts.
   }
 }
-
 
 export function isBrowserClientWindowBounds(value: unknown): value is BrowserClientWindowBounds {
   if (!value || typeof value !== "object") {
@@ -461,7 +453,6 @@ export function isBrowserClientWindowBounds(value: unknown): value is BrowserCli
     Number.isFinite(bounds.height)
   );
 }
-
 
 export function defaultBrowserClientWindowBounds(): BrowserClientWindowBounds {
   const viewportWidth = typeof window === "undefined" ? 1200 : window.innerWidth;
@@ -482,7 +473,6 @@ export function defaultBrowserClientWindowBounds(): BrowserClientWindowBounds {
   });
 }
 
-
 export function clampBrowserClientWindowBounds(bounds: BrowserClientWindowBounds): BrowserClientWindowBounds {
   const viewportWidth = typeof window === "undefined" ? bounds.width : window.innerWidth;
   const viewportHeight = typeof window === "undefined" ? bounds.height : window.innerHeight;
@@ -501,7 +491,6 @@ export function clampBrowserClientWindowBounds(bounds: BrowserClientWindowBounds
     y: Math.max(0, Math.min(Math.max(0, viewportHeight - height), Math.round(bounds.y)))
   };
 }
-
 
 /**
  * Fixed-mode snap: when RuneLite Stretched Mode is off, the client stays at exactly 765x503 (1:1).
@@ -525,7 +514,6 @@ export function browserClientWindowFixedSnapSize(
     height: RUNELITE_FIXED_CLIENT_HEIGHT + BROWSER_CLIENT_WINDOW_TITLEBAR_HEIGHT
   };
 }
-
 
 export function clampBrowserClientWindowBoundsWithFixedSnap(
   bounds: BrowserClientWindowBounds,

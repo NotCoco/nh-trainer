@@ -46,3 +46,4 @@ export const botBoundary = {
 } as const;
 
 export * from "./policy";
+export * from "./riskfight-policy";

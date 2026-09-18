@@ -28,7 +28,7 @@ const clientSourceRoot = process.env.NH_CLIENT_SOURCE_ROOT
   : path.join(workspaceRoot, `${legacySourceName}184-Client`, "runelite-client", "src", "main");
 const clientStandaloneRoot = path.join(clientSourceRoot, "java", "net", "runelite", "standalone");
 
-const runtimeSource = await readRuntimeViewerSource();
+const runtimeSource = readRuntimeViewerSource();
 for (const snippet of [
   'readonly kind: "attack" | "spell"',
   "queuePlayerSpellAfterPendingItemPackets",

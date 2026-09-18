@@ -32,7 +32,8 @@ export interface StyleEvInput {
   readonly defenderLevels: CombatLevels;
   readonly attackerBonuses: BonusTable;
   readonly defenderBonuses: BonusTable;
-  readonly attackType?: "accurate" | "aggressive" | "controlled" | "rapid_ranged" | "long_ranged";
+  readonly attackType?: "accurate" | "aggressive" | "controlled" | "defensive" | "rapid_ranged" | "long_ranged";
+  readonly defenderAttackType?: StyleEvInput["attackType"];
   readonly attackBoostMultiplier?: number;
   readonly defenceBoostMultiplier?: number;
   readonly magicDefenceBoostMultiplier?: number;
@@ -192,7 +193,7 @@ export function estimateStyleEv(input: StyleEvInput): StyleEvEstimate {
     input.defenderLevels,
     input.defenderBonuses,
     input.style,
-    input.attackType,
+    input.defenderAttackType ?? input.attackType,
     input.defenceBoostMultiplier ?? 1,
     input.magicDefenceBoostMultiplier ?? 1
   );

@@ -25,6 +25,7 @@ import {
 import { nhWeaponProfiles } from "../combat/player-combat";
 import {
   activateRuntimePlayerCombatVengeanceTrinket,
+  castRuntimePlayerCombatVengeanceSpell,
   consumeRuntimePlayerCombatSupply,
   delayRuntimePlayerCombatActorAttack,
   requestRuntimePlayerCombatAttack,
@@ -42,6 +43,11 @@ import {
   type RuntimePlayerCombatEvent,
   type RuntimePlayerCombatState
 } from "../runtimePlayerCombat";
+import {
+  isRiskFightPolicyController,
+  type RiskFightPolicyController
+} from "../../bot/riskfight-policy";
+import { applyRiskFightMainAction, applyRiskFightMovement, riskFightMovementTile, type RiskFightPolicyRuntimeInput } from "./riskfight";
 import { canMeleeStepInReachNextTick, type TilePosition } from "../world/movement";
 import {
   createNhDuelControllerContext,
@@ -260,6 +266,7 @@ export type RuntimePolicyTargetRouteStepPredicate = (
 ) => RuntimeTile | null;
 
 export interface RuntimePolicyOpponentResult {
+  readonly pendingRiskFightMovementTile?: RuntimeTile | null;
   readonly state: RuntimePlayerCombatState;
   readonly action: NhPolicyAction;
   readonly effectiveAction: NhPolicyAction;
@@ -292,16 +299,20 @@ export function applyRuntimeOpponentPolicyAction(input: {
   readonly tileScale?: number;
   readonly selfPlayMode?: boolean;
   readonly allowSourceLoadoutSync?: boolean;
+  readonly deferRiskFightMovement?: boolean;
 }): RuntimePolicyOpponentResult {
+  const riskFightMode = isRiskFightPolicyController(input.controller);
   const dmmDeployedCompositeMode = runtimePolicyControllerUsesDmmDeployedComposite(input.controller);
   const deployedLegacyMode = dmmDeployedCompositeMode || input.controller.policyDecoder === "nh-deployed-legacy";
-  const stateWithPendingOutcome = runtimePolicyApplyPendingGmaulSpecOutcome(
-    input.state,
-    "opponent",
-    "local-player",
-    input.rewardEpisodeActive,
-    input.rewardEpisodeStartTick
-  );
+  const stateWithPendingOutcome = riskFightMode
+    ? input.state
+    : runtimePolicyApplyPendingGmaulSpecOutcome(
+        input.state,
+        "opponent",
+        "local-player",
+        input.rewardEpisodeActive,
+        input.rewardEpisodeStartTick
+      );
   const scale = normalizeRuntimePolicyTileScale(input.tileScale) ?? runtimePolicyTileScale(input.localActor.tile, input.opponentActor.tile);
   const localGearProfile = inferNhSelectedGearProfile({
     equipment: input.localActor.equipment ?? stateWithPendingOutcome.actors["local-player"].equipment,
@@ -391,17 +402,21 @@ export function applyRuntimeOpponentPolicyAction(input: {
   // actions may leave the weapon momentarily stripped, and the recovery would
   // otherwise swap the DMM opponent into the NH stake setup mid-fight.
   const stateWithRecoveredLoadout =
-    input.controller.defencePrayerStrictModelChoice === true
+    riskFightMode || input.controller.defencePrayerStrictModelChoice === true
       ? stateWithSyncedGearProfile
       : runtimePolicyPerformEmergencyRecovery(stateWithSyncedGearProfile, "opponent", syncedOpponentGearProfile);
-  const stateWithRewardShaping = runtimePolicyApplyTickRewardShaping(
-    stateWithRecoveredLoadout,
-    input,
-    scale,
-    localGearProfile,
-    syncedOpponentGearProfile
-  );
-  const stateWithPrayer = runtimePolicyEnsurePrayerPoints(stateWithRewardShaping, "opponent");
+  const stateWithRewardShaping = riskFightMode
+    ? stateWithRecoveredLoadout
+    : runtimePolicyApplyTickRewardShaping(
+        stateWithRecoveredLoadout,
+        input,
+        scale,
+        localGearProfile,
+        syncedOpponentGearProfile
+      );
+  const stateWithPrayer = riskFightMode
+    ? stateWithRewardShaping
+    : runtimePolicyEnsurePrayerPoints(stateWithRewardShaping, "opponent");
   const localObservation = {
     ...runtimePolicyActorObservation(stateWithPrayer, "local-player", input.rewardEpisodeStartTick),
     estimatedSpecialEnergy: runtimePolicyOpponentSpecialEnergyEstimate(
@@ -434,7 +449,9 @@ export function applyRuntimeOpponentPolicyAction(input: {
     "policy-self",
     stateWithPrayer.tick
   );
-  const scriptedFreezeAttempt = runtimePolicyResolveScriptedFreezeAttempt(stateWithPrayer, "opponent", localPolicyActor);
+  const scriptedFreezeAttempt = riskFightMode
+    ? { state: stateWithPrayer, wantsFreeze: false }
+    : runtimePolicyResolveScriptedFreezeAttempt(stateWithPrayer, "opponent", localPolicyActor);
   const stateWithScriptedFreezeAttempt = scriptedFreezeAttempt.state;
   const context = runtimePolicyContextWithVisibleVoidwakerLikelyStyle(
     createNhDuelControllerContext(stateWithScriptedFreezeAttempt.tick, opponentPolicyActor, localPolicyActor, {
@@ -443,6 +460,15 @@ export function applyRuntimeOpponentPolicyAction(input: {
       scriptedWantsFreeze: scriptedFreezeAttempt.wantsFreeze
     })
   );
+  if (riskFightMode) {
+    return applyRuntimeRiskFightOpponentAction({
+      input,
+      state: stateWithScriptedFreezeAttempt,
+      context,
+      controller: input.controller,
+      scale
+    });
+  }
   const action = input.controller.chooseAction(context);
   const contextGuardedAction = runtimePolicyActionWithContextGuards(
     action,
@@ -729,7 +755,8 @@ export function applyRuntimeOpponentPolicyAction(input: {
     effectiveAction,
     controllerId: input.controller.id,
     context,
-    // Special attacks can switch weapons after the style actions; sync the final loadout.
+    // Explicit special attacks can switch weapons after the style/gear actions.
+    // The viewer must sync the final loadout or it restores that stale NH preset.
     opponentLoadoutId: state.actors.opponent.loadoutId,
     opponentTile: magicLineOfSightResult.opponentTile,
     opponentMovedThisTick: magicLineOfSightResult.moved,
@@ -739,6 +766,65 @@ export function applyRuntimeOpponentPolicyAction(input: {
     nextRepositionTick: magicLineOfSightResult.nextRepositionTick,
     consumedSupplies: supplyResult.consumed,
     strippedEquipmentSlots: equipmentResult.strippedSlots
+  };
+}
+
+function applyRuntimeRiskFightOpponentAction(input: {
+  readonly input: Parameters<typeof applyRuntimeOpponentPolicyAction>[0];
+  readonly state: RuntimePlayerCombatState;
+  readonly context: NhDuelControllerContext;
+  readonly controller: RiskFightPolicyController;
+  readonly scale: number;
+}): RuntimePolicyOpponentResult {
+  const view = input.input.localActor;
+  const currentOpponent = input.state.actors["local-player"];
+  // Match NH's completed-prior-tick appearance rather than reading a player's
+  // equipment or movement packet already applied during this decision tick.
+  const observedOpponent = {
+    ...currentOpponent,
+    tile: view.tile,
+    equipment: view.equipment ?? currentOpponent.equipment,
+    hitpoints: view.stats?.hitpoints.current ?? currentOpponent.hitpoints,
+    maxHitpoints: view.stats?.hitpoints.fixed ?? currentOpponent.maxHitpoints
+  };
+  const routeContext = { movementIntent: "pressure", targetTile: observedOpponent.tile, allowTargetTile: false } as const;
+  const runtimeInput: RiskFightPolicyRuntimeInput = {
+    state: input.state,
+    selfId: "opponent",
+    opponentId: "local-player",
+    episodeStartTick: input.input.rewardEpisodeStartTick ?? input.state.combatStartTick,
+    maxEpisodeTicks: 360,
+    tileScale: input.scale,
+    observedOpponent,
+    canStep: input.input.canStep ? (from, to) => input.input.canStep!(from, to, routeContext) : undefined,
+    routeToward: input.input.targetRouteStep ? (from, target) => input.input.targetRouteStep!(from, target, 1, routeContext) : undefined,
+    projectileLineOfSight: input.input.projectileLineOfSight?.(input.state.actors.opponent.tile, observedOpponent.tile)
+  };
+  const decision = input.controller.chooseRuntimeAction(runtimeInput);
+  const pendingRiskFightMovementTile = input.input.deferRiskFightMovement
+    ? riskFightMovementTile(runtimeInput, decision.movementAction) : undefined;
+  const result = applyRiskFightMainAction(input.state, "opponent", decision.mainAction);
+  const state = input.input.deferRiskFightMovement ? result.state
+    : applyRiskFightMovement({ ...runtimeInput, state: result.state }, decision.movementAction);
+  const previousTile = input.state.actors.opponent.tile;
+  const opponentTile = state.actors.opponent.tile;
+  const moved = !sameRuntimePolicyTile(previousTile, opponentTile);
+  return {
+    state,
+    action: decision.action,
+    pendingRiskFightMovementTile,
+    effectiveAction: decision.action,
+    controllerId: input.controller.id,
+    context: input.context,
+    opponentLoadoutId: state.actors.opponent.loadoutId,
+    opponentTile,
+    opponentMovedThisTick: moved,
+    opponentLastMoveDx: moved ? Math.sign(opponentTile.x - previousTile.x) : 0,
+    opponentLastMoveDy: moved ? Math.sign(opponentTile.z - previousTile.z) : 0,
+    movementBlockedReason: !moved && !pendingRiskFightMovementTile && decision.movementAction !== "HOLD" ? "risk-movement-blocked" : null,
+    nextRepositionTick: 0,
+    consumedSupplies: result.consumedSupplies,
+    strippedEquipmentSlots: []
   };
 }
 
@@ -3991,10 +4077,14 @@ function runtimePolicySuppliesForInventorySlots(
     shark: 0,
     anglerfish: 0,
     karambwan: 0,
+    summer_pie: 0,
+    halibut: 0,
+    marlin: 0,
     saradomin_brew: 0,
     super_restore: 0,
     sanfew_serum: 0,
     super_combat: 0,
+    super_ranging: 0,
     ranging_potion: 0,
     bastion: 0
   };
@@ -4062,6 +4152,7 @@ function runtimePolicyPerformEmergencyRecovery(
           gmaulEquippedTick: undefined,
           specBarVisibleTick: undefined,
           queuedSpecs: 0,
+          preloaded: false,
           timeoutTicks: 0,
           specialEnergy: 100,
           queuedTargetId: undefined
@@ -6547,17 +6638,6 @@ function runtimePolicyPressureApproachTile(input: {
     });
   }
   return stepTowardRuntimePolicyTile(input.opponentTile, input.localTile, input.scale, false);
-}
-
-function runtimePolicyMeleeTargetRouteRange(actor: NhDuelActorState): number {
-  const weaponId =
-    actor.gearProfile?.meleeWeaponId ??
-    nhGearProfileWeaponIdForEquipment(actor.candidateEquipmentByStyle?.slash ?? actor.equipment) ??
-    actor.weaponId;
-  const profile = nhWeaponProfiles[weaponId];
-  return profile.style === "stab" || profile.style === "slash" || profile.style === "crush"
-    ? profile.attackRange
-    : 1;
 }
 
 function runtimePolicyDirectionalStepWouldStarveTargetRoute(

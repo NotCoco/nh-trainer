@@ -28,7 +28,7 @@ for (const anchor of [
   "writeStoredAutoRetaliate(nextEnabled)",
   'NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY = "nhTrainer.temporaryNhStakeSetup.v1"',
   "interface TemporarySavedSetupSnapshot",
-  "readTemporarySavedSetupSnapshot()",
+  "readTemporarySavedSetupSnapshot(runtimeSetupPresetIdRef.current)",
   "writeTemporarySavedSetupSnapshot(snapshot)",
   "applyTemporarySavedSetupSnapshot(snapshot, \"startup\")",
   "saveTemporaryCurrentSetup",

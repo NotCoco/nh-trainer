@@ -2,8 +2,8 @@ import equipmentRowsJson from "../generated/equipment-bonuses.json";
 import type { RuntimeActorId, RuntimeLoadoutId, RuntimeSequenceName, RuntimeTile } from "../render/runtimeScene";
 import { nhPlayerHealthBarDefinition } from "../render/nhHealthBars";
 import { NH_HITSPLAT_DEFAULT_DURATION_CYCLES } from "../render/nhHitsplats";
-import { hitChance as combatHitChance, type CombatLevels, type CombatStyle, type StyleEvEstimate } from "./combat/formulas";
-import { dispatchPlayerAttack, nhWeaponProfiles, playerAttackGate, type WeaponTimingProfile } from "./combat/player-combat";
+import { hitChance as combatHitChance, type CombatLevels, type CombatStyle, type StyleEvInput, type StyleEvEstimate } from "./combat/formulas";
+import { dispatchPlayerAttack, nhWeaponProfiles, playerAttackGate, type DispatchAttackResult, type WeaponTimingProfile } from "./combat/player-combat";
 import {
   clearQueuedGmaulSpecs,
   consumeQueuedGmaulSpecs,
@@ -127,9 +127,18 @@ export interface RuntimePlayerCombatActorState {
   readonly conflictionMagicAccuracyUntilTick: number;
   readonly vengeanceActive: boolean;
   readonly vengeanceCooldownUntilTick: number;
+  /** Regular Lunar Vengeance casts remaining in the carried rune pouch. */
+  readonly vengeanceRuneCastsRemaining: number;
+  readonly lastVengeanceSpellCastTick: number;
+  readonly vengeanceSpellCasts: number;
   readonly vengeanceTrinketCharges: number;
   readonly lastVengeanceTrinketCastTick: number;
   readonly vengeanceTrinketCasts: number;
+  // Source: RingOfRecoil.check() reflects ceil(damage * 0.1) per hit taken while
+  // charges remain; the ring shatters after 40 total reflected damage.
+  readonly recoilCharges: number;
+  /** Total unbroken recoil rings, including the equipped ring. */
+  readonly recoilRingsRemaining: number;
   readonly actionSequenceName: RuntimeSequenceName | null;
   readonly actionStartedAtTick: number | null;
   readonly actionStartedAtClientCycle: number | null;
@@ -151,6 +160,7 @@ export interface RuntimePlayerQueuedHit {
   readonly attackType: RuntimePlayerCombatAttackType;
   readonly attackSetIndex: number;
   readonly weaponId?: NhWeaponId;
+  readonly projectileProfileId?: RuntimePlayerCombatProjectileProfile["id"];
   readonly spellId?: RuntimePlayerCombatSpellId;
   readonly autocast?: boolean;
   readonly defensiveCast?: boolean;
@@ -163,6 +173,7 @@ export interface RuntimePlayerQueuedHit {
   readonly bloodHealFraction?: number;
   readonly bloodHealMultiplier?: number;
   readonly boltEffect?: RuntimePlayerCombatBoltEffect;
+  readonly defenceDrainFraction?: number;
 }
 
 export interface RuntimePlayerCombatProjectileProfile {
@@ -173,7 +184,12 @@ export interface RuntimePlayerCombatProjectileProfile {
     | "blood_blitz_projectile"
     | "standard_bolt"
     | "dragon_bolt"
-    | "armadyl_crossbow_special";
+    | "armadyl_crossbow_special"
+    | "webweaver_arrow"
+    | "webweaver_swarm_1"
+    | "webweaver_swarm_2"
+    | "webweaver_swarm_3"
+    | "webweaver_swarm_4";
   readonly artifactUrl: string;
   readonly gfxId: number;
   readonly startHeight: number;
@@ -193,7 +209,9 @@ export type RuntimePlayerCombatSpecialAttackId =
   | "armadyl_godsword"
   | "granite_maul"
   | "voidwaker"
-  | "vesta_longsword";
+  | "vesta_longsword"
+  | "webweaver_bow"
+  | "elder_maul";
 
 export type RuntimePlayerCombatBoltEffectId = "diamond" | "dragonstone" | "onyx";
 export type RuntimePlayerCombatSpellId = "blood-blitz" | "ice-blitz" | "blood-barrage" | "ice-barrage";
@@ -300,6 +318,7 @@ export type RuntimePlayerCombatEvent =
       readonly soundIds?: readonly number[];
       readonly projectileDurationCycles?: number;
       readonly projectile?: RuntimePlayerCombatProjectileProfile;
+      readonly projectileProfiles?: readonly RuntimePlayerCombatProjectileProfile[];
       readonly defenderProtectionPrayer?: ProtectionPrayerId;
       readonly attackerActivePrayers: readonly PrayerId[];
       readonly attackerEquipment: VisibleEquipment;
@@ -493,6 +512,7 @@ export interface RuntimePlayerCombatTargetRouteProfile {
 }
 
 export interface RuntimePlayerCombatState {
+  readonly riskFight?: boolean;
   readonly tick: number;
   readonly combatStartTick: number;
   readonly zurielsStaffCastCooldownTicks?: 4 | 5;
@@ -591,10 +611,14 @@ export const runtimePlayerCombatDefaultSupplies: RuntimePlayerCombatSupplies = {
   shark: 0,
   anglerfish: 1,
   karambwan: 0,
+  summer_pie: 0,
+  halibut: 0,
+  marlin: 0,
   saradomin_brew: 12,
   super_restore: 0,
   sanfew_serum: 8,
   super_combat: 4,
+  super_ranging: 0,
   ranging_potion: 0,
   bastion: 4
 };
@@ -699,6 +723,21 @@ const projectileProfiles = {
     offset: 11,
     skipTravel: false
   },
+  // Source: RangedWeapon.WEBWEAVER_BOW / Projectile.arrow(1574).
+  webweaver: {
+    id: "webweaver_arrow",
+    artifactUrl: "render/spotanims/webweaver_arrow.glb",
+    gfxId: 1574,
+    startHeight: 40,
+    endHeight: 36,
+    delayCycles: 41,
+    durationStartCycles: 51,
+    durationIncrementCycles: 5,
+    clientCycleRate: nhDefaultProjectileCycleRate,
+    curve: 15,
+    offset: 11,
+    skipTravel: false
+  },
   armadylCrossbowSpecial: {
     id: "armadyl_crossbow_special",
     artifactUrl: "render/spotanims/acb_special_projectile.glb",
@@ -714,9 +753,22 @@ const projectileProfiles = {
     skipTravel: false
   }
 } as const satisfies Record<
-  "magic" | "bloodBarrageDelay" | "iceBlitzDelay" | "bloodBlitz" | "ranged" | "armadylCrossbowSpecial",
+  "magic" | "bloodBarrageDelay" | "iceBlitzDelay" | "bloodBlitz" | "ranged" | "webweaver" | "armadylCrossbowSpecial",
   RuntimePlayerCombatProjectileProfile
 >;
+
+// Source: the retained risk-fight candidate records the four source-distinct
+// Webweaver Swarm projectile timings from Projectile.send/Hit.clientDelay.
+// They must not be collapsed onto the ordinary ranged projectile profile.
+const webweaverSwarmProjectileProfiles = [
+  { id: "webweaver_swarm_1", delayCycles: 20, durationStartCycles: 33, durationIncrementCycles: 3 },
+  { id: "webweaver_swarm_2", delayCycles: 30, durationStartCycles: 43, durationIncrementCycles: 3 },
+  { id: "webweaver_swarm_3", delayCycles: 40, durationStartCycles: 53, durationIncrementCycles: 3 },
+  { id: "webweaver_swarm_4", delayCycles: 50, durationStartCycles: 63, durationIncrementCycles: 3 }
+].map((timing) => ({
+  ...projectileProfiles.webweaver,
+  ...timing
+})) as readonly RuntimePlayerCombatProjectileProfile[];
 
 export const runtimePlayerCombatBloodBlitzAutocastSlot = 41;
 export const runtimePlayerCombatIceBlitzAutocastSlot = 42;
@@ -825,13 +877,15 @@ const runtimePlayerCombatWeaponAttackSoundIds: Readonly<Record<NhWeaponId, reado
   rune_crossbow: [2695],
   magic_shortbow: [2693],
   dragon_crossbow: [2695],
+  webweaver_bow: [2693],
   tentacle_whip: [2720],
   abyssal_whip: [2720],
   noxious_halberd: [],
   voidwaker: [2500],
   vesta_longsword: [2500],
   armadyl_godsword: [3846],
-  granite_maul: [2714]
+  granite_maul: [2714],
+  elder_maul: [3846]
 };
 
 const runtimePlayerCombatSpecialAttackSoundIds: Readonly<Record<RuntimePlayerCombatSpecialAttackId, readonly number[]>> = {
@@ -842,7 +896,10 @@ const runtimePlayerCombatSpecialAttackSoundIds: Readonly<Record<RuntimePlayerCom
   // Source: OSRS Wiki Voidwaker sound table lists both special sounds.
   voidwaker: [5027, 6182],
   // Kronos VestasLongsword.java has no publicSound; use the source weapon attack sound so the spec is audible.
-  vesta_longsword: [2500]
+  vesta_longsword: [2500],
+  // Source: Webweaver Swarm uses the bow attack sound; Elder maul Pulverize uses the crush weapon attack sound.
+  webweaver_bow: [2693],
+  elder_maul: [2714]
 };
 
 const runtimePlayerCombatBoltEffectsByAmmoItemId: Readonly<Record<number, RuntimePlayerCombatBoltEffect>> = {
@@ -940,11 +997,15 @@ function rollRuntimePlayerCombatBoltEffect(
 function runtimePlayerCombatBoltEffectForActor(
   attacker: RuntimePlayerCombatActorState
 ): RuntimePlayerCombatBoltEffect | null {
+  if (weaponIdForRuntimeActor(attacker) === "webweaver_bow") {
+    return null;
+  }
   const ammoItemId = attacker.equipment.ammo?.itemId;
   return ammoItemId === undefined ? null : runtimePlayerCombatBoltEffectsByAmmoItemId[ammoItemId] ?? null;
 }
 
 export function createRuntimePlayerCombatState(input: {
+  readonly riskFight?: boolean;
   readonly localTile: RuntimeTile;
   readonly opponentTile: RuntimeTile;
   readonly localLoadoutId: RuntimeLoadoutId;
@@ -963,6 +1024,10 @@ export function createRuntimePlayerCombatState(input: {
   readonly opponentSupplies?: RuntimePlayerCombatSupplies;
   readonly localVengeanceTrinketCharges?: number;
   readonly opponentVengeanceTrinketCharges?: number;
+  readonly localVengeanceRuneCasts?: number;
+  readonly opponentVengeanceRuneCasts?: number;
+  readonly localRecoilRingsRemaining?: number;
+  readonly opponentRecoilRingsRemaining?: number;
   readonly localSpecialEnergy?: number;
   readonly opponentSpecialEnergy?: number;
   readonly combatStartTick?: number;
@@ -974,6 +1039,7 @@ export function createRuntimePlayerCombatState(input: {
   const processOrderState = createRuntimePlayerCombatProcessOrderState(randomSeed);
   return {
     tick: 0,
+    riskFight: input.riskFight ?? false,
     combatStartTick: runtimePlayerCombatSafeStartTick(input.combatStartTick),
     zurielsStaffCastCooldownTicks: input.zurielsStaffCastCooldownTicks ?? 4,
     crossbowRapidCooldownTicks: input.crossbowRapidCooldownTicks ?? 5,
@@ -991,7 +1057,9 @@ export function createRuntimePlayerCombatState(input: {
         input.localPrayers ?? [],
         input.localSupplies ?? runtimePlayerCombatDefaultSupplies,
         input.localSpecialEnergy ?? 100,
-        input.localVengeanceTrinketCharges ?? runtimePlayerCombatDefaultVengeanceTrinketCharges
+        input.localVengeanceTrinketCharges ?? runtimePlayerCombatDefaultVengeanceTrinketCharges,
+        input.localVengeanceRuneCasts ?? 0,
+        input.localRecoilRingsRemaining ?? 1
       ),
       opponent: createRuntimePlayerCombatActor(
         "opponent",
@@ -1004,7 +1072,9 @@ export function createRuntimePlayerCombatState(input: {
         input.opponentPrayers ?? [],
         input.opponentSupplies ?? runtimePlayerCombatDefaultSupplies,
         input.opponentSpecialEnergy ?? 100,
-        input.opponentVengeanceTrinketCharges ?? runtimePlayerCombatDefaultVengeanceTrinketCharges
+        input.opponentVengeanceTrinketCharges ?? runtimePlayerCombatDefaultVengeanceTrinketCharges,
+        input.opponentVengeanceRuneCasts ?? 0,
+        input.opponentRecoilRingsRemaining ?? 1
       )
     },
     queuedHits: [],
@@ -1086,7 +1156,8 @@ export function resetRuntimePlayerCombatActorTarget(
   actorId: RuntimeActorId
 ): RuntimePlayerCombatState {
   const actor = state.actors[actorId];
-  if (actor.targetId === null && actor.queuedSpellId === null) {
+  if (actor.targetId === null && actor.queuedSpellId === null && actor.gmaul.queuedTargetId === undefined &&
+    (actor.gmaul.queuedSpecs === 0 || (actor.gmaul.preloaded && !actor.specialActive))) {
     return state;
   }
 
@@ -1097,7 +1168,15 @@ export function resetRuntimePlayerCombatActorTarget(
       [actorId]: {
         ...actor,
         targetId: null,
-        queuedSpellId: null
+        queuedSpellId: null,
+        // Movement, food, potions and inventory equipment resets end the attack
+        // lock. Keep a live preload, but require an opponent click to release it.
+        specialActive: actor.gmaul.queuedSpecs > 0 ? false : actor.specialActive,
+        gmaul: {
+          ...actor.gmaul,
+          queuedTargetId: undefined,
+          preloaded: actor.gmaul.queuedSpecs > 0
+        }
       }
     }
   };
@@ -1183,6 +1262,7 @@ export function resetRuntimePlayerCombatActorPolicyFreshFight(
     readonly gearProfile?: NhSelectedGearProfile;
     readonly supplies?: RuntimePlayerCombatSupplies;
     readonly vengeanceTrinketCharges?: number;
+    readonly vengeanceRuneCastsRemaining?: number;
   } = {}
 ): RuntimePlayerCombatState {
   const actor = state.actors[actorId];
@@ -1247,10 +1327,15 @@ export function resetRuntimePlayerCombatActorPolicyFreshFight(
         conflictionMagicAccuracyUntilTick: 0,
         vengeanceActive: false,
         vengeanceCooldownUntilTick: 0,
+        vengeanceRuneCastsRemaining:
+          input.vengeanceRuneCastsRemaining ?? actor.vengeanceRuneCastsRemaining,
+        lastVengeanceSpellCastTick: -1,
+        vengeanceSpellCasts: 0,
         vengeanceTrinketCharges:
           input.vengeanceTrinketCharges ?? actor.vengeanceTrinketCharges ?? runtimePlayerCombatDefaultVengeanceTrinketCharges,
         lastVengeanceTrinketCastTick: -1,
         vengeanceTrinketCasts: 0,
+        recoilCharges: 40,
         actionSequenceName: null,
         actionStartedAtTick: null,
         actionStartedAtClientCycle: null,
@@ -1347,6 +1432,17 @@ export function setRuntimePlayerCombatAutocast(
   };
 }
 
+function runtimePlayerCombatRecoilChargesAfterEquip(
+  actor: RuntimePlayerCombatActorState,
+  equipment: VisibleEquipment
+): number {
+  // Charges belong to the player: switching intact rings must not refill them.
+  // Only an unbroken spare worn after the last ring shattered starts at 40.
+  return actor.recoilCharges === 0 && actor.recoilRingsRemaining > 0 &&
+    actor.equipment.ring?.itemId !== 2550 && equipment.ring?.itemId === 2550
+    ? 40 : actor.recoilCharges;
+}
+
 export function setRuntimePlayerCombatLoadout(
   state: RuntimePlayerCombatState,
   actorId: RuntimeActorId,
@@ -1372,6 +1468,7 @@ export function setRuntimePlayerCombatLoadout(
         ...actor,
         loadoutId,
         equipment,
+        recoilCharges: runtimePlayerCombatRecoilChargesAfterEquip(actor, equipment),
         weaponSwitchTick: weaponSlotChanged ? state.tick : actor.weaponSwitchTick,
         attackSetIndex: nextAttackSetIndex,
         queuedSpellId: loadoutChanged || weaponSlotChanged ? null : actor.queuedSpellId,
@@ -1453,7 +1550,7 @@ export function toggleRuntimePlayerCombatSpecial(
       };
     }
 
-    const queuedTargetId = actor.targetId ?? actor.gmaul.queuedTargetId ?? actor.lastTargetId ?? undefined;
+    const queuedTargetId = actor.targetId ?? actor.gmaul.queuedTargetId;
     // OSRS preload input: one click requests a hit, two hold the queue, a third releases it.
     // Demonstration: https://www.reddit.com/r/2007scape/comments/j8ljnw/
     // Extra clicks after release cannot re-arm the queue; energy still caps the number of hits.
@@ -1573,6 +1670,83 @@ export function activateRuntimePlayerCombatVengeanceTrinket(
   };
 }
 
+export function castRuntimePlayerCombatVengeanceSpell(
+  state: RuntimePlayerCombatState,
+  actorId: RuntimeActorId,
+  options: {
+    readonly runesAvailable?: boolean;
+    readonly consumeRuneCast?: boolean;
+    readonly clientCycle?: number;
+  } = {}
+): {
+  readonly state: RuntimePlayerCombatState;
+  readonly cast: boolean;
+  readonly reason?: "cooldown" | "already-active" | "dead" | "no-runes" | "magic-level" | "defence-level";
+} {
+  const { runesAvailable = true, consumeRuneCast = false, clientCycle } = options;
+  const actor = state.actors[actorId];
+  if (isRuntimePlayerCombatActorDead(actor, state.tick)) {
+    return { state, cast: false, reason: "dead" };
+  }
+  if (!runesAvailable || (consumeRuneCast && actor.vengeanceRuneCastsRemaining <= 0)) {
+    return { state, cast: false, reason: "no-runes" };
+  }
+  // Spell.registerClick and Vengeance.cast check current (brew-drained) levels.
+  if (!nhMagicSpellCurrentLevelCanCast("vengeance", actor.levels.magic)) {
+    return { state, cast: false, reason: "magic-level" };
+  }
+  if (actor.levels.defence < 40) {
+    return { state, cast: false, reason: "defence-level" };
+  }
+  if (actor.vengeanceActive) {
+    return { state, cast: false, reason: "already-active" };
+  }
+  if (state.tick < actor.vengeanceCooldownUntilTick) {
+    return { state, cast: false, reason: "cooldown" };
+  }
+
+  // Source: Lunar spellbook Vengeance (94 Magic) applies the standard 30 second
+  // cooldown and consumes runes from the pouch; no trinket charge is involved.
+  return {
+    state: {
+      ...state,
+      actors: {
+        ...state.actors,
+        [actorId]: {
+          ...actor,
+          vengeanceActive: true,
+          vengeanceCooldownUntilTick: state.tick + runtimePlayerCombatVengeanceCooldownTicks,
+          vengeanceRuneCastsRemaining: consumeRuneCast
+            ? Math.max(0, actor.vengeanceRuneCastsRemaining - 1)
+            : actor.vengeanceRuneCastsRemaining,
+          lastVengeanceSpellCastTick: state.tick,
+          vengeanceSpellCasts: actor.vengeanceSpellCasts + 1,
+          actionSequenceName: "vengeance_cast",
+          actionStartedAtTick: state.tick,
+          actionStartedAtClientCycle: clientCycle ?? state.tick * runtimePlayerCombatClientCyclesPerGameTick,
+          actionDurationTicks: runtimePlayerCombatVengeanceAnimationTicks,
+          actionUntilTick: state.tick + runtimePlayerCombatVengeanceAnimationTicks,
+          actionFacingDegrees: null
+        }
+      },
+      events: [
+        ...state.events,
+        {
+          kind: "spotanim",
+          id: `${state.tick}-${actorId}-vengeance-spell-cast-spotanim`,
+          tick: state.tick,
+          actorId,
+          spotanimId: 726,
+          artifactUrl: "render/spotanims/vengeance_cast.glb",
+          soundIds: [runtimePlayerCombatVengeanceCastSoundId],
+          soundChannel: "sound-effects"
+        }
+      ]
+    },
+    cast: true
+  };
+}
+
 function applyGmaulTripleClickAutoTarget(
   state: RuntimePlayerCombatState,
   actorId: RuntimeActorId,
@@ -1582,8 +1756,7 @@ function applyGmaulTripleClickAutoTarget(
     return state;
   }
   const actor = state.actors[actorId];
-  const targetId = (actor.targetId ?? actor.gmaul.queuedTargetId ?? actor.lastTargetId ??
-    (actorId === "local-player" ? "opponent" : "local-player")) as RuntimeActorId;
+  const targetId = (actor.targetId ?? actor.gmaul.queuedTargetId) as RuntimeActorId | undefined;
   if (targetId == null || targetId === actorId) {
     return state;
   }
@@ -1591,8 +1764,8 @@ function applyGmaulTripleClickAutoTarget(
   if (!target || isRuntimePlayerCombatActorDead(target, state.tick)) {
     return state;
   }
-  // The third click releases against the remembered target (or the practice opponent
-  // on a first strike), using the same TargetRoute as an explicit opponent click.
+  // The third click may restore the active target held by the second click.
+  // Combat history and the existence of a practice opponent do not grant a lock.
   return requestRuntimePlayerCombatAttack(state, actorId, targetId);
 }
 
@@ -1785,7 +1958,8 @@ export function advanceRuntimePlayerCombat(
         targetHasAlreadyProcessed,
         input.tileScale,
         state.zurielsStaffCastCooldownTicks ?? 4,
-        state.crossbowRapidCooldownTicks ?? 5
+        state.crossbowRapidCooldownTicks ?? 5,
+        state.riskFight === true
       );
       actors = mergeRuntimePlayerCombatAttemptActorsAfterPidMovement(
         actors,
@@ -1799,6 +1973,14 @@ export function advanceRuntimePlayerCombat(
       queuedHits.push(...attempted.queuedHits);
       events.push(...attempted.events);
       randomSeed = attempted.randomSeed;
+      if (state.riskFight) {
+        // A zero-delay PID melee hit must land before the later actor attacks.
+        // Keep the established NH/DMM processing path unchanged.
+        const pidHits = applyRuntimePlayerCombatDueHits(actors, queuedHits, currentTick, input.tileScale);
+        actors = pidHits.actors;
+        queuedHits = pidHits.queuedHits;
+        events.push(...pidHits.events);
+      }
       if (attempted.routeRequest) {
         routeRequests.push(attempted.routeRequest);
       }
@@ -1815,6 +1997,7 @@ export function advanceRuntimePlayerCombat(
   return {
     state: {
       tick: currentTick + 1,
+      riskFight: state.riskFight,
       combatStartTick: nextCombatStartTick,
       zurielsStaffCastCooldownTicks: state.zurielsStaffCastCooldownTicks ?? 4,
       crossbowRapidCooldownTicks: state.crossbowRapidCooldownTicks ?? 5,
@@ -2144,7 +2327,9 @@ function createRuntimePlayerCombatActor(
   activePrayers: readonly PrayerId[],
   supplies: RuntimePlayerCombatSupplies,
   specialEnergy: number,
-  vengeanceTrinketCharges: number
+  vengeanceTrinketCharges: number,
+  vengeanceRuneCastsRemaining: number,
+  recoilRingsRemaining: number
 ): RuntimePlayerCombatActorState {
   const profile = weaponProfileForRuntimeLoadout(loadoutId);
   const weaponId = weaponIdForLoadout(loadoutId);
@@ -2195,9 +2380,14 @@ function createRuntimePlayerCombatActor(
     conflictionMagicAccuracyUntilTick: 0,
     vengeanceActive: false,
     vengeanceCooldownUntilTick: 0,
+    vengeanceRuneCastsRemaining: Math.max(0, Math.trunc(vengeanceRuneCastsRemaining)),
+    lastVengeanceSpellCastTick: -1,
+    vengeanceSpellCasts: 0,
     vengeanceTrinketCharges: Math.max(0, Math.trunc(vengeanceTrinketCharges)),
     lastVengeanceTrinketCastTick: -1,
     vengeanceTrinketCasts: 0,
+    recoilCharges: 40,
+    recoilRingsRemaining: Math.max(0, Math.trunc(recoilRingsRemaining)),
     actionSequenceName: null,
     actionStartedAtTick: null,
     actionStartedAtClientCycle: null,
@@ -2361,6 +2551,7 @@ function syncRuntimePlayerCombatActor(
     loadoutId,
     equipment,
     gearProfile,
+    recoilCharges: runtimePlayerCombatRecoilChargesAfterEquip(actor, equipment),
     weaponSwitchTick: respawning ? -1 : weaponSlotChanged ? tick : actor.weaponSwitchTick,
     attackSetIndex: resolveRuntimePlayerCombatAttackSetIndexForWeapon(
       nextWeaponId,
@@ -2410,7 +2601,7 @@ function tickRuntimePlayerCombatSpecialQueues(
     let nextActor: RuntimePlayerCombatActorState = ticked.state === actor.gmaul
       ? actor
       : { ...actor, gmaul: ticked.state, specialActive: ticked.expired ? false : actor.specialActive };
-    const queuedTargetId = (nextActor.gmaul.queuedTargetId ?? nextActor.lastTargetId) as RuntimeActorId | null | undefined;
+    const queuedTargetId = nextActor.gmaul.queuedTargetId as RuntimeActorId | undefined;
     if (ticked.autoAttackRequested && nextActor.targetId === null && queuedTargetId !== null && queuedTargetId !== undefined) {
       const target = nextActors[queuedTargetId];
       if (
@@ -2517,7 +2708,8 @@ function tryRuntimePlayerAttack(
   defenderAlreadyProcessedThisTick: boolean,
   tileScale: number | undefined,
   zurielsStaffCastCooldownTicks: 4 | 5,
-  crossbowRapidCooldownTicks: 4 | 5
+  crossbowRapidCooldownTicks: 4 | 5,
+  riskFight: boolean
 ): {
   readonly actors: Readonly<Record<RuntimeActorId, RuntimePlayerCombatActorState>>;
   readonly queuedHits: readonly RuntimePlayerQueuedHit[];
@@ -2635,6 +2827,22 @@ function tryRuntimePlayerAttack(
     specialAttack !== null &&
     specialAttack.id !== "granite_maul" &&
     attacker.gmaul.specialEnergy >= specialAttack.drainPercent;
+  if (useWeaponSpecial && specialAttack.id === "webweaver_bow") {
+    return buildRuntimePlayerCombatWebweaverSwarmResult({
+      actors,
+      attackerId,
+      defenderId,
+      tick,
+      seed,
+      clientCycle,
+      attacker,
+      profile,
+      attack,
+      defenderAlreadyProcessedThisTick,
+      tileScale,
+      specialAttack
+    });
+  }
   const zurielAncientSpellBoost = spell && runtimePlayerCombatActorHasEquipmentItem(attacker, 22647) ? 1.1 : 1;
   const rollStyle = useWeaponSpecial ? specialAttack.rollStyle ?? profile.style : profile.style;
   const hitStyle = useWeaponSpecial ? specialAttack.damageStyle ?? profile.style : profile.style;
@@ -2683,19 +2891,28 @@ function tryRuntimePlayerAttack(
     conflictionAccuracyRolls > 1
   );
   const sequenceName = spell?.sequenceName ?? (useWeaponSpecial ? specialAttack.sequenceName : undefined) ?? runtimeAttackSequenceName(attacker.loadoutId, profile);
-  const projectile = spell?.projectileProfile ?? runtimeProjectileProfile(profile.style, useWeaponSpecial ? specialAttack.id : undefined);
+  const projectile = spell?.projectileProfile ?? runtimeProjectileProfile(profile.style, useWeaponSpecial ? specialAttack.id : undefined, profile.id);
   const actionDurationTicks = runtimePlayerCombatActionDurationTicksForProfile(profile);
   const distance = runtimePlayerCombatDistance(attacker.tile, defender.tile, tileScale);
   const projectileDurationCycles = projectile
     ? runtimePlayerCombatProjectileDurationCycles(projectile, distance)
     : undefined;
-  const hitDelayTicks = runtimePlayerCombatHitDelayTicks(profile.style, distance, projectile);
-  const hitImpactDelayTicks = runtimePlayerCombatPidAdjustedHitsplatDelayTicks(
-    hitDelayTicks,
-    defenderAlreadyProcessedThisTick,
-    projectile !== undefined,
-    profile.style
-  );
+  // OSRS Wiki, Hit delay: ordinary bows wait 1 tick at 1-2 tiles, 2 at
+  // 3-8, and 3 at 9-10. A target processed before the shooter adds a tick.
+  // Risk Fight uses that hit queue independently of the arrow's client packet;
+  // retain the established Java-derived projectile timing for NH/DMM.
+  const riskFightBow = riskFight && weaponId === "webweaver_bow" && profile.style === "ranged";
+  const hitDelayTicks = riskFightBow
+    ? 1 + Math.floor((distance + 3) / 6)
+    : runtimePlayerCombatHitDelayTicks(profile.style, distance, projectile);
+  const hitImpactDelayTicks = riskFightBow
+    ? hitDelayTicks + Number(defenderAlreadyProcessedThisTick)
+    : runtimePlayerCombatPidAdjustedHitsplatDelayTicks(
+        hitDelayTicks,
+        defenderAlreadyProcessedThisTick,
+        projectile !== undefined,
+        profile.style
+      );
   const dueTick = tick + hitImpactDelayTicks;
   const hitsplatTick = dueTick;
   const sourceId = spell?.id ?? weaponId;
@@ -2735,7 +2952,9 @@ function tryRuntimePlayerAttack(
     spellId: spell?.id,
     autocast: spell ? spellIsAutocast : undefined,
     sequenceName,
-    hitDelayTicks,
+    // Public projectile observations must see the same PID-adjusted arrival as
+    // the damage queue. Webweaver rendering uses its separate client cycles.
+    hitDelayTicks: riskFightBow ? hitImpactDelayTicks : hitDelayTicks,
     maxDamage: damageRoll.maxDamage,
     hitChance: damageRoll.hitChance,
     expectedDamage,
@@ -2823,7 +3042,9 @@ function tryRuntimePlayerAttack(
         bloodHealMultiplier: spell?.bloodHealFraction
           ? runtimePlayerCombatActorHasEquipmentItem(attacker, 22647) ? 1.5 : 1
           : undefined,
-        ...(activeBoltEffect ? { boltEffect: activeBoltEffect } : {})
+        ...(activeBoltEffect ? { boltEffect: activeBoltEffect } : {}),
+        // Source: Elder maul Pulverize drains 35% of the target's Defence level on a successful hit.
+        ...(useWeaponSpecial && specialAttack.id === "elder_maul" ? { defenceDrainFraction: 0.35 } : {})
       }
     ],
     events,
@@ -2866,6 +3087,171 @@ function resetRuntimePlayerCombatFailedSpellCast(
     queuedHits: [],
     events: [],
     randomSeed: seed
+  };
+}
+
+interface RuntimePlayerWebweaverSwarmInput {
+  readonly actors: Readonly<Record<RuntimeActorId, RuntimePlayerCombatActorState>>;
+  readonly attackerId: RuntimeActorId;
+  readonly defenderId: RuntimeActorId;
+  readonly tick: number;
+  readonly seed: number;
+  readonly clientCycle: number | undefined;
+  readonly attacker: RuntimePlayerCombatActorState;
+  readonly profile: WeaponTimingProfile;
+  readonly attack: DispatchAttackResult;
+  readonly defenderAlreadyProcessedThisTick: boolean;
+  readonly tileScale: number | undefined;
+  readonly specialAttack: NonNullable<ReturnType<typeof runtimeWeaponSpecialDefinition>>;
+}
+
+function buildRuntimePlayerCombatWebweaverSwarmResult(
+  input: RuntimePlayerWebweaverSwarmInput
+): {
+  readonly actors: Readonly<Record<RuntimeActorId, RuntimePlayerCombatActorState>>;
+  readonly queuedHits: readonly RuntimePlayerQueuedHit[];
+  readonly events: readonly RuntimePlayerCombatEvent[];
+  readonly randomSeed: number;
+  readonly routeRequest?: RuntimePlayerCombatRouteRequest;
+} {
+  const {
+    actors,
+    attackerId,
+    defenderId,
+    tick,
+    seed,
+    clientCycle,
+    attacker,
+    profile,
+    attack,
+    defenderAlreadyProcessedThisTick,
+    tileScale,
+    specialAttack
+  } = input;
+  const defender = actors[defenderId];
+  // Source: Webweaver Swarm - four independent accuracy rolls (doubled accuracy),
+  // each hit up to 40% (rounded up) of the player's max hit. Each source projectile
+  // keeps its own delay/duration profile; this is not one generic ranged due tick.
+  const defenderProtectionPrayer = runtimePlayerCombatEffectiveProtectionPrayerForAttack(defender, tick);
+  const distance = runtimePlayerCombatDistance(attacker.tile, defender.tile, tileScale);
+  // Hit.defend's stored-counter compensation differs by PID, but all ranged
+  // projectiles preserve the same absolute arrival tick for either process order.
+  void defenderAlreadyProcessedThisTick;
+  const projectileDelayTicks = webweaverSwarmProjectileProfiles.map((projectile) =>
+    Math.max(
+      1,
+      runtimePlayerCombatClientDelayTicks(
+        runtimePlayerCombatProjectileClientDelayCycles(projectile, distance),
+        projectile.clientCycleRate
+      )
+    )
+  );
+  const hitDelayTicks = Math.min(...projectileDelayTicks);
+  const projectileDurationCycles = Math.max(
+    ...webweaverSwarmProjectileProfiles.map((projectile) =>
+      runtimePlayerCombatProjectileDurationCycles(projectile, distance)
+    )
+  );
+  const fullMax = Math.max(0, Math.trunc(runtimePlayerCombatDamageEstimate(attacker, defender, "ranged", 30).maxDamage));
+  const hitMax = Math.max(0, Math.ceil(fullMax * 0.4));
+  const attackType = runtimePlayerCombatAttackTypeForWeapon("webweaver_bow", attacker.attackSetIndex);
+  const attackSetIndex = normalizeRuntimeAttackSetIndex(attacker.attackSetIndex);
+  let nextSeed = seed;
+  let attackHitChance = 0;
+  let expectedDamage = 0;
+  const queuedHits: RuntimePlayerQueuedHit[] = [];
+  for (let index = 0; index < 4; index += 1) {
+    const projectile = webweaverSwarmProjectileProfiles[index];
+    const dueTick = tick + projectileDelayTicks[index];
+    const roll = rollRuntimePlayerDamage(attacker, defender, "ranged", nextSeed, specialAttack.accuracyMultiplier);
+    nextSeed = roll.seed;
+    attackHitChance += roll.hitChance;
+    let damage = 0;
+    if (roll.hitLanded && hitMax > 0) {
+      const damageRoll = nextRuntimeCombatRandom(nextSeed);
+      nextSeed = damageRoll.seed;
+      damage = Math.floor(damageRoll.value * (hitMax + 1));
+    }
+    const finalizedDamage = runtimePlayerCombatFinalizedHitDamage(damage, "ranged", defenderProtectionPrayer);
+    expectedDamage += runtimePlayerCombatExpectedDamage(hitMax, roll.hitChance, "ranged", defenderProtectionPrayer);
+    queuedHits.push({
+      id: `${tick}-${attackerId}-${defenderId}-webweaver-swarm-${index}-hit`,
+      dueTick,
+      hitsplatTick: dueTick,
+      attackerId,
+      defenderId,
+      style: "ranged",
+      attackType,
+      attackSetIndex,
+      weaponId: "webweaver_bow",
+      projectileProfileId: projectile.id,
+      damage: finalizedDamage,
+      rawDamage: damage,
+      maxDamage: hitMax,
+      hitChance: roll.hitChance,
+      ...(defenderProtectionPrayer ? { defenderProtectionPrayer } : {})
+    });
+  }
+  const sequenceName = runtimeAttackSequenceName(attacker.loadoutId, profile);
+  const actionDurationTicks = runtimePlayerCombatActionDurationTicksForProfile(profile);
+  const attackSoundIds = runtimePlayerCombatAttackSoundIds(null, "webweaver_bow", "webweaver_bow");
+  const attackEvent: RuntimePlayerCombatEvent = {
+    kind: "attack",
+    id: `${tick}-${attackerId}-${defenderId}-webweaver-bow-special-attack`,
+    tick,
+    attackerId,
+    defenderId,
+    attackerTile: attacker.tile,
+    defenderTile: defender.tile,
+    style: "ranged",
+    sequenceName,
+    hitDelayTicks,
+    maxDamage: hitMax,
+    hitChance: attackHitChance / 4,
+    expectedDamage,
+    specialAttack: "webweaver_bow",
+    specialAttackCount: 4,
+    ...(attackSoundIds ? { soundIds: attackSoundIds } : {}),
+    projectileDurationCycles,
+    projectile: webweaverSwarmProjectileProfiles[0],
+    projectileProfiles: webweaverSwarmProjectileProfiles,
+    ...(defenderProtectionPrayer ? { defenderProtectionPrayer } : {}),
+    attackerActivePrayers: attacker.activePrayers,
+    attackerEquipment: attacker.equipment,
+    defenderEquipment: defender.equipment
+  };
+  return {
+    actors: {
+      ...actors,
+      [attackerId]: {
+        ...attacker,
+        attackStyleSignalTick: tick,
+        attackTimer: attack.attackTimer,
+        specialActive: false,
+        gmaul: {
+          ...attacker.gmaul,
+          specialEnergy: clampRuntimeSpecialEnergy(attacker.gmaul.specialEnergy - specialAttack.drainPercent)
+        },
+        actionSequenceName: sequenceName,
+        actionStartedAtTick: tick,
+        actionStartedAtClientCycle: clientCycle ?? tick * runtimePlayerCombatClientCyclesPerGameTick,
+        actionDurationTicks,
+        actionUntilTick: tick + actionDurationTicks,
+        actionFacingDegrees: runtimePlayerCombatFacingDegrees(attacker.tile, defender.tile)
+      }
+    },
+    queuedHits,
+    events: [attackEvent],
+    randomSeed: nextSeed,
+    routeRequest: attack.requiresMovement
+      ? runtimePlayerCombatTargetRouteRequest({
+          actor: attacker,
+          target: defender,
+          tick,
+          attackRange: profile.attackRange,
+          reason: "ready"
+        })
+      : undefined
   };
 }
 
@@ -3105,6 +3491,31 @@ function applyRuntimePlayerQueuedHit(
   }
   const defenderProtectionPrayer = hit.defenderProtectionPrayer;
   const damage = runtimePlayerCombatQueuedHitDamage(actors, hit, tick);
+  const attacker = actors[hit.attackerId];
+  const bloodHeal = hit.bloodHealFraction && damage > 0
+    ? runtimePlayerCombatBloodSpellHeal(damage, hit.bloodHealMultiplier ?? 1)
+    : 0;
+  const boltHeal =
+    hit.boltEffect?.healFraction && damage > 0
+      ? Math.trunc(damage * hit.boltEffect.healFraction)
+      : 0;
+  const attackerHitpointsAfterBloodHeal =
+    bloodHeal > 0 || boltHeal > 0
+      ? Math.min(attacker.maxHitpoints, attacker.hitpoints + bloodHeal + boltHeal)
+      : attacker.hitpoints;
+  const vengeanceDamage = defender.vengeanceActive && damage > 0
+    ? Math.min(attackerHitpointsAfterBloodHeal, Math.ceil(damage * 0.75))
+    : 0;
+  const attackerHitpointsAfterVengeance = Math.max(0, attackerHitpointsAfterBloodHeal - vengeanceDamage);
+  // Source: RingOfRecoil.check() reflects ceil(damage * 0.1) back at the attacker
+  // per hit taken while charges remain (40 total, then the ring shatters).
+  const recoilCharges = Math.max(0, Math.trunc(defender.recoilCharges));
+  const recoilDamage =
+    damage > 0 && recoilCharges > 0 && runtimePlayerCombatActorHasEquipmentItem(defender, 2550)
+      ? Math.min(attackerHitpointsAfterVengeance, Math.ceil(damage * 0.1), recoilCharges)
+      : 0;
+  const recoilBroke = recoilDamage > 0 && recoilDamage === recoilCharges;
+  const { ring: _brokenRing, ...equipmentWithoutRing } = defender.equipment;
   const nextHitpoints = Math.max(0, defender.hitpoints - damage);
   const dead = nextHitpoints <= 0;
   const redemptionProc =
@@ -3127,6 +3538,8 @@ function applyRuntimePlayerQueuedHit(
   const resetDefender = dead ? resetRuntimePlayerCombatActorPolicyDeath(defender) : defender;
   const nextDefender: RuntimePlayerCombatActorState = {
     ...resetDefender,
+    equipment: recoilBroke ? equipmentWithoutRing : resetDefender.equipment,
+    recoilRingsRemaining: Math.max(0, defender.recoilRingsRemaining - Number(recoilBroke)),
     hitpoints: nextDefenderHitpoints,
     deadUntilTick: dead ? respawnTick : defender.deadUntilTick,
     locks: freezeLands ? applyFreeze(resetDefender.locks, tick, hit.freezeDurationTicks, hit.attackerId) : resetDefender.locks,
@@ -3135,36 +3548,32 @@ function applyRuntimePlayerQueuedHit(
       : resetDefender.prayerPoints,
     activePrayers: redemptionProc ? [] : resetDefender.activePrayers,
     vengeanceActive: damage > 0 ? false : resetDefender.vengeanceActive,
+    // Source: Elder maul Pulverize drains 35% of the current Defence level on a successful hit.
+    levels: hit.defenceDrainFraction !== undefined && damage > 0
+      ? {
+          ...resetDefender.levels,
+          defence: Math.max(0, Math.trunc(resetDefender.levels.defence * (1 - hit.defenceDrainFraction)))
+        }
+      : resetDefender.levels,
+    recoilCharges: Math.max(0, recoilCharges - recoilDamage),
     hitsplatSlotCursor: (hitsplatSlotIndex + 1) % 4,
     lastHitsplatTick: tick
   };
-  const attacker = actors[hit.attackerId];
-  const bloodHeal = hit.bloodHealFraction && damage > 0
-    ? runtimePlayerCombatBloodSpellHeal(damage, hit.bloodHealMultiplier ?? 1)
-    : 0;
-  const boltHeal =
-    hit.boltEffect?.healFraction && damage > 0
-      ? Math.trunc(damage * hit.boltEffect.healFraction)
-      : 0;
-  const vengeanceDamage = defender.vengeanceActive && damage > 0
-    ? Math.min(attacker.hitpoints, Math.trunc(damage * 0.75))
-    : 0;
-  const attackerHitpointsAfterBloodHeal =
-    bloodHeal > 0 || boltHeal > 0
-      ? Math.min(attacker.maxHitpoints, attacker.hitpoints + bloodHeal + boltHeal)
-      : attacker.hitpoints;
-  const nextAttackerHitpoints = Math.max(0, attackerHitpointsAfterBloodHeal - vengeanceDamage);
-  const attackerDead = vengeanceDamage > 0 && nextAttackerHitpoints <= 0;
+  const nextAttackerHitpoints = Math.max(0, attackerHitpointsAfterVengeance - recoilDamage);
+  const attackerDead = (vengeanceDamage > 0 || recoilDamage > 0) && nextAttackerHitpoints <= 0;
   const attackerRespawnTick = tick + deathResetDelayTicks;
   const resetAttacker = attackerDead ? resetRuntimePlayerCombatActorPolicyDeath(attacker) : attacker;
   const attackerHitsplatExpired = tick >= runtimePlayerCombatHitsplatEndTick(attacker.lastHitsplatTick);
   const attackerHitsplatSlotIndex = attackerHitsplatExpired ? 0 : (attacker.hitsplatSlotCursor % 4);
+  const attackerHitsplatActive = vengeanceDamage > 0 || recoilDamage > 0;
+  const attackerHitsplatCount = Number(vengeanceDamage > 0) + Number(recoilDamage > 0);
+  const recoilHitsplatSlotIndex = (attackerHitsplatSlotIndex + Number(vengeanceDamage > 0)) % 4;
   const nextAttacker: RuntimePlayerCombatActorState = {
     ...resetAttacker,
     hitpoints: nextAttackerHitpoints,
     deadUntilTick: attackerDead ? attackerRespawnTick : resetAttacker.deadUntilTick,
-    hitsplatSlotCursor: vengeanceDamage > 0 ? (attackerHitsplatSlotIndex + 1) % 4 : resetAttacker.hitsplatSlotCursor,
-    lastHitsplatTick: vengeanceDamage > 0 ? tick : resetAttacker.lastHitsplatTick,
+    hitsplatSlotCursor: attackerHitsplatActive ? (attackerHitsplatSlotIndex + attackerHitsplatCount) % 4 : resetAttacker.hitsplatSlotCursor,
+    lastHitsplatTick: attackerHitsplatActive ? tick : resetAttacker.lastHitsplatTick,
     targetId: dead || attackerDead ? null : resetAttacker.targetId
   };
   const hitSoundIds = runtimePlayerCombatQueuedHitSoundIds(hit, damage);
@@ -3239,9 +3648,27 @@ function applyRuntimePlayerQueuedHit(
       maxDamage: vengeanceDamage,
       hitChance: 1,
       previousHitpoints: attackerHitpointsAfterBloodHeal,
-      nextHitpoints: nextAttackerHitpoints,
+      nextHitpoints: attackerHitpointsAfterVengeance,
       maxHitpoints: attacker.maxHitpoints,
       slotIndex: attackerHitsplatSlotIndex
+    });
+  }
+  if (recoilDamage > 0) {
+    events.push({
+      kind: "hitsplat",
+      id: `${hit.id}-recoil-hitsplat`,
+      tick,
+      attackerId: hit.defenderId,
+      targetActorId: hit.attackerId,
+      style: "magic",
+      damage: recoilDamage,
+      rawDamage: recoilDamage,
+      maxDamage: recoilDamage,
+      hitChance: 1,
+      previousHitpoints: attackerHitpointsAfterVengeance,
+      nextHitpoints: nextAttackerHitpoints,
+      maxHitpoints: attacker.maxHitpoints,
+      slotIndex: recoilHitsplatSlotIndex
     });
   }
   if (redemptionProc) {
@@ -3420,7 +3847,9 @@ export function runtimePlayerCombatDamageEstimate(
     attackerPrayers: attacker.activePrayers,
     defenderPrayers: defender.activePrayers,
     styles: [style],
-    maxMagicDamage
+    maxMagicDamage,
+    attackType: runtimePlayerCombatAttackTypeForWeapon(weaponIdForRuntimeActor(attacker), attacker.attackSetIndex).toLowerCase() as StyleEvInput["attackType"],
+    defenderAttackType: runtimePlayerCombatAttackTypeForWeapon(weaponIdForRuntimeActor(defender), defender.attackSetIndex).toLowerCase() as StyleEvInput["attackType"]
   })[0];
 }
 
@@ -3624,6 +4053,7 @@ function runtimePlayerCombatAttackTypeForWeapon(
     weaponId === "zaryte_crossbow" ||
     weaponId === "rune_crossbow" ||
     weaponId === "magic_shortbow" ||
+    weaponId === "webweaver_bow" ||
     weaponId === "dragon_crossbow"
   ) {
     return index === 3 ? "LONG_RANGED" : index === 1 ? "RAPID_RANGED" : "ACCURATE";
@@ -3726,6 +4156,11 @@ function weaponIdForEquipment(equipment: VisibleEquipment): NhWeaponId | null {
   if (weaponItemId === undefined) {
     return null;
   }
+  // Granite maul (ornate handle) fights exactly like the trainer's granite maul
+  // (50% spec energy); only the item id/sprite differ.
+  if (weaponItemId === 24225) {
+    return "granite_maul";
+  }
 
   for (const loadout of Object.values(nhLoadouts)) {
     if (loadout.equipment.weapon?.itemId === weaponItemId) {
@@ -3753,10 +4188,13 @@ function runtimeAttackSequenceName(loadoutId: RuntimeLoadoutId, profile: WeaponT
     return "wand_attack";
   }
   if (profile.style === "ranged") {
-    return "crossbow_attack";
+    return weaponId === "webweaver_bow" ? "bow_attack" : "crossbow_attack";
   }
   if (weaponId === "granite_maul") {
     return "gmaul_attack";
+  }
+  if (weaponId === "elder_maul") {
+    return "elder_maul_attack";
   }
   if (weaponId === "noxious_halberd") {
     return "halberd_attack";
@@ -3772,8 +4210,12 @@ function runtimeAttackSequenceName(loadoutId: RuntimeLoadoutId, profile: WeaponT
 
 function runtimeProjectileProfile(
   style: CombatStyle,
-  specialAttack?: RuntimePlayerCombatSpecialAttackId
+  specialAttack?: RuntimePlayerCombatSpecialAttackId,
+  weaponId?: string
 ): RuntimePlayerCombatProjectileProfile | undefined {
+  if (weaponId === "webweaver_bow") {
+    return projectileProfiles.webweaver;
+  }
   if (specialAttack === "armadyl_crossbow") {
     return projectileProfiles.armadylCrossbowSpecial;
   }
@@ -3856,12 +4298,34 @@ function runtimeWeaponSpecialDefinition(
       sequenceName: "vesta_longsword_special"
     };
   }
+  if (weaponId === "webweaver_bow") {
+    // Source: Webweaver Swarm costs 50% energy and hits four times in succession
+    // with doubled accuracy, each up to 40% (rounded up) of max hit. Multi-hit
+    // damage rolls are handled by the swarm attack dispatch, not this table.
+    return { id: "webweaver_bow", drainPercent: 50, accuracyMultiplier: 2, damageMultiplier: 1 };
+  }
+  if (weaponId === "elder_maul") {
+    // Source: Elder maul Pulverize costs 50% energy, +25% accuracy, and drains
+    // 35% of the target's Defence level on a successful hit.
+    return {
+      id: "elder_maul",
+      drainPercent: 50,
+      accuracyMultiplier: 1.25,
+      damageMultiplier: 1,
+      sequenceName: "godsword_attack"
+    };
+  }
   return null;
 }
 
 function runtimeWeaponSpecialDefinitionForActor(
   actor: RuntimePlayerCombatActorState
 ): ReturnType<typeof runtimeWeaponSpecialDefinition> {
+  // Trainer rule: the uncharged risk-fight bow fires ordinary arrows, without
+  // Swarm. Enforce it here for both players and any previously queued special.
+  if (actor.equipment.weapon?.itemId === 27652) {
+    return null;
+  }
   return runtimeWeaponSpecialDefinition(weaponIdForRuntimeActor(actor));
 }
 
