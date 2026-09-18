@@ -4714,13 +4714,13 @@ export function RuneliteClientShell({
   }, []);
 
   useEffect(() => {
-    document.title = clientFrameConfig.title;
-
     const bridge = window.nhTrainer;
     if (!bridge?.applyClientShellFrameConfig) {
       return;
     }
 
+    // Browser pages keep their public HTML title; only the desktop client uses a player title.
+    document.title = clientFrameConfig.title;
     bridge.applyClientShellFrameConfig(clientFrameConfig).catch((error: unknown) => {
       console.warn("Failed to apply RuneLite client shell frame config", error);
     });
