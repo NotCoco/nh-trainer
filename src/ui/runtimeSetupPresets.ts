@@ -144,34 +144,34 @@ export const RUNTIME_DMM_EQUIPMENT_ENTRIES = [
 // ultor ring + pies + potions + pouch + brews + sanfews + ornate gmaul + elder maul
 // in inventory, 4 halibut and the remaining slots filled with marlins. No head slot.
 export const RUNTIME_WEBWEAVER_INVENTORY_ITEM_IDS = [
-  28307, // Ultor ring
-  7218, // Summer pie
-  7218,
-  2550, // Spare ring of recoil
-  11722, // Super ranging (4)
   12695, // Super combat potion (4)
-  12791, // Rune pouch (astral/death/earth for vengeance)
-  6685, // Saradomin brew (4)
-  6685,
-  10925, // Sanfew serum (4)
-  10925,
-  24225, // Granite maul (ornate handle)
-  21003, // Elder maul
-  32336, // Halibut
-  32336,
-  32336,
-  32336,
   32352, // Marlin
   32352,
   32352,
+  11722, // Super ranging (4)
+  32352,
+  32352,
+  6685, // Saradomin brew (4)
+  10925, // Sanfew serum (4)
+  32352,
+  32336, // Halibut
+  32336,
+  10925,
+  6685,
+  32336,
+  32336,
   32352,
   32352,
   32352,
+  7218, // Summer pie
+  24225, // Granite maul (ornate handle)
+  28307, // Ultor ring
   32352,
+  7218,
+  21003, // Elder maul
   32352,
-  32352,
-  32352,
-  32352
+  2550, // Spare ring of recoil
+  12791 // Rune pouch (astral/death/earth for vengeance)
 ] as const;
 export const RUNTIME_WEBWEAVER_EQUIPMENT_ENTRIES = [
   [1, 21295], // Infernal cape
