@@ -1,4 +1,15 @@
 {
   "buildCommand": "npm run build:web",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.nh-train.com" }],
+      "destination": "https://nh-train.com/:path*",
+      "permanent": true
+    },
+    { "source": "/index.html", "destination": "/", "permanent": true },
+    { "source": "/blog/index.html", "destination": "/blog/", "permanent": true },
+    { "source": "/blog", "destination": "/blog/", "permanent": true }
+  ]
 }
