@@ -17004,6 +17004,8 @@ export function RuntimeSceneViewer({
       )
     };
 
+    // The fresh combat state restarts at tick zero, so old supply deadlines must not survive it.
+    supplyDelaysRef.current = createSupplyDelayState();
     inventoryOverrideRef.current = inventorySlots;
     manualOpponentInventorySlotsRef.current = inventorySlots;
     runtimeSetupPresetIdRef.current = setupId;
