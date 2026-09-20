@@ -266,9 +266,48 @@ export function App(): JSX.Element {
             <details className="nhSiteUpdatesDropdown" open>
               <summary>
                 <span>Latest update</span>
-                <strong>August 5, 2026</strong>
+                <strong>September 20, 2026</strong>
               </summary>
               <div className="nhSiteUpdateHistory">
+                <section className="nhSiteUpdateCard" aria-label="Updates - September 20, 2026">
+                  <span>Updates - September 20, 2026</span>
+                  <ul>
+                    <li>Upgraded the Risk Fight opponent to v4, with improved combo timing and finishing pressure.</li>
+                    <li>Fixed bolt and blood-spell projectiles appearing too early and stopping short of their target.</li>
+                    <li>Starting PID is now a fresh 50/50 roll each fight. Click the PID indicator to give it to the other player.</li>
+                    <li>NH stake and DMM keep the same models and decision logic as the previous live release.</li>
+                  </ul>
+                </section>
+                <section className="nhSiteUpdateCard" aria-label="Updates - September 18, 2026">
+                  <span>Updates - September 18, 2026</span>
+                  <ul>
+                    <li>Released Risk Fight: practise Webweaver bow, granite maul, Elder maul, and Vengeance combos against its own trained opponent.</li>
+                    <li>Risk Fight arrows now have visible projectiles and distance-based hit timing, with off-PID hits landing one tick later.</li>
+                    <li>Added exact opponent hitpoints, including zero HP, to the default opponent panel.</li>
+                    <li>Clicking All hides the chatbox and reveals the world underneath without zooming or recentering the camera.</li>
+                    <li>Walking, eating, drinking, or equipping gear cancels granite-maul auto-targeting. Preloaded specs still release when you click the opponent.</li>
+                    <li>Fixed Risk Fight Vengeance level checks, food and incoming-hit ordering, and lethal melee PID ordering.</li>
+                    <li>Recoil rings now deplete correctly; the default Risk Fight kit includes a spare ring in place of one summer pie.</li>
+                    <li>Corrected equipment-slot placeholders, weapon-style icons, and the auto-retaliate label across all three modes.</li>
+                    <li>Improved initial prayer-tab loading, spell-reordering feedback, and Risk Fight's Lunar spellbook icons.</li>
+                  </ul>
+                </section>
+                <section className="nhSiteUpdateCard" aria-label="Updates - September 17, 2026">
+                  <span>Updates - September 17, 2026</span>
+                  <ul>
+                    <li>Fixed missing XP drops from instant melee hits, including Armadyl godsword attacks and specials.</li>
+                    <li>Added independent four- or five-tick attack speed settings for Zuriel's staff and crossbows in DMM.</li>
+                    <li>DMM now uses the improved ornate granite maul visuals and special-attack preloading behavior.</li>
+                    <li>Added an eye button to hide the practice controls; hover over the dimmed eye to reveal them.</li>
+                    <li>PID stays visible when the controls are hidden and sits above the special-attack buttons by default.</li>
+                    <li>Attack now replaces a queued manual spell while preserving configured autocast.</li>
+                    <li>Eating can free inventory space for a two-handed weapon switch in the same tick.</li>
+                    <li>Removing two equipment items in one tick preserves both changes.</li>
+                    <li>Using an inventory item no longer also eats or equips the target on mouse release.</li>
+                    <li>Blood-spell healing uses the equipment worn when casting, including Zuriel's staff's healing bonus.</li>
+                    <li>Added Remove trees / Restore trees, with cleared tiles available for movement and an updated minimap.</li>
+                  </ul>
+                </section>
                 <section className="nhSiteUpdateCard" aria-label="Updates - August 5, 2026">
                   <span>Updates - August 5, 2026</span>
                   <ul>

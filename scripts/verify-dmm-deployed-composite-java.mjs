@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { readRuntimeViewerSource } from "./lib/runtime-viewer-source.mjs";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -415,7 +416,7 @@ const nhBotLog = readText(nhBotLogPath);
 const adminInventoryViewer = readText(adminInventoryViewerPath);
 const browserPolicy = readText(browserPolicyPath);
 const browserRuntime = readText(browserRuntimePath);
-const browserViewer = readText(browserViewerPath);
+const browserViewer = readRuntimeViewerSource();
 const practicePropsText = readText(practicePropertiesPath);
 const practiceProps = parseProperties(practicePropsText);
 const nhPolicyBridge = loadTsModule("src/sim/nh/policy-bridge.ts");

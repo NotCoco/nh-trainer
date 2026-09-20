@@ -62,6 +62,21 @@
       "skipTravel": false
     },
     {
+      "id": "webweaver_arrow",
+      "label": "Webweaver bow arrow",
+      "projectileGfxId": 1574,
+      "impactGfxId": -1,
+      "startHeight": 40,
+      "endHeight": 36,
+      "delayCycles": 41,
+      "durationStartCycles": 51,
+      "durationIncrementCycles": 5,
+      "curve": 15,
+      "offset": 11,
+      "durationCycles": 51,
+      "skipTravel": false
+    },
+    {
       "id": "dragon_bolt",
       "label": "dragon bolt proc",
       "projectileGfxId": 1468,

@@ -138,5 +138,21 @@
     "modelId": 3135,
     "ambient": 0,
     "contrast": 0
+  },
+  "1574": {
+    "id": 1574,
+    "modelId": 3473,
+    "animationId": -1,
+    "resizeX": 128,
+    "resizeY": 128,
+    "rotaton": 0,
+    "ambient": 60,
+    "contrast": 60,
+    "recolorToFind": [
+      21190
+    ],
+    "recolorToReplace": [
+      7126
+    ]
   }
 }

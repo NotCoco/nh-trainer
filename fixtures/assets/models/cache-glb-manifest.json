@@ -1545,6 +1545,25 @@
       ],
       "vertices": 1920,
       "triangles": 640
+    },
+    {
+      "output": "fixtures/render/spotanims/webweaver_arrow.glb",
+      "meshMetadata": "fixtures/render/spotanims/webweaver_arrow.mesh.json",
+      "label": "Webweaver bow arrow",
+      "spotanimId": 1574,
+      "sourceModels": [
+        {
+          "kind": "spotanim",
+          "spotanimId": 1574,
+          "modelId": 3473,
+          "animationId": -1,
+          "resizeX": 128,
+          "resizeY": 128,
+          "rotation": 0
+        }
+      ],
+      "vertices": 600,
+      "triangles": 200
     }
   ]
 }

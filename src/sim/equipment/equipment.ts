@@ -7,6 +7,7 @@ import {
   type BonusTable,
   type CombatLevels,
   type CombatStyle,
+  type StyleEvInput,
   type StyleEvEstimate
 } from "../combat/formulas";
 import {
@@ -36,6 +37,8 @@ export interface VisibleStyleEvInput {
   readonly defenderPrayers?: readonly PrayerId[];
   readonly styles?: readonly CombatStyle[];
   readonly maxMagicDamage?: number;
+  readonly attackType?: StyleEvInput["attackType"];
+  readonly defenderAttackType?: StyleEvInput["attackType"];
 }
 
 const nhMagicInterferenceSlots = ["body", "legs"] as const;
@@ -52,7 +55,14 @@ export function aggregateVisibleEquipmentBonuses(
   const equippedRows = Object.values(equipment)
     .map((item) => (item ? rowsById.get(item.itemId) : undefined))
     .filter((row): row is EquipmentBonusRow => row !== undefined);
-  return aggregateBonuses(equippedRows);
+  const bonuses = aggregateBonuses(equippedRows);
+  // Source: Equipment.updateBonuses() ignores ammo-slot ranged strength for
+  // self-supplying bows. Webweaver's own +65 strength already includes its arrow.
+  if (rowsById.get(equipment.weapon?.itemId ?? -1)?.weaponType === "WEBWEAVER_BOW") {
+    const ammoStrength = rowsById.get(equipment.ammo?.itemId ?? -1)?.bonuses.ranged_strength_bonus ?? 0;
+    return { ...bonuses, ranged_strength_bonus: bonuses.ranged_strength_bonus - ammoStrength };
+  }
+  return bonuses;
 }
 
 export function estimateVisibleStyleEvs(input: VisibleStyleEvInput): readonly StyleEvEstimate[] {
@@ -85,7 +95,9 @@ export function estimateVisibleStyleEvs(input: VisibleStyleEvInput): readonly St
       accuracyModifier: nhVisiblePvpAccuracyModifier(style),
       defenceBoostMultiplier: 1 + defenderPrayer.defence,
       magicDefenceBoostMultiplier: 1 + defenderPrayer.magic,
-      maxMagicDamage: input.maxMagicDamage
+      maxMagicDamage: input.maxMagicDamage,
+      attackType: input.attackType,
+      defenderAttackType: input.defenderAttackType
     });
 
     if (defenderProtectionPrayer !== protectPrayerForStyle(style)) {

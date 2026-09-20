@@ -1,3 +1,5 @@
+import { verifyDmmRuntime } from "./checks/dmm-runtime.mjs";
+import { readRuntimeViewerSource } from "./lib/runtime-viewer-source.mjs";
 import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -165,7 +167,7 @@ const specbarRedrawSource = readNhClientScriptSource("SpecbarRedraw.rs2asm");
 const combatInterfaceSpecialSource = readNhClientScriptSource("CombatInterfaceSP.rs2asm");
 const weaponTypes = JSON.parse(readFileSync(path.join(projectRoot, "fixtures", "assets", "defs", "weapon-types.json"), "utf8"));
 const appSource = readFileSync(path.join(projectRoot, "src", "ui", "App.tsx"), "utf8");
-const viewerSource = readFileSync(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
+const viewerSource = readRuntimeViewerSource();
 const hudSource = readFileSync(path.join(projectRoot, "src", "ui", "NhClientHud.tsx"), "utf8");
 const botPolicySource = readFileSync(path.join(projectRoot, "src", "bot", "policy.ts"), "utf8");
 const runtimeCombatSource = readFileSync(path.join(projectRoot, "src", "sim", "runtimePlayerCombat.ts"), "utf8");
@@ -825,8 +827,8 @@ assert(
   })}`
 );
 assert(
-  /if \(action\.kind === "eat" \|\| action\.kind === "drink"\)[\s\S]*targetId: null,[\s\S]*queuedSpellId: null,/.test(viewerSource),
-  "RuntimeSceneViewer queued inventory eat/drink path should clear the local combat target like the shared supply helper"
+  /if \(action\.kind === "eat" \|\| action\.kind === "drink"\)[\s\S]*\.\.\.resetRuntimePlayerCombatActorTarget\(state, "local-player"\)\.actors\["local-player"\]/.test(viewerSource),
+  "RuntimeSceneViewer queued inventory eat/drink path must clear both the attack target and maul binding through the shared reset"
 );
 for (const spotanimFile of [
   "onyx_bolt_proc.glb",
@@ -1177,8 +1179,8 @@ assert(
     localOffPidMagicHit &&
     opponentPidMagicHit.dueTick === opponentPidMagicHit.hitsplatTick &&
     localOffPidMagicHit.dueTick === localOffPidMagicHit.hitsplatTick &&
-    opponentPidMagicHit.dueTick === localOffPidMagicHit.dueTick - 1,
-  `PID flip should make the overlay-visible process order and same-tick combat order agree, with only the on-PID side getting the earlier magic impact: ${JSON.stringify({
+    opponentPidMagicHit.dueTick === localOffPidMagicHit.dueTick,
+  `PID flip should preserve the displayed attack order without shortening either magic projectile's impact delay: ${JSON.stringify({
     displayedPidFlipOrder,
     stateProcessOrder: sameTickMagicAfterPidFlipResult.state.processOrder,
     attacks: flippedAttackEvents,
@@ -1219,7 +1221,7 @@ function assertPidAdjustedOutgoingHitsplat(label, attackerId, defenderId, proces
   const hasProjectile = attack.projectile !== undefined;
   const expectedPidAdjustedHitsplatDelay = defenderAlreadyProcessed
     ? expectedNormalHitsplatDelay
-    : hasProjectile && attack.style === "ranged"
+    : hasProjectile
       ? expectedNormalHitsplatDelay
       : Math.max(0, expectedNormalHitsplatDelay - 1);
   const expectedDueTick = attack.tick + expectedPidAdjustedHitsplatDelay;
@@ -1422,10 +1424,10 @@ assert(
     localOffPidMagic.attack.style === "magic" &&
     localOnPidMagic.hit.dueTick === localOnPidMagic.hit.hitsplatTick &&
     localOffPidMagic.hit.dueTick === localOffPidMagic.hit.hitsplatTick &&
-    localOnPidMagic.hit.dueTick === localOffPidMagic.hit.dueTick - 1 &&
+    localOnPidMagic.hit.dueTick === localOffPidMagic.hit.dueTick &&
     localOnPidMagic.hitsplat.tick === localOnPidMagic.hit.dueTick &&
     localOffPidMagic.hitsplat.tick === localOffPidMagic.hit.dueTick,
-  `on-PID magic should land one tick earlier than off-PID magic, with hit event and HP timing aligned: ${JSON.stringify({
+  `magic should preserve its projectile delay in both processing orders, with hit event and HP timing aligned: ${JSON.stringify({
     onPid: { dueTick: localOnPidMagic.hit.dueTick, hitsplatTick: localOnPidMagic.hitsplat.tick },
     offPid: { dueTick: localOffPidMagic.hit.dueTick, hitsplatTick: localOffPidMagic.hitsplat.tick }
   })}`
@@ -1800,6 +1802,7 @@ const dmmIndependentProfile = nhGearProfile.inferNhSelectedGearProfile({
   equipment: dmmIndependentEquipment,
   inventoryItems: dmmIndependentInventory
 });
+verifyDmmRuntime();
 const dmmMagicStyleAction = {
   offenceStyle: "magic",
   defencePrayer: "protect_from_missiles",
@@ -1935,6 +1938,7 @@ function createDmmVectorProbePolicy(label, scores) {
   const actionIds = Int32Array.from(dmmVectorProbeActionIds);
   const policy = {
     kind: "neural",
+    decoder: "current-action-vector",
     version: 15,
     sourceLabel: label,
     step: 0,
@@ -3429,6 +3433,26 @@ assert(
   `magic hitsplat should be the applied engine value and should not display impossible barrage damage: ${JSON.stringify(magicHitsplatEvent)}`
 );
 
+const replacedManualSpell = requestLocalAttack(requestLocalSpell(createState(129)));
+assert(replacedManualSpell.actors["local-player"].queuedSpellId === null, "Attack should replace a pending one-shot spell");
+assert(
+  advance(replacedManualSpell).state.events.some((event) => event.kind === "attack" && event.style === "ranged" && !event.spellId),
+  "Spell then Attack before processing should fire the equipped crossbow"
+);
+const retainedAutocast = requestLocalAttack(requestLocalSpell(
+  runtimeCombat.setRuntimePlayerCombatAutocast(createState(129, { localLoadoutId: "kodai-robes" }), "local-player", "ice-barrage", false),
+  "blood-blitz"
+));
+assert(
+  advance(retainedAutocast).state.events.some((event) => event.kind === "attack" && event.spellId === "ice-barrage" && event.autocast),
+  "Attack should cancel the one-shot spell while preserving configured autocast"
+);
+assert(
+  advance(requestLocalSpell(requestLocalAttack(createState(129, { localLoadoutId: "kodai-robes" })), "blood-blitz"))
+    .state.events.some((event) => event.kind === "attack" && event.spellId === "blood-blitz" && !event.autocast),
+  "Attack then Spell should still honor the later manual spell"
+);
+
 let bloodAttack = null;
 let bloodAttackResult = null;
 for (let seed = 130; seed < 170; seed += 1) {
@@ -3565,6 +3589,31 @@ assert(
     hitpoints: bloodBlitzHitState.actors["local-player"].hitpoints
   })}`
 );
+
+for (const spellId of ["blood-barrage", "blood-blitz"]) {
+  for (const castWithZuriel of [false, true]) {
+    let castingState = createState(130, { localLoadoutId: "kodai-robes" });
+    const normalEquipment = castingState.actors["local-player"].equipment;
+    const zurielEquipment = { ...normalEquipment, weapon: { itemId: 22647, name: "Zuriel's staff" } };
+    castingState = stateWithLocalEquipment(castingState, castWithZuriel ? zurielEquipment : normalEquipment);
+    castingState = {
+      ...castingState,
+      actors: { ...castingState.actors, "local-player": { ...castingState.actors["local-player"], hitpoints: 50 } }
+    };
+    const launchedState = advance(requestLocalSpell(castingState, spellId)).state;
+    const launchedHit = launchedState.queuedHits.find((hit) => hit.spellId === spellId);
+    assert(launchedHit, `${spellId} should launch before testing an equipment switch during travel`);
+    let switchedState = stateWithLocalEquipment(launchedState, castWithZuriel ? normalEquipment : zurielEquipment);
+    switchedState = { ...switchedState, queuedHits: [{ ...launchedHit, damage: 20, rawDamage: 20 }] };
+    while (switchedState.tick <= launchedHit.dueTick) {
+      switchedState = advance(switchedState).state;
+    }
+    assert(
+      switchedState.actors["local-player"].hitpoints === (castWithZuriel ? 57 : 55),
+      `${spellId} healing must use casting equipment after switching ${castWithZuriel ? "off" : "onto"} Zuriel's staff`
+    );
+  }
+}
 
 let iceBlitzAttackResult = null;
 for (let seed = 220; seed < 270; seed += 1) {
@@ -4506,6 +4555,241 @@ function graniteMaulHitRollCount(result) {
   );
 }
 
+// DMM's learned equip/spec actions must use the carried maul variant.
+const dmmMaulGear = loadTsModule("src/sim/nh/canonicalGear.ts").canonicalNhGear;
+for (const itemId of [4153, 24225]) {
+  const maul = { itemId, name: "Granite maul" };
+  const equipped = {
+    ...nhLoadouts.nhLoadouts["noxious-halberd"].equipment,
+    weapon: dmmMaulGear.zaryteCrossbow
+  };
+  const carried = [maul, dmmMaulGear.zurielsStaff, dmmMaulGear.voidwaker];
+  const profile = nhGearProfile.inferNhSelectedGearProfile({ equipment: equipped, inventoryItems: carried });
+  assert(nhGearProfileCanUseMaul(profile), `DMM must recognize carried maul ${itemId}`);
+  for (const specIntent of ["none", "spec_granite_maul", "spec_granite_maul_double"]) {
+    for (const directGear of [false, true]) {
+      if (specIntent === "none" && !directGear) continue;
+      const initial = runtimeCombat.syncRuntimePlayerCombatStateToInput(createState(130, {
+        opponentTile: { x: 1, z: 0 }, opponentLoadoutId: "acb-hides"
+      }), { tiles: {}, equipment: { opponent: equipped }, gearProfiles: { opponent: profile } });
+      const result = runtimePolicyOpponent.applyRuntimeOpponentPolicyAction({
+        state: initial,
+        controller: {
+          id: "test-dmm-owned-maul", defencePrayerStrictModelChoice: true,
+          chooseAction: () => ({
+            offenceStyle: "ranged", defencePrayer: "protect_from_magic", movementIntent: "none",
+            supplyIntent: "none", specIntent, attackIntent: "attack", equipmentIntent: "weapon_only",
+            directGearActions: directGear ? ["equip_granite_maul"] : [], extendedSupplyAction: false
+          })
+        },
+        localActor: { tile: initial.actors["local-player"].tile, loadoutId: "acb-hides" },
+        opponentActor: { tile: initial.actors.opponent.tile, loadoutId: "acb-hides",
+          equipment: equipped, gearProfile: profile, inventoryItems: carried },
+        allowSourceLoadoutSync: false, rewardEpisodeActive: true
+      });
+      const actor = result.state.actors.opponent;
+      assert(result.effectiveAction.specIntent === specIntent && actor.equipment.weapon?.itemId === itemId,
+        `DMM action must equip its actual maul: ${itemId}/${specIntent}/${directGear}`);
+      assert(!actor.equipment.shield, "The carried maul must remove the shield");
+      const synced = runtimeCombat.syncRuntimePlayerCombatStateToInput(result.state,
+        { tiles: {}, loadouts: { opponent: result.opponentLoadoutId } });
+      assert(synced.actors.opponent.equipment.weapon?.itemId === itemId, "Viewer sync replaced the carried maul");
+      const after = advance(synced).state;
+      const expectedSpecs = specIntent === "none" ? 0 : specIntent === "spec_granite_maul_double" ? 2 : 1;
+      assert(after.actors.opponent.gmaulSpecsUsed === expectedSpecs &&
+        after.actors.opponent.gmaul.specialEnergy === 100 - 50 * expectedSpecs,
+      `DMM must execute the selected maul action: ${itemId}/${specIntent}/${directGear}`);
+    }
+  }
+}
+function nhGearProfileCanUseMaul(profile) {
+  return nhGearProfile.nhGearProfileCanEquipGraniteMaul(profile);
+}
+
+// OSRS click preloading intentionally differs from Kronos's unconditional click queue.
+// Keep both an active target and a remembered target from accidentally releasing two clicks.
+for (const distance of [1, 4]) {
+  for (const activeTarget of [false, true]) {
+    let preload = createState(252, {
+      opponentTile: { x: distance, z: 0 },
+      localLoadoutId: "gmaul-bandos"
+    });
+    preload = requestLocalAttack(preload);
+    if (!activeTarget) preload = runtimeCombat.resetRuntimePlayerCombatActorTarget(preload, "local-player");
+    preload = runtimeCombat.toggleRuntimePlayerCombatSpecial(preload, "local-player").state;
+    preload = runtimeCombat.toggleRuntimePlayerCombatSpecial(preload, "local-player").state;
+    assert(
+      preload.actors["local-player"].gmaul.preloaded &&
+        !preload.actors["local-player"].specialActive &&
+        preload.actors["local-player"].gmaul.specialEnergy === 100 && preload.queuedHits.length === 0,
+      "two same-tick clicks should arm without immediately firing or draining energy"
+    );
+    const held = advance(preload);
+    assert(
+      held.state.actors["local-player"].gmaul.queuedSpecs === 2 &&
+        held.state.actors["local-player"].gmaul.preloaded &&
+        held.state.actors["local-player"].targetId === null &&
+        held.routeRequests.length === 0 &&
+        !held.state.events.some((event) => event.kind === "attack"),
+      `double-click preload must hold without swinging or chasing: distance=${distance}, activeTarget=${activeTarget}`
+    );
+    for (const release of ["third-click", "opponent-click"]) {
+      if (release === "third-click" && !activeTarget) {
+        const unbound = advance(runtimeCombat.toggleRuntimePlayerCombatSpecial(held.state, "local-player").state);
+        assert(unbound.state.actors["local-player"].targetId === null &&
+          graniteMaulHitRollCount(unbound) === 0 && unbound.routeRequests.length === 0 &&
+          unbound.state.actors["local-player"].gmaul.specialEnergy === 100,
+        "a third click must not restore combat after an explicit cancellation");
+        continue;
+      }
+      const released = release === "third-click"
+        ? runtimeCombat.toggleRuntimePlayerCombatSpecial(held.state, "local-player").state
+        : requestLocalAttack(held.state);
+      assert(
+        !released.actors["local-player"].gmaul.preloaded && released.actors["local-player"].targetId === "opponent",
+        `${release} should release a held preload and target the opponent`
+      );
+      const routed = advance(released);
+      if (distance > 1) {
+        assert(
+          graniteMaulHitRollCount(routed) === 0 &&
+            routed.routeRequests.some((route) => route.actorId === "local-player" && route.attackRange === 1),
+          `${release} must chase before dealing any damage from out of range`
+        );
+      }
+      const fired = distance === 1 ? routed : advance(routed.state, { local: { x: 3, z: 0 } });
+      assert(
+        graniteMaulHitRollCount(fired) === 2 && fired.state.actors["local-player"].gmaul.specialEnergy === 0 &&
+          !fired.state.actors["local-player"].gmaul.preloaded,
+        `${release} should fire exactly two specs when melee range is reached`
+      );
+    }
+  }
+}
+
+for (const clicks of [1, 2, 3, 4]) {
+  let clickState = createState(253, { opponentTile: { x: 1, z: 0 }, localLoadoutId: "gmaul-bandos" });
+  clickState = requestLocalAttack(clickState);
+  for (let click = 0; click < clicks; click += 1) {
+    clickState = runtimeCombat.toggleRuntimePlayerCombatSpecial(clickState, "local-player").state;
+  }
+  assert(clickState.queuedHits.length === 0, "spec clicks should wait for combat tick processing");
+  const result = advance(clickState);
+  const expectedHits = clicks === 1 ? 1 : clicks === 2 ? 0 : 2;
+  assert(
+    graniteMaulHitRollCount(result) === expectedHits &&
+      result.state.actors["local-player"].gmaul.specialEnergy === 100 - 50 * expectedHits,
+    `${clicks} same-tick spec clicks should produce ${expectedHits} special attacks`
+  );
+}
+
+// Interruptions must clear the attack lock at every point in the click sequence.
+// The armed specs remain available for an explicit opponent click until expiry.
+for (const cancelKind of ["movement", "equipment", "manta_ray", "super_combat"]) {
+  for (const cancelAfterClicks of [0, 1, 2, 3]) {
+    let interrupted = requestLocalAttack(createState(257, {
+      opponentTile: { x: 1, z: 0 }, localLoadoutId: "gmaul-bandos",
+      localLevels: combatLevels({ hitpoints: 50 })
+    }));
+    for (let click = 0; click < cancelAfterClicks; click += 1) {
+      interrupted = runtimeCombat.toggleRuntimePlayerCombatSpecial(interrupted, "local-player").state;
+    }
+    if (cancelKind === "manta_ray" || cancelKind === "super_combat") {
+      const consumed = runtimeCombat.consumeRuntimePlayerCombatSupply(interrupted, "local-player", cancelKind);
+      assert(consumed.consumed, `${cancelKind} interruption setup must consume the supply`);
+      interrupted = consumed.state;
+    } else {
+      interrupted = runtimeCombat.resetRuntimePlayerCombatActorTarget(interrupted, "local-player");
+    }
+    for (let click = cancelAfterClicks; click < 3; click += 1) {
+      interrupted = runtimeCombat.toggleRuntimePlayerCombatSpecial(interrupted, "local-player").state;
+    }
+    const held = advance(interrupted);
+    assert(held.state.actors["local-player"].targetId === null &&
+      held.state.actors["local-player"].gmaul.queuedTargetId === undefined &&
+      held.state.actors["local-player"].gmaul.specialEnergy === 100 &&
+      graniteMaulHitRollCount(held) === 0 && held.routeRequests.length === 0,
+    `${cancelKind} after ${cancelAfterClicks} clicks must prevent maul auto-targeting`);
+    const released = advance(requestLocalAttack(held.state));
+    assert(graniteMaulHitRollCount(released) === 2 &&
+      released.state.actors["local-player"].gmaul.specialEnergy === 0,
+    `${cancelKind} after ${cancelAfterClicks} clicks must preserve the explicit-click release`);
+  }
+}
+for (const clicks of [1, 2, 3, 4]) {
+  let idle = createState(258, { opponentTile: { x: 1, z: 0 }, localLoadoutId: "gmaul-bandos" });
+  for (let click = 0; click < clicks; click += 1) {
+    idle = runtimeCombat.toggleRuntimePlayerCombatSpecial(idle, "local-player").state;
+  }
+  const result = advance(idle);
+  assert(result.state.actors["local-player"].targetId === null &&
+    graniteMaulHitRollCount(result) === 0 && result.routeRequests.length === 0 &&
+    result.state.actors["local-player"].gmaul.specialEnergy === 100,
+  `${clicks} clicks without an active fight must not select the practice opponent`);
+}
+
+for (const release of ["third-click", "opponent-click"]) {
+  let expiry = createState(254, { opponentTile: { x: 1, z: 0 }, localLoadoutId: "gmaul-bandos" });
+  expiry = requestLocalAttack(expiry);
+  expiry = runtimeCombat.toggleRuntimePlayerCombatSpecial(expiry, "local-player").state;
+  expiry = runtimeCombat.toggleRuntimePlayerCombatSpecial(expiry, "local-player").state;
+  for (let tick = 0; tick < 4; tick += 1) expiry = advance(expiry).state;
+  assert(
+    expiry.actors["local-player"].gmaul.preloaded && expiry.actors["local-player"].gmaul.timeoutTicks === 1,
+    "preload should still be available immediately before the fifth tick expires"
+  );
+  const released = release === "third-click"
+    ? runtimeCombat.toggleRuntimePlayerCombatSpecial(expiry, "local-player").state
+    : requestLocalAttack(expiry);
+  assert(graniteMaulHitRollCount(advance(released)) === 2, `${release} should work at the last live preload boundary`);
+  const expired = advance(expiry).state;
+  assert(
+    expired.actors["local-player"].gmaul.queuedSpecs === 0 &&
+      !expired.actors["local-player"].gmaul.preloaded &&
+      expired.actors["local-player"].gmaul.queuedTargetId === undefined &&
+      !expired.actors["local-player"].specialActive &&
+      expired.actors["local-player"].gmaul.specialEnergy === 100,
+    "the fifth tick should discard an unused preload without spending energy"
+  );
+  const afterExpiry = release === "third-click"
+    ? requestLocalAttack(runtimeCombat.toggleRuntimePlayerCombatSpecial(expired, "local-player").state)
+    : requestLocalAttack(expired);
+  assert(
+    graniteMaulHitRollCount(advance(afterExpiry)) === (release === "third-click" ? 1 : 0),
+    `${release} after expiry must not revive the old double preload`
+  );
+}
+
+for (const energy of [0, 25, 50]) {
+  let limited = createState(255, {
+    opponentTile: { x: 1, z: 0 }, localLoadoutId: "gmaul-bandos", localSpecialEnergy: energy
+  });
+  limited = requestLocalAttack(limited);
+  for (let click = 0; click < 3; click += 1) {
+    limited = runtimeCombat.toggleRuntimePlayerCombatSpecial(limited, "local-player").state;
+  }
+  const result = advance(limited);
+  assert(
+    graniteMaulHitRollCount(result) === Math.floor(energy / 50) &&
+      result.state.actors["local-player"].gmaul.specialEnergy === energy % 50,
+    "a released preload cannot spend unavailable special energy"
+  );
+}
+
+let separateTickClicks = requestLocalAttack(createState(256, {
+  opponentTile: { x: 1, z: 0 }, localLoadoutId: "gmaul-bandos"
+}));
+for (let click = 0; click < 2; click += 1) {
+  separateTickClicks = runtimeCombat.toggleRuntimePlayerCombatSpecial(separateTickClicks, "local-player").state;
+  separateTickClicks = advance(separateTickClicks).state;
+}
+const separateTickSpecs = separateTickClicks.events.filter((event) => event.kind === "attack" && event.specialAttack === "granite_maul");
+assert(
+  separateTickSpecs.length === 2 && separateTickSpecs.every((event) => event.specialAttackCount === 1) &&
+    separateTickSpecs[0].tick !== separateTickSpecs[1].tick,
+  "clicks on separate combat ticks should fire separate single specs, not become a preload"
+);
+
 let gmaulSpecial = createState(24, {
   localTile: { x: 0, z: 0 },
   opponentTile: { x: 1, z: 0 },
@@ -4541,7 +4825,11 @@ offWeaponGmaul = runtimeCombat.setRuntimePlayerCombatLoadout(offWeaponWhipResult
 offWeaponGmaul = runtimeCombat.resetRuntimePlayerCombatActorTarget(offWeaponGmaul, "local-player");
 const offWeaponGmaulToggle = runtimeCombat.toggleRuntimePlayerCombatSpecial(offWeaponGmaul, "local-player");
 assert(offWeaponGmaulToggle.mutation === "queue-gmaul", "switching to Granite maul after another weapon attack should allow queueing the maul special");
-const offWeaponGmaulResult = advance(offWeaponGmaulToggle.state);
+const offWeaponGmaulIdle = advance(offWeaponGmaulToggle.state);
+assert(graniteMaulHitRollCount(offWeaponGmaulIdle) === 0 &&
+  offWeaponGmaulIdle.state.actors["local-player"].gmaul.specialEnergy === 100,
+"equipping the maul must not reuse the previous weapon's cancelled target");
+const offWeaponGmaulResult = advance(requestLocalAttack(offWeaponGmaulIdle.state));
 const offWeaponGmaulEvent = offWeaponGmaulResult.state.events.find((event) => event.kind === "attack" && event.specialAttack === "granite_maul");
 assert(offWeaponGmaulEvent?.sequenceName === "gmaul_special", "queued Granite maul special should fire during the previous weapon delay after switching to the maul");
 assert(graniteMaulHitRollCount(offWeaponGmaulResult) === 1, "off-weapon Granite maul queue should produce one immediate special hit roll");
@@ -4572,7 +4860,7 @@ const diagonalLastTargetResult = advance(diagonalLastTargetGmaul);
 assert(
   diagonalLastTargetResult.state.actors["local-player"].targetId === null &&
     diagonalLastTargetResult.state.queuedHits.length === 0,
-  "Granite maul auto-attack should not retarget a diagonal last target; Nh only auto-targets size-1 players at diffX + diffY == 1"
+  "Granite maul must not retarget a cancelled diagonal target"
 );
 
 let cardinalLastTargetGmaul = createState(244, {
@@ -4585,10 +4873,13 @@ cardinalLastTargetGmaul = requestLocalAttack(cardinalLastTargetToggle.state);
 cardinalLastTargetGmaul = runtimeCombat.resetRuntimePlayerCombatActorTarget(cardinalLastTargetGmaul, "local-player");
 const cardinalLastTargetResult = advance(cardinalLastTargetGmaul);
 assert(
-  cardinalLastTargetResult.state.actors["local-player"].targetId === "opponent" &&
-    graniteMaulHitRollCount(cardinalLastTargetResult) === 1,
-  "Granite maul auto-attack should retarget and fire only when the last target is cardinal-adjacent like Nh"
+  cardinalLastTargetResult.state.actors["local-player"].targetId === null &&
+    graniteMaulHitRollCount(cardinalLastTargetResult) === 0 &&
+    cardinalLastTargetResult.state.actors["local-player"].gmaul.specialEnergy === 100,
+  "Granite maul must not retarget a cancelled target even at cardinal-adjacent distance"
 );
+assert(graniteMaulHitRollCount(advance(requestLocalAttack(cardinalLastTargetResult.state))) === 1,
+  "an explicit opponent click should release the preserved single spec after cancellation");
 
 let outOfRangeDoubleGmaul = createState(245, {
   localTile: { x: 0, z: 0 },
@@ -4637,16 +4928,20 @@ assert(
 const preloadedNeedsTargetThirdClick = runtimeCombat.toggleRuntimePlayerCombatSpecial(preloadedNeedsTargetIdle.state, "local-player");
 assert(
   preloadedNeedsTargetThirdClick.queuedGraniteMaulSpecs === 3 &&
-    preloadedNeedsTargetThirdClick.state.actors["local-player"].targetId === "opponent",
-  "third Granite maul click should promote the existing far last-target into the active target route"
+    preloadedNeedsTargetThirdClick.state.actors["local-player"].targetId === null,
+  "third Granite maul click must not promote a cancelled far target into an active route"
 );
-const preloadedNeedsTargetRoute = advance(preloadedNeedsTargetThirdClick.state);
+const preloadedNeedsTargetStillIdle = advance(preloadedNeedsTargetThirdClick.state);
+assert(preloadedNeedsTargetStillIdle.routeRequests.length === 0 &&
+  graniteMaulHitRollCount(preloadedNeedsTargetStillIdle) === 0,
+"a cancelled triple-click must wait for an explicit opponent click");
+const preloadedNeedsTargetRoute = advance(requestLocalAttack(preloadedNeedsTargetStillIdle.state));
 assert(
   preloadedNeedsTargetRoute.state.actors["local-player"].gmaul.queuedSpecs === 3 &&
     preloadedNeedsTargetRoute.routeRequests.some(
       (request) => request.actorId === "local-player" && request.reason === "out-of-range" && request.attackRange === 1
     ),
-  "third Granite maul click should use the normal melee TargetRoute request while keeping queued specs until in range"
+  "the explicit opponent click should route into melee range while keeping queued specs"
 );
 const preloadedNeedsTargetFire = advance(preloadedNeedsTargetRoute.state, {
   local: { x: 3, z: 0 },
@@ -4655,7 +4950,7 @@ const preloadedNeedsTargetFire = advance(preloadedNeedsTargetRoute.state, {
 assert(
   graniteMaulHitRollCount(preloadedNeedsTargetFire) === 2 &&
     preloadedNeedsTargetFire.state.actors["local-player"].gmaul.queuedSpecs === 0,
-  "third-click Granite maul auto-target should fire through the existing energy-capped maul consumption once routed into melee range"
+  "the explicit opponent click should release the energy-capped maul queue once in melee range"
 );
 
 let delayedPreloadThirdClick = createState(251, {
@@ -4671,8 +4966,8 @@ for (let tick = 0; tick < 4; tick += 1) {
 const delayedPreloadFirstClick = runtimeCombat.toggleRuntimePlayerCombatSpecial(delayedPreloadThirdClick, "local-player");
 const delayedPreloadSecondClick = runtimeCombat.toggleRuntimePlayerCombatSpecial(delayedPreloadFirstClick.state, "local-player");
 assert(
-  delayedPreloadSecondClick.state.actors["local-player"].gmaul.queuedTargetId === "opponent",
-  "a delayed double-click preload should bind the currently remembered target for the live Gmaul queue"
+  delayedPreloadSecondClick.state.actors["local-player"].gmaul.queuedTargetId === undefined,
+  "a delayed double-click preload must not bind a cancelled remembered target"
 );
 let delayedPreloadWait = delayedPreloadSecondClick.state;
 for (let tick = 0; tick < 2; tick += 1) {
@@ -4682,13 +4977,13 @@ assert(
   delayedPreloadWait.actors["local-player"].lastTargetId === null &&
     delayedPreloadWait.actors["local-player"].gmaul.queuedSpecs === 2 &&
     delayedPreloadWait.actors["local-player"].gmaul.timeoutTicks > 0,
-  "test setup should leave only the live Gmaul preload target after the normal last-target timeout expires"
+  "test setup should preserve the unbound preload after the combat-history timeout expires"
 );
 const delayedPreloadThirdClickResult = runtimeCombat.toggleRuntimePlayerCombatSpecial(delayedPreloadWait, "local-player");
 assert(
-  delayedPreloadThirdClickResult.state.actors["local-player"].targetId === "opponent" &&
+  delayedPreloadThirdClickResult.state.actors["local-player"].targetId === null &&
     delayedPreloadThirdClickResult.state.actors["local-player"].gmaul.queuedSpecs === 3,
-  "third Granite maul click should send a still-live preload even after the old last-target timeout has expired"
+  "third Granite maul click must not invent a target after combat history expires"
 );
 
 let doubleGmaulSpecial = createState(25, {
@@ -4711,7 +5006,6 @@ let inRangeTripleClickGmaul = createState(250, {
   localLoadoutId: "gmaul-bandos"
 });
 inRangeTripleClickGmaul = requestLocalAttack(inRangeTripleClickGmaul);
-inRangeTripleClickGmaul = runtimeCombat.resetRuntimePlayerCombatActorTarget(inRangeTripleClickGmaul, "local-player");
 const inRangeTripleFirstClick = runtimeCombat.toggleRuntimePlayerCombatSpecial(inRangeTripleClickGmaul, "local-player");
 const inRangeTripleSecondClick = runtimeCombat.toggleRuntimePlayerCombatSpecial(inRangeTripleFirstClick.state, "local-player");
 const inRangeTripleThirdClick = runtimeCombat.toggleRuntimePlayerCombatSpecial(inRangeTripleSecondClick.state, "local-player");
@@ -4719,7 +5013,7 @@ const inRangeTripleClickResult = advance(inRangeTripleThirdClick.state);
 assert(
   inRangeTripleThirdClick.state.actors["local-player"].targetId === "opponent" &&
     graniteMaulHitRollCount(inRangeTripleClickResult) === 2,
-  "third Granite maul click should auto-target and immediately fire when the existing last target is already in melee range"
+  "third Granite maul click should immediately fire against the still-active melee target"
 );
 
 let tripleGmaulSpecial = createState(247, {

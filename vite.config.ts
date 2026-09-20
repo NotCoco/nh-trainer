@@ -3,7 +3,19 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   base: "./",
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: "serve-training-blog",
+      configureServer(server) {
+        server.middlewares.use((request, _response, next) => {
+          // Vite's public-file middleware needs the explicit index filename.
+          request.url = request.url?.replace(/^\/blog\/?(?=\?|$)/, "/blog/index.html");
+          next();
+        });
+      }
+    }
+  ],
   publicDir: "fixtures",
   build: {
     outDir: "dist",

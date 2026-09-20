@@ -946,22 +946,26 @@ function clientSceneObjectLayer(placement) {
 
 function objectFaceMaterialKey(mesh, textureId, textureDefs, placement) {
   const sceneLayer = clientSceneObjectLayer(placement);
+  const tree = placement.name === "Tree";
+  const materialGroup = tree ? "tree" : sceneLayer;
   const texture = textureId >= 0 ? textureDefs.get(textureId) : null;
   if (texture?.image) {
-    return registerMaterial(mesh, `${sceneLayer}:texture:${textureId}`, {
+    return registerMaterial(mesh, `${materialGroup}:texture:${textureId}`, {
       name: `cache-${sceneLayer}-texture-${textureId}`,
       kind: "texture",
       sceneLayer,
+      tree,
       unlit: true,
       textureId,
       imageUri: textureImageUri(texture)
     });
   }
 
-  return registerMaterial(mesh, `${sceneLayer}:vertex-color`, {
+  return registerMaterial(mesh, `${materialGroup}:vertex-color`, {
     name: `cache-${sceneLayer}-face-colors`,
     kind: "vertex",
     sceneLayer,
+    tree,
     unlit: true
   });
 }
@@ -1129,7 +1133,8 @@ function makeGlb(name, mesh, extras, materialName) {
       doubleSided: true,
       alphaMode: descriptor.kind === "texture" ? "MASK" : "OPAQUE",
       extras: {
-        nhSceneLayer: descriptor.sceneLayer ?? "scene-object"
+        nhSceneLayer: descriptor.sceneLayer ?? "scene-object",
+        ...(descriptor.tree ? { nhSceneTree: true } : {})
       },
       pbrMetallicRoughness: {
         baseColorFactor: [1, 1, 1, 1],

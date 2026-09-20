@@ -1,5 +1,6 @@
 import type { RuntimeActorId } from "../render/runtimeScene";
 import { nhMenuBaseOpcode, type NhPlayerContextMenuEntry } from "../render/nhContextMenu";
+import { NH_GAME_TICK_MS } from "../render/nhTileMovement";
 import type { RuntimePlayerCombatActorState, RuntimePlayerCombatState } from "../sim/runtimePlayerCombat";
 import type { RuneliteOpponentInfoConfigSnapshot, RuneliteOpponentHitpointsDisplayStyle } from "./RuneliteClientShell";
 
@@ -54,7 +55,7 @@ export interface RuneliteOpponentInfoSnapshot {
   readonly label: string;
   readonly fillPercent: number;
   readonly width: number;
-  readonly sourceLastOpponent: "targetId" | "lastTargetId";
+  readonly sourceLastOpponent: "targetId" | "lastTargetId" | "recentAttack";
 }
 
 export interface RuneliteOpponentInfoMenuInput<TTile> {
@@ -73,22 +74,33 @@ export function runeliteOpponentInfoSnapshot(
   }
 
   const local = combatState.actors["local-player"];
-  const sourceLastOpponent = local.targetId !== null ? "targetId" : local.lastTargetId !== null ? "lastTargetId" : null;
-  if (sourceLastOpponent === null) {
-    return null;
+  let sourceLastOpponent: RuneliteOpponentInfoSnapshot["sourceLastOpponent"] | null =
+    local.targetId !== null ? "targetId" : local.lastTargetId !== null ? "lastTargetId" : null;
+  let opponentId = local.targetId ?? local.lastTargetId;
+  // Eating/manual casts clear the combat target. Retain the opponent while
+  // either side is attacking, with RuneLite's five-second grace afterwards.
+  if (opponentId === null) {
+    const recentAttack = [...combatState.events].reverse().find(event => event.kind === "attack" &&
+      (event.attackerId === local.id || event.defenderId === local.id) &&
+      (combatState.tick - event.tick) * NH_GAME_TICK_MS <= RUNELITE_OPPONENT_INFO_WAIT_MS);
+    if (recentAttack?.kind === "attack") {
+      opponentId = recentAttack.attackerId === local.id ? recentAttack.defenderId : recentAttack.attackerId;
+      sourceLastOpponent = "recentAttack";
+    }
   }
 
-  const opponentId = local[sourceLastOpponent];
-  if (opponentId === null) {
+  if (opponentId === null || sourceLastOpponent === null) {
     return null;
   }
 
   const opponent = combatState.actors[opponentId];
-  if (!opponent || opponent.hitpoints <= 0) {
+  if (!opponent) {
     return null;
   }
 
-  const currentHitpoints = Math.max(0, Math.min(opponent.maxHitpoints, opponent.hitpoints));
+  // The trainer knows the exact HP; preserve 0 through the death transition
+  // instead of hiding the panel or estimating HP from the overhead bar.
+  const currentHitpoints = Math.max(0, opponent.hitpoints);
   const maxHitpoints = Math.max(1, opponent.maxHitpoints);
   const fillPercent = Math.max(0, Math.min(100, (currentHitpoints / maxHitpoints) * 100));
   const displayStyle = config.hitpointsDisplayStyle;

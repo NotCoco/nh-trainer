@@ -86,6 +86,10 @@ export function applyKarambwanAttackDelay(state: AttackTimerState, eatDelayActiv
   return delayAttack(state, eatDelayActive ? 1 : 2);
 }
 
+export function applyHalibutAttackDelay(state: AttackTimerState): AttackTimerState {
+  return delayAttack(state, 2);
+}
+
 export function applyPotionAttackDelay(state: AttackTimerState): AttackTimerState {
   return state;
 }

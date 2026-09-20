@@ -1,3 +1,4 @@
+import { readRuntimeViewerSource } from "./lib/runtime-viewer-source.mjs";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -78,7 +79,7 @@ const runtimeCombat = loadTsModule("src/sim/runtimePlayerCombat.ts");
 const runtimePolicyOpponent = loadTsModule("src/sim/nh/runtime-policy-opponent.ts");
 const nhLoadouts = loadTsModule("src/sim/nh/loadouts.ts");
 const nhPolicyFeatures = loadTsModule("src/sim/nh/policy-features.ts");
-const viewerSource = readFileSync(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
+const viewerSource = readRuntimeViewerSource();
 const runtimePolicyOpponentSource = readFileSync(
   path.join(projectRoot, "src", "sim", "nh", "runtime-policy-opponent.ts"),
   "utf8"

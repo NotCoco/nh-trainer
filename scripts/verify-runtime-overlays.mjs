@@ -113,14 +113,32 @@ function verifyRuntimeOverlayLayering() {
     runtimeSource.includes("runtimePlayerCombatProcessOrderForTick(manualCombatState, manualCombatState.tick)") &&
       runtimeSource.includes('data-source-plugin="NhPidPlugin"') &&
       runtimeSource.includes('data-source-overlay={RUNTIME_PID_OVERLAY_NAME}') &&
-      runtimeSource.includes("runtimePidOverlayStyle(fixedClientCssLayout, runeliteOverlayLocations)") &&
+      runtimeSource.includes("runtimePidOverlayStyle(fixedClientCssLayout, runeliteOverlayLocations, clientDisplayMode)") &&
       runtimeSource.includes('data-source-overlay-position="bottom-left fixed game viewport"') &&
       runtimeSource.includes("runeliteOverlayPreferredLocationStyle(RUNTIME_PID_OVERLAY_NAME, overlayLocations, scale)") &&
       runtimeSource.includes("data-source-overlay-position-storage={RUNELITE_OVERLAY_POSITION_SOURCE}") &&
       runtimeSource.includes("data-source-overlay-drag={RUNELITE_FIGHT_START_OVERLAY_DRAG_SOURCE}") &&
-      pidOverlayCss.includes("pointer-events: none;") &&
+      pidOverlayCss.includes("pointer-events: auto;") &&
+      pidOverlayCss.includes("cursor: pointer;") &&
       pidOverlayCss.includes("position: absolute;"),
-    "PID overlay must render from local-player process order as a non-interactive bottom-left fixed viewport overlay"
+    "PID overlay must render from local-player process order as a clickable bottom-left fixed viewport overlay"
+  );
+
+  // Clicking the overlay hands PID to the other player, and Alt stays the drag
+  // modifier rather than a flip.
+  assert(
+    runtimeSource.includes("flipRuntimePlayerCombatProcessOrder(manualCombatStateRef.current)") &&
+      runtimeSource.includes("onClick={(event) => {\n              if (event.altKey) {") &&
+      runtimeSource.includes("toggleRuntimePidProcessOrder();") &&
+      runtimeSource.includes('title="Click to flip PID"'),
+    "PID overlay must flip the process order on a non-Alt click"
+  );
+
+  // A fight must not always open with the same processing order.
+  assert(
+    runtimeSource.includes("function runtimeFightRandomSeed(): number") &&
+      runtimeSource.split("seed: runtimeFightRandomSeed()").length - 1 >= 2,
+    "each fight must draw its own seed so the opening PID is not always the local player"
   );
 
   assert(

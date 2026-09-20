@@ -105,6 +105,52 @@ npm run build:web
 npm run preview
 ```
 
+## Runtime Maintenance
+
+The runtime is split by responsibility:
+
+| File | Responsibility |
+| --- | --- |
+| `src/ui/RuntimeSceneViewer.tsx` | React state, rendering, input, and fight-loop coordination |
+| `src/ui/runtimeSetupPresets.ts` | NH/DMM/Risk Fight starting gear, spellbooks, inventory, and supplies |
+| `src/ui/runtimePreferences.ts` | Browser storage keys, saved setups, and existing preference migrations |
+| `src/ui/runtimeMovement.ts` | Java-backed routing, client interpolation, turning, and animation timing |
+| `src/ui/runtimeCombatState.ts` | Pure combat-state and opponent-observation helpers |
+| `src/sim/nh/runtime-policy-opponent.ts` | Applying model actions to the combat simulation |
+| `src/bot/policy.ts` and `src/sim/nh/policy-contract.ts` | Schema validation, explicit decoder identity, and inference |
+
+Each setup owns its spellbook: NH stake and DMM use Ancient; Risk Fight uses Lunar.
+Selecting a mode applies that spellbook even when restoring saved equipment. Saved
+setups are scoped by mode; storage keys and legacy migrations must remain stable.
+Use the same browser origin (`localhost` and `127.0.0.1` have separate storage)
+when checking a user's existing preferences.
+
+The parser resolves the neural decoder once from validated input dimensions and
+action IDs. Controllers pass that identity explicitly; filenames, UI labels, and
+controller IDs must not select combat behavior. Legacy NH, deployed-composite DMM,
+and current direct-action DMM are separate contracts. Changing the decoder metadata
+does not authorize changing a model's decisions, action masks, or weights.
+
+For mode, preference, or decoder changes, run:
+
+```powershell
+npm run typecheck
+npm run verify:runtime-mode-boundaries
+```
+
+The focused checks cover spellbooks, saved preferences, NH movement, model contracts,
+and DMM equipment preservation. They run only in Node and are never imported by the
+game. Existing Java source-parity checks use `scripts/lib/runtime-viewer-source.mjs`
+to read the extracted helpers; new behavior tests should call the helpers directly.
+
+`src/ui/App.tsx` owns browser policy asset selection. Risk Fight's embedded candidate
+is separate (`src/bot/riskfight-policy.ts`, `src/generated/webweaver-riskfight-candidate.json`);
+its experiment notes are in `fastsim/docs/RISKFIGHT-CANDIDATE.md`. Model rollback
+fixtures, generated training outputs, and local experimental branches are not proof
+of what the public site currently serves. Check `git worktree list`, the target
+branch, and the deployed artifact before releasing. Build a selective live fix from
+the release branch when the development checkout also contains unreleased work.
+
 ## Deployment
 
 The project is set up for Vercel. The deployment config builds the static web client from `dist`.

@@ -1,3 +1,4 @@
+import { readRuntimeViewerSource } from "./lib/runtime-viewer-source.mjs";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -274,7 +275,7 @@ const playerModelSources = {
   serverItems: readJson("fixtures/assets/defs/server-items.json"),
   bodyColors: readJson("fixtures/assets/defs/body-colors.json")
 };
-const runtimeSceneViewerSource = readFileSync(path.join(projectRoot, "src", "ui", "RuntimeSceneViewer.tsx"), "utf8");
+const runtimeSceneViewerSource = readRuntimeViewerSource();
 const runtimePlayerCombatSource = readFileSync(path.join(projectRoot, "src", "sim", "runtimePlayerCombat.ts"), "utf8");
 const clientActorMovementSource = readFileSync(path.join(clientStandaloneRoot, "class329.java"), "utf8");
 const serverTabInventorySource = readFileSync(

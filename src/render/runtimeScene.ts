@@ -84,6 +84,10 @@ export type RuntimeSequenceName =
   | "godsword_walk_left"
   | "godsword_walk_right"
   | "godsword_run"
+  | "elder_maul_ready"
+  | "elder_maul_walk"
+  | "elder_maul_run"
+  | "elder_maul_attack"
   | "whip_turn"
   | "whip_walk"
   | "whip_walk_back"
@@ -106,6 +110,7 @@ export type RuntimeSequenceName =
   | "vesta_longsword_special"
   | "voidwaker_special"
   | "crossbow_attack"
+  | "bow_attack"
   | "blitz_cast"
   | "barrage_cast"
   | "vengeance_cast";

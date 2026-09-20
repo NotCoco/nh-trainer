@@ -1,6 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import vm from "node:vm";
+import ts from "typescript";
+import { loadTsModule } from "./lib/load-ts-module.mjs";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const workspaceRoot = path.resolve(projectRoot, "..");
@@ -348,4 +351,109 @@ assert(cssSource.includes(".runeliteXpDropGlyphText"), "CSS missing source font 
 assert(cssSource.includes(".runeliteConfigNumberInput"), "CSS missing XP Drop numeric config input class.");
 assert(cssSource.includes(".nhXpDropOrb"), "CSS missing XP Drop orb class.");
 
-console.log("RuneLite XP Drop verifier passed: source scripts, combat XP math, trainer numeric controls, and overlays are anchored.");
+// Run the actual combat and overlay functions together: an instant melee hit can
+// leave the pending queue before the first rendered frame sees it.
+const combat = loadTsModule("src/sim/runtimePlayerCombat.ts");
+const overlayFunctionNames = new Set([
+  "syncRuneliteXpDropDomOverlays", "runeliteXpDropText", "runeliteXpDropSourceWidth",
+  "runeliteXpDropSkillIcons", "runeliteXpDropFontSpec", "runeliteXpDropTextSizeSpec",
+  "runeliteXpDropPanelCssRect"
+]);
+const parsedViewer = ts.createSourceFile("RuntimeSceneViewer.tsx", runtimeSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+const overlayDeclarations = parsedViewer.statements.filter((node) =>
+  (ts.isFunctionDeclaration(node) && overlayFunctionNames.has(node.name?.text)) ||
+  (ts.isVariableStatement(node) && node.declarationList.declarations.some((declaration) =>
+    ts.isIdentifier(declaration.name) && (
+      declaration.name.text.startsWith("RUNELITE_XP_DROP_") ||
+      declaration.name.text === "RUNELITE_RESIZABLE_VIEWPORT_WIDGET_CHILD_ID"
+    )
+  ))
+).map((node) => node.getText(parsedViewer)).join("\n");
+const syncXpDrops = vm.runInNewContext(ts.transpileModule(
+  `${overlayDeclarations}\nsyncRuneliteXpDropDomOverlays;`,
+  { compilerOptions: { target: ts.ScriptTarget.ES2020 } }
+).outputText, {
+  ...combat,
+  // No font atlas or 3D scene is needed to check the produced DOM overlay data.
+  nhClientFontDefinition: () => null,
+  runtimePlayerCombatOverlayActorOffset: () => 0
+});
+const boundary = {
+  fixedClientLayout: { displayMode: "fixed", viewport: { rect: { x: 0, y: 0, width: 512, height: 334 } } },
+  fixedClientCssLayout: { scale: 1, surfaceRect: { x: 0, y: 0 } }
+};
+const xpConfig = {
+  enabled: true, trainerFont: "Bold 12", trainerTextSize: 25,
+  trainerMoveDistance: 120, trainerDisplayMode: "XP", hideSkillIcons: false,
+  showDamageDrops: "IN_XP_DROP", damageColor: "#ffffff"
+};
+function overlaySession() {
+  const active = new Map();
+  const emitted = new Set();
+  const lastStart = { current: 0 };
+  return (state, cycle = state.tick * 30, config = xpConfig, shown = true) =>
+    syncXpDrops(boundary, state, config, shown, {}, cycle, active, emitted, lastStart);
+}
+function advance(state) {
+  return combat.advanceRuntimePlayerCombat(state, {
+    tiles: { "local-player": state.actors["local-player"].tile, opponent: state.actors.opponent.tile }
+  }).state;
+}
+function attackCase({ pid = true, special = false, attackSet = 0, lethal = false, miss = false, ranged = false } = {}) {
+  for (let seed = 200; seed < 500; seed += 1) {
+    let state = combat.createRuntimePlayerCombatState({
+      localTile: { x: 0, z: 0 }, opponentTile: { x: ranged ? 4 : 1, z: 0 },
+      localLoadoutId: ranged ? "acb-hides" : "ags-bandos", opponentLoadoutId: "kodai-robes",
+      localAttackSetIndex: attackSet, combatStartTick: 0, seed
+    });
+    state = { ...state, processOrder: pid ? ["local-player", "opponent"] : ["opponent", "local-player"], nextProcessOrderShuffleTick: 999 };
+    if (lethal) state = { ...state, actors: { ...state.actors, opponent: { ...state.actors.opponent, hitpoints: 1 } } };
+    if (special) state = combat.toggleRuntimePlayerCombatSpecial(state, "local-player").state;
+    state = advance(combat.requestRuntimePlayerCombatAttack(state, "local-player", "opponent"));
+    const hit = state.queuedHits.find((entry) => entry.attackerId === "local-player") ??
+      state.events.find((entry) => entry.kind === "hitsplat" && entry.attackerId === "local-player");
+    if (hit && (miss ? hit.damage === 0 : hit.damage > 0)) return { state, damage: hit.damage };
+  }
+  throw new Error("Could not find deterministic attack fixture");
+}
+let runtimeCases = 0;
+for (const pid of [true, false]) {
+  for (const special of [false, true]) {
+    for (const [attackSet, skill] of [[0, "attack"], [1, "strength"], [3, "defence"]]) {
+      for (const lethal of [false, true]) {
+        let { state, damage } = attackCase({ pid, special, attackSet, lethal });
+        const label = `AGS PID=${pid}, special=${special}, style=${skill}, lethal=${lethal}`;
+        const render = overlaySession();
+        const drops = render(state);
+        assert(drops.length === 1, `${label}: expected one XP drop, got ${drops.length}`);
+        assert(drops[0].damage === damage && drops[0].xpTotal === Math.round(damage * 5.33), `${label}: incorrect XP or damage`);
+        assert(drops[0].skillIcons.map((icon) => icon.skillId).join(",") === `${skill},hitpoints`, `${label}: incorrect skill icons`);
+        assert(render(state).length === 1, `${label}: repeated frame duplicated the XP drop`);
+        state = combat.resetRuntimePlayerCombatActorTarget(state, "local-player");
+        while (state.queuedHits.length) state = advance(state);
+        assert(render(state).length === 1, `${label}: landing duplicated or lost the XP drop`);
+        assert(render(state, state.tick * 30 + 200).length === 0, `${label}: expired drop was re-emitted`);
+        assert(overlaySession()({ ...state, tick: state.tick + 2 }).length === 0, `${label}: historical hit replayed`);
+        runtimeCases += 1;
+      }
+    }
+  }
+}
+for (const pid of [true, false]) {
+  const { state } = attackCase({ pid, special: true, miss: true });
+  assert(overlaySession()(state).length === 0, "A missed AGS spec must not award XP");
+  const damageDrops = overlaySession()(state, 30, { ...xpConfig, trainerDisplayMode: "HIT" });
+  assert(damageDrops.length === 1 && damageDrops[0].text === "0", "HIT mode must still display a zero-damage AGS spec");
+  runtimeCases += 1;
+}
+let { state: rangedState } = attackCase({ ranged: true });
+const rangedRender = overlaySession();
+assert(rangedState.queuedHits.length === 1, "Ranged fixture should still be in flight");
+assert(rangedRender(rangedState).length === 1, "Ranged XP must appear before impact");
+rangedState = combat.resetRuntimePlayerCombatActorTarget(rangedState, "local-player");
+while (rangedState.queuedHits.length) rangedState = advance(rangedState);
+assert(rangedRender(rangedState).length === 1, "Ranged impact must not duplicate its pre-hit XP drop");
+assert(overlaySession()(rangedState, 30, xpConfig, false).length === 0, "Hidden XP counter must stay hidden");
+runtimeCases += 1;
+
+console.log(`RuneLite XP Drop verifier passed: source anchors and ${runtimeCases} combat-to-overlay regression cases.`);

@@ -11,7 +11,7 @@
       name="keywords"
       content="NH AI training OSRS, OSRS NH trainer, AI NH bot, OSRS PvP AI, tribrid practice bot, NH Trainer blog"
     />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png" />
     <title>NH Trainer Blog - NH AI Training Notes</title>
     <style>
       :root {
@@ -133,6 +133,30 @@
 
       <article>
         <section>
+          <h2>September 17, 2026 - input ordering and blood-spell healing</h2>
+          <p>
+            This update fixes a few cases where the client could lose or repeat an input around
+            a game tick:
+          </p>
+          <ul>
+            <li>Clicking Attack now replaces a queued manual spell while keeping configured autocast.</li>
+            <li>Eating and then equipping a two-handed weapon in the same tick works when the food frees the space needed for the switch.</li>
+            <li>Removing two pieces of equipment in one tick keeps both changes and puts each item in its own inventory slot.</li>
+            <li>Using an item on another inventory slot no longer also eats or equips the target when the mouse button is released.</li>
+          </ul>
+          <p>
+            Blood-spell healing now uses the equipment worn when the spell was cast. Switching away
+            from Zuriel's staff before the hit lands keeps its healing bonus; switching onto it
+            after casting does not add one.
+          </p>
+          <p>
+            You can also remove and restore the arena trees. Removing them opens their tiles for
+            movement and updates the minimap. Restoring them waits until both fighters and any
+            dropped items are clear of those tiles.
+          </p>
+        </section>
+
+        <section>
           <h2>August 2026 - the Elo league, and why teacher165 earned the spot</h2>
           <p>
             The big thing that happened since the last post is that I finally built a proper
@@ -164,9 +188,9 @@
             else, and if you can bet on "he's probably casting", you can pray against it far more
             often. And it cuts the other way too, though less obviously: Zuriel's staff is a 4-tick
             weapon, just like the DMM version of the staff, and it's naturally strong - a cast
-            often carries enough expected damage that attacking straight through their magic prayer
-            is genuinely the right call sometimes, accuracy penalty or not. That's an EV tradeoff,
-            not a habit.
+            often carries enough expected damage that casting through Protect from Magic can still
+            be the right call despite the damage reduction. Protect from Magic reduces damage in
+            PvP; it does not make the spell more likely to splash.
           </p>
           <p>
             The interesting part is that the league winner is not the one I shipped. First place is
@@ -295,23 +319,6 @@
             crossbow, close fake switches, one-tick and two-tick fakes, and delayed reactions. They
             are not the final goal. They are checks that catch obvious regressions while the neural
             model learns a wider fight.
-          </p>
-        </section>
-
-        <section>
-          <h2>Tiny signals are the interesting part</h2>
-          <p>
-            One thing I kept thinking about was why the DMM model was not clearly learning to take
-            off Torva helm for magic. I did a mechanics-only simulation with Augury on and the same
-            opponent setup, then compared a large number of casts with the helm on versus off. The
-            edge was real, but tiny: roughly a tenth of a damage per cast in expected value.
-          </p>
-          <p>
-            That is the kind of signal I am curious about now. I do not want to hard-code "take the
-            helm off" or "take the boots off" as a reward. I want the model to find those edges
-            because the outcomes are better over enough fights. The interesting question is how much
-            training it needs before it notices something that small, especially when the wrong timing
-            can make the same action bad.
           </p>
         </section>
 

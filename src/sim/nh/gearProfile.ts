@@ -89,13 +89,15 @@ const weaponItemById = {
   rune_crossbow: canonicalNhGear.runeCrossbow,
   magic_shortbow: canonicalNhGear.magicShortbow,
   dragon_crossbow: canonicalNhGear.dragonCrossbow,
+  webweaver_bow: canonicalNhGear.webweaverBow,
   tentacle_whip: canonicalNhLoadoutEquipment["tentacle-bandos"].weapon,
   abyssal_whip: canonicalNhGear.abyssalWhip,
   noxious_halberd: canonicalNhGear.noxiousHalberd,
   voidwaker: canonicalNhGear.voidwaker,
   vesta_longsword: canonicalNhGear.vestaLongsword,
   armadyl_godsword: canonicalNhLoadoutEquipment["ags-bandos"].weapon,
-  granite_maul: canonicalNhLoadoutEquipment["gmaul-bandos"].weapon
+  granite_maul: canonicalNhLoadoutEquipment["gmaul-bandos"].weapon,
+  elder_maul: canonicalNhGear.elderMaul
 } as const satisfies Readonly<Record<NhWeaponId, VisibleEquipmentItem>>;
 
 const vestaLongswordItemId = 22613;
@@ -300,9 +302,10 @@ export function nhGearProfileActionEquipment(input: {
       ? null
       : input.specialWeaponKind ?? nhGearProfileSpecialWeaponKind(input.profile, input.specialEnergy);
   if (specialWeaponKind === "granite_maul") {
+    const { shield: _shield, ...equipmentWithoutShield } = equipment;
     equipment = {
-      ...equipment,
-      weapon: weaponItemById.granite_maul
+      ...equipmentWithoutShield,
+      weapon: input.profile.ownedItems.find((item) => isNhGraniteMaulItemId(item.itemId)) ?? weaponItemById.granite_maul
     };
   } else if (specialWeaponKind === "armadyl_godsword") {
     const { shield: _shield, ...equipmentWithoutShield } = equipment;
@@ -364,6 +367,9 @@ export function nhGearProfileWeaponIdForEquipment(equipment: VisibleEquipment): 
   if (weaponItemId === undefined) {
     return null;
   }
+  if (isNhGraniteMaulItemId(weaponItemId)) {
+    return "granite_maul";
+  }
   for (const [weaponId, item] of Object.entries(weaponItemById) as [NhWeaponId, VisibleEquipmentItem][]) {
     if (item.itemId === weaponItemId) {
       return weaponId;
@@ -373,7 +379,7 @@ export function nhGearProfileWeaponIdForEquipment(equipment: VisibleEquipment): 
 }
 
 export function isNhGraniteMaulItemId(itemId: number): boolean {
-  return itemId === 4153 || itemId === 12848 || itemId === 20557;
+  return itemId === 4153 || itemId === 12848 || itemId === 20557 || itemId === 24225;
 }
 
 export function isNhArmadylGodswordItemId(itemId: number): boolean {

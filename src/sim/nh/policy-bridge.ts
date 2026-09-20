@@ -109,6 +109,30 @@ export type NhExplicitSpecIntent =
 export type NhSpecIntent = NhLegacySpecIntent | NhExplicitSpecIntent;
 export type NhSpecHistoryKind = "none" | "granite_maul" | "voidwaker" | "vesta_longsword" | "other";
 export type NhAttackIntent = "attack" | "hold" | "off_tick";
+export type NhRiskFightMainAction =
+  | "WAIT"
+  | "WEBWEAVER_ATTACK"
+  | "WEBWEAVER_SPEC"
+  | "GMAUL_ATTACK"
+  | "GMAUL_SPEC"
+  | "GMAUL_DOUBLE_SPEC"
+  | "GMAUL_PRELOAD"
+  | "GMAUL_RELEASE"
+  | "ELDER_ATTACK"
+  | "EAT_MARLIN"
+  | "EAT_SUMMER_PIE"
+  | "EAT_HALIBUT"
+  | "EAT_MARLIN_HALIBUT"
+  | "EAT_PIE_HALIBUT"
+  | "CAST_VENGEANCE"
+  | "SIP_SUPER_RANGING"
+  | "SIP_SUPER_COMBAT"
+  | "SIP_BREW"
+  | "SIP_SANFEW"
+  | "EQUIP_ULTOR"
+  | "EQUIP_RECOIL";
+export type NhRiskFightPrayerAction = "NONE" | "PROTECT_RANGED" | "PROTECT_MELEE";
+export type NhRiskFightMovementAction = "HOLD" | "STEP_CLOSER" | "STEP_AWAY";
 export type NhEquipmentIntent =
   | "style_loadout"
   | "weapon_only"
@@ -162,6 +186,10 @@ export interface NhPolicyAction {
   readonly attackIntent?: NhAttackIntent;
   readonly equipmentIntent?: NhEquipmentIntent;
   readonly directGearActions?: readonly NhDirectGearAction[];
+  /** Profile-gated risk-fight channels; stable NH/DMM decoders never set these. */
+  readonly riskFightMainAction?: NhRiskFightMainAction;
+  readonly riskFightPrayerAction?: NhRiskFightPrayerAction;
+  readonly riskFightMovementAction?: NhRiskFightMovementAction;
 }
 
 export const nhPolicyLegacyV12InputSize = 86;

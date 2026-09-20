@@ -107,7 +107,8 @@ export function nhProjectWorldPointToClientViewport(
   viewport: NhViewport,
   worldPosition: NhVector3Like
 ): NhViewportProjection | null {
-  const cameraOffset = nhClientCameraOffset(cameraState.angles, viewport.rect.height, cameraState.distanceZoom);
+  const projectionHeight = viewport.projectionHeight ?? viewport.rect.height;
+  const cameraOffset = nhClientCameraOffset(cameraState.angles, projectionHeight, cameraState.distanceZoom);
   const cameraX = nhSceneUnitsToClientInt(cameraState.target.x) - cameraOffset.x;
   const cameraY = nhSceneHeightToClientInt(cameraState.target.y) - cameraOffset.y;
   const cameraZ = nhSceneUnitsToClientInt(cameraState.target.z) - cameraOffset.z;
@@ -132,7 +133,7 @@ export function nhProjectWorldPointToClientViewport(
   }
 
   const width = Math.max(1, Math.trunc(viewport.rect.width));
-  const height = Math.max(1, Math.trunc(viewport.rect.height));
+  const height = Math.max(1, Math.trunc(projectionHeight));
   const scale = Math.max(1, Math.trunc(viewport.zoom));
   return {
     x: Math.trunc(width / 2) + Math.trunc((x * scale) / depth),

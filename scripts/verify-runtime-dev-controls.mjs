@@ -1,3 +1,4 @@
+import { readRuntimeViewerSource } from "./lib/runtime-viewer-source.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,7 +15,7 @@ function assert(condition, message) {
   }
 }
 
-const runtimeSource = read("src/ui/RuntimeSceneViewer.tsx");
+const runtimeSource = readRuntimeViewerSource();
 const cssSource = read("src/ui/styles.css");
 
 for (const anchor of [
@@ -27,7 +28,7 @@ for (const anchor of [
   "writeStoredAutoRetaliate(nextEnabled)",
   'NH_TEMPORARY_SAVED_SETUP_STORAGE_KEY = "nhTrainer.temporaryNhStakeSetup.v1"',
   "interface TemporarySavedSetupSnapshot",
-  "readTemporarySavedSetupSnapshot()",
+  "readTemporarySavedSetupSnapshot(runtimeSetupPresetIdRef.current)",
   "writeTemporarySavedSetupSnapshot(snapshot)",
   "applyTemporarySavedSetupSnapshot(snapshot, \"startup\")",
   "saveTemporaryCurrentSetup",
