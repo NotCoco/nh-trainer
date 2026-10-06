@@ -29,7 +29,6 @@ import {
   consumeRuntimePlayerCombatSupply,
   delayRuntimePlayerCombatActorAttack,
   requestRuntimePlayerCombatAttack,
-  resetRuntimePlayerCombatActorTarget,
   resetRuntimePlayerCombatActorPolicyDisengage,
   runtimePlayerCombatDefaultLevels,
   runtimePlayerCombatDefaultSupplies,
@@ -745,8 +744,14 @@ export function applyRuntimeOpponentPolicyAction(input: {
         state = delayRuntimePlayerCombatActorAttack(state, "opponent", 1);
       }
     }
-  } else if (attackIntent === "hold") {
-    state = resetRuntimePlayerCombatActorTarget(state, "opponent");
+  } else if (attackIntent === "hold" && effectiveAction.specIntent === "none") {
+    state = {
+      ...state,
+      actors: {
+        ...state.actors,
+        opponent: { ...state.actors.opponent, ordinaryAttackSuppressedTick: state.tick }
+      }
+    };
   }
 
   return {

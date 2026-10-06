@@ -110,6 +110,7 @@ export interface RuntimePlayerCombatActorState {
   readonly activePrayers: readonly PrayerId[];
   readonly locks: EntityLockState;
   readonly attackTimer: AttackTimerState;
+  readonly ordinaryAttackSuppressedTick?: number;
   readonly targetId: RuntimeActorId | null;
   readonly lastTargetId: RuntimeActorId | null;
   readonly lastTargetTimeoutTicks: number;
@@ -1309,6 +1310,7 @@ export function resetRuntimePlayerCombatActorPolicyFreshFight(
         activePrayers: [],
         locks: createEntityLockState(),
         attackTimer: createAttackTimerState(-100),
+        ordinaryAttackSuppressedTick: -1,
         targetId: null,
         lastTargetId: null,
         lastTargetTimeoutTicks: 0,
@@ -1926,6 +1928,12 @@ export function advanceRuntimePlayerCombat(
             queuedSpellId: null
           }
         };
+        continue;
+      }
+
+      // Source: PlayerCombat.suppressNhStakerOrdinaryAttackThisTick() preserves
+      // the target and route while suppressing only this tick's ordinary attack.
+      if (actor.ordinaryAttackSuppressedTick === currentTick) {
         continue;
       }
 

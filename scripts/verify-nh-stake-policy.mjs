@@ -165,6 +165,25 @@ assert(!noRoutePressure.opponentMovedThisTick, "Pressure must not bypass a block
 const noMovement = applyPolicy(pressureState, fixedController({ ...holdAction, movementIntent: "none" }));
 assert(!noMovement.opponentMovedThisTick, "An explicit no-movement action must remain stationary.");
 
+// Java HOLD suppresses one engine tick without clearing its current target.
+const targetedPressure = runtimeCombat.requestRuntimePlayerCombatAttack(pressureState, "opponent", "local-player");
+const heldTarget = applyPolicy(targetedPressure, fixedController(holdAction));
+assert(heldTarget.state.actors.opponent.targetId === "local-player",
+  "HOLD must preserve the existing combat target and its route.");
+const heldTick = runtimeCombat.advanceRuntimePlayerCombat(heldTarget.state, {
+  tiles: { "local-player": heldTarget.state.actors["local-player"].tile, opponent: heldTarget.opponentTile }, tileScale: 0.5
+}).state;
+assert(!heldTick.events.some(event => event.kind === "attack" && event.attackerId === "opponent" && event.tick === targetedPressure.tick),
+  "HOLD must suppress an ordinary auto-attack on the decision tick.");
+const resumedTick = runtimeCombat.advanceRuntimePlayerCombat(heldTick, {
+  tiles: { "local-player": heldTick.actors["local-player"].tile, opponent: heldTick.actors.opponent.tile }, tileScale: 0.5
+}).state;
+assert(resumedTick.events.some(event => event.kind === "attack" && event.attackerId === "opponent" && event.tick === heldTick.tick),
+  "HOLD suppression must expire on the next tick without cancelling the target or delaying the timer.");
+const freshHoldReset = runtimeCombat.resetRuntimePlayerCombatActorPolicyFreshFight(heldTarget.state, "opponent");
+assert(freshHoldReset.actors.opponent.ordinaryAttackSuppressedTick === -1,
+  "A fresh fight must clear suppression from the previous fight.");
+
 // Use the shipped NH model without exploration or replacing any model files.
 // Before the fix this seeded fight stopped attacking at tick 121, repeatedly
 // choosing PRESSURE + HOLD at eight tiles while the player kept attacking.
@@ -208,5 +227,6 @@ assert(resumedAttackTick !== null && resumedAttackTick - heldPressureTick <= 8,
 console.log(JSON.stringify({
   status: "ok", nhStakeOriginalActionLayout: true, frozenRangedAttack: true, candidateRanking: true,
   legacySpecials: true, legacyRewardInputScales: true, pressureApproach: true, movementGates: true,
+  holdPreservesTarget: true, holdSuppressesOnlyDecisionTick: true,
   shippedModelCounterattack: { heldPressureTick, resumedAttackTick }
 }, null, 2));
