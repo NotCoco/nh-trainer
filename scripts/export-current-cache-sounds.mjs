@@ -139,7 +139,7 @@ async function prepareSoundDecoderSources() {
     await mkdir(path.dirname(targetPath), { recursive: true });
     const source = await readFile(sourcePath, "utf8");
     const patchedSource = relativeSource.endsWith(path.join("sound", "InstrumentDefinition.java"))
-      ? patchInstrumentDefinitionClearLoop(source)
+      ? patchInstrumentDefinitionReleaseGate(patchInstrumentDefinitionClearLoop(source))
       : source;
     await writeFile(targetPath, patchedSource);
     preparedSources.push(targetPath);
@@ -160,6 +160,15 @@ function patchInstrumentDefinitionClearLoop(source) {
     throw new Error("unable to patch InstrumentDefinition clear loop for sound export");
   }
   return patched;
+}
+
+function patchInstrumentDefinitionReleaseGate(source) {
+  // Source: playable client Instrument.method2435 toggles the release gate each period.
+  // The cache library's decompile omits this toggle, silencing gated sounds entirely.
+  return source.replace(
+    /if \(\(var11 \+= 256\) >= var12\)\r?\n\t\t\t\t\{\r?\n\t\t\t\t\tvar11 = 0;/,
+    "$&\n\t\t\t\t\tvar20 = !var20;"
+  );
 }
 
 class CurrentCacheReader {

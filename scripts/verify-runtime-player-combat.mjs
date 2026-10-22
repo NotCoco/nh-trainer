@@ -715,6 +715,16 @@ assert(
     consumableSource.includes("player.privateSound(2401)"),
   "Nh combat sounds should come from WeaponType.attackSound, AGS special sound 3869, VLS source has animation 7515 but no explicit publicSound, and supplies use private eat/drink sounds 2393/2401"
 );
+for (const soundId of [2393, 2693, 2695]) {
+  const wav = readFileSync(path.join(projectRoot, "fixtures", "render", "sounds", `sound-${soundId}.wav`));
+  assert(
+    wav.toString("ascii", 0, 4) === "RIFF" &&
+      wav.toString("ascii", 8, 12) === "WAVE" &&
+      wav.toString("ascii", 36, 40) === "data" &&
+      wav.subarray(44, 44 + wav.readUInt32LE(40)).some((byte) => byte !== 0),
+    `food/bow sound ${soundId} must contain audible PCM data, not a silent WAV`
+  );
+}
 assert(
   specbarRedrawSource.includes("get_varp               301") &&
     specbarRedrawSource.includes("iconst                 16776960") &&
